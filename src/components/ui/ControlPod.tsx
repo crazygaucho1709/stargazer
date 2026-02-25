@@ -18,16 +18,18 @@ export const ControlPod = ({ title, children, size = "180px", glowColor = "rgba(
                 <Box position="relative">
                     <Text
                         className="hud-font"
-                        fontSize="10px"
+                        fontSize="9px"
                         fontWeight="900"
-                        letterSpacing="0.3em"
-                        color="whiteAlpha.600"
-                        bg="rgba(255,255,255,0.05)"
-                        px={3}
+                        letterSpacing="0.4em"
+                        color="whiteAlpha.700"
+                        bg="rgba(0,0,0,0.6)"
+                        px={4}
                         py={1}
-                        borderRadius="4px"
-                        borderLeft="2px solid"
-                        borderColor={accentColor}
+                        borderRadius="full"
+                        border="1px solid"
+                        borderColor="whiteAlpha.200"
+                        backdropFilter="blur(10px)"
+                        boxShadow={`0 0 10px ${glowColor}`}
                     >
                         {title.toUpperCase()}
                     </Text>
@@ -42,37 +44,42 @@ export const ControlPod = ({ title, children, size = "180px", glowColor = "rgba(
                 display="flex"
                 alignItems="center"
                 justifyContent="center"
-                transition="all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)"
+                transition="all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275)"
+                border="1px solid"
+                borderColor="whiteAlpha.200"
                 _hover={{
-                    transform: "scale(1.05)",
-                    boxShadow: `0 0 30px ${glowColor}, inset 0 0 20px rgba(0,0,0,0.5)`,
+                    transform: "scale(1.08)",
+                    boxShadow: `0 0 40px ${glowColor}, inset 0 0 25px rgba(0,0,0,0.6)`,
                     borderColor: accentColor
                 }}
             >
-                {/* HUD Corners for that tech feel */}
-                <Box className="hud-corner top-left" borderColor={accentColor} boxSize="12px" />
-                <Box className="hud-corner top-right" borderColor={accentColor} boxSize="12px" />
-                <Box className="hud-corner bottom-left" borderColor={accentColor} boxSize="12px" />
-                <Box className="hud-corner bottom-right" borderColor={accentColor} boxSize="12px" />
+                {/* HUD Decorative Arcs */}
+                <Box className="hud-arc hud-arc-top" inset="-8px" borderColor={accentColor} borderWidth="2px" opacity={0.4} style={{ animation: "spin 12s linear infinite" }} />
+                <Box className="hud-arc hud-arc-bottom" inset="-15px" borderColor={accentColor} borderWidth="1px" opacity={0.2} style={{ animation: "spin 25s linear infinite reverse" }} />
+
+                {/* Static HUD guides */}
+                <Box position="absolute" inset="0" borderRadius="full" border="1px solid" borderColor="whiteAlpha.100" pointerEvents="none" />
+                <Box position="absolute" inset="15%" borderRadius="full" border="1px dashed" borderColor="whiteAlpha.50" pointerEvents="none" />
 
                 {/* Rotating accent ring */}
                 <Box
                     position="absolute"
                     inset="-4px"
                     borderRadius="full"
-                    border="1px dashed"
-                    borderColor={accentColor}
+                    border="2px solid transparent"
+                    borderTopColor={accentColor}
+                    borderRightColor={accentColor}
                     opacity={0.3}
-                    style={{ animation: "spin 20s linear infinite" }}
+                    style={{ animation: "spin 15s cubic-bezier(0.4, 0, 0.2, 1) infinite" }}
                 />
 
-                {/* Inner Glow */}
+                {/* Inner Ambient Glow */}
                 <Box
                     position="absolute"
-                    inset="10px"
+                    inset="0"
                     borderRadius="full"
-                    bg={`radial-gradient(circle, ${glowColor} 0%, transparent 70%)`}
-                    opacity={0.15}
+                    bg={`radial-gradient(circle, ${glowColor} 0%, transparent 75%)`}
+                    opacity={0.2}
                     pointerEvents="none"
                 />
 
