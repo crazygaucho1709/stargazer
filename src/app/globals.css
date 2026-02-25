@@ -1,0 +1,103 @@
+/* src/app/globals.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 230, 230, 230;
+  --background-start-rgb: 5, 5, 5;
+  --background-end-rgb: 0, 0, 0;
+  --brand-red: #D00000;
+  --brand-amber: #FFB300;
+  --glass-bg: rgba(15, 15, 15, 0.75);
+  --glass-border: rgba(255, 255, 255, 0.1);
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  color: var(--foreground-rgb);
+  background: var(--background-end-rgb);
+  min-height: 100vh;
+  overflow-x: hidden;
+  font-family: 'Inter', sans-serif;
+}
+
+/* Glassmorphism Panel */
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+/* Red Glow Effect */
+.glow-red {
+  box-shadow: 0 0 20px rgba(208, 0, 0, 0.4);
+  border-color: rgba(208, 0, 0, 0.5);
+}
+
+.text-glow-red {
+  text-shadow: 0 0 10px rgba(208, 0, 0, 0.8);
+}
+
+.text-glow-amber {
+  text-shadow: 0 0 10px rgba(255, 179, 0, 0.8);
+}
+
+/* Animation for pulsating status */
+@keyframes status-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1.1);
+    opacity: 0.6;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.pulse {
+  animation: status-pulse 2s infinite ease-in-out;
+}
+
+/* Background Atmosphere */
+.nebula-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1;
+  background:
+    radial-gradient(circle at 80% 20%, rgba(208, 0, 0, 0.05) 0%, transparent 40%),
+    radial-gradient(circle at 20% 80%, rgba(255, 179, 0, 0.03) 0%, transparent 40%);
+  pointer-events: none;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--brand-red);
+  border-radius: 10px;
+}
