@@ -1,7 +1,7 @@
 // src/app/page.tsx
 "use client";
 
-import { Box, Flex, Grid, VStack, HStack, Text, Heading, Icon } from "@chakra-ui/react";
+import { Box, VStack, HStack, Text, Heading, Icon, Flex } from "@chakra-ui/react";
 import { TelescopeControls } from "@/components/telescope/TelescopeControls";
 import { CameraControls } from "@/components/camera/CameraControls";
 import { LiveView } from "@/components/viewport/LiveView";
@@ -9,15 +9,17 @@ import { useStargazerStore } from "@/store/useStargazerStore";
 import { useEffect, useState } from "react";
 import { mockApi } from "@/services/mockApi";
 import { ControlPod } from "@/components/ui/ControlPod";
-import { Scan, Thermometer, Wind, CloudRain, Sun } from "lucide-react";
+import { Scan, Thermometer, Zap, Activity, Globe, Radio } from "lucide-react";
 
 export default function Home() {
     const { setConnected } = useStargazerStore();
+    const [scrambledText, setScrambledText] = useState("INITIATING DATA LINK...");
 
     useEffect(() => {
         const checkConnection = async () => {
             const status = await mockApi.ping();
             setConnected(status);
+            setScrambledText(status ? "SYSTEM ONLINE // ENCRYPTED" : "LINK SEVERED // RECONNECTING");
         };
         checkConnection();
         const interval = setInterval(checkConnection, 10000);
@@ -25,138 +27,217 @@ export default function Home() {
     }, [setConnected]);
 
     return (
-        <Box minH="100vh" w="100%" bg="#000000" color="white" position="relative" display="flex" alignItems="center" justifyContent="center" py={10}>
-            {/* Dynamic Nebula Background */}
+        <Box minH="100vh" w="100%" bg="#000000" color="white" position="relative" overflow="hidden">
+            {/* Background Atmosphere */}
             <div className="nebula-bg" />
+            <div className="scanline" />
 
-            {/* Main Radial Architecture */}
-            <Box position="relative" zIndex={1} display="flex" alignItems="center" justifyContent="center">
+            {/* HEADER HUD */}
+            <Flex
+                position="absolute"
+                top="0"
+                left="0"
+                right="0"
+                h="60px"
+                px={10}
+                align="center"
+                justify="space-between"
+                borderBottom="1px solid"
+                borderColor="whiteAlpha.100"
+                bg="rgba(0,0,0,0.4)"
+                backdropFilter="blur(10px)"
+                zIndex={20}
+            >
+                <HStack gap={6}>
+                    <Box>
+                        <Heading size="xs" color="whiteAlpha.800" className="hud-font">STARGAZER_OS</Heading>
+                        <Text fontSize="7px" color="#00F0FF" letterSpacing="0.3em" fontWeight="bold">v4.2.0 // DEEP SPACE OPS</Text>
+                    </Box>
+                </HStack>
 
+                <HStack gap={10}>
+                    <VStack align="end" gap={0}>
+                        <Text fontSize="8px" color="whiteAlpha.400">CONNECTION STATUS</Text>
+                        <Text fontSize="10px" color="#00F0FF" fontWeight="bold" className="hud-font">{scrambledText}</Text>
+                    </VStack>
+                    <Icon as={Activity} boxSize={5} color="#00F0FF" className="pulse-cyan" />
+                </HStack>
+            </Flex>
+
+            {/* Main HUD Architecture */}
+            <Box
+                w="full"
+                h="100vh"
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+                position="relative"
+                pt="60px"
+            >
                 {/* CENTER: STAR MAP RADAR */}
-                <Box
-                    position="absolute"
-                    top="50%"
-                    left="50%"
-                    transform="translate(-50%, -50%)"
-                    zIndex={5}
-                >
+                <Box zIndex={5} scale={1.1}>
                     <LiveView />
                 </Box>
 
-                {/* TOP PODS */}
-                <Box position="absolute" top="20px" left="50px">
-                    <ControlPod title="Telescope" size="160px" accentColor="#D00000" glowColor="rgba(208, 0, 0, 0.2)">
+                {/* RADIAL CONTROL PODS */}
+                {/* TOP LEFT */}
+                <Box position="absolute" top="100px" left="20%">
+                    <ControlPod title="NAV_SYSTEM" size="140px" accentColor="#E60000" glowColor="rgba(230,0,0,0.2)">
                         <TelescopeControls variant="pad" />
                     </ControlPod>
                 </Box>
 
-                <Box position="absolute" top="20px" right="50px">
-                    <ControlPod title="Camera" size="160px" accentColor="#FF7D00" glowColor="rgba(255, 125, 0, 0.2)">
+                {/* TOP RIGHT */}
+                <Box position="absolute" top="100px" right="20%">
+                    <ControlPod title="IMAGING_ARRAY" size="140px" accentColor="#FFB300" glowColor="rgba(255,179,0,0.2)">
                         <CameraControls variant="circular" />
                     </ControlPod>
                 </Box>
 
-                {/* BOTTOM PODS */}
-                <Box position="absolute" bottom="20px" left="50px">
-                    <ControlPod title="Precision" size="180px" accentColor="#D00000" glowColor="rgba(208, 0, 0, 0.2)">
+                {/* BOTTOM LEFT */}
+                <Box position="absolute" bottom="100px" left="20%">
+                    <ControlPod title="PRECISION_DRIVE" size="160px" accentColor="#00F0FF" glowColor="rgba(0,240,255,0.2)">
                         <TelescopeControls variant="jog" />
                     </ControlPod>
                 </Box>
 
-                <Box position="absolute" bottom="20px" right="50px">
-                    <ControlPod title="Guiding" size="180px" accentColor="#FF7D00" glowColor="rgba(255, 125, 0, 0.2)">
+                {/* BOTTOM RIGHT */}
+                <Box position="absolute" bottom="100px" right="20%">
+                    <ControlPod title="GUIDING_SENSOR" size="160px" accentColor="#00F0FF" glowColor="rgba(0,240,255,0.2)">
                         <TelescopeControls variant="guiding" />
                     </ControlPod>
                 </Box>
 
-                {/* SIDE PANEL HUDs (Glass panels) */}
-                {/* Exposure/Gain Panel - Left */}
-                <Box
+                {/* SIDE TELEMETRY PANELS */}
+                {/* Left Panel */}
+                <VStack
                     position="absolute"
-                    left="0"
+                    left="40px"
                     top="50%"
                     transform="translateY(-50%)"
-                    w="140px"
-                    className="glass-panel"
-                    p="15px"
-                    borderRadius="15px"
+                    gap={6}
+                    w="180px"
                 >
-                    <VStack align="start" gap={4}>
-                        <Box w="full">
-                            <Text fontSize="8px" color="whiteAlpha.400" letterSpacing="0.1em" mb={1}>EXPOSURE</Text>
-                            <Text fontSize="12px" color="#D00000" fontWeight="bold">500 ms</Text>
-                            <Box w="full" h="2px" bg="whiteAlpha.100" mt={1} position="relative">
-                                <Box w="60%" h="full" bg="#D00000" />
+                    <Box w="full" className="glass-panel" p={4} borderRadius="4px" borderLeft="4px solid #E60000">
+                        <Text fontSize="8px" color="whiteAlpha.400" mb={3}>OPTICAL_SENSORS</Text>
+                        <VStack align="start" gap={4}>
+                            <Box w="full">
+                                <Flex justify="space-between" mb={1}>
+                                    <Text fontSize="9px">EXPOSURE</Text>
+                                    <Text fontSize="9px" color="#E60000">500ms</Text>
+                                </Flex>
+                                <Box w="full" h="2px" bg="whiteAlpha.100">
+                                    <Box w="60%" h="full" bg="#E60000" boxShadow="0 0 10px #E60000" />
+                                </Box>
                             </Box>
-                        </Box>
-                        <Box w="full">
-                            <Text fontSize="8px" color="whiteAlpha.400" letterSpacing="0.1em" mb={1}>GAIN</Text>
-                            <Text fontSize="12px" color="#D00000" fontWeight="bold">15</Text>
-                            <Box w="full" h="2px" bg="whiteAlpha.100" mt={1} position="relative">
-                                <Box w="30%" h="full" bg="#D00000" />
+                            <Box w="full">
+                                <Flex justify="space-between" mb={1}>
+                                    <Text fontSize="9px">ISO_GAIN</Text>
+                                    <Text fontSize="9px" color="#E60000">1200</Text>
+                                </Flex>
+                                <Box w="full" h="2px" bg="whiteAlpha.100">
+                                    <Box w="40%" h="full" bg="#E60000" boxShadow="0 0 10px #E60000" />
+                                </Box>
                             </Box>
-                        </Box>
-                    </VStack>
-                </Box>
+                        </VStack>
+                    </Box>
 
-                {/* Weather/Focuser Panel - Right */}
-                <Box
+                    <HStack w="full" className="glass-panel" p={3} borderRadius="4px" gap={4}>
+                        <Icon as={Zap} color="#FFB300" boxSize={4} />
+                        <Box>
+                            <Text fontSize="7px" color="whiteAlpha.400">POWER_LEVEL</Text>
+                            <Text fontSize="11px" fontWeight="bold">98.4%</Text>
+                        </Box>
+                    </HStack>
+                </VStack>
+
+                {/* Right Panel */}
+                <VStack
                     position="absolute"
-                    right="0"
+                    right="40px"
                     top="50%"
                     transform="translateY(-50%)"
-                    w="140px"
-                    className="glass-panel"
-                    p="15px"
-                    borderRadius="15px"
+                    gap={6}
+                    w="180px"
                 >
-                    <VStack align="start" gap={4}>
-                        <Box w="full">
-                            <Text fontSize="8px" color="whiteAlpha.400" letterSpacing="0.1em" mb={1}>FOCUSER</Text>
-                            <Text fontSize="12px" color="#FF7D00" fontWeight="bold">33.0</Text>
-                            <Box w="full" h="2px" bg="whiteAlpha.100" mt={1} position="relative">
-                                <Box w="80%" h="full" bg="#FF7D00" />
+                    <Box w="full" className="glass-panel" p={4} borderRadius="4px" borderRight="4px solid #00F0FF">
+                        <Text fontSize="8px" color="whiteAlpha.400" mb={3} textAlign="right">ENVIRONMENTAL_HUD</Text>
+                        <VStack align="end" gap={4}>
+                            <Box w="full">
+                                <Flex justify="space-between" mb={1}>
+                                    <Text fontSize="9px" color="#00F0FF">-5.2°C</Text>
+                                    <Text fontSize="9px">OUTSIDE</Text>
+                                </Flex>
+                                <Box w="full" h="2px" bg="whiteAlpha.100">
+                                    <Flex justify="end">
+                                        <Box w="30%" h="full" bg="#00F0FF" boxShadow="0 0 10px #00F0FF" />
+                                    </Flex>
+                                </Box>
                             </Box>
+                            <Box w="full">
+                                <Flex justify="space-between" mb={1}>
+                                    <Text fontSize="9px" color="#00F0FF">12%</Text>
+                                    <Text fontSize="9px">HUMIDITY</Text>
+                                </Flex>
+                                <Box w="full" h="2px" bg="whiteAlpha.100">
+                                    <Flex justify="end">
+                                        <Box w="12%" h="full" bg="#00F0FF" boxShadow="0 0 10px #00F0FF" />
+                                    </Flex>
+                                </Box>
+                            </Box>
+                        </VStack>
+                    </Box>
+
+                    <HStack w="full" className="glass-panel" p={3} borderRadius="4px" gap={4} justify="end">
+                        <Box textAlign="right">
+                            <Text fontSize="7px" color="whiteAlpha.400">SIGNAL_STRENGTH</Text>
+                            <Text fontSize="11px" fontWeight="bold">-42 dBm</Text>
                         </Box>
-                        <Box w="full">
-                            <Text fontSize="8px" color="whiteAlpha.400" letterSpacing="0.1em" mb={1}>WEATHER</Text>
-                            <HStack justify="space-between">
-                                <Text fontSize="12px" color="#FF7D00" fontWeight="bold">38%</Text>
-                                <Icon as={CloudRain} boxSize={3} color="whiteAlpha.400" />
-                            </HStack>
-                        </Box>
-                    </VStack>
-                </Box>
+                        <Icon as={Radio} color="#00F0FF" boxSize={4} />
+                    </HStack>
+                </VStack>
 
                 {/* BOTTOM TELEMETRY HUD */}
-                <Box
+                <Flex
                     position="absolute"
-                    bottom="-60px"
+                    bottom="30px"
                     left="50%"
                     transform="translateX(-50%)"
-                    w="500px"
-                    className="glass-panel"
-                    p="12px"
-                    borderRadius="15px"
+                    w="700px"
+                    justify="space-between"
+                    align="center"
+                    px={10}
                 >
-                    <HStack justify="center" gap={10}>
+                    <HStack gap={10}>
                         <HStack gap={3}>
+                            <Icon as={Globe} boxSize={5} color="whiteAlpha.400" />
                             <VStack align="start" gap={0}>
-                                <Text fontSize="7px" color="whiteAlpha.400">DEPTH</Text>
-                                <Text fontSize="xs" fontWeight="bold">80°</Text>
+                                <Text fontSize="7px" color="whiteAlpha.400">HORIZON_REF</Text>
+                                <Text fontSize="10px" className="hud-font">45.28N / 12.33E</Text>
                             </VStack>
-                            <Icon as={Scan} boxSize={4} color="whiteAlpha.400" />
                         </HStack>
-                        <Box w="1px" h="20px" bg="whiteAlpha.100" />
                         <HStack gap={3}>
+                            <Icon as={Thermometer} boxSize={5} color="whiteAlpha.400" />
                             <VStack align="start" gap={0}>
-                                <Text fontSize="7px" color="whiteAlpha.400">WEATHER</Text>
-                                <Text fontSize="xs" fontWeight="bold">30°</Text>
+                                <Text fontSize="7px" color="whiteAlpha.400">SENSOR_TEMP</Text>
+                                <Text fontSize="10px" className="hud-font">-12.0°C</Text>
                             </VStack>
-                            <Icon as={Thermometer} boxSize={4} color="whiteAlpha.400" />
                         </HStack>
                     </HStack>
-                </Box>
+
+                    <Box w="1px" h="30px" bg="whiteAlpha.200" />
+
+                    <HStack gap={8}>
+                        <VStack align="end" gap={0}>
+                            <Text fontSize="7px" color="whiteAlpha.400">SYSTEM_MEMORY</Text>
+                            <Text fontSize="xs">4.2 GB / 16.0 GB</Text>
+                        </VStack>
+                        <VStack align="end" gap={0}>
+                            <Text fontSize="7px" color="whiteAlpha.400">UPTIME</Text>
+                            <Text fontSize="xs">12:44:03</Text>
+                        </VStack>
+                    </HStack>
+                </Flex>
             </Box>
         </Box>
     );

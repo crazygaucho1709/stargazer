@@ -5,73 +5,125 @@
 
 :root {
   --foreground-rgb: 230, 230, 230;
-  --background-start-rgb: 5, 5, 5;
+  --background-start-rgb: 2, 2, 4;
   --background-end-rgb: 0, 0, 0;
-  --brand-red: #D00000;
+  --brand-red: #E60000;
+  --brand-cyan: #00F0FF;
   --brand-amber: #FFB300;
-  --glass-bg: rgba(15, 15, 15, 0.75);
-  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-bg: rgba(6, 6, 10, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.08);
 }
+
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=JetBrains+Mono:wght@400;700&display=swap');
 
 html,
 body {
   height: 100%;
   margin: 0;
   padding: 0;
+  background: black;
+  color: white;
+  overflow: hidden;
 }
 
 body {
-  color: var(--foreground-rgb);
-  background: var(--background-end-rgb);
-  min-height: 100vh;
-  overflow-x: hidden;
-  font-family: 'Inter', sans-serif;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+h1, h2, h3, .hud-font {
+  font-family: 'Orbitron', sans-serif;
+  letter-spacing: 0.1em;
 }
 
 /* Glassmorphism Panel */
 .glass-panel {
   background: var(--glass-bg);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(25px) saturate(160%);
+  -webkit-backdrop-filter: blur(25px) saturate(160%);
   border: 1px solid var(--glass-border);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  box-shadow: 
+    0 10px 40px rgba(0, 0, 0, 0.9),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+  position: relative;
+  overflow: hidden;
 }
 
-/* Red Glow Effect */
-.glow-red {
-  box-shadow: 0 0 20px rgba(208, 0, 0, 0.4);
-  border-color: rgba(208, 0, 0, 0.5);
+.glass-panel::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+}
+
+/* Animations */
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+.scanline {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: rgba(0, 240, 255, 0.05);
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+  z-index: 100;
+  pointer-events: none;
+  animation: scanline 8s linear infinite;
+}
+
+@keyframes star-flicker {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+.star {
+  position: absolute;
+  background: white;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+/* Technical HUD Borders */
+.hud-border {
+  position: absolute;
+  pointer-events: none;
+  border: 1px solid rgba(0, 240, 255, 0.2);
+}
+
+.hud-corner {
+  position: absolute;
+  width: 15px;
+  height: 15px;
+  border-color: var(--brand-cyan);
+  border-style: solid;
+}
+
+.top-left { top: -2px; left: -2px; border-width: 2px 0 0 2px; }
+.top-right { top: -2px; right: -2px; border-width: 2px 2px 0 0; }
+.bottom-left { bottom: -2px; left: -2px; border-width: 0 0 2px 2px; }
+.bottom-right { bottom: -2px; right: -2px; border-width: 0 2px 2px 0; }
+
+.text-glow-cyan {
+  text-shadow: 0 0 8px rgba(0, 240, 255, 0.6);
 }
 
 .text-glow-red {
-  text-shadow: 0 0 10px rgba(208, 0, 0, 0.8);
+  text-shadow: 0 0 8px rgba(230, 0, 0, 0.6);
 }
 
-.text-glow-amber {
-  text-shadow: 0 0 10px rgba(255, 179, 0, 0.8);
+.pulse-cyan {
+  animation: cyan-pulse 2s infinite ease-in-out;
 }
 
-/* Animation for pulsating status */
-@keyframes status-pulse {
-  0% {
-    transform: scale(1);
-    opacity: 1;
-  }
-
-  50% {
-    transform: scale(1.1);
-    opacity: 0.6;
-  }
-
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-.pulse {
-  animation: status-pulse 2s infinite ease-in-out;
+@keyframes cyan-pulse {
+  0%, 100% { opacity: 1; filter: drop-shadow(0 0 2px rgba(0,240,255,0.8)); }
+  50% { opacity: 0.6; filter: drop-shadow(0 0 8px rgba(0,240,255,0.4)); }
 }
 
 /* Background Atmosphere */
@@ -82,22 +134,9 @@ body {
   width: 100vw;
   height: 100vh;
   z-index: -1;
-  background:
-    radial-gradient(circle at 80% 20%, rgba(208, 0, 0, 0.05) 0%, transparent 40%),
-    radial-gradient(circle at 20% 80%, rgba(255, 179, 0, 0.03) 0%, transparent 40%);
+  background: 
+    radial-gradient(circle at 70% 30%, rgba(0, 80, 255, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 30% 70%, rgba(230, 0, 0, 0.05) 0%, transparent 50%),
+    radial-gradient(ellipse at center, #050510 0%, #000 100%);
   pointer-events: none;
-}
-
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 4px;
-}
-
-::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.2);
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--brand-red);
-  border-radius: 10px;
 }
