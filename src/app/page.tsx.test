@@ -1,0 +1,12 @@
+// src/app/page.tsx
+"use client";
+
+import { Box, Heading } from "@chakra-ui/react";
+
+export default function Home() {
+    return (
+        <Box p={10}>
+            <Heading color="white">STATION_ALFA // ONLINE</Heading>
+        </Box>
+    );
+}

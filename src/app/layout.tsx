@@ -13,9 +13,9 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
     children,
-}: Readonly<{
+}: {
     children: React.ReactNode;
-}>) {
+}) {
     return (
         <html lang="fr" suppressHydrationWarning style={{ height: "100%", margin: 0, padding: 0 }}>
             <body

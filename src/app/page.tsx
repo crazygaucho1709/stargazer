@@ -21,7 +21,8 @@ import {
     ShieldCheck,
     Satellite,
     Cpu,
-    Compass
+    Compass,
+    Globe
 } from "lucide-react";
 
 export default function Home() {
@@ -222,7 +223,6 @@ export default function Home() {
                 {/* CONFIGURATION TRIGGER */}
                 <ConfigurationMenu />
             </Box>
-
         </Box>
     );
 }
