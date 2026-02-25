@@ -130,7 +130,7 @@ export default function Home() {
                                 <Box w="full" mt={2}>
                                     <Text fontSize="7px" mb={1} textAlign="center" color="#FFB300" fontWeight="bold">AUTO_STACKING...</Text>
                                     <Progress value={stackProgress} size="xs" colorScheme="orange" borderRadius="full" bg="whiteAlpha.100" />
-                                </VStack>
+                                </Box>
                             )}
                             {!isExposing && (
                                 <HStack gap={2} opacity={0.5}>
@@ -178,7 +178,7 @@ export default function Home() {
                     </ControlPod>
                 </Box>
 
-                {/* SIDE TELEMETRY BUBBLES */}
+                {/* SIDE DATA BUBBLES */}
                 <Box position="absolute" left="6%" top="50%" transform="translateY(-50%)">
                     <VStack className="glass-panel" boxSize="110px" justify="center" p={4} border="1px solid #FFB300" bg="rgba(0,0,0,0.8)">
                         <Icon as={Zap} boxSize={6} color="#FFB300" />
@@ -223,12 +223,6 @@ export default function Home() {
                 <ConfigurationMenu />
             </Box>
 
-            <style jsx global>{`
-                @keyframes spin {
-                    from { transform: rotate(0deg); }
-                    to { transform: rotate(360deg); }
-                }
-            `}</style>
         </Box>
     );
 }

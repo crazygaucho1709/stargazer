@@ -49,19 +49,6 @@ export const ObservationSuggestions = () => {
                     </Flex>
                 ))}
             </VStack>
-
-            <style jsx>{`
-                .custom-scrollbar::-webkit-scrollbar {
-                    width: 2px;
-                }
-                .custom-scrollbar::-webkit-scrollbar-track {
-                    background: rgba(255, 255, 255, 0.05);
-                }
-                .custom-scrollbar::-webkit-scrollbar-thumb {
-                    background: rgba(0, 240, 255, 0.2);
-                    border-radius: 10px;
-                }
-            `}</style>
         </VStack>
     );
 };
