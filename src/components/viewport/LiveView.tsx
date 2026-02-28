@@ -14,12 +14,11 @@ export const LiveView = () => {
     return (
         <Box
             position="relative"
-            w="480px"
-            h="480px"
+            w="640px"
+            h="640px"
             borderRadius="full"
             p="4px"
-            bgGradient="linear(to-br, rgba(0, 240, 255, 0.4), transparent, rgba(230, 0, 0, 0.4))"
-            boxShadow="0 0 60px rgba(0, 240, 255, 0.1)"
+            boxShadow="0 0 60px rgba(255, 51, 51, 0.05)"
         >
             <Box
                 position="relative"
@@ -28,7 +27,7 @@ export const LiveView = () => {
                 borderRadius="full"
                 overflow="hidden"
                 bg="black"
-                className="glass-panel"
+                className="astro-panel"
                 border="1px solid whiteAlpha.200"
             >
                 {/* Background Image Switcher */}
@@ -54,27 +53,11 @@ export const LiveView = () => {
                     />
                 )}
 
-                {/* Radar Overlay Rings */}
-                <Box position="absolute" inset="0" pointerEvents="none">
-                    <Box className="radial-guide" w="80%" h="80%" opacity={0.1} />
-                    <Box className="radial-guide" w="60%" h="60%" opacity={0.05} />
-
-                    {/* Rotating Scanner */}
-                    <Box
-                        position="absolute"
-                        top="50%" left="50%"
-                        w="50%" h="1px"
-                        bgGradient="linear(to-r, transparent, rgba(0, 240, 255, 0.4))"
-                        transformOrigin="left"
-                        style={{ animation: "radar-sweep 8s linear infinite" }}
-                    />
-                </Box>
-
                 {/* Central Crosshair */}
                 <Flex
                     position="absolute" top="50%" left="50%"
                     transform="translate(-50%, -50%)"
-                    color={liveViewMode === "NASA" ? "#00F0FF" : "#E60000"}
+                    color={liveViewMode === "NASA" ? "var(--astro-teal)" : "var(--astro-gold)"}
                     opacity={0.4}
                     pointerEvents="none"
                 >
@@ -120,12 +103,12 @@ export const LiveView = () => {
                     <HStack gap={8}>
                         <VStack align="center" gap={0}>
                             <Text color="whiteAlpha.400" fontSize="7px" fontWeight="bold">RA_POS</Text>
-                            <Text color="#00F0FF" fontSize="14px" className="hud-font">{ra}</Text>
+                            <Text color="var(--astro-teal)" fontSize="14px" className="hud-font">{ra}</Text>
                         </VStack>
                         <Box w="1px" h="20px" bg="whiteAlpha.200" />
                         <VStack align="center" gap={0}>
                             <Text color="whiteAlpha.400" fontSize="7px" fontWeight="bold">DEC_VAL</Text>
-                            <Text color="#E60000" fontSize="14px" className="hud-font">{dec}</Text>
+                            <Text color="var(--astro-gold)" fontSize="14px" className="hud-font">{dec}</Text>
                         </VStack>
                     </HStack>
                 </VStack>
@@ -137,10 +120,6 @@ export const LiveView = () => {
             </Box>
 
             <style jsx global>{`
-                @keyframes radar-sweep {
-                    from { transform: rotate(0deg); }
-                    to { transform: rotate(360deg); }
-                }
                 @keyframes pulse {
                     from { opacity: 0.1; }
                     to { opacity: 0.2; }
