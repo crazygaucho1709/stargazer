@@ -9,7 +9,7 @@ interface CameraControlsProps {
     variant?: "standard" | "circular";
 }
 
-const ControlButton = ({ icon: DirIcon, glowColor = "#FF7D00" }: { icon: any, glowColor?: string }) => (
+const ControlButton = ({ icon: DirIcon, glowColor = "var(--astro-teal)" }: { icon: any, glowColor?: string }) => (
     <Button
         variant="plain"
         w="36px"
@@ -18,9 +18,10 @@ const ControlButton = ({ icon: DirIcon, glowColor = "#FF7D00" }: { icon: any, gl
         alignItems="center"
         justifyContent="center"
         borderRadius="full"
-        color="white"
+        color="var(--astro-starlight)"
         bg="rgba(255, 255, 255, 0.05)"
-        _hover={{ bg: glowColor, transform: "scale(1.1)", boxShadow: `0 0 15px ${glowColor}` }}
+        _hover={{ bg: "rgba(255, 255, 255, 0.1)", transform: "scale(1.1)", boxShadow: `0 0 15px ${glowColor}` }}
+        _active={{ bg: glowColor, color: "black" }}
         transition="all 0.2s"
         p={0}
     >
@@ -46,9 +47,9 @@ export const CameraControls = ({ variant = "standard" }: CameraControlsProps) =>
                     inset="0"
                     borderRadius="full"
                     border="4px solid"
-                    borderColor="whiteAlpha.100"
-                    bg="rgba(0,0,0,0.4)"
-                    boxShadow="inset 0 0 15px rgba(0,0,0,0.8)"
+                    borderColor="rgba(255, 255, 255, 0.05)"
+                    bg="rgba(10, 20, 40, 0.3)"
+                    boxShadow="inset 0 0 20px rgba(0, 0, 0, 0.8)"
                 />
 
                 {/* Central Camera Icon */}
@@ -60,19 +61,19 @@ export const CameraControls = ({ variant = "standard" }: CameraControlsProps) =>
                     w="46px"
                     h="46px"
                     borderRadius="full"
-                    bg="rgba(255,125,0,0.1)"
+                    bg={isExposing ? "var(--astro-teal)" : "rgba(255, 51, 51, 0.1)"}
                     border="1px solid"
-                    borderColor="#FF7D00"
+                    borderColor="var(--astro-teal)"
                     display="flex"
                     alignItems="center"
                     justifyContent="center"
                     cursor="pointer"
                     onClick={handleShoot}
-                    _hover={{ transform: "scale(1.1)", bg: "rgba(255,125,0,0.2)" }}
+                    _hover={{ transform: "scale(1.1)", bg: isExposing ? "var(--astro-teal)" : "rgba(255, 51, 51, 0.2)" }}
                     transition="all 0.2s"
-                    className={isExposing ? "pulse" : "glow-orange"}
+                    className={isExposing ? "pulse-glow" : ""}
                 >
-                    <Icon as={Camera} boxSize={5} color="#FF7D00" />
+                    <Icon as={Camera} boxSize={5} color={isExposing ? "black" : "var(--astro-teal)"} />
                 </Box>
 
                 {/* Focus Control Ring */}
@@ -82,8 +83,8 @@ export const CameraControls = ({ variant = "standard" }: CameraControlsProps) =>
                 <Box position="absolute" right="2px" top="50%" transform="translateY(-50%)"><ControlButton icon={ChevronRight} /></Box>
 
                 {/* Diagonal Decorative markers */}
-                <Box position="absolute" top="15%" left="15%" opacity={0.3}><Aperture size={12} /></Box>
-                <Box position="absolute" bottom="15%" right="15%" opacity={0.3}><Settings2 size={12} /></Box>
+                <Box position="absolute" top="15%" left="15%" opacity={0.3} color="var(--astro-starlight)"><Aperture size={12} /></Box>
+                <Box position="absolute" bottom="15%" right="15%" opacity={0.3} color="var(--astro-starlight)"><Settings2 size={12} /></Box>
             </Box>
         );
     }

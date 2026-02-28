@@ -1,29 +1,28 @@
-// src/theme/theme.ts
 import { createSystem, defineConfig } from "@chakra-ui/react";
 
 const config = defineConfig({
   theme: {
     tokens: {
       colors: {
-        brand: {
-          red: { value: "#D00000" },
-          orange: { value: "#FF7D00" },
-          amber: { value: "#FFB300" },
-          deep: { value: "#050505" },
-          glass: { value: "rgba(15, 15, 15, 0.7)" },
+        astro: {
+          teal: { value: "#FF3333" },
+          gold: { value: "#FFB347" },
+          cobalt: { value: "#1E3A8A" },
+          starlight: { value: "#E2E8F0" },
+          void: { value: "#030509" },
+          glass: { value: "rgba(10, 20, 40, 0.45)" },
+          glassHighlight: { value: "rgba(255, 51, 51, 0.15)" }
         },
       },
     },
     semanticTokens: {
       shadows: {
-        pod: { value: "0 10px 40px rgba(0, 0, 0, 0.8), inset 0 0 20px rgba(255, 255, 255, 0.05)" },
-        glowRed: { value: "0 0 20px rgba(208, 0, 0, 0.5)" },
-        glowOrange: { value: "0 0 20px rgba(255, 125, 0, 0.5)" },
+        astroGlowTeal: { value: "0 0 20px rgba(255, 51, 51, 0.4)" },
+        astroGlowGold: { value: "0 0 20px rgba(255, 179, 71, 0.4)" },
+        astroPanel: { value: "0 8px 32px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.05)" },
       },
     },
   },
 });
 
 export const system = createSystem(config);
-
-
