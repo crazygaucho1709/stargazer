@@ -1,165 +1,209 @@
 "use client";
 
-import { Box, VStack, HStack, Text, Icon, Flex } from "@chakra-ui/react";
+import { Box, VStack, HStack, Text, Icon, Flex, Grid } from "@chakra-ui/react";
 import { TelescopeControls } from "@/components/telescope/TelescopeControls";
 import { CameraControls } from "@/components/camera/CameraControls";
 import { LiveView } from "@/components/viewport/LiveView";
 import { AIAssistant } from "@/components/ai/AIAssistant";
 import { MountCalibration } from "@/components/telescope/MountCalibration";
 import { AstroPod } from "@/components/ui/AstroPod";
+import { ConfigurationMenu } from "@/components/ui/ConfigurationMenu";
 import { useStargazerStore } from "@/store/useStargazerStore";
+import { t } from "@/i18n/translations";
 import { useEffect, useState } from "react";
 import { mockApi } from "@/services/mockApi";
+import { useEnvironmentData } from "@/hooks/useEnvironmentData";
 import {
-    Activity, ShieldCheck, Database, Zap, Binary, Globe, Radio, Orbit
+    Activity, ShieldCheck, Database, Zap, Binary, Globe, Radio, Orbit, Clock, MapPin, Compass, Thermometer
 } from "lucide-react";
 
 export default function Home() {
-    const { setConnected, isExposing } = useStargazerStore();
-    const [statusText, setStatusText] = useState("ESTABLISHING LINK...");
+    const { setConnected, isExposing, alt, az, language } = useStargazerStore();
+    const [statusText, setStatusText] = useState(t("ESTABLISHING_LINK", language));
+    const envData = useEnvironmentData();
 
     useEffect(() => {
         const checkConnection = async () => {
-            const status = await mockApi.ping();
-            setConnected(status);
-            setStatusText(status ? "TELESCOPE SYNCED" : "LINK OFFLINE");
+            const res = await mockApi.ping(useStargazerStore.getState().config.astroberryUrl);
+            setConnected(res.success);
+            if (res.success) {
+                setStatusText(t("SYSTEM_ONLINE", language));
+            } else {
+                setStatusText(`${t("LINK_OFFLINE", language)} - ${res.error || 'Unknown Error'}`);
+            }
         };
         checkConnection();
         const interval = setInterval(checkConnection, 8000);
         return () => clearInterval(interval);
-    }, [setConnected]);
+    }, [setConnected, language]);
 
     return (
-        <Box minH="100vh" w="100%" position="relative" overflow="hidden">
-            {/* Background Atmosphere */}
-            <Box className="astro-grid" />
+        <Box h="100vh" w="100vw" position="relative" overflow="hidden" bg="#030509">
+            {/* Background Atmosphere & Viewport */}
+            <LiveView />
+            
+            {/* Vignette Overlay */}
+            <Box position="absolute" inset="0" pointerEvents="none" zIndex={1} bg="radial-gradient(circle at center, transparent 40%, rgba(3, 5, 9, 0.95) 100%)" />
 
-            {/* TOP HEADER */}
-            <Flex
-                position="absolute" top="0" w="full" h="70px" px={10}
-                align="center" justify="space-between" zIndex={50}
-                borderBottom="1px solid rgba(255, 255, 255, 0.05)"
-                bg="rgba(3, 5, 9, 0.7)" backdropFilter="blur(20px)"
-            >
-                <HStack gap={6}>
-                    <Icon as={Orbit} boxSize={7} color="var(--astro-teal)" className="pulse-glow" />
-                    <VStack align="start" gap={0}>
-                        <Text fontSize="18px" className="hud-font" color="var(--astro-starlight)">STARGAZER_OS</Text>
-                        <Text fontSize="10px" letterSpacing="0.2em" color="var(--astro-teal)" opacity={0.8}>REMOTE OBSERVATORY CONTROL</Text>
-                    </VStack>
-                </HStack>
-
-                <HStack gap={12}>
-                    <VStack align="end" gap={0}>
-                        <Text fontSize="8px" color="var(--astro-starlight)" opacity={0.6}>MOUNT</Text>
-                        <Text fontSize="11px" className="hud-font" color="var(--astro-teal)">NEXSTAR 4SE</Text>
-                    </VStack>
-                    <Box h="24px" w="1px" bg="rgba(255, 255, 255, 0.1)" />
-                    <VStack align="end" gap={0}>
-                        <Text fontSize="8px" color="var(--astro-starlight)" opacity={0.6}>IMAGER</Text>
-                        <Text fontSize="11px" className="hud-font" color="var(--astro-teal)">CANON EOS 650D</Text>
-                    </VStack>
-                    <Box h="24px" w="1px" bg="rgba(255, 255, 255, 0.1)" />
-                    <VStack align="end" gap={0}>
-                        <Text fontSize="8px" color="var(--astro-starlight)" opacity={0.6}>SYSTEM STATUS</Text>
-                        <Text fontSize="12px" className="hud-font" color={statusText.includes("SYNCED") ? "var(--astro-teal)" : "var(--astro-gold)"}>{statusText}</Text>
-                    </VStack>
-                </HStack>
-            </Flex>
-
-            {/* MAIN HUD INTERFACE */}
-            <Box w="full" h="100vh" display="flex" pt="70px" p={8} position="relative" justifyContent="center" alignItems="center">
+            {/* MAIN HUD INTERFACE - STRICT LAYOUT TO PREVENT OVERLAP */}
+            <Flex direction="column" h="full" w="full" position="relative" zIndex={20} pointerEvents="none">
                 
-                {/* LEFT COLUMN: Controls & Calibration */}
-                <VStack position="absolute" left="50px" top="110px" gap={8} align="flex-start" zIndex={20}>
-                    <AstroPod title="MOUNT CONTROL" width="320px" glowColor="teal">
-                        <VStack gap={5}>
-                            <TelescopeControls variant="pad" />
-                            <HStack justify="space-between" w="full" mt={2} fontSize="10px" color="var(--astro-starlight)" opacity={0.8}>
-                                <Text>TRACKING: SIDEREAL</Text>
-                                <Text>ERROR: 0.04&quot;</Text>
-                            </HStack>
+                {/* TOP HEADER PANEL */}
+                <Flex
+                    w="full" h="70px" px={8}
+                    align="center" justify="space-between"
+                    borderBottom="1px solid rgba(255, 255, 255, 0.05)"
+                    bg="rgba(3, 5, 9, 0.85)" backdropFilter="blur(20px)"
+                    pointerEvents="auto"
+                >
+                    <HStack gap={6}>
+                        <Icon as={Orbit} boxSize={7} color="var(--astro-teal)" className="pulse-glow" />
+                        <VStack align="start" gap={0}>
+                            <Text fontSize="18px" className="hud-font" color="var(--astro-starlight)" lineHeight={1}>{t("APP_TITLE", language)}</Text>
+                            <Text fontSize="9px" letterSpacing="0.2em" color="var(--astro-teal)" opacity={0.8}>{t("APP_SUBTITLE", language)}</Text>
                         </VStack>
-                    </AstroPod>
+                    </HStack>
 
-                    <AstroPod title="LIMITS CONFIG" width="320px" glowColor="gold">
-                        <MountCalibration />
-                    </AstroPod>
-                </VStack>
-
-                {/* CENTER HUB: Large Viewport */}
-                <Box zIndex={10} position="relative" transform="scale(1.15)">
-                    {/* Clean decorative rings */}
-                    <Box 
-                        position="absolute" inset="-30px" 
-                        border="1px solid rgba(255, 51, 51, 0.1)" borderRadius="full" 
-                        style={{ animation: 'spin 120s linear infinite' }}
-                    />
-                    <Box 
-                        position="absolute" inset="-60px" 
-                        border="1px dashed rgba(255, 255, 255, 0.05)" borderRadius="full" 
-                        style={{ animation: 'spin 80s linear reverse infinite' }}
-                    />
-                    <LiveView />
-                </Box>
-
-                {/* RIGHT COLUMN: Camera & Stats/Weather */}
-                <VStack position="absolute" right="50px" top="110px" gap={8} align="flex-end" zIndex={20}>
-                    <AstroPod title="IMAGING SENSOR" width="320px" glowColor="teal">
-                        <VStack gap={5} w="full">
-                            <CameraControls variant="circular" />
-                            <Box w="full" bg="rgba(0,0,0,0.3)" p={3} borderRadius="8px" borderLeft="2px solid var(--astro-teal)">
-                                <HStack justify="space-between" fontSize="10px" color="var(--astro-starlight)">
-                                    <Text>SENSOR TEMP: -15°C</Text>
-                                    <Text>COOLER: 85%</Text>
+                    {/* Environment & GPS Stats in Top Bar */}
+                    <HStack gap={8} opacity={0.9}>
+                        <HStack gap={3}>
+                            <Icon as={Clock} boxSize={4} color="var(--astro-starlight)" opacity={0.6}/>
+                            <VStack align="start" gap={0}>
+                                <Text fontSize="8px" color="var(--astro-starlight)" opacity={0.6}>{t("SYS_TIME", language)}</Text>
+                                <HStack gap={2}>
+                                    <Text fontSize="11px" className="hud-font" color="white">{envData.date || "---"}</Text>
+                                    <Text fontSize="11px" className="hud-font" color="var(--astro-teal)">{envData.time || t("SYNCING", language)}</Text>
                                 </HStack>
-                            </Box>
-                        </VStack>
-                    </AstroPod>
-
-                    <AstroPod title="OBSERVATION CONDITIONS" width="320px" glowColor="cobalt">
-                        <AIAssistant />
-                    </AstroPod>
-                </VStack>
-
-                {/* BOTTOM FLOATING BAR: Environmental Coordinates */}
-                <Box position="absolute" bottom="40px" left="50%" transform="translateX(-50%)" zIndex={60}>
-                    <HStack 
-                        className="astro-panel"
-                        px={8} py={3} borderRadius="full"
-                        gap={12}
-                    >
-                        <HStack gap={4}>
-                            <Icon as={Globe} boxSize={5} color="var(--astro-teal)" />
-                            <VStack align="start" gap={0}>
-                                <Text fontSize="8px" color="var(--astro-starlight)" opacity={0.6}>LOCATION</Text>
-                                <Text fontSize="11px" className="hud-font">OBSERVATORY_01</Text>
                             </VStack>
                         </HStack>
-                        <Box h="20px" w="1px" bg="rgba(255, 255, 255, 0.1)" />
-                        <HStack gap={4}>
-                            <Icon as={Radio} boxSize={5} color="var(--astro-teal)" />
+                        <Box h="24px" w="1px" bg="rgba(255, 255, 255, 0.1)" />
+                        
+                        <HStack gap={3}>
+                            <Icon as={MapPin} boxSize={4} color="var(--astro-starlight)" opacity={0.6}/>
                             <VStack align="start" gap={0}>
-                                <Text fontSize="8px" color="var(--astro-starlight)" opacity={0.6}>LATENCY</Text>
-                                <Text fontSize="11px" className="hud-font">12ms</Text>
+                                <Text fontSize="8px" color="var(--astro-starlight)" opacity={0.6}>{t("GPS_COORD", language)}</Text>
+                                <Text fontSize="11px" className="hud-font" color="var(--astro-teal)">
+                                    {envData.latitude !== null ? `${envData.latitude.toFixed(4)}°, ${envData.longitude?.toFixed(4)}°` : t("ACQUIRING", language)}
+                                </Text>
                             </VStack>
                         </HStack>
-                        <Box h="20px" w="1px" bg="rgba(255, 255, 255, 0.1)" />
-                        <HStack gap={4}>
-                            <Icon as={Activity} boxSize={5} color={isExposing ? "var(--astro-gold)" : "var(--astro-teal)"} />
+                        <Box h="24px" w="1px" bg="rgba(255, 255, 255, 0.1)" />
+
+                        <HStack gap={3}>
+                            <Icon as={Compass} boxSize={4} color="var(--astro-gold)" />
                             <VStack align="start" gap={0}>
-                                <Text fontSize="8px" color="var(--astro-starlight)" opacity={0.6}>SEQUENCE</Text>
-                                <Text fontSize="11px" className="hud-font">{isExposing ? "CAPTURING" : "STANDBY"}</Text>
+                                <Text fontSize="8px" color="var(--astro-starlight)" opacity={0.6}>{t("POSITION", language)}</Text>
+                                <Text fontSize="11px" className="hud-font" color="var(--astro-gold)">
+                                    {alt.toFixed(2)}° / {az.toFixed(2)}°
+                                </Text>
+                            </VStack>
+                        </HStack>
+                        <Box h="24px" w="1px" bg="rgba(255, 255, 255, 0.1)" />
+
+                        <HStack gap={3}>
+                            <Icon as={Thermometer} boxSize={4} color="var(--astro-starlight)" opacity={0.6} />
+                            <VStack align="start" gap={0}>
+                                <Text fontSize="8px" color="var(--astro-starlight)" opacity={0.6}>{t("EXT_WEATHER", language)}</Text>
+                                <Text fontSize="11px" className="hud-font" color="white">
+                                    {envData.weather ? `${envData.weather.temperature}°C, ${envData.weather.description}` : t("SCANNING", language)}
+                                </Text>
                             </VStack>
                         </HStack>
                     </HStack>
-                </Box>
-            </Box>
+
+                    <HStack gap={8}>
+                        <VStack align="end" gap={0}>
+                            <Text fontSize="8px" color="var(--astro-starlight)" opacity={0.6}>{t("SYSTEM_STATUS", language)}</Text>
+                            <HStack gap={2}>
+                                <Text fontSize="12px" className="hud-font" color={statusText.includes("ONLINE") ? "var(--astro-teal)" : "var(--astro-gold)"}>{statusText}</Text>
+                                <Box w="6px" h="6px" borderRadius="full" bg={statusText.includes("ONLINE") ? "var(--astro-teal)" : "var(--astro-gold)"} className="pulse-glow" />
+                            </HStack>
+                        </VStack>
+                        {/* Settings Button */}
+                        <Box pointerEvents="auto" position="relative" w="40px" h="40px">
+                            <ConfigurationMenu />
+                        </Box>
+                    </HStack>
+                </Flex>
+
+                {/* MIDDLE PANELS (Left and Right Columns) */}
+                <Flex flex={1} justify="space-between" align="stretch" p={8} pb={12}>
+                    
+                    {/* LEFT COLUMN: Controls & Mount */}
+                    <VStack w="360px" justify="space-between" align="stretch" h="full" pointerEvents="auto">
+                        <AstroPod title={t("MOUNT_NAVIGATOR", language)} glowColor="teal">
+                            <VStack gap={5}>
+                                <TelescopeControls variant="pad" />
+                                <HStack justify="space-between" w="full" mt={2} fontSize="10px" color="var(--astro-starlight)" opacity={0.8}>
+                                    <Text>{t("TRK", language)} {t("SIDEREAL", language)}</Text>
+                                    <Text>{t("ERR", language)} 0.04&quot;</Text>
+                                </HStack>
+                            </VStack>
+                        </AstroPod>
+
+                        <AstroPod title={t("LIMITS_CONFIG", language)} glowColor="gold">
+                            <MountCalibration />
+                        </AstroPod>
+                    </VStack>
+
+                    {/* CENTER EMPTY SPACE FOR VIEWPORT CROSSHAIRS */}
+                    <Flex flex={1} align="flex-end" justify="center" pb={10}>
+                        {/* Bottom Center Mini Bar */}
+                        <HStack 
+                            className="astro-panel"
+                            px={8} py={3} borderRadius="full"
+                            gap={10} pointerEvents="auto"
+                            bg="rgba(10, 20, 40, 0.85)" border="1px solid rgba(255,255,255,0.1)"
+                        >
+                            <HStack gap={4}>
+                                <Icon as={Radio} boxSize={4} color="var(--astro-teal)" />
+                                <VStack align="start" gap={0}>
+                                    <Text fontSize="8px" color="var(--astro-starlight)" opacity={0.6}>{t("LATENCY", language)}</Text>
+                                    <Text fontSize="11px" className="hud-font">12ms</Text>
+                                </VStack>
+                            </HStack>
+                            <Box h="16px" w="1px" bg="rgba(255, 255, 255, 0.1)" />
+                            <HStack gap={4}>
+                                <Icon as={Activity} boxSize={4} color={isExposing ? "var(--astro-gold)" : "var(--astro-teal)"} />
+                                <VStack align="start" gap={0}>
+                                    <Text fontSize="8px" color="var(--astro-starlight)" opacity={0.6}>{t("SEQUENCE", language)}</Text>
+                                    <Text fontSize="11px" className="hud-font" color={isExposing ? "var(--astro-gold)" : "white"}>
+                                        {isExposing ? t("CAPTURING", language) : t("STANDBY", language)}
+                                    </Text>
+                                </VStack>
+                            </HStack>
+                        </HStack>
+                    </Flex>
+
+                    {/* RIGHT COLUMN: Sensor & Oracle */}
+                    <VStack w="360px" justify="space-between" align="stretch" h="full" pointerEvents="auto">
+                        <AstroPod title={t("IMAGING_SENSOR", language)} glowColor="teal">
+                            <VStack gap={5} w="full">
+                                <CameraControls variant="circular" />
+                                <Box w="full" bg="rgba(0,0,0,0.3)" p={3} borderRadius="8px" borderLeft="2px solid var(--astro-teal)">
+                                    <HStack justify="space-between" fontSize="10px" color="var(--astro-starlight)">
+                                        <Text>{t("SENSOR_TEMP", language)} -15°C</Text>
+                                        <Text>{t("COOLER", language)} 85%</Text>
+                                    </HStack>
+                                </Box>
+                            </VStack>
+                        </AstroPod>
+
+                        <AstroPod title={t("METEO_ORACLE", language)} glowColor="cobalt">
+                            <AIAssistant />
+                        </AstroPod>
+                    </VStack>
+                </Flex>
+            </Flex>
 
             <style jsx global>{`
                 @keyframes spin {
                     from { transform: rotate(0deg); }
                     to { transform: rotate(360deg); }
+                }
+                .hud-font {
+                    font-family: 'Courier New', Courier, monospace;
+                    letter-spacing: 0.05em;
                 }
             `}</style>
         </Box>

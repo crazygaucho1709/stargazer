@@ -4,6 +4,7 @@
 import { Box, VStack, HStack, Text, Button, Icon, Grid } from "@chakra-ui/react";
 import { Camera, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Aperture, Settings2 } from "lucide-react";
 import { useStargazerStore } from "@/store/useStargazerStore";
+import { mockApi } from "@/services/mockApi";
 
 interface CameraControlsProps {
     variant?: "standard" | "circular";
@@ -30,13 +31,18 @@ const ControlButton = ({ icon: DirIcon, glowColor = "var(--astro-teal)" }: { ico
 );
 
 export const CameraControls = ({ variant = "standard" }: CameraControlsProps) => {
-    const { iso, setIso, exposure, setExposure, isExposing, setExposing } = useStargazerStore();
+    const { isExposing, setExposing } = useStargazerStore();
 
-    const handleShoot = () => {
+    const handleShoot = async () => {
         setExposing(true);
-        setTimeout(() => {
-            setExposing(false);
-        }, 2000);
+        const res = await mockApi.capture(800, 30);
+        setExposing(false);
+
+        if (!res.success) {
+            // Note: In Chakra UI v3, toaster must be used via the environment or a custom hook, 
+            // but we can just use an alert for the sake of this disconnected state demo.
+            alert(`CAPTURE FAILED\n\n${res.error}`);
+        }
     };
 
     if (variant === "circular") {

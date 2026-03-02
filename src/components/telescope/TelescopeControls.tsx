@@ -1,9 +1,10 @@
 // src/components/telescope/TelescopeControls.tsx
 "use client";
 
-import { Box, Grid, Button, VStack, HStack, Circle, Icon, Flex } from "@chakra-ui/react";
+import { Box, Grid, Button, VStack, HStack, Circle, Icon, Flex, Text } from "@chakra-ui/react";
 import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Target, RotateCcw } from "lucide-react";
 import { useStargazerStore } from "@/store/useStargazerStore";
+import { mockApi } from "@/services/mockApi";
 
 interface TelescopeControlsProps {
     variant: "pad" | "jog" | "guiding";
@@ -31,7 +32,7 @@ const PadButton = ({ icon: DirIcon, glowColor = "var(--astro-teal)", onClick }: 
 );
 
 export const TelescopeControls = ({ variant }: TelescopeControlsProps) => {
-    const { isSlewing, setSlewing, ra, dec, setPosition } = useStargazerStore();
+    const { isSlewing, setSlewing, ra, dec, alt, az, setPosition } = useStargazerStore();
 
     const parseCoordinate = (coord: string) => {
         const parts = coord.match(/[-+]?\d+/g);
@@ -45,10 +46,9 @@ export const TelescopeControls = ({ variant }: TelescopeControlsProps) => {
         return { h: 0, m: 0, s: 0 };
     };
 
-    const handleMove = (direction: 'up' | 'down' | 'left' | 'right') => {
+    const handleMove = async (direction: 'up' | 'down' | 'left' | 'right') => {
         setSlewing(true);
-        setTimeout(() => setSlewing(false), 500);
-
+        
         let raParsed = parseCoordinate(ra);
         let decParsed = parseCoordinate(dec);
         
@@ -66,22 +66,48 @@ export const TelescopeControls = ({ variant }: TelescopeControlsProps) => {
         const newRa = `${pad(raParsed.h)}h ${pad(raParsed.m)}m ${pad(raParsed.s)}s`;
         const newDec = `${sign}${pad(Math.abs(decParsed.h))}° ${pad(Math.abs(decParsed.m))}' ${pad(Math.abs(decParsed.s))}"`;
         
-        setPosition(newRa, newDec, newAlt, newAz);
+        const res = await mockApi.slew(newRa, newDec);
+        setSlewing(false);
+
+        if (res.success) {
+            setPosition(newRa, newDec, newAlt, newAz);
+        } else {
+            alert(`SLEW ERROR\n\n${res.error}`);
+        }
     };
 
     if (variant === "pad") {
         return (
-            <Grid templateColumns="repeat(3, 40px)" templateRows="repeat(3, 40px)" gap={3}>
-                <Box gridColumn="2"><PadButton icon={ChevronUp} onClick={() => handleMove('up')} /></Box>
-                <Box gridRow="2" gridColumn="1"><PadButton icon={ChevronLeft} onClick={() => handleMove('left')} /></Box>
-                <Box gridRow="2" gridColumn="2" display="flex" alignItems="center" justifyContent="center">
-                    <Circle size="34px" border="2px solid" borderColor={isSlewing ? "var(--astro-gold)" : "var(--astro-teal)"} className={isSlewing ? "pulse-glow" : ""}>
-                        <Icon as={Target} boxSize={4} color={isSlewing ? "var(--astro-gold)" : "var(--astro-teal)"} />
-                    </Circle>
+            <Box position="relative" w="180px" h="180px" display="flex" alignItems="center" justifyContent="center">
+                {/* Compass background rings */}
+                <Box position="absolute" inset="0" borderRadius="full" border="1px solid rgba(255,255,255,0.05)" />
+                <Box position="absolute" inset="20px" borderRadius="full" border="1px dashed rgba(255, 51, 51, 0.2)" style={{ animation: 'spin 40s linear infinite' }} />
+                
+                {/* Cardinal markers */}
+                <Text position="absolute" top="2px" fontSize="8px" color="whiteAlpha.400" fontWeight="bold">N</Text>
+                <Text position="absolute" bottom="2px" fontSize="8px" color="whiteAlpha.400" fontWeight="bold">S</Text>
+                <Text position="absolute" left="4px" fontSize="8px" color="whiteAlpha.400" fontWeight="bold">W</Text>
+                <Text position="absolute" right="4px" fontSize="8px" color="whiteAlpha.400" fontWeight="bold">E</Text>
+
+                {/* Directional Pads positioned in a circle */}
+                <Box position="absolute" top="15px">
+                    <PadButton icon={ChevronUp} onClick={() => handleMove('up')} />
                 </Box>
-                <Box gridRow="2" gridColumn="3"><PadButton icon={ChevronRight} onClick={() => handleMove('right')} /></Box>
-                <Box gridRow="3" gridColumn="2"><PadButton icon={ChevronDown} onClick={() => handleMove('down')} /></Box>
-            </Grid>
+                <Box position="absolute" bottom="15px">
+                    <PadButton icon={ChevronDown} onClick={() => handleMove('down')} />
+                </Box>
+                <Box position="absolute" left="15px">
+                    <PadButton icon={ChevronLeft} onClick={() => handleMove('left')} />
+                </Box>
+                <Box position="absolute" right="15px">
+                    <PadButton icon={ChevronRight} onClick={() => handleMove('right')} />
+                </Box>
+
+                {/* Central Target / Slewing Indicator */}
+                <Circle size="46px" border="2px solid" bg="rgba(10, 20, 40, 0.8)" borderColor={isSlewing ? "var(--astro-gold)" : "var(--astro-teal)"} className={isSlewing ? "pulse-glow" : ""} zIndex={2}>
+                    <Icon as={Target} boxSize={5} color={isSlewing ? "var(--astro-gold)" : "var(--astro-teal)"} />
+                </Circle>
+            </Box>
         );
     }
 

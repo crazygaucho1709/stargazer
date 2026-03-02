@@ -41,7 +41,7 @@ export const ObservationSuggestions = () => {
                         <HStack gap={3}>
                             <Icon as={Target} boxSize={3} color="whiteAlpha.400" />
                             <VStack align="start" gap={0}>
-                                <Text fontSize="10px" fontWeight="bold" noOfLines={1}>{target.name}</Text>
+                                <Text fontSize="10px" fontWeight="bold" lineClamp={1}>{target.name}</Text>
                                 <Text fontSize="8px" color="whiteAlpha.400">{target.type}</Text>
                             </VStack>
                         </HStack>
