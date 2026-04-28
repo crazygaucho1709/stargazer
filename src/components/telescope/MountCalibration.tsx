@@ -1,14 +1,16 @@
 "use client";
 
-import { Box, VStack, HStack, Text, Button, Icon, Progress } from "@chakra-ui/react";
-import { MoveUpRight, Settings, AlertTriangle, CheckCircle2, ChevronRight } from "lucide-react";
+import { Box, VStack, HStack, Text, Button, Icon } from "@chakra-ui/react";
+import { MoveUpRight, Settings, AlertTriangle, ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from "lucide-react";
 import { useState } from "react";
 import { useStargazerStore } from "@/store/useStargazerStore";
 import { t } from "@/i18n/translations";
+import { mockApi } from "@/services/mockApi";
 
 export const MountCalibration = () => {
-    const { mountLimits, setMountLimits, alt, az, language } = useStargazerStore();
+    const { mountLimits, setMountLimits, alt, az, language, setSlewing } = useStargazerStore();
     const [step, setStep] = useState<"idle" | "maxAlt" | "minAlt" | "maxAz" | "minAz">("idle");
+    const [isMoving, setIsMoving] = useState(false);
 
     const handleSaveLimit = () => {
         if (step === "maxAlt") {
@@ -23,6 +25,26 @@ export const MountCalibration = () => {
         } else if (step === "minAz") {
             setMountLimits({ minAz: az });
             setStep("idle");
+        }
+    };
+
+    const moveMount = async (direction: 'up' | 'down' | 'left' | 'right', duration: number = 500) => {
+        setIsMoving(true);
+        setSlewing(true);
+        await mockApi.startMotion(direction);
+        await new Promise(r => setTimeout(r, duration));
+        await mockApi.stopMotion(direction);
+        setSlewing(false);
+        setIsMoving(false);
+    };
+
+    const getStepHint = () => {
+        switch (step) {
+            case "maxAlt": return language === 'fr' ? "Montez au maximum" : "Move to max altitude";
+            case "minAlt": return language === 'fr' ? "Descendez au minimum" : "Move to min altitude";
+            case "maxAz": return language === 'fr' ? "Tournez à droite" : "Rotate right";
+            case "minAz": return language === 'fr' ? "Tournez à gauche" : "Rotate left";
+            default: return "";
         }
     };
 
@@ -81,6 +103,23 @@ export const MountCalibration = () => {
                         <Text fontSize="10px" fontWeight="bold" color="var(--astro-gold)">{step.toUpperCase()}</Text>
                     </HStack>
                     <Text fontSize="10px" lineHeight={1.4}>{getStepInstruction()}</Text>
+                    <Text fontSize="9px" color="var(--astro-teal)" fontStyle="italic">{getStepHint()}</Text>
+                    
+                    <HStack justify="center" gap={2} py={2}>
+                        {step.includes("Alt") ? (
+                            <VStack gap={1}>
+                                <Button size="sm" variant="outline" borderColor="var(--astro-teal)" color="var(--astro-teal)" w="50px" h="40px" onClick={() => moveMount('up', 500)} disabled={isMoving}><ArrowUp size={16} /></Button>
+                                <Text fontSize="8px" opacity={0.6}>UP</Text>
+                                <Button size="sm" variant="outline" borderColor="var(--astro-teal)" color="var(--astro-teal)" w="50px" h="40px" onClick={() => moveMount('down', 500)} disabled={isMoving}><ArrowDown size={16} /></Button>
+                            </VStack>
+                        ) : (
+                            <HStack gap={1}>
+                                <Button size="sm" variant="outline" borderColor="var(--astro-teal)" color="var(--astro-teal)" w="50px" h="40px" onClick={() => moveMount('left', 500)} disabled={isMoving}><ArrowLeft size={16} /></Button>
+                                <Text fontSize="8px" opacity={0.6}>AZ</Text>
+                                <Button size="sm" variant="outline" borderColor="var(--astro-teal)" color="var(--astro-teal)" w="50px" h="40px" onClick={() => moveMount('right', 500)} disabled={isMoving}><ArrowRight size={16} /></Button>
+                            </HStack>
+                        )}
+                    </HStack>
                     
                     <HStack justify="space-between" bg="#030509" p={2} borderRadius="4px" border="1px solid rgba(255,255,255,0.05)">
                         <VStack align="start" gap={0}>
@@ -93,6 +132,7 @@ export const MountCalibration = () => {
                             size="sm" bg="var(--astro-teal)" color="black"
                             _hover={{ bg: "white" }}
                             onClick={handleSaveLimit}
+                            disabled={isMoving}
                         >
                             {t("CALIB_VALIDATE", language)}
                         </Button>
@@ -101,6 +141,7 @@ export const MountCalibration = () => {
                     <Button 
                         size="xs" variant="ghost" color="whiteAlpha.600" mt={1}
                         onClick={() => setStep("idle")}
+                        disabled={isMoving}
                     >
                         {t("CALIB_CANCEL", language)}
                     </Button>

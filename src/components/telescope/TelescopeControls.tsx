@@ -3,6 +3,7 @@
 
 import { Box, Grid, Button, VStack, HStack, Circle, Icon, Flex, Text } from "@chakra-ui/react";
 import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Target, RotateCcw } from "lucide-react";
+import React from "react";
 import { useStargazerStore } from "@/store/useStargazerStore";
 import { mockApi } from "@/services/mockApi";
 
@@ -10,7 +11,18 @@ interface TelescopeControlsProps {
     variant: "pad" | "jog" | "guiding";
 }
 
-const PadButton = ({ icon: DirIcon, glowColor = "var(--astro-teal)", onClick }: { icon: any, glowColor?: string, onClick?: () => void }) => (
+interface PadButtonProps {
+    icon: any;
+    glowColor?: string;
+    onClick?: () => void;
+    onMouseDown?: () => void;
+    onMouseUp?: () => void;
+    onMouseLeave?: () => void;
+    onTouchStart?: () => void;
+    onTouchEnd?: () => void;
+}
+
+const PadButton = ({ icon: DirIcon, glowColor = "var(--astro-teal)", onClick, onMouseDown, onMouseUp, onMouseLeave, onTouchStart, onTouchEnd }: PadButtonProps) => (
     <Button
         variant="plain"
         w="40px"
@@ -26,6 +38,11 @@ const PadButton = ({ icon: DirIcon, glowColor = "var(--astro-teal)", onClick }: 
         transition="all 0.2s"
         p={0}
         onClick={onClick}
+        onMouseDown={onMouseDown}
+        onMouseUp={onMouseUp}
+        onMouseLeave={onMouseLeave}
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
     >
         <DirIcon size={20} />
     </Button>
@@ -33,6 +50,28 @@ const PadButton = ({ icon: DirIcon, glowColor = "var(--astro-teal)", onClick }: 
 
 export const TelescopeControls = ({ variant }: TelescopeControlsProps) => {
     const { isSlewing, setSlewing, ra, dec, alt, az, setPosition } = useStargazerStore();
+    const activeDirectionRef = React.useRef<'up' | 'down' | 'left' | 'right' | null>(null);
+    const [slewRate, setSlewRate] = React.useState(5);
+
+    const handleRateChange = async (value: number) => {
+        const wasMoving = activeDirectionRef.current !== null;
+        
+        // Stop motion if currently moving
+        if (wasMoving) {
+            await mockApi.stopMotion(activeDirectionRef.current);
+            setSlewing(false);
+        }
+        
+        // Change slew rate
+        setSlewRate(value);
+        await mockApi.setSlewRate(value);
+        
+        // Restart motion if it was moving
+        if (wasMoving && activeDirectionRef.current) {
+            await mockApi.startMotion(activeDirectionRef.current);
+            setSlewing(true);
+        }
+    };
 
     const parseCoordinate = (coord: string) => {
         const parts = coord.match(/[-+]?\d+/g);
@@ -46,19 +85,35 @@ export const TelescopeControls = ({ variant }: TelescopeControlsProps) => {
         return { h: 0, m: 0, s: 0 };
     };
 
-    const handleMove = async (direction: 'up' | 'down' | 'left' | 'right') => {
+    const handleMoveStart = async (direction: 'up' | 'down' | 'left' | 'right') => {
+        activeDirectionRef.current = direction;
         setSlewing(true);
         
+        const res = await mockApi.startMotion(direction);
+        
+        if (!res.success) {
+            alert(`SLEW ERROR\n\n${res.error}`);
+            setSlewing(false);
+        }
+    };
+
+    const handleMoveStop = async () => {
+        const direction = activeDirectionRef.current;
+        if (!direction) return;
+        
+        activeDirectionRef.current = null;
+        
+        // Update position for UI feedback
         let raParsed = parseCoordinate(ra);
         let decParsed = parseCoordinate(dec);
-        
         let newAlt = alt;
         let newAz = az;
 
-        if (direction === 'up') { decParsed.m += 1; newAlt = Math.min(90, newAlt + 0.5); }
-        if (direction === 'down') { decParsed.m -= 1; newAlt = Math.max(0, newAlt - 0.5); }
-        if (direction === 'right') { raParsed.m += 1; newAz = (newAz + 1) % 360; }
-        if (direction === 'left') { raParsed.m -= 1; newAz = (newAz - 1 + 360) % 360; }
+        // Estimate position change based on movement duration
+        if (direction === 'up') { decParsed.m += 2; newAlt = Math.min(90, newAlt + 1); }
+        if (direction === 'down') { decParsed.m -= 2; newAlt = Math.max(0, newAlt - 1); }
+        if (direction === 'right') { raParsed.m += 2; newAz = (newAz + 2) % 360; }
+        if (direction === 'left') { raParsed.m -= 2; newAz = (newAz - 2 + 360) % 360; }
 
         const pad = (num: number) => String(num).padStart(2, '0');
         const sign = decParsed.h >= 0 ? '+' : '-';
@@ -66,14 +121,9 @@ export const TelescopeControls = ({ variant }: TelescopeControlsProps) => {
         const newRa = `${pad(raParsed.h)}h ${pad(raParsed.m)}m ${pad(raParsed.s)}s`;
         const newDec = `${sign}${pad(Math.abs(decParsed.h))}° ${pad(Math.abs(decParsed.m))}' ${pad(Math.abs(decParsed.s))}"`;
         
-        const res = await mockApi.slew(newRa, newDec);
+        await mockApi.stopMotion(direction);
         setSlewing(false);
-
-        if (res.success) {
-            setPosition(newRa, newDec, newAlt, newAz);
-        } else {
-            alert(`SLEW ERROR\n\n${res.error}`);
-        }
+        setPosition(newRa, newDec, newAlt, newAz);
     };
 
     if (variant === "pad") {
@@ -91,22 +141,78 @@ export const TelescopeControls = ({ variant }: TelescopeControlsProps) => {
 
                 {/* Directional Pads positioned in a circle */}
                 <Box position="absolute" top="15px">
-                    <PadButton icon={ChevronUp} onClick={() => handleMove('up')} />
+                    <PadButton 
+                        icon={ChevronUp} 
+                        onMouseDown={() => handleMoveStart('up')}
+                        onMouseUp={handleMoveStop}
+                        onMouseLeave={handleMoveStop}
+                        onTouchStart={() => handleMoveStart('up')}
+                        onTouchEnd={handleMoveStop}
+                    />
                 </Box>
                 <Box position="absolute" bottom="15px">
-                    <PadButton icon={ChevronDown} onClick={() => handleMove('down')} />
+                    <PadButton 
+                        icon={ChevronDown}
+                        onMouseDown={() => handleMoveStart('down')}
+                        onMouseUp={handleMoveStop}
+                        onMouseLeave={handleMoveStop}
+                        onTouchStart={() => handleMoveStart('down')}
+                        onTouchEnd={handleMoveStop}
+                    />
                 </Box>
                 <Box position="absolute" left="15px">
-                    <PadButton icon={ChevronLeft} onClick={() => handleMove('left')} />
+                    <PadButton 
+                        icon={ChevronLeft}
+                        onMouseDown={() => handleMoveStart('left')}
+                        onMouseUp={handleMoveStop}
+                        onMouseLeave={handleMoveStop}
+                        onTouchStart={() => handleMoveStart('left')}
+                        onTouchEnd={handleMoveStop}
+                    />
                 </Box>
                 <Box position="absolute" right="15px">
-                    <PadButton icon={ChevronRight} onClick={() => handleMove('right')} />
+                    <PadButton 
+                        icon={ChevronRight}
+                        onMouseDown={() => handleMoveStart('right')}
+                        onMouseUp={handleMoveStop}
+                        onMouseLeave={handleMoveStop}
+                        onTouchStart={() => handleMoveStart('right')}
+                        onTouchEnd={handleMoveStop}
+                    />
                 </Box>
 
                 {/* Central Target / Slewing Indicator */}
                 <Circle size="46px" border="2px solid" bg="rgba(10, 20, 40, 0.8)" borderColor={isSlewing ? "var(--astro-gold)" : "var(--astro-teal)"} className={isSlewing ? "pulse-glow" : ""} zIndex={2}>
                     <Icon as={Target} boxSize={5} color={isSlewing ? "var(--astro-gold)" : "var(--astro-teal)"} />
                 </Circle>
+
+                {/* Slew Rate Slider */}
+                <Box position="absolute" bottom="-50px" w="160px">
+                    <Flex justify="space-between" mb={1}>
+                        <Text fontSize="10px" color="whiteAlpha.600">1x</Text>
+                        <Text fontSize="11px" color="var(--astro-teal)" fontWeight="bold">{slewRate}x</Text>
+                        <Text fontSize="10px" color="whiteAlpha.600">9x</Text>
+                    </Flex>
+                    <input
+                        type="range"
+                        min={1}
+                        max={9}
+                        step={1}
+                        value={slewRate}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleRateChange(parseInt(e.target.value))}
+                        className="slew-rate-slider"
+                        style={{
+                            width: '100%',
+                            height: '8px',
+                            cursor: 'pointer',
+                            WebkitAppearance: 'none',
+                            appearance: 'none',
+                            background: `linear-gradient(to right, var(--astro-teal) 0%, var(--astro-teal) ${((slewRate - 1) / 8) * 100}%, rgba(255,255,255,0.2) ${((slewRate - 1) / 8) * 100}%, rgba(255,255,255,0.2) 100%)`,
+                            borderRadius: '4px',
+                            outline: 'none'
+                        }}
+                    />
+                </Box>
             </Box>
         );
     }

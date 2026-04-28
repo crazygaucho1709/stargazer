@@ -1,24 +1,70 @@
 // src/components/viewport/LiveView.tsx
 "use client";
 
-import { Box, Flex, Text, Image, Icon, VStack, HStack, Button } from "@chakra-ui/react";
+import { Box, Flex, Text, Icon, VStack, HStack, Button } from "@chakra-ui/react";
 import { useStargazerStore } from "@/store/useStargazerStore";
 import { t } from "@/i18n/translations";
-import { Crosshair, Target, Scan, ShieldCheck, Camera, Globe, ZoomIn, ZoomOut } from "lucide-react";
+import { Crosshair, Target, Scan, ShieldCheck, Camera, Globe, ZoomIn, ZoomOut, Play, Square } from "lucide-react";
+import { useState, useEffect } from "react";
 
 export const LiveView = () => {
-    const { isExposing, isSlewing, ra, dec, alt, az, liveViewMode, setLiveViewMode, zoom, setZoom, language } = useStargazerStore();
+    const { isExposing, isSlewing, ra, dec, alt, az, liveViewMode, setLiveViewMode, zoom, setZoom, language, config } = useStargazerStore();
+    const [ccdImage, setCcdImage] = useState<string | null>(null);
+    const [ccdError, setCcdError] = useState(false);
+    const [isLiveStreaming, setIsLiveStreaming] = useState(false);
+    const [streamStatus, setStreamStatus] = useState<string>("");
 
-    const nasaImg = "https://images.unsplash.com/photo-1462331940025-496dfbfc7564?auto=format&fit=crop&w=3000&q=80";
-    const canonImg = "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?auto=format&fit=crop&w=3000&q=80";
+    const bridgeIp = config.astroberryUrl.replace('http://', '').replace(':8624', '');
 
     // Calculate pan based on alt and az to simulate telescope slewing
-    // az goes from 0 to 360. alt goes from 0 to 90.
-    // We want the image to move to create the illusion of the camera moving.
-    // az 1 degree = 10px move. alt 1 degree = 10px move.
-    // Base pan on the difference from initial values or just absolute values.
     const panX = -(az - 180) * 15; 
     const panY = -(alt - 45) * 15; 
+
+    // Canon DSLR live view - Poll for latest frame
+    useEffect(() => {
+        if (liveViewMode !== "CANON") return;
+        
+        setCcdError(false);
+        
+        // Set the latest frame URL with cache-busting (use API proxy to avoid CORS)
+        const updateFrame = () => {
+            setCcdImage(`/api/indi/latest-image?t=${Date.now()}`);
+        };
+        
+        // Initial frame
+        updateFrame();
+        
+        // Poll for new frames (higher rate when streaming)
+        const interval = setInterval(updateFrame, isLiveStreaming ? 500 : 3000);
+        
+        return () => clearInterval(interval);
+        
+    }, [liveViewMode, bridgeIp, isLiveStreaming]);
+
+    const startLiveView = async () => {
+        try {
+            setStreamStatus("Starting...");
+            const res = await fetch(`http://${bridgeIp}:5000/ccd/liveview/start`, { method: 'POST' });
+            if (res.ok) {
+                setIsLiveStreaming(true);
+                setStreamStatus("LIVE");
+            }
+        } catch (e) {
+            setStreamStatus("Error");
+        }
+    };
+
+    const stopLiveView = async () => {
+        try {
+            await fetch(`http://${bridgeIp}:5000/ccd/liveview/stop`, { method: 'POST' });
+            setIsLiveStreaming(false);
+            setStreamStatus("");
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    const aladinUrl = `https://aladin.cds.unistra.fr/AladinLite/?target=${encodeURIComponent(ra + ' ' + dec)}&fov=${10 / zoom}&lang=${language}`;
 
     return (
         <Box
@@ -38,25 +84,55 @@ export const LiveView = () => {
                 {/* Background Image Switcher */}
                 <Box
                     position="absolute"
-                    inset="-200px" // Oversize the box so we can pan it without showing edges
+                    inset={liveViewMode === "CANON" ? "-200px" : "0"}
                     display="flex"
                     alignItems="center"
                     justifyContent="center"
                 >
-                    <Image
-                        src={liveViewMode === "NASA" ? nasaImg : canonImg}
-                        alt="Viewport"
-                        objectFit="cover"
-                        w="full"
-                        h="full"
-                        opacity={isExposing ? 0.9 : 0.6}
-                        transform={`scale(${zoom}) translate(${panX}px, ${panY}px)`}
-                        transformOrigin="center center"
-                        transition={isSlewing ? "transform 0.5s linear" : "transform 0.1s ease-out, opacity 1s ease-in-out"}
-                        filter={liveViewMode === "NASA"
-                            ? "hue-rotate(330deg) saturate(1.2) contrast(1.1)"
-                            : "grayscale(0.4) sepia(0.3) contrast(1.3) brightness(0.9)"}
-                    />
+                    {liveViewMode === "NASA" ? (
+                        <Box w="full" h="full" bg="black" pointerEvents="none" opacity={isExposing ? 0.8 : 1}>
+                            <iframe 
+                                src={aladinUrl} 
+                                width="100%" 
+                                height="100%" 
+                                frameBorder="0" 
+                                style={{ filter: "hue-rotate(330deg) saturate(1.2) contrast(1.1)", pointerEvents: "none" }}
+                            />
+                        </Box>
+                    ) : ccdError ? (
+                        <Box display="flex" alignItems="center" justifyContent="center" w="100%" h="100%" bg="#112233">
+                            <Text color="var(--astro-gold)" fontSize="18px">Canon Connection Error</Text>
+                        </Box>
+                    ) : ccdImage ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img
+                            src={ccdImage}
+                            alt="Canon Live View"
+                            onLoad={() => console.log('Canon image loaded:', ccdImage?.substring(0, 50))}
+                            onError={(e) => {
+                                console.error('Canon image failed:', ccdImage, e);
+                                // Retry with fresh timestamp via API proxy
+                                setCcdImage(`/api/indi/latest-image?t=${Date.now()}_retry`);
+                            }}
+                            style={{
+                                width: "100%",
+                                height: "100%",
+                                objectFit: "contain",
+                                opacity: isExposing ? 0.9 : 1,
+                                transform: `scale(${zoom}) translate(${panX}px, ${panY}px)`,
+                                transformOrigin: "center center",
+                                transition: isSlewing ? "transform 0.5s linear" : "transform 0.1s ease-out",
+                                background: "#000"
+                            }}
+                        />
+                    ) : (
+                        <Box display="flex" alignItems="center" justifyContent="center" w="100%" h="100%" bg="#000">
+                            <VStack gap={3}>
+                                <Icon as={Camera} boxSize={12} color="var(--astro-teal)" opacity={0.5} />
+                                <Text color="var(--astro-teal)" fontSize="14px">Initializing Canon EOS 600D...</Text>
+                            </VStack>
+                        </Box>
+                    )}
                 </Box>
 
                 {/* Vignette effect for depth */}
@@ -123,11 +199,12 @@ export const LiveView = () => {
                     </Button>
                 </VStack>
 
-                {/* MODE TOGGLE (Floating in viewport) */}
+                {/* MODE TOGGLE + LIVE VIEW CONTROLS */}
                 <HStack
                     position="absolute" top="100px" left="50%" transform="translateX(-50%)"
                     bg="rgba(10, 20, 40, 0.7)" p={1.5} borderRadius="full" border="1px solid rgba(255,255,255,0.1)"
                     backdropFilter="blur(10px)" zIndex={20} boxShadow="0 10px 30px rgba(0,0,0,0.5)"
+                    gap={2}
                 >
                     <Button
                         size="sm" borderRadius="full" px={6}
@@ -155,6 +232,26 @@ export const LiveView = () => {
                         <Camera size={14} style={{ marginRight: '6px' }} />
                         {t("LIVE_SENSOR", language)}
                     </Button>
+                    
+                    {/* LIVE VIEW START/STOP BUTTON - Only in CANON mode */}
+                    {liveViewMode === "CANON" && (
+                        <Button
+                            size="sm" borderRadius="full" px={4}
+                            variant="solid"
+                            bg={isLiveStreaming ? "red.500" : "green.500"}
+                            color="white"
+                            onClick={isLiveStreaming ? stopLiveView : startLiveView}
+                            fontSize="10px" className="hud-font"
+                            _hover={{ bg: isLiveStreaming ? "red.600" : "green.600" }}
+                            animation={isLiveStreaming ? "pulse 1s infinite" : undefined}
+                        >
+                            {isLiveStreaming ? <Square size={12} fill="currentColor" /> : <Play size={12} fill="currentColor" />}
+                            <Text ml={1}>{isLiveStreaming ? "STOP" : "LIVE"}</Text>
+                            {streamStatus && (
+                                <Text ml={1} fontSize="8px" opacity={0.8}>({streamStatus})</Text>
+                            )}
+                        </Button>
+                    )}
                 </HStack>
 
                 {/* Coordinate HUD (Lower Center) */}
