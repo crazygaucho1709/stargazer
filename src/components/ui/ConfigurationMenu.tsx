@@ -10,6 +10,10 @@ import {
 import { useStargazerStore } from "@/store/useStargazerStore";
 import { t } from "@/i18n/translations";
 import { mockApi } from "@/services/mockApi";
+import { useEnvironmentData } from "@/hooks/useEnvironmentData";
+import { CalibrationWizard } from "@/components/telescope/CalibrationWizard";
+import { ObjectFinder } from "@/components/telescope/ObjectFinder";
+import { CaptureAndStack } from "@/components/camera/CaptureAndStack";
 
 export const ConfigurationMenu = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -25,8 +29,9 @@ export const ConfigurationMenu = () => {
         { id: "hardware", label: t("TAB_HARDWARE", language), icon: Cpu },
         { id: "mount", label: t("TAB_MOUNT", language), icon: Telescope },
         { id: "camera", label: t("TAB_CAMERA", language), icon: Camera },
-        { id: "gamepad", label: t("TAB_GAMEPAD", language), icon: Gamepad2 },
+        { id: "objects", label: language === 'fr' ? "CATALOGUE" : "CATALOG", icon: Compass },
         { id: "capture", label: t("TAB_CAPTURE", language), icon: Layers },
+        { id: "gamepad", label: t("TAB_GAMEPAD", language), icon: Gamepad2 },
         { id: "system", label: t("TAB_SYSTEM", language), icon: Globe },
     ];
 
@@ -111,12 +116,13 @@ export const ConfigurationMenu = () => {
 
                     {/* Content Area */}
                     <Box flex={1} p={8} overflowY="auto" className="custom-scrollbar">
-                        {activeTab === "wizard" && <WizardTab language={language} />}
+                        {activeTab === "wizard" && <CalibrationWizardWrapper language={language} setActiveTab={setActiveTab} onClose={onClose} />}
                         {activeTab === "hardware" && <HardwareTab config={config} updateConfig={updateConfig} language={language} />}
                         {activeTab === "mount" && <MountTab config={config} updateConfig={updateConfig} language={language} />}
                         {activeTab === "camera" && <CameraTab config={config} updateConfig={updateConfig} language={language} />}
+                        {activeTab === "objects" && <ObjectsTab language={language} />}
+                        {activeTab === "capture" && <CaptureAndStack />}
                         {activeTab === "gamepad" && <GamepadTab language={language} />}
-                        {activeTab === "capture" && <CaptureTab config={config} updateConfig={updateConfig} language={language} />}
                         {activeTab === "system" && <SystemTab config={config} updateConfig={updateConfig} language={language} setLanguage={setLanguage} />}
                     </Box>
                 </Flex>
@@ -128,24 +134,70 @@ export const ConfigurationMenu = () => {
 
 /* --- TAB COMPONENTS --- */
 
-const WizardTab = ({ language }: any) => {
+const CalibrationWizardWrapper = ({ language, setActiveTab, onClose }: any) => {
+    return (
+        <VStack align="stretch" gap={8}>
+            <Box bg="rgba(0, 240, 255, 0.05)" p={6} borderRadius="8px" border="1px solid rgba(0, 240, 255, 0.2)">
+                <HStack mb={4} gap={3}>
+                    <Icon as={Wand2} color="#00F0FF" boxSize={6} />
+                    <Heading size="sm" color="white">
+                        {language === 'fr' ? 'Assistant de Calibration' : 'Calibration Assistant'}
+                    </Heading>
+                </HStack>
+                <CalibrationWizard />
+            </Box>
+        </VStack>
+    );
+};
+
+// Keep old WizardTab for reference but not used
+const WizardTabOld = ({ language, setActiveTab, onClose }: any) => {
     const { config } = useStargazerStore();
     const [wizardState, setWizardState] = useState({ step: 1, isRunning: false, error: "" });
 
     const runWizard = async () => {
         setWizardState({ step: 1, isRunning: true, error: "" });
         
-        // Verify connection before starting wizard
-        const pingRes = await mockApi.ping(config.astroberryUrl);
+        // Step 1: Verify connection
+        console.log("Wizard: Step 1 - Ping", config.astroberryUrl);
+        const pingRes = await mockApi.ping(config.astroberryUrl, config.driverInstance);
+        console.log("Wizard: Ping result", pingRes);
+        
         if (!pingRes.success) {
-            setWizardState({ step: 1, isRunning: false, error: `Connection failed: ${pingRes.error}. Please configure hardware first.` });
+            setWizardState({ step: 1, isRunning: false, error: `Connection failed: ${pingRes.error}. Check Astroberry is online.` });
             return;
         }
 
-        setTimeout(() => setWizardState(prev => ({ ...prev, step: 2 })), 1500);
-        setTimeout(() => setWizardState(prev => ({ ...prev, step: 3 })), 4000);
-        setTimeout(() => setWizardState(prev => ({ ...prev, step: 4 })), 6500);
-        setTimeout(() => setWizardState({ step: 5, isRunning: false, error: "" }), 9000);
+        // Step 2: Connect mount
+        setWizardState(prev => ({ ...prev, step: 2 }));
+        const mountRes = await mockApi.testConnection(config.astroberryUrl, config.driverInstance);
+        if (!mountRes.success) {
+            setWizardState({ step: 2, isRunning: false, error: `Mount connection failed: ${mountRes.message}` });
+            return;
+        }
+        await new Promise(r => setTimeout(r, 1000));
+
+        // Step 3: Test mount slew
+        setWizardState(prev => ({ ...prev, step: 3 }));
+        const slewRes = await mockApi.startMotion('right');
+        await new Promise(r => setTimeout(r, 500));
+        await mockApi.stopMotion('right');
+        if (!slewRes.success) {
+            setWizardState({ step: 3, isRunning: false, error: `Mount slew test failed: ${slewRes.error}` });
+            return;
+        }
+        await new Promise(r => setTimeout(r, 1000));
+
+        // Step 4: Test camera capture
+        setWizardState(prev => ({ ...prev, step: 4 }));
+        try {
+            await fetch('/api/indi/ccd?device=Canon%20DSLR%20EOS%20600D&exposure=0.5');
+        } catch (e) {
+            console.error('Camera test failed:', e);
+        }
+        await new Promise(r => setTimeout(r, 2000));
+
+        setWizardState({ step: 5, isRunning: false, error: "" });
     };
 
     return (
@@ -168,7 +220,7 @@ const WizardTab = ({ language }: any) => {
                         {wizardState.isRunning ? <Spinner size="sm" mr={2} /> : <Power size={16} style={{ marginRight: '8px' }} />}
                         {t("WIZ_BTN_START", language)}
                     </Button>
-                    <Button variant="outline" borderColor="whiteAlpha.300" color="whiteAlpha.800" _hover={{ bg: "whiteAlpha.100" }} disabled={wizardState.isRunning}>
+                    <Button variant="outline" borderColor="whiteAlpha.300" color="whiteAlpha.800" _hover={{ bg: "whiteAlpha.100" }} disabled={wizardState.isRunning} onClick={() => { setActiveTab("mount"); }}>
                         {t("WIZ_BTN_SKIP", language)}
                     </Button>
                 </Flex>
@@ -399,6 +451,14 @@ const GamepadTab = ({ language }: any) => (
     </VStack>
 );
 
+const ObjectsTab = ({ language }: any) => (
+    <VStack align="stretch" gap={6} h="full">
+        <Box bg="rgba(0,0,0,0.3)" p={4} borderRadius="8px" border="1px solid rgba(255,255,255,0.05)">
+            <ObjectFinder />
+        </Box>
+    </VStack>
+);
+
 const CaptureTab = ({ config, updateConfig, language }: any) => (
     <VStack align="stretch" gap={8}>
         <Text fontSize="sm" color="whiteAlpha.600">{t("CAP_DESC", language)}</Text>
@@ -457,43 +517,78 @@ const CaptureTab = ({ config, updateConfig, language }: any) => (
     </VStack>
 );
 
-const SystemTab = ({ config, updateConfig, language, setLanguage }: any) => (
-    <VStack align="stretch" gap={8}>
-        <Text fontSize="sm" color="whiteAlpha.600">{t("SYS_DESC", language)}</Text>
+const SystemTab = ({ config, updateConfig, language, setLanguage }: any) => {
+    const [syncStatus, setSyncStatus] = useState<{ status: 'idle' | 'syncing' | 'success' | 'error', message: string }>({ status: 'idle', message: '' });
+    const envData = useEnvironmentData();
 
-        <HStack gap={6} align="start">
-            <Box flex={1}>
-                <Text fontSize="10px" color="whiteAlpha.700" mb={2}>{t("SYS_UNIT", language)}</Text>
-                <select value={config.unitSystem} onChange={(e) => updateConfig({ unitSystem: e.target.value })} style={{ width: "100%", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.2)", color: "white", padding: "8px", borderRadius: "4px" }}>
-                    <option value="METRIC">Metric (Celsius, km/h)</option>
-                    <option value="IMPERIAL">Imperial (Fahrenheit, mph)</option>
-                </select>
-            </Box>
-            <Box flex={1}>
-                <Text fontSize="10px" color="whiteAlpha.700" mb={2}>{t("SYS_LANG", language)}</Text>
-                <select value={language} onChange={(e) => setLanguage(e.target.value as 'en' | 'fr')} style={{ width: "100%", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.2)", color: "white", padding: "8px", borderRadius: "4px" }}>
-                    <option value="en">English</option>
-                    <option value="fr">Français</option>
-                </select>
-            </Box>
-        </HStack>
+    const handleSyncLoc = async () => {
+        setSyncStatus({ status: 'syncing', message: '' });
+        
+        let latStr = config.latitude?.toString().replace(',', '.').trim() || "";
+        let lonStr = config.longitude?.toString().replace(',', '.').trim() || "";
+        
+        let lat = parseFloat(latStr);
+        let lon = parseFloat(lonStr);
 
-        <Box>
-            <HStack mb={4} gap={2}><Icon as={Globe} boxSize={4} color="#00F0FF" /><Text fontSize="12px" fontWeight="bold" letterSpacing="0.1em">{t("SYS_LOC_TITLE", language)}</Text></HStack>
-            <VStack gap={4} bg="rgba(0,0,0,0.3)" p={5} borderRadius="8px" border="1px solid rgba(255,255,255,0.05)">
-                <Text fontSize="11px" color="whiteAlpha.500">{t("SYS_LOC_DESC", language)}</Text>
-                <HStack w="full" gap={4}>
-                    <Box flex={1}>
-                        <Text fontSize="10px" color="whiteAlpha.700" mb={2}>{t("SYS_LAT", language)}</Text>
-                        <Input bg="rgba(0,0,0,0.5)" borderColor="whiteAlpha.200" placeholder="48.8566" value={config.latitude} onChange={(e) => updateConfig({ latitude: e.target.value })} />
-                    </Box>
-                    <Box flex={1}>
-                        <Text fontSize="10px" color="whiteAlpha.700" mb={2}>{t("SYS_LON", language)}</Text>
-                        <Input bg="rgba(0,0,0,0.5)" borderColor="whiteAlpha.200" placeholder="2.3522" value={config.longitude} onChange={(e) => updateConfig({ longitude: e.target.value })} />
-                    </Box>
-                </HStack>
-                <Button size="sm" w="full" variant="outline" colorScheme="cyan">{t("SYS_APPLY_LOC", language)}</Button>
-            </VStack>
-        </Box>
-    </VStack>
-);
+        // If inputs are empty or invalid, try falling back to browser GPS
+        if (isNaN(lat) || isNaN(lon)) {
+            if (envData.latitude !== null && envData.longitude !== null) {
+                lat = envData.latitude;
+                lon = envData.longitude;
+            } else {
+                setSyncStatus({ status: 'error', message: 'Invalid coordinates and no GPS signal' });
+                return;
+            }
+        }
+        
+        const res = await mockApi.syncLocation(lat, lon, config.driverInstance || "Celestron GPS");
+        setSyncStatus({ status: res.success ? 'success' : 'error', message: res.success ? `Location synced: ${lat.toFixed(4)}, ${lon.toFixed(4)}` : res.error || 'Failed to sync' });
+    };
+
+    return (
+        <VStack align="stretch" gap={8}>
+            <Text fontSize="sm" color="whiteAlpha.600">{t("SYS_DESC", language)}</Text>
+
+            <HStack gap={6} align="start">
+                <Box flex={1}>
+                    <Text fontSize="10px" color="whiteAlpha.700" mb={2}>{t("SYS_UNIT", language)}</Text>
+                    <select value={config.unitSystem} onChange={(e) => updateConfig({ unitSystem: e.target.value })} style={{ width: "100%", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.2)", color: "white", padding: "8px", borderRadius: "4px" }}>
+                        <option value="METRIC">Metric (Celsius, km/h)</option>
+                        <option value="IMPERIAL">Imperial (Fahrenheit, mph)</option>
+                    </select>
+                </Box>
+                <Box flex={1}>
+                    <Text fontSize="10px" color="whiteAlpha.700" mb={2}>{t("SYS_LANG", language)}</Text>
+                    <select value={language} onChange={(e) => setLanguage(e.target.value as 'en' | 'fr')} style={{ width: "100%", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.2)", color: "white", padding: "8px", borderRadius: "4px" }}>
+                        <option value="en">English</option>
+                        <option value="fr">Français</option>
+                    </select>
+                </Box>
+            </HStack>
+
+            <Box>
+                <HStack mb={4} gap={2}><Icon as={Globe} boxSize={4} color="#00F0FF" /><Text fontSize="12px" fontWeight="bold" letterSpacing="0.1em">{t("SYS_LOC_TITLE", language)}</Text></HStack>
+                <VStack gap={4} bg="rgba(0,0,0,0.3)" p={5} borderRadius="8px" border="1px solid rgba(255,255,255,0.05)">
+                    <Text fontSize="11px" color="whiteAlpha.500">{t("SYS_LOC_DESC", language)}</Text>
+                    <HStack w="full" gap={4}>
+                        <Box flex={1}>
+                            <Text fontSize="10px" color="whiteAlpha.700" mb={2}>{t("SYS_LAT", language)}</Text>
+                            <Input bg="rgba(0,0,0,0.5)" borderColor="whiteAlpha.200" placeholder="48.8566" value={config.latitude} onChange={(e) => updateConfig({ latitude: e.target.value })} />
+                        </Box>
+                        <Box flex={1}>
+                            <Text fontSize="10px" color="whiteAlpha.700" mb={2}>{t("SYS_LON", language)}</Text>
+                            <Input bg="rgba(0,0,0,0.5)" borderColor="whiteAlpha.200" placeholder="2.3522" value={config.longitude} onChange={(e) => updateConfig({ longitude: e.target.value })} />
+                        </Box>
+                    </HStack>
+                    <Button size="sm" w="full" variant="outline" colorScheme="cyan" onClick={handleSyncLoc} disabled={syncStatus.status === 'syncing'}>
+                        {syncStatus.status === 'syncing' ? <Spinner size="sm" mr={2} /> : null}
+                        {t("SYS_APPLY_LOC", language)}
+                    </Button>
+                    {syncStatus.message && (
+                        <Text fontSize="10px" color={syncStatus.status === 'success' ? "green.400" : "red.400"}>{syncStatus.message}</Text>
+                    )}
+                </VStack>
+            </Box>
+        </VStack>
+    );
+};

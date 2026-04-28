@@ -1,19 +1,17 @@
 // src/services/mockApi.ts
 
-// Since the user wants 100% real mode, we should actually attempt network connections.
-// If it fails (which it will, because there is no hardware), it should reflect reality.
 let isHardwareConnected = false;
 
 export const mockApi = {
-    ping: async (url: string): Promise<{ success: boolean, error?: string }> => {
+    ping: async (url: string, driver: string): Promise<{ success: boolean, error?: string }> => {
         if (!url) return { success: false, error: "No URL configured" };
         try {
-            // Attempt to hit a generic root or info endpoint of the astroberry
-            // Use AbortController for short timeout
             const controller = new AbortController();
             const id = setTimeout(() => controller.abort(), 2000);
             
-            const res = await fetch(`${url}/api/status`, { 
+            const apiUrl = '/api/indi';
+            
+            const res = await fetch(apiUrl, { 
                 method: 'GET',
                 signal: controller.signal,
                 headers: { 'Content-Type': 'application/json' } 
@@ -21,8 +19,15 @@ export const mockApi = {
             clearTimeout(id);
             
             if (res.ok) {
-                isHardwareConnected = true;
-                return { success: true };
+                const data = await res.json();
+                
+                if (Array.isArray(data) && data.length > 0 && data[0].status === "True") {
+                    isHardwareConnected = true;
+                    return { success: true };
+                } else {
+                    isHardwareConnected = false;
+                    return { success: false, error: `INDI server reachable, but driver is down.` };
+                }
             } else {
                 isHardwareConnected = false;
                 return { success: false, error: `HTTP Error: ${res.status}` };
@@ -45,15 +50,23 @@ export const mockApi = {
             const controller = new AbortController();
             const id = setTimeout(() => controller.abort(), 3000);
             
-            // We do a real fetch attempt to the URL.
-            const res = await fetch(`${url}/api/indi/drivers`, {
+            const apiUrl = '/api/indi';
+            
+            const res = await fetch(apiUrl, {
                 signal: controller.signal
             });
             clearTimeout(id);
 
             if (res.ok) {
-                isHardwareConnected = true;
-                return { success: true, message: `Connected to INDI server at ${url}` };
+                const data = await res.json();
+                
+                if (Array.isArray(data) && data.length > 0 && data[0].status === "True") {
+                    isHardwareConnected = true;
+                    return { success: true, message: `Connected to INDI server at ${url}` };
+                } else {
+                    isHardwareConnected = false;
+                    return { success: false, message: `INDI server reachable, but driver is down.` };
+                }
             } else {
                 isHardwareConnected = false;
                 return { success: false, message: `Server responded with status: ${res.status}` };
@@ -64,12 +77,138 @@ export const mockApi = {
         }
     },
 
-    slew: async (ra: string, dec: string): Promise<{ success: boolean, error?: string }> => {
+    slew: async (ra: string, dec: string, device: string = 'Celestron NexStar HC'): Promise<{ success: boolean, error?: string }> => {
         if (!isHardwareConnected) {
             return { success: false, error: "Hardware offline. Cannot slew." };
         }
-        // In real app, we would post to `${url}/api/mount/slew`
-        return { success: true };
+        try {
+            // Use Python bridge via proxy
+            const res = await fetch('/api/indi/mount/slew', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    device,
+                    ra: parseFloat(ra.split('h')[0]),
+                    dec: parseFloat(dec.split('°')[0])
+                })
+            });
+            const data = await res.json();
+            return { success: data.success, error: data.error };
+        } catch (err: any) {
+            return { success: false, error: err.message };
+        }
+    },
+
+    startMotion: async (direction: 'up' | 'down' | 'left' | 'right', device: string = 'Celestron NexStar HC'): Promise<{ success: boolean, error?: string }> => {
+        if (!isHardwareConnected) {
+            return { success: false, error: "Hardware offline. Cannot move." };
+        }
+        try {
+            const res = await fetch('/api/indi/mount/start', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ device, direction })
+            });
+            const data = await res.json();
+            return { success: data.success, error: data.error };
+        } catch (err: any) {
+            return { success: false, error: err.message };
+        }
+    },
+
+    stopMotion: async (direction: 'up' | 'down' | 'left' | 'right', device: string = 'Celestron NexStar HC'): Promise<{ success: boolean, error?: string }> => {
+        if (!isHardwareConnected) {
+            return { success: false, error: "Hardware offline. Cannot move." };
+        }
+        try {
+            const res = await fetch('/api/indi/mount/stop', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ device, direction })
+            });
+            const data = await res.json();
+            return { success: data.success, error: data.error };
+        } catch (err: any) {
+            return { success: false, error: err.message };
+        }
+    },
+
+    // Legacy jog - for backward compatibility
+    jog: async (direction: 'up' | 'down' | 'left' | 'right', device: string = 'Celestron NexStar HC'): Promise<{ success: boolean, error?: string }> => {
+        if (!isHardwareConnected) {
+            return { success: false, error: "Hardware offline. Cannot move." };
+        }
+        try {
+            const res = await fetch('/api/indi/mount/jog', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    device,
+                    direction,
+                    duration: 0.5
+                })
+            });
+            const data = await res.json();
+            return { success: data.success, error: data.error };
+        } catch (err: any) {
+            return { success: false, error: err.message };
+        }
+    },
+
+    setSlewRate: async (rate: number, device: string = 'Celestron NexStar HC'): Promise<{ success: boolean, error?: string, rate?: number }> => {
+        if (!isHardwareConnected) {
+            return { success: false, error: "Hardware offline. Cannot set slew rate.", rate: Math.max(1, Math.min(9, Math.round(rate))) };
+        }
+        // Clamp rate between 1 and 9
+        const clampedRate = Math.max(1, Math.min(9, Math.round(rate)));
+        try {
+            const res = await fetch('/api/indi/mount/rate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    device,
+                    rate: clampedRate
+                })
+            });
+            const data = await res.json();
+            return { success: data.success, error: data.error, rate: clampedRate };
+        } catch (err: any) {
+            return { success: false, error: err.message, rate: clampedRate };
+        }
+    },
+
+    getWeather: async (lat: number = 48.8566, lon: number = 2.3522): Promise<{
+        success: boolean,
+        temperature?: number,
+        windSpeed?: number,
+        humidity?: number,
+        cloudCover?: number,
+        seeing?: number,
+        error?: string
+    }> => {
+        try {
+            const res = await fetch(
+                `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,cloud_cover`
+            );
+            const data = await res.json();
+            
+            if (data.current) {
+                // Estimate seeing based on cloud cover and wind (simplified model)
+                const seeing = Math.max(0.1, Math.min(2.0, 2.0 - (data.current.cloud_cover / 100) - (data.current.wind_speed_10m / 20)));
+                
+                return {
+                    success: true,
+                    temperature: data.current.temperature_2m,
+                    windSpeed: data.current.wind_speed_10m,
+                    humidity: data.current.relative_humidity_2m,
+                    cloudCover: data.current.cloud_cover,
+                    seeing: parseFloat(seeing.toFixed(2))
+                };
+            }
+            return { success: false, error: "No weather data available" };
+        } catch (err: any) {
+            return { success: false, error: err.message };
+        }
     },
 
     capture: async (iso: number, exposure: number): Promise<{ success: boolean, data?: string, error?: string }> => {
@@ -84,5 +223,41 @@ export const mockApi = {
             return { success: false, error: "Hardware offline. No image stream available for focus." };
         }
         return { success: true, hfr: 1.2 + Math.random() * 0.5 };
+    },
+
+    syncLocation: async (lat: number, lon: number, device: string): Promise<{ success: boolean, error?: string }> => {
+        if (!isHardwareConnected) {
+            return { success: false, error: "Hardware offline. Cannot sync location." };
+        }
+        try {
+            // Check if lon is out of standard bounds or if the mount requires positive East longitude
+            // Some telescope drivers require Longitude 0-360 instead of -180 to 180
+            // Send both LAT/LONG and optionally ensure it's formatted to avoid float errors
+            const formattedLat = parseFloat(lat.toFixed(4));
+            let formattedLon = parseFloat(lon.toFixed(4));
+            
+            // If the user's mount requires positive longitude:
+            if (formattedLon < 0) {
+                formattedLon = formattedLon + 360;
+            }
+
+            const res = await fetch('/api/indi', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'syncLocation',
+                    device: device,
+                    property: 'GEOGRAPHIC_COORD',
+                    values: { LAT: formattedLat, LONG: formattedLon, ELEV: 0 }
+                })
+            });
+            const json = await res.json();
+            if (json.success) {
+                return { success: true };
+            }
+            return { success: false, error: json.error || "Failed to update INDI location." };
+        } catch (error: any) {
+            return { success: false, error: error.message };
+        }
     }
 };

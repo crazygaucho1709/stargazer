@@ -82,8 +82,8 @@ export const useStargazerStore = create<StargazerState>()(
             liveViewMode: "NASA",
             config: {
                 aiKey: "",
-                astroberryUrl: "http://astroberry.local",
-                driverInstance: "EQMOD_INDI",
+                astroberryUrl: "http://192.168.178.142:8624",
+                driverInstance: "Celestron NexStar HC",
                 baudRate: "9600",
                 wifiSsid: "Stargazer_Net",
                 autoTracking: true,
@@ -99,8 +99,8 @@ export const useStargazerStore = create<StargazerState>()(
                 aiColorization: true,
                 autoSave: true,
                 unitSystem: "METRIC",
-                latitude: "",
-                longitude: "",
+                latitude: "-17.6008",
+                longitude: "-149.6091",
             },
             mountLimits: {
                 maxAlt: 85,

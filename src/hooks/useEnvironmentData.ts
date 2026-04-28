@@ -43,11 +43,6 @@ export function useEnvironmentData() {
 
     // Handle GPS & Weather
     useEffect(() => {
-        if (!navigator.geolocation) {
-            setData(prev => ({ ...prev, error: "Geolocation not supported" }));
-            return;
-        }
-
         const fetchWeather = async (lat: number, lon: number) => {
             try {
                 // Open-Meteo free API
@@ -70,6 +65,21 @@ export function useEnvironmentData() {
             }
         };
 
+        const handleFallback = (errorMessage: string) => {
+            console.warn(`Geolocation issue: ${errorMessage}, using fallback`);
+            setData(prev => ({ ...prev, error: errorMessage }));
+            // Fallback to a default location (Tahiti as per user's location)
+            const defLat = -17.6797;
+            const defLon = -149.4068;
+            setData(prev => ({ ...prev, latitude: defLat, longitude: defLon }));
+            fetchWeather(defLat, defLon);
+        };
+
+        if (!navigator.geolocation) {
+            handleFallback("Geolocation not supported (Secure Context required)");
+            return;
+        }
+
         navigator.geolocation.getCurrentPosition(
             (position) => {
                 const { latitude, longitude } = position.coords;
@@ -77,13 +87,9 @@ export function useEnvironmentData() {
                 fetchWeather(latitude, longitude);
             },
             (err) => {
-                setData(prev => ({ ...prev, error: err.message }));
-                // Fallback to a default location (e.g. Paris) to still show API functionality
-                const defLat = 48.8566;
-                const defLon = 2.3522;
-                setData(prev => ({ ...prev, latitude: defLat, longitude: defLon }));
-                fetchWeather(defLat, defLon);
-            }
+                handleFallback(err.message);
+            },
+            { timeout: 5000, maximumAge: 60000 }
         );
     }, []);
 

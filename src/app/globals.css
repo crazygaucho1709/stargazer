@@ -86,3 +86,27 @@ h1, h2, h3, .hud-font {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--astro-teal);
 }
+
+/* Slew Rate Slider Thumb */
+.slew-rate-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--astro-teal);
+  border: 2px solid white;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(255, 51, 51, 0.4);
+  margin-top: -5px;
+}
+
+.slew-rate-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--astro-teal);
+  border: 2px solid white;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(255, 51, 51, 0.4);
+}

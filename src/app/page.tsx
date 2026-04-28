@@ -22,20 +22,31 @@ export default function Home() {
     const [statusText, setStatusText] = useState(t("ESTABLISHING_LINK", language));
     const envData = useEnvironmentData();
 
+    const [wasConnected, setWasConnected] = useState(false);
+
     useEffect(() => {
         const checkConnection = async () => {
-            const res = await mockApi.ping(useStargazerStore.getState().config.astroberryUrl);
+            const storeState = useStargazerStore.getState();
+            const res = await mockApi.ping(storeState.config.astroberryUrl, storeState.config.driverInstance);
+            
             setConnected(res.success);
             if (res.success) {
                 setStatusText(t("SYSTEM_ONLINE", language));
+                // Auto-sync GPS when first coming online or if we haven't synced yet
+                if (!wasConnected && envData.latitude !== null && envData.longitude !== null) {
+                    // Try to push the location if the hardware supports it
+                    mockApi.syncLocation(envData.latitude, envData.longitude, storeState.config.driverInstance);
+                }
+                setWasConnected(true);
             } else {
                 setStatusText(`${t("LINK_OFFLINE", language)} - ${res.error || 'Unknown Error'}`);
+                setWasConnected(false);
             }
         };
         checkConnection();
         const interval = setInterval(checkConnection, 8000);
         return () => clearInterval(interval);
-    }, [setConnected, language]);
+    }, [setConnected, language, wasConnected, envData.latitude, envData.longitude]);
 
     return (
         <Box h="100vh" w="100vw" position="relative" overflow="hidden" bg="#030509">
@@ -175,8 +186,8 @@ export default function Home() {
                         </HStack>
                     </Flex>
 
-                    {/* RIGHT COLUMN: Sensor & Oracle */}
-                    <VStack w="360px" justify="space-between" align="stretch" h="full" pointerEvents="auto">
+                    {/* RIGHT COLUMN: Sensor & Oracle Only */}
+                    <VStack w="360px" justify="flex-start" align="stretch" h="full" pointerEvents="auto" gap={4}>
                         <AstroPod title={t("IMAGING_SENSOR", language)} glowColor="teal">
                             <VStack gap={5} w="full">
                                 <CameraControls variant="circular" />
@@ -194,6 +205,7 @@ export default function Home() {
                         </AstroPod>
                     </VStack>
                 </Flex>
+
             </Flex>
 
             <style jsx global>{`
