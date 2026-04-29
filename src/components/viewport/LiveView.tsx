@@ -1,10 +1,10 @@
 // src/components/viewport/LiveView.tsx
 "use client";
 
-import { Box, Flex, Text, Icon, VStack, HStack, Button } from "@chakra-ui/react";
+import { Box, Flex, Text, Icon, VStack, HStack, Button, Heading } from "@chakra-ui/react";
 import { useStargazerStore } from "@/store/useStargazerStore";
 import { t } from "@/i18n/translations";
-import { Crosshair, Target, Scan, ShieldCheck, Camera, Globe, ZoomIn, ZoomOut, Play, Square } from "lucide-react";
+import { Crosshair, Target, Scan, ShieldCheck, Camera, Globe, ZoomIn, ZoomOut, Play, Square, AlertTriangle } from "lucide-react";
 import { useState, useEffect } from "react";
 
 export const LiveView = () => {
@@ -76,6 +76,46 @@ export const LiveView = () => {
         }
     };
 
+    // Safety Watchdog: Auto-cut live view after inactivity
+    const [lastActivity, setLastActivity] = useState(Date.now());
+    const [showSafetyModal, setShowSafetyModal] = useState(false);
+
+    useEffect(() => {
+        if (!isLiveStreaming) {
+            setShowSafetyModal(false);
+            return;
+        }
+
+        const handleActivity = () => setLastActivity(Date.now());
+        window.addEventListener('mousemove', handleActivity);
+        window.addEventListener('keydown', handleActivity);
+        window.addEventListener('mousedown', handleActivity);
+        window.addEventListener('touchstart', handleActivity);
+
+        const checkInactivity = setInterval(() => {
+            const idleTime = Date.now() - lastActivity;
+            
+            // 10 minutes = 600,000 ms
+            if (idleTime > 600000 && !showSafetyModal) {
+                setShowSafetyModal(true);
+            }
+            
+            // 15 minutes = 900,000 ms
+            if (idleTime > 900000) {
+                stopLiveView();
+                setShowSafetyModal(false);
+            }
+        }, 10000); // check every 10s
+
+        return () => {
+            window.removeEventListener('mousemove', handleActivity);
+            window.removeEventListener('keydown', handleActivity);
+            window.removeEventListener('mousedown', handleActivity);
+            window.removeEventListener('touchstart', handleActivity);
+            clearInterval(checkInactivity);
+        };
+    }, [isLiveStreaming, lastActivity, showSafetyModal]);
+
     const aladinUrl = `https://aladin.cds.unistra.fr/AladinLite/?target=${encodeURIComponent(ra + ' ' + dec)}&fov=${10 / zoom}&lang=${language}`;
 
     return (
@@ -88,6 +128,37 @@ export const LiveView = () => {
             overflow="hidden"
             bg="#030509"
         >
+            {/* Safety Modal Overlay */}
+            {showSafetyModal && (
+                <Box 
+                    position="fixed" inset="0" bg="rgba(0,0,0,0.85)" zIndex={100}
+                    backdropFilter="blur(10px)" display="flex" alignItems="center" justifyContent="center"
+                >
+                    <VStack 
+                        bg="rgba(10, 20, 40, 0.95)" p={10} borderRadius="16px" 
+                        border="2px solid var(--astro-gold)" maxW="400px" textAlign="center" gap={6}
+                        boxShadow="0 0 50px rgba(255, 179, 71, 0.3)"
+                        className="pulse-glow"
+                    >
+                        <Icon as={AlertTriangle} boxSize={12} color="var(--astro-gold)" />
+                        <VStack gap={2}>
+                            <Heading size="md" color="white" className="hud-font">VEILLE SÉCURITÉ</Heading>
+                            <Text color="whiteAlpha.800" fontSize="14px">
+                                {language === 'fr' 
+                                    ? "Inactivité détectée. Le flux direct sera coupé dans 5 minutes pour préserver la connexion avec l'Astroberry."
+                                    : "Inactivity detected. Live feed will be cut in 5 minutes to preserve connection with Astroberry."}
+                            </Text>
+                        </VStack>
+                        <Button 
+                            w="full" bg="var(--astro-gold)" color="black" _hover={{ bg: "white" }}
+                            onClick={() => setLastActivity(Date.now())}
+                        >
+                            {language === 'fr' ? "MAINTENIR LE LIEN" : "KEEP CONNECTION"}
+                        </Button>
+                    </VStack>
+                </Box>
+            )}
+
             <Box
                 position="relative"
                 w="full"

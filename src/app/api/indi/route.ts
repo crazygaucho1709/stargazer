@@ -57,8 +57,8 @@ export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
     const bridgeIp = url.searchParams.get('ip') || '192.168.178.142';
-    const BRIDGE_URL = `http://${bridgeIp}:5000`;
-    const res = await fetch(`${BRIDGE_URL}/health`, { cache: 'no-store' });
+    const BRIDGE_URL = `http://${bridgeIp}:5005`;
+    const res = await fetch( `${BRIDGE_URL}/health`, { cache: 'no-store' });
     const data = await res.json();
     return NextResponse.json([{ 
       status: data.mount_connected ? "True" : "False",

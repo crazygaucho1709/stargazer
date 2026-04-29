@@ -2,15 +2,21 @@ import { NextResponse } from 'next/server';
 
 // Proxy commands to Python bridge
 async function sendToBridge(bridgeIp: string, endpoint: string, data: any): Promise<any> {
-  const BRIDGE_URL = `http://${bridgeIp}:5000`;
+  const BRIDGE_URL = `http://${bridgeIp}:5005`;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout for hardware commands
+  
   try {
-    const res = await fetch(`${BRIDGE_URL}${endpoint}`, {
+    const res = await fetch( `${BRIDGE_URL}${endpoint}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
+      body: JSON.stringify(data),
+      signal: controller.signal
     });
+    clearTimeout(timeoutId);
     return await res.json();
   } catch (error: any) {
+    clearTimeout(timeoutId);
     throw new Error(`Bridge error: ${error.message}`);
   }
 }

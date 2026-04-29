@@ -5,10 +5,10 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { action, ip } = body;
     const bridgeIp = ip || '192.168.178.142';
-    const BRIDGE_URL = `http://${bridgeIp}:5000`;
+    const BRIDGE_URL = `http://${bridgeIp}:5005`;
     
     if (action === 'start' || action === 'stop') {
-      const res = await fetch(`${BRIDGE_URL}/ccd/stream/${action}`, {
+      const res = await fetch( `${BRIDGE_URL}/ccd/stream/${action}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
