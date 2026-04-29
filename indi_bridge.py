@@ -17,20 +17,16 @@ CORS(app)
 DEVICE_MOUNT = "Celestron NexStar HC"
 DEVICE_CCD = "Canon DSLR EOS 600D"
 
-def indi_cmd(args):
+def indi_cmd(args, type_flag=None):
     try:
-        # For setprop with spaces, shell=True with quotes often works best in some environments
-        if args[0] == "indi_setprop":
-            # We want: indi_setprop "Celestron GPS.PROP=VAL"
-            cmd_str = f'indi_setprop -h 127.0.0.1 "{args[1]}"'
-            if len(args) > 2:
-                for extra in args[2:]:
-                    cmd_str += f' "{extra}"'
-        else:
-            cmd_str = " ".join(shlex.quote(arg) for arg in ([args[0], "-h", "127.0.0.1"] + args[1:]))
-            
-        print(f"Running command: {cmd_str}", flush=True)
-        result = subprocess.run(cmd_str, shell=True, capture_output=True, text=True, timeout=10)
+        # Use explicit host and port
+        cmd_args = [args[0], "-h", "127.0.0.1"]
+        if args[0] == "indi_setprop" and type_flag:
+            cmd_args.append(type_flag)
+        cmd_args.extend(args[1:])
+        
+        print(f"Running command: {cmd_args}", flush=True)
+        result = subprocess.run(cmd_args, capture_output=True, text=True, timeout=10)
         if result.returncode != 0:
             print(f"Command failed: {result.stderr}", flush=True)
         return result.returncode == 0, result.stdout.strip(), result.stderr.strip()
@@ -159,10 +155,10 @@ def mount_sync_master():
         now_utc = datetime.datetime.utcnow()
         indi_time_str = now_utc.strftime("%Y-%m-%dT%H:%M:%S")
         
-        indi_cmd(["indi_setprop", f"{device}.GEOGRAPHIC_COORD.LAT={lat}"])
-        indi_cmd(["indi_setprop", f"{device}.GEOGRAPHIC_COORD.LONG={lon}"])
-        indi_cmd(["indi_setprop", f"{device}.GEOGRAPHIC_COORD.ELEV={elev}"])
-        indi_cmd(["indi_setprop", f"{device}.TIME_UTC.UTC={indi_time_str}"])
+        indi_cmd(["indi_setprop", f"{device}.GEOGRAPHIC_COORD.LAT={lat}"], type_flag="-n")
+        indi_cmd(["indi_setprop", f"{device}.GEOGRAPHIC_COORD.LONG={lon}"], type_flag="-n")
+        indi_cmd(["indi_setprop", f"{device}.GEOGRAPHIC_COORD.ELEV={elev}"], type_flag="-n")
+        indi_cmd(["indi_setprop", f"{device}.TIME_UTC.UTC={indi_time_str}"], type_flag="-x")
 
         # 2. Calculate RA/Dec using astropy
         observatory = EarthLocation(lat=lat*u.deg, lon=lon*u.deg, height=elev*u.m)
@@ -177,20 +173,20 @@ def mount_sync_master():
         dec_deg = eq.dec.deg
 
         # 3. Enable SYNC mode and set coords
-        indi_cmd(["indi_setprop", f"{device}.ON_COORD_SET.SYNC=On"])
+        indi_cmd(["indi_setprop", f"{device}.ON_COORD_SET.SYNC=On"], type_flag="-s")
         time.sleep(0.5)
-        indi_cmd(["indi_setprop", f"{device}.ON_COORD_SET.TRACK=Off"])
+        indi_cmd(["indi_setprop", f"{device}.ON_COORD_SET.TRACK=Off"], type_flag="-s")
         time.sleep(0.5)
         
         # The NexStar driver accepts RA in hours (0-24) and Dec in degrees (-90 to +90)
         # Use separate calls to avoid parsing issues with multiple assignments
-        ra_ok, _, ra_err = indi_cmd(["indi_setprop", f"{device}.EQUATORIAL_EOD_COORD.RA={ra_hours}"])
+        ra_ok, _, ra_err = indi_cmd(["indi_setprop", f"{device}.EQUATORIAL_EOD_COORD.RA={ra_hours}"], type_flag="-n")
         time.sleep(0.5)
-        dec_ok, _, dec_err = indi_cmd(["indi_setprop", f"{device}.EQUATORIAL_EOD_COORD.DEC={dec_deg}"])
+        dec_ok, _, dec_err = indi_cmd(["indi_setprop", f"{device}.EQUATORIAL_EOD_COORD.DEC={dec_deg}"], type_flag="-n")
 
         # 4. Restore TRACK mode
         time.sleep(0.5)
-        indi_cmd(["indi_setprop", f"{device}.ON_COORD_SET.TRACK=On"])
+        indi_cmd(["indi_setprop", f"{device}.ON_COORD_SET.TRACK=On"], type_flag="-s")
 
         if ra_ok and dec_ok:
             return jsonify({

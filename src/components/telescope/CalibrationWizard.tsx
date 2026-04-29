@@ -26,7 +26,7 @@ interface StepStatus {
 }
 
 export const CalibrationWizard = () => {
-  const { language, alt, az, config } = useStargazerStore();
+  const { language, alt, az, config, setMountLimits, mountLimits } = useStargazerStore();
   const bridgeIp = config.astroberryUrl.replace('http://', '').replace(':8624', '');
   const [step, setStep] = useState<StepStatus>({
     step: 'idle',
@@ -34,14 +34,8 @@ export const CalibrationWizard = () => {
     message: '',
     instruction: ''
   });
-  const [limits, setLimits] = useState({
-    maxAlt: 0,
-    minAlt: 0, 
-    maxAz: 0,
-    minAz: 0
-  });
-  const [videoActive, setVideoActive] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
+  const [videoActive, setVideoActive] = useState(false);
 
   const startCalibration = async () => {
     setErrors([]);
@@ -82,8 +76,6 @@ export const CalibrationWizard = () => {
   };
 
   const syncParkPosition = () => {
-    // Sync current physical position to park coordinates in Stargazer
-    // Call API to sync mount position
     const isSouthernHemisphere = parseFloat(config.latitude) < 0;
     const parkAzimuth = isSouthernHemisphere ? 180 : 0;
 
@@ -97,35 +89,34 @@ export const CalibrationWizard = () => {
         alt: 0, 
         az: parkAzimuth, 
         ip: bridgeIp 
-      }) // Master Sync position
-
-    }).then(() => {
+      }) 
+    }).then(async (res) => {
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+      
       setErrors([]);
-      // Update store with synced position
       setStep({
         step: 'limits-alt-max',
         isWaitingUser: true,
         message: language === 'fr' ? 'Calibration limites: Altitude Max' : 'Limits calibration: Max Altitude',
         instruction: language === 'fr'
-          ? 'Position synchronisée! Utilisez les flèches HAUT/BAS pour monter au maximum. Puis VALIDER.'
-          : 'Position synced! Use UP/DOWN arrows to raise to maximum. Then VALIDATE.'
+          ? 'Position synchronisée! Utilisez les flèches HAUT/BAS pour monter au maximum sécurisé. Puis VALIDER.'
+          : 'Position synced! Use UP/DOWN arrows to raise to maximum safe elevation. Then VALIDATE.'
       });
       setVideoActive(true);
     }).catch(err => {
-      setErrors([language === 'fr' ? 'Erreur synchronisation' : 'Sync error']);
+      setErrors([language === 'fr' ? `Erreur: ${err.message}` : `Error: ${err.message}`]);
     });
   };
 
   const verifyParkPosition = () => {
-    // Check if mount is roughly horizontal (altitude near 0) and pointing north/south
     const isSouthernHemisphere = parseFloat(config.latitude) < 0;
     const parkAzimuth = isSouthernHemisphere ? 180 : 0;
 
-    const isHorizontal = Math.abs(alt) < 10; // Within 10 degrees of horizontal
+    const isHorizontal = Math.abs(alt) < 10; 
     const isNorthSouth = Math.abs(az - parkAzimuth) < 15 || Math.abs(az - (parkAzimuth + 360)) < 15;
     
     if (!isHorizontal || !isNorthSouth) {
-      // Show error with sync option
       setErrors([language === 'fr' 
         ? `Monture non synchronisée: Alt=${alt.toFixed(1)}°, Az=${az.toFixed(1)}°. Positionnez à l'horizontal puis cliquez SYNCHRONISER.`
         : `Mount not synced: Alt=${alt.toFixed(1)}°, Az=${az.toFixed(1)}°. Position horizontally then click SYNC.`
@@ -146,7 +137,7 @@ export const CalibrationWizard = () => {
   };
 
   const saveMaxAlt = () => {
-    setLimits(prev => ({ ...prev, maxAlt: alt }));
+    setMountLimits({ maxAlt: alt });
     setStep({
       step: 'limits-alt-min',
       isWaitingUser: true,
@@ -158,7 +149,7 @@ export const CalibrationWizard = () => {
   };
 
   const saveMinAlt = () => {
-    setLimits(prev => ({ ...prev, minAlt: alt }));
+    setMountLimits({ minAlt: alt });
     setStep({
       step: 'limits-az-max',
       isWaitingUser: true,
@@ -170,7 +161,7 @@ export const CalibrationWizard = () => {
   };
 
   const saveMaxAz = () => {
-    setLimits(prev => ({ ...prev, maxAz: az }));
+    setMountLimits({ maxAz: az });
     setStep({
       step: 'limits-az-min',
       isWaitingUser: true,
@@ -182,7 +173,7 @@ export const CalibrationWizard = () => {
   };
 
   const saveMinAz = () => {
-    setLimits(prev => ({ ...prev, minAz: az }));
+    setMountLimits({ minAz: az });
     setStep({
       step: 'camera-test',
       isWaitingUser: true,
@@ -201,8 +192,8 @@ export const CalibrationWizard = () => {
         isWaitingUser: false,
         message: language === 'fr' ? 'Calibration terminée!' : 'Calibration complete!',
         instruction: language === 'fr'
-          ? `Limites enregistrées: Alt ${limits.minAlt.toFixed(0)}°-${limits.maxAlt.toFixed(0)}°, Az ${limits.minAz.toFixed(0)}°-${limits.maxAz.toFixed(0)}°`
-          : `Limits saved: Alt ${limits.minAlt.toFixed(0)}°-${limits.maxAlt.toFixed(0)}°, Az ${limits.minAz.toFixed(0)}°-${limits.maxAz.toFixed(0)}°`
+          ? `Limites enregistrées: Alt ${mountLimits.minAlt.toFixed(0)}°-${mountLimits.maxAlt.toFixed(0)}°, Az ${mountLimits.minAz.toFixed(0)}°-${mountLimits.maxAz.toFixed(0)}°`
+          : `Limits saved: Alt ${mountLimits.minAlt.toFixed(0)}°-${mountLimits.maxAlt.toFixed(0)}°, Az ${mountLimits.minAz.toFixed(0)}°-${mountLimits.maxAz.toFixed(0)}°`
       });
     } catch (e) {
       setErrors([language === 'fr' ? 'Erreur caméra' : 'Camera error']);
