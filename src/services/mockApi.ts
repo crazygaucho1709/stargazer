@@ -1,6 +1,11 @@
 // src/services/mockApi.ts
+import { useStargazerStore } from '@/store/useStargazerStore';
 
 let isHardwareConnected = false;
+
+const getBridgeIp = () => {
+    return useStargazerStore.getState().config.astroberryUrl.replace('http://', '').replace(':8624', '');
+};
 
 export const mockApi = {
     ping: async (url: string, driver: string): Promise<{ success: boolean, error?: string }> => {
@@ -9,7 +14,7 @@ export const mockApi = {
             const controller = new AbortController();
             const id = setTimeout(() => controller.abort(), 2000);
             
-            const apiUrl = '/api/indi';
+            const apiUrl = `/api/indi?ip=${getBridgeIp()}`;
             
             const res = await fetch(apiUrl, { 
                 method: 'GET',
@@ -50,7 +55,7 @@ export const mockApi = {
             const controller = new AbortController();
             const id = setTimeout(() => controller.abort(), 3000);
             
-            const apiUrl = '/api/indi';
+            const apiUrl = `/api/indi?ip=${getBridgeIp()}`;
             
             const res = await fetch(apiUrl, {
                 signal: controller.signal
@@ -83,11 +88,13 @@ export const mockApi = {
         }
         try {
             // Use Python bridge via proxy
-            const res = await fetch('/api/indi/mount/slew', {
+            const res = await fetch('/api/indi/mount', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
+                    action: 'slew',
                     device,
+                    ip: getBridgeIp(),
                     ra: parseFloat(ra.split('h')[0]),
                     dec: parseFloat(dec.split('°')[0])
                 })
@@ -104,10 +111,10 @@ export const mockApi = {
             return { success: false, error: "Hardware offline. Cannot move." };
         }
         try {
-            const res = await fetch('/api/indi/mount/start', {
+            const res = await fetch('/api/indi/mount', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ device, direction })
+                body: JSON.stringify({ action: 'jog', device, direction, duration: 999, ip: getBridgeIp() })
             });
             const data = await res.json();
             return { success: data.success, error: data.error };
@@ -121,10 +128,10 @@ export const mockApi = {
             return { success: false, error: "Hardware offline. Cannot move." };
         }
         try {
-            const res = await fetch('/api/indi/mount/stop', {
+            const res = await fetch('/api/indi/mount', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ device, direction })
+                body: JSON.stringify({ action: 'abort', device, direction, ip: getBridgeIp() })
             });
             const data = await res.json();
             return { success: data.success, error: data.error };
@@ -139,13 +146,15 @@ export const mockApi = {
             return { success: false, error: "Hardware offline. Cannot move." };
         }
         try {
-            const res = await fetch('/api/indi/mount/jog', {
+            const res = await fetch('/api/indi/mount', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
+                    action: 'jog',
                     device,
                     direction,
-                    duration: 0.5
+                    duration: 0.5,
+                    ip: getBridgeIp()
                 })
             });
             const data = await res.json();
@@ -162,12 +171,16 @@ export const mockApi = {
         // Clamp rate between 1 and 9
         const clampedRate = Math.max(1, Math.min(9, Math.round(rate)));
         try {
-            const res = await fetch('/api/indi/mount/rate', {
+            // NOTE: the mount endpoint does not currently implement setting slew rate natively in route.ts
+            // Sending it to 'jog' might not do what we want. We'll pass action 'rate' just in case we implement it in bridge later
+            const res = await fetch('/api/indi/mount', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
+                    action: 'rate',
                     device,
-                    rate: clampedRate
+                    rate: clampedRate,
+                    ip: getBridgeIp()
                 })
             });
             const data = await res.json();
@@ -248,7 +261,8 @@ export const mockApi = {
                     action: 'syncLocation',
                     device: device,
                     property: 'GEOGRAPHIC_COORD',
-                    values: { LAT: formattedLat, LONG: formattedLon, ELEV: 0 }
+                    values: { LAT: formattedLat, LONG: formattedLon, ELEV: 0 },
+                    ip: getBridgeIp()
                 })
             });
             const json = await res.json();

@@ -1,16 +1,30 @@
 import { NextResponse } from 'next/server';
 
-const BRIDGE_URL = 'http://192.168.178.142:5000';
+// Simple 1x1 transparent pixel as fallback (base64 encoded)
+const FALLBACK_IMAGE = Buffer.from(
+  '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/2wBDAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/wAARCAAgACADAREAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAj/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFAEBAAAAAAAAAAAAAAAAAAAAAP/EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhEDEQA/AL8A//Z',
+  'base64'
+);
 
 export async function GET(request: Request) {
   try {
-    // Fetch the latest image from the bridge
+    const url = new URL(request.url);
+    const bridgeIp = url.searchParams.get('ip') || '192.168.178.142';
+    const BRIDGE_URL = `http://${bridgeIp}:5000`;
+
+    // Fetch the latest image from the bridge with timeout
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000);
+    
     const res = await fetch(`${BRIDGE_URL}/ccd/latest?t=${Date.now()}`, {
-      cache: 'no-store'
+      cache: 'no-store',
+      signal: controller.signal
     });
     
+    clearTimeout(timeout);
+    
     if (!res.ok) {
-      return new NextResponse('Image not found', { status: 404 });
+      throw new Error(`Bridge returned ${res.status}`);
     }
     
     // Get the image data as array buffer
@@ -26,6 +40,14 @@ export async function GET(request: Request) {
       }
     });
   } catch (error: any) {
-    return new NextResponse(`Error: ${error.message}`, { status: 500 });
+    console.error('Bridge error, returning fallback:', error.message);
+    
+    // Return fallback image instead of error
+    return new NextResponse(FALLBACK_IMAGE, {
+      headers: {
+        'Content-Type': 'image/jpeg',
+        'Cache-Control': 'no-cache',
+      }
+    });
   }
 }

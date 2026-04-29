@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
 import { Socket } from 'net';
 
-const INDI_HOST = '127.0.0.1';
 const INDI_PORT = 7624;
-const BRIDGE_URL = 'http://192.168.178.142:5000';
 
 interface IndiMessage {
   device: string;
@@ -11,7 +9,7 @@ interface IndiMessage {
   values: Record<string, number | string>;
 }
 
-function sendIndiCommand(device: string, property: string, values: Record<string, number | string>): Promise<string> {
+function sendIndiCommand(INDI_HOST: string, device: string, property: string, values: Record<string, number | string>): Promise<string> {
   return new Promise((resolve, reject) => {
     const socket = new Socket();
     
@@ -40,13 +38,14 @@ function sendIndiCommand(device: string, property: string, values: Record<string
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { device, property, values } = body;
+    const { device, property, values, ip } = body;
+    const INDI_HOST = ip || '192.168.178.142';
     
     if (!device || !property || !values) {
       return NextResponse.json({ error: 'Missing device, property or values' }, { status: 400 });
     }
     
-    const response = await sendIndiCommand(device, property, values);
+    const response = await sendIndiCommand(INDI_HOST, device, property, values);
     return NextResponse.json({ success: true, response });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
@@ -54,8 +53,11 @@ export async function POST(request: Request) {
 }
 
 // Health check endpoint - proxies to Python bridge
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const url = new URL(request.url);
+    const bridgeIp = url.searchParams.get('ip') || '192.168.178.142';
+    const BRIDGE_URL = `http://${bridgeIp}:5000`;
     const res = await fetch(`${BRIDGE_URL}/health`, { cache: 'no-store' });
     const data = await res.json();
     return NextResponse.json([{ 

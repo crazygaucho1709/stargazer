@@ -3,6 +3,8 @@ from flask import Flask, jsonify, request, Response
 from flask_cors import CORS
 import subprocess
 import time
+import base64
+import socket
 
 app = Flask(__name__)
 CORS(app)
@@ -143,26 +145,85 @@ def ccd_capture():
 def ccd_stream():
     def generate():
         try:
-            indi_cmd(["indi_setprop", DEVICE_CCD + ".CCD_VIDEO_STREAM.STREAM_ON=On"])
-            indi_cmd(["indi_setprop", DEVICE_CCD + ".CCD_STREAM_ENCODER.MJPEG=On"])
+            # Connect directly to INDI server to read the stream efficiently
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.connect(('127.0.0.1', 7624))
+            s.sendall(f'<getProperties version="1.7" device="{DEVICE_CCD}"/>\r\n'.encode())
+            s.sendall(f'<enableBLOB device="{DEVICE_CCD}">Also</enableBLOB>\r\n'.encode())
+            s.sendall(f'<newSwitchVector device="{DEVICE_CCD}" name="CCD_VIDEO_STREAM"><oneSwitch name="STREAM_ON">On</oneSwitch></newSwitchVector>\r\n'.encode())
+            s.sendall(f'<newSwitchVector device="{DEVICE_CCD}" name="CCD_STREAM_ENCODER"><oneSwitch name="MJPEG">On</oneSwitch></newSwitchVector>\r\n'.encode())
+            
+            buffer = ""
+            in_blob = False
+            blob_data = []
             
             while True:
-                # Placeholder frame - in production, fetch actual frames from INDI
-                frame = b'\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00\xff\xdb\x00C\x00\x03\x02\x02\x03\x02\x02\x03\x03\x03\x03\x04\x03\x03\x04\x05\x08\x05\x05\x04\x04\x05\n\x07\x07\x06\x08\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\xff\xc0\x00\n\x08\x00\x01\x00\x01\x01\x01\n\x00\xff\xc4\x00\n\x00\x01\x05\x01\x01\x01\x01\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x01\x02\x03\x04\x05\x06\x07\x08\n\x00\x01\x01\x01\x01\x01\x01\x01\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x01\x02\x03\x04\x05\x06\x07\x08\n\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x00\x00\x00\x00\x00\x00\x00\x01\x02\x03\x04\x05\x06\x07\x08\n\xff\xda\x00\x08\x01\x01\x00\x00?\x00\n\xff\xd9'
+                chunk = s.recv(65536 * 4).decode('ascii', errors='ignore')
+                if not chunk: break
+                buffer += chunk
                 
-                yield (b'--frame\r\n'
-                       b'Content-Type: image/jpeg\r\n'
-                       b'Content-Length: ' + str(len(frame)).encode() + b'\r\n\r\n' +
-                       frame + b'\r\n')
-                
-                time.sleep(0.1)
+                while True:
+                    if not in_blob:
+                        start_idx = buffer.find("<oneBLOB")
+                        if start_idx == -1:
+                            buffer = buffer[-200:] # keep a small tail
+                            break
+                        
+                        end_tag_idx = buffer.find(">", start_idx)
+                        if end_tag_idx == -1:
+                            break # wait for more data to complete tag
+                        
+                        in_blob = True
+                        buffer = buffer[end_tag_idx+1:]
+                        blob_data = []
+                    
+                    if in_blob:
+                        end_blob_idx = buffer.find("</oneBLOB>")
+                        if end_blob_idx == -1:
+                            blob_data.append(buffer)
+                            buffer = ""
+                            break
+                        else:
+                            blob_data.append(buffer[:end_blob_idx])
+                            buffer = buffer[end_blob_idx+10:]
+                            in_blob = False
+                            
+                            full_b64 = "".join(blob_data).replace("\n", "").replace("\r", "")
+                            try:
+                                image_bytes = base64.b64decode(full_b64)
+                                yield (b'--frame\r\n'
+                                       b'Content-Type: image/jpeg\r\n'
+                                       b'Content-Length: ' + str(len(image_bytes)).encode() + b'\r\n\r\n' +
+                                       image_bytes + b'\r\n')
+                            except Exception as e:
+                                print(f"Base64 decode error: {e}")
+                                
         except GeneratorExit:
-            pass
+            # Clean up when client disconnects
+            try:
+                indi_cmd(["indi_setprop", DEVICE_CCD + ".CCD_VIDEO_STREAM.STREAM_OFF=On"])
+                if 's' in locals(): s.close()
+            except: pass
         except Exception as e:
             print(f"Stream error: {e}")
+            try:
+                if 's' in locals(): s.close()
+            except: pass
     
-    return Response(generate(),
-                    mimetype='multipart/x-mixed-replace; boundary=--frame')
+    return Response(generate(), mimetype='multipart/x-mixed-replace; boundary=--frame')
+
+@app.route("/ccd/latest")
+def ccd_latest():
+    # Attempt to get the latest Live View frame
+    ok, out, err = indi_cmd(["indi_getprop", f"{DEVICE_CCD}.CCD1.CCD1"])
+    if ok and "=" in out:
+        try:
+            b64_data = out.split("=", 1)[1].strip()
+            image_data = base64.b64decode(b64_data)
+            return Response(image_data, mimetype='image/jpeg')
+        except:
+            pass
+    return Response(b'', status=404)
 
 if __name__ == "__main__":
     print("INDI Bridge on port 5000...")

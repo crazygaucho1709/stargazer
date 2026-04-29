@@ -20,22 +20,27 @@ export const LiveView = () => {
     const panX = -(az - 180) * 15; 
     const panY = -(alt - 45) * 15; 
 
-    // Canon DSLR live view - Poll for latest frame
+    // Canon DSLR live view - Poll for latest frame when not streaming
     useEffect(() => {
         if (liveViewMode !== "CANON") return;
         
         setCcdError(false);
         
+        if (isLiveStreaming) {
+            // When streaming, the streamURL is set natively, no need to poll
+            return;
+        }
+        
         // Set the latest frame URL with cache-busting (use API proxy to avoid CORS)
         const updateFrame = () => {
-            setCcdImage(`/api/indi/latest-image?t=${Date.now()}`);
+            setCcdImage(`/api/indi/latest-image?ip=${bridgeIp}&t=${Date.now()}`);
         };
         
         // Initial frame
         updateFrame();
         
-        // Poll for new frames (higher rate when streaming)
-        const interval = setInterval(updateFrame, isLiveStreaming ? 500 : 3000);
+        // Poll for new frames at a slow rate
+        const interval = setInterval(updateFrame, 3000);
         
         return () => clearInterval(interval);
         
@@ -44,8 +49,11 @@ export const LiveView = () => {
     const startLiveView = async () => {
         try {
             setStreamStatus("Starting...");
-            const res = await fetch(`http://${bridgeIp}:5000/ccd/liveview/start`, { method: 'POST' });
-            if (res.ok) {
+            const res = await fetch(`/api/indi/stream?device=Canon%20DSLR%20EOS%20600D&ip=${bridgeIp}`);
+            const data = await res.json();
+            
+            if (data.success) {
+                setCcdImage(data.streamUrl);
                 setIsLiveStreaming(true);
                 setStreamStatus("LIVE");
             }
@@ -56,7 +64,11 @@ export const LiveView = () => {
 
     const stopLiveView = async () => {
         try {
-            await fetch(`http://${bridgeIp}:5000/ccd/liveview/stop`, { method: 'POST' });
+            await fetch(`/api/indi/liveview`, { 
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'stop', ip: bridgeIp })
+            });
             setIsLiveStreaming(false);
             setStreamStatus("");
         } catch (e) {
@@ -108,12 +120,7 @@ export const LiveView = () => {
                         <img
                             src={ccdImage}
                             alt="Canon Live View"
-                            onLoad={() => console.log('Canon image loaded:', ccdImage?.substring(0, 50))}
-                            onError={(e) => {
-                                console.error('Canon image failed:', ccdImage, e);
-                                // Retry with fresh timestamp via API proxy
-                                setCcdImage(`/api/indi/latest-image?t=${Date.now()}_retry`);
-                            }}
+                            onLoad={() => setCcdError(false)}
                             style={{
                                 width: "100%",
                                 height: "100%",

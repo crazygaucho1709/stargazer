@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 
-const BRIDGE_URL = 'http://192.168.178.142:5000';
-
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const device = searchParams.get('device') || 'Canon DSLR EOS 600D';
     const exposure = parseFloat(searchParams.get('exposure') || '0.1');
+    const bridgeIp = searchParams.get('ip') || '192.168.178.142';
+    const BRIDGE_URL = `http://${bridgeIp}:5000`;
     
     // Trigger capture via bridge
     const res = await fetch(`${BRIDGE_URL}/ccd/capture`, {

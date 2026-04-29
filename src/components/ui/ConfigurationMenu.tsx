@@ -191,7 +191,8 @@ const WizardTabOld = ({ language, setActiveTab, onClose }: any) => {
         // Step 4: Test camera capture
         setWizardState(prev => ({ ...prev, step: 4 }));
         try {
-            await fetch('/api/indi/ccd?device=Canon%20DSLR%20EOS%20600D&exposure=0.5');
+            const bridgeIp = config.astroberryUrl.replace('http://', '').replace(':8624', '');
+            await fetch(`/api/indi/ccd?device=Canon%20DSLR%20EOS%20600D&exposure=0.5&ip=${bridgeIp}`);
         } catch (e) {
             console.error('Camera test failed:', e);
         }
