@@ -4,11 +4,11 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const device = searchParams.get('device') || 'Canon DSLR EOS 600D';
   const bridgeIp = searchParams.get('ip') || '192.168.178.142';
-  const BRIDGE_URL = `http://${bridgeIp}:5000`;
+  const BRIDGE_URL = `http://${bridgeIp}:5005`;
   
   // Start the stream on the bridge
   try {
-    await fetch(`${BRIDGE_URL}/ccd/stream/start`, {
+    await fetch( `${BRIDGE_URL}/ccd/stream/start`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' }
     });

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Box, VStack, HStack, Text, Button, Icon, Badge, Flex } from "@chakra-ui/react";
-import { CheckCircle, AlertTriangle, Telescope, Camera, Compass, ArrowRight, RotateCcw, MapPin, Video, Check, X, AlertCircle } from "lucide-react";
+import { CheckCircle, AlertTriangle, Telescope, Camera, Compass, ArrowRight, RotateCcw, MapPin, Video, Check, X, AlertCircle, Target, Star, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { useStargazerStore } from "@/store/useStargazerStore";
 import { mockApi } from "@/services/mockApi";
 
@@ -10,12 +10,12 @@ type CalibrationStep =
   | 'idle' 
   | 'connection' 
   | 'park' 
-  | 'park-verify'
   | 'limits-alt-max'
   | 'limits-alt-min'  
   | 'limits-az-max'
   | 'limits-az-min'
   | 'camera-test'
+  | 'alignment'
   | 'complete';
 
 interface StepStatus {
@@ -25,8 +25,21 @@ interface StepStatus {
   instruction: string;
 }
 
+const BRIGHT_STARS = [
+  { name: "Sirius", ra: "06h 45m 08s", dec: "-16° 42' 58\"" },
+  { name: "Canopus", ra: "06h 23m 57s", dec: "-52° 41' 44\"" },
+  { name: "Arcturus", ra: "14h 15m 39s", dec: "+19° 10' 56\"" },
+  { name: "Rigel Kentaurus", ra: "14h 39m 36s", dec: "-60° 50' 02\"" },
+  { name: "Vega", ra: "18h 36m 56s", dec: "+38° 47' 01\"" },
+  { name: "Capella", ra: "05h 16m 41s", dec: "+45° 59' 52\"" },
+  { name: "Rigel", ra: "05h 14m 32s", dec: "-08° 12' 06\"" },
+  { name: "Procyon", ra: "07h 39m 18s", dec: "+05° 13' 29\"" },
+  { name: "Achernar", ra: "01h 37m 42s", dec: "-57° 14' 12\"" },
+  { name: "Betelgeuse", ra: "05h 55m 10s", dec: "+07° 24' 25\"" },
+];
+
 export const CalibrationWizard = () => {
-  const { language, alt, az, config, setMountLimits, mountLimits } = useStargazerStore();
+  const { language, alt, az, config, setMountLimits, mountLimits, setSlewing } = useStargazerStore();
   const bridgeIp = config.astroberryUrl.replace('http://', '').replace(':8624', '');
   const [step, setStep] = useState<StepStatus>({
     step: 'idle',
@@ -36,6 +49,35 @@ export const CalibrationWizard = () => {
   });
   const [errors, setErrors] = useState<string[]>([]);
   const [videoActive, setVideoActive] = useState(false);
+  const [selectedStar, setSelectedStar] = useState(BRIGHT_STARS[0]);
+  const [starAltAz, setStarAltAz] = useState<{alt: number, az: number} | null>(null);
+
+  useEffect(() => {
+    if (step.step !== 'alignment') return;
+    const updatePos = async () => {
+      const res = await mockApi.getStarPosition(selectedStar.ra, selectedStar.dec);
+      if (res.success && res.alt !== undefined && res.az !== undefined) {
+        setStarAltAz({ alt: res.alt, az: res.az });
+      }
+    };
+    updatePos();
+    const interval = setInterval(updatePos, 10000);
+    return () => clearInterval(interval);
+  }, [selectedStar, step.step]);
+
+  useEffect(() => {
+    if (step.step !== 'idle' && step.step !== 'complete') {
+      setVideoActive(true);
+      // Start camera stream
+      fetch('/api/indi/liveview', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'start', ip: bridgeIp })
+      }).catch(console.error);
+    } else {
+      setVideoActive(false);
+    }
+  }, [step.step, bridgeIp]);
 
   const startCalibration = async () => {
     setErrors([]);
@@ -46,391 +88,175 @@ export const CalibrationWizard = () => {
       instruction: ''
     });
 
-    // Step 1: Check connection
     const ping = await mockApi.ping(config.astroberryUrl, config.driverInstance);
     if (!ping.success) {
-      setStep({
-        step: 'idle',
-        isWaitingUser: false,
-        message: '',
-        instruction: ''
-      });
-      setErrors([language === 'fr' ? 'Connexion échouée. Vérifiez Astroberry.' : 'Connection failed. Check Astroberry.']);
+      setStep({ step: 'idle', isWaitingUser: false, message: '', instruction: '' });
+      setErrors([language === 'fr' ? 'Connexion échouée.' : 'Connection failed.']);
       return;
     }
 
-    // Step 2: Park position
     const isSouthernHemisphere = parseFloat(config.latitude) < 0;
-    const parkAzimuth = isSouthernHemisphere ? 180 : 0;
-    const directionStrFR = isSouthernHemisphere ? "le Sud (Azimut 180°)" : "le Nord (Azimut 0°)";
-    const directionStrEN = isSouthernHemisphere ? "South (Azimuth 180°)" : "North (Azimuth 0°)";
-
     setStep({
       step: 'park',
       isWaitingUser: true,
-      message: language === 'fr' ? 'Mise en station requise' : 'Parking required',
+      message: language === 'fr' ? 'Mise en station' : 'Parking',
       instruction: language === 'fr' 
-        ? `Garez la monture: tube horizontal (Altitude ≈ 0°), pointé vers ${directionStrFR}.`
-        : `Park the mount: tube horizontal (Altitude ≈ 0°), pointing ${directionStrEN}.`
+        ? `Garez la monture: tube horizontal, pointé vers le ${isSouthernHemisphere ? 'Sud' : 'Nord'}.`
+        : `Park the mount: tube horizontal, pointing ${isSouthernHemisphere ? 'South' : 'North'}.`
     });
   };
 
-  const syncParkPosition = () => {
+  const syncParkPosition = async () => {
     const isSouthernHemisphere = parseFloat(config.latitude) < 0;
-    const parkAzimuth = isSouthernHemisphere ? 180 : 0;
-
-    fetch('/api/indi/mount', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        action: 'sync_master', 
-        lat: parseFloat(config.latitude), 
-        lon: parseFloat(config.longitude), 
-        alt: 0, 
-        az: parkAzimuth, 
-        ip: bridgeIp 
-      }) 
-    }).then(async (res) => {
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error);
-      
-      setErrors([]);
+    const res = await mockApi.syncMaster({
+      lat: parseFloat(config.latitude),
+      lon: parseFloat(config.longitude),
+      alt: 0,
+      az: isSouthernHemisphere ? 180 : 0
+    });
+    
+    if (res.success) {
       setStep({
         step: 'limits-alt-max',
         isWaitingUser: true,
-        message: language === 'fr' ? 'Calibration limites: Altitude Max' : 'Limits calibration: Max Altitude',
-        instruction: language === 'fr'
-          ? 'Position synchronisée! Utilisez les flèches HAUT/BAS pour monter au maximum sécurisé. Puis VALIDER.'
-          : 'Position synced! Use UP/DOWN arrows to raise to maximum safe elevation. Then VALIDATE.'
+        message: language === 'fr' ? 'Altitude Max' : 'Max Altitude',
+        instruction: language === 'fr' ? 'Montez au maximum sécurisé.' : 'Raise to max safe position.'
       });
-      setVideoActive(true);
-    }).catch(err => {
-      setErrors([language === 'fr' ? `Erreur: ${err.message}` : `Error: ${err.message}`]);
-    });
-  };
-
-  const verifyParkPosition = () => {
-    const isSouthernHemisphere = parseFloat(config.latitude) < 0;
-    const parkAzimuth = isSouthernHemisphere ? 180 : 0;
-
-    const isHorizontal = Math.abs(alt) < 10; 
-    const isNorthSouth = Math.abs(az - parkAzimuth) < 15 || Math.abs(az - (parkAzimuth + 360)) < 15;
-    
-    if (!isHorizontal || !isNorthSouth) {
-      setErrors([language === 'fr' 
-        ? `Monture non synchronisée: Alt=${alt.toFixed(1)}°, Az=${az.toFixed(1)}°. Positionnez à l'horizontal puis cliquez SYNCHRONISER.`
-        : `Mount not synced: Alt=${alt.toFixed(1)}°, Az=${az.toFixed(1)}°. Position horizontally then click SYNC.`
-      ]);
-      return;
+    } else {
+      setErrors([res.error || "Sync Error"]);
     }
-
-    setErrors([]);
-    setStep({
-      step: 'limits-alt-max',
-      isWaitingUser: true,
-      message: language === 'fr' ? 'Calibration limites: Altitude Max' : 'Limits calibration: Max Altitude',
-      instruction: language === 'fr'
-        ? 'Utilisez les flèches HAUT/BAS pour monter la monture au maximum sécurisé. Puis cliquez VALIDER.'
-        : 'Use UP/DOWN arrows to raise mount to maximum safe position. Then click VALIDATE.'
-    });
-    setVideoActive(true);
   };
 
   const saveMaxAlt = () => {
-    setMountLimits({ maxAlt: alt });
+    setMountLimits({ ...mountLimits, maxAlt: alt });
     setStep({
       step: 'limits-alt-min',
       isWaitingUser: true,
-      message: language === 'fr' ? 'Calibration: Altitude Min' : 'Calibration: Min Altitude',
-      instruction: language === 'fr'
-        ? 'Descendez la monture au minimum (attention aux câbles!). Puis VALIDER.'
-        : 'Lower mount to minimum (watch cables!). Then VALIDATE.'
+      message: language === 'fr' ? 'Altitude Min' : 'Min Altitude',
+      instruction: language === 'fr' ? 'Descendez au minimum.' : 'Lower to minimum.'
     });
   };
 
   const saveMinAlt = () => {
-    setMountLimits({ minAlt: alt });
+    setMountLimits({ ...mountLimits, minAlt: alt });
     setStep({
       step: 'limits-az-max',
       isWaitingUser: true,
-      message: language === 'fr' ? 'Calibration: Azimut Max' : 'Calibration: Max Azimuth',
-      instruction: language === 'fr'
-        ? 'Tournez à droite (flèche DROITE) jusqu\'au butée Est sécurisée. Puis VALIDER.'
-        : 'Rotate right (RIGHT arrow) to safe East limit. Then VALIDATE.'
+      message: language === 'fr' ? 'Azimut Max' : 'Max Azimuth',
+      instruction: language === 'fr' ? 'Tournez vers l\'Est.' : 'Rotate East.'
     });
   };
 
   const saveMaxAz = () => {
-    setMountLimits({ maxAz: az });
+    setMountLimits({ ...mountLimits, maxAz: az });
     setStep({
       step: 'limits-az-min',
       isWaitingUser: true,
-      message: language === 'fr' ? 'Calibration: Azimut Min' : 'Calibration: Min Azimuth',
-      instruction: language === 'fr'
-        ? 'Tournez à gauche jusqu\'au butée Ouest sécurisée. Puis VALIDER.'
-        : 'Rotate left to safe West limit. Then VALIDATE.'
+      message: language === 'fr' ? 'Azimut Min' : 'Min Azimuth',
+      instruction: language === 'fr' ? 'Tournez vers l\'Ouest.' : 'Rotate West.'
     });
   };
 
   const saveMinAz = () => {
-    setMountLimits({ minAz: az });
+    setMountLimits({ ...mountLimits, minAz: az });
+    mockApi.saveConfig({ mountLimits: { ...mountLimits, minAz: az } });
     setStep({
       step: 'camera-test',
       isWaitingUser: true,
       message: language === 'fr' ? 'Test caméra' : 'Camera test',
-      instruction: language === 'fr'
-        ? 'Testez la caméra: une capture de 5s va être effectuée. Vérifiez le retour vidéo.'
-        : 'Test camera: a 5s capture will be taken. Check video feed.'
+      instruction: 'Testez la capture.'
     });
   };
 
   const testCamera = async () => {
-    try {
-      await fetch(`/api/indi/ccd?device=Canon%20DSLR%20EOS%20600D&exposure=5&ip=${bridgeIp}`);
+    setStep({
+      step: 'alignment',
+      isWaitingUser: true,
+      message: language === 'fr' ? 'Alignement' : 'Alignment',
+      instruction: 'Choisissez une étoile et centrez-la.'
+    });
+  };
+
+  const startStarGoto = async () => {
+    setSlewing(true);
+    const res = await mockApi.slew(selectedStar.ra, selectedStar.dec, config.driverInstance);
+    if (!res.success) setErrors([res.error || "GOTO error"]);
+    setSlewing(false);
+  };
+
+  const syncStar = async () => {
+    const res = await mockApi.sync(selectedStar.ra, selectedStar.dec, config.driverInstance);
+    if (res.success) {
       setStep({
         step: 'complete',
         isWaitingUser: false,
-        message: language === 'fr' ? 'Calibration terminée!' : 'Calibration complete!',
-        instruction: language === 'fr'
-          ? `Limites enregistrées: Alt ${mountLimits.minAlt.toFixed(0)}°-${mountLimits.maxAlt.toFixed(0)}°, Az ${mountLimits.minAz.toFixed(0)}°-${mountLimits.maxAz.toFixed(0)}°`
-          : `Limits saved: Alt ${mountLimits.minAlt.toFixed(0)}°-${mountLimits.maxAlt.toFixed(0)}°, Az ${mountLimits.minAz.toFixed(0)}°-${mountLimits.maxAz.toFixed(0)}°`
+        message: 'Terminé',
+        instruction: 'Alignement réussi.'
       });
-    } catch (e) {
-      setErrors([language === 'fr' ? 'Erreur caméra' : 'Camera error']);
+    } else {
+      setErrors([res.error || "Sync error"]);
     }
   };
 
   const reset = () => {
     setStep({ step: 'idle', isWaitingUser: false, message: '', instruction: '' });
     setErrors([]);
-    setVideoActive(false);
   };
 
-  // Render based on current step
   if (step.step === 'idle') {
     return (
-      <VStack align="stretch" gap={4}>
-        <Text fontSize="sm" color="whiteAlpha.800">
-          {language === 'fr' 
-            ? 'Cet assistant vous guidera pour la mise en station complète de la monture, la définition des limites et le test caméra.'
-            : 'This wizard will guide you through complete mount parking, limits setup and camera test.'}
-        </Text>
-        
-        {errors.length > 0 && (
-          <Box bg="rgba(255,0,0,0.1)" border="1px solid rgba(255,0,0,0.3)" p={3} borderRadius="md">
-            <HStack gap={2}>
-              <Icon as={AlertCircle} boxSize={4} color="red.400" />
-              <Text fontSize="12px" color="red.300">{errors[0]}</Text>
-            </HStack>
-          </Box>
-        )}
-
-        <Button bg="var(--astro-teal)" color="black" _hover={{ bg: "white" }} onClick={startCalibration}>
-          <Icon as={Compass} boxSize={4} mr={2} />
-          {language === 'fr' ? 'DÉMARRER CALIBRATION' : 'START CALIBRATION'}
-        </Button>
-      </VStack>
+      <Button w="full" bg="var(--astro-teal)" color="black" onClick={startCalibration}>
+        {language === 'fr' ? 'DÉMARRER CALIBRATION' : 'START CALIBRATION'}
+      </Button>
     );
   }
 
   return (
     <VStack align="stretch" gap={4}>
-      {/* Status Header */}
-      <Box bg="rgba(0,240,255,0.1)" p={3} borderRadius="8px" borderLeft="3px solid var(--astro-teal)">
-        <HStack gap={2} mb={2}>
-          <Icon as={step.isWaitingUser ? AlertTriangle : CheckCircle} 
-                boxSize={5} 
-                color={step.isWaitingUser ? "orange.400" : "green.400"} />
-          <Text fontSize="12px" fontWeight="bold" color="white">
-            {step.message}
-          </Text>
-        </HStack>
-        <Text fontSize="11px" color="whiteAlpha.700" lineHeight={1.5}>
-          {step.instruction}
-        </Text>
+      <Box bg="rgba(0,240,255,0.1)" p={3} borderRadius="md" borderLeft="3px solid var(--astro-teal)">
+        <Text fontSize="12px" fontWeight="bold" color="white">{step.message}</Text>
+        <Text fontSize="10px" color="whiteAlpha.700">{step.instruction}</Text>
       </Box>
 
-      {/* Live Position Display */}
-      <Flex justify="space-between" bg="rgba(0,0,0,0.3)" p={3} borderRadius="6px">
-        <VStack align="start" gap={0}>
-          <Text fontSize="10px" color="whiteAlpha.500">Altitude</Text>
-          <Text fontSize="18px" fontWeight="bold" color="var(--astro-teal)" className="hud-font">
-            {alt.toFixed(1)}°
-          </Text>
-        </VStack>
-        <VStack align="end" gap={0}>
-          <Text fontSize="10px" color="whiteAlpha.500">Azimut</Text>
-          <Text fontSize="18px" fontWeight="bold" color="var(--astro-teal)" className="hud-font">
-            {az.toFixed(1)}°
-          </Text>
-        </VStack>
-      </Flex>
-
-      {/* Canon Live View Feed */}
       {videoActive && (
-        <Box bg="rgba(0,0,0,0.7)" p={2} borderRadius="8px" border="1px solid rgba(0,240,255,0.3)">
-          <HStack gap={2} mb={2} justify="space-between">
-            <HStack gap={2}>
-              <Icon as={Video} boxSize={4} color="var(--astro-teal)" />
-              <Text fontSize="11px" color="var(--astro-teal)">
-                {language === 'fr' ? 'Canon EOS 600D - LIVE' : 'Canon EOS 600D - LIVE'}
-              </Text>
-              <Box w="8px" h="8px" bg="red.500" borderRadius="full" className="pulse" />
-            </HStack>
-            <Text fontSize="9px" color="whiteAlpha.500">
-              API Proxy
-            </Text>
+        <Box bg="black" borderRadius="md" border="1px solid var(--astro-teal)" h="150px" position="relative">
+          <img src={`/api/indi/latest-image?ip=${bridgeIp}&t=${Date.now()}`} style={{ width:'100%', height:'100%', objectFit:'contain' }} alt="Live" />
+          <Box position="absolute" top="50%" left="50%" transform="translate(-50%,-50%)" w="20px" h="20px" border="1px solid rgba(0,240,255,0.5)" borderRadius="full" />
+        </Box>
+      )}
+
+      {step.isWaitingUser && step.step !== 'complete' && (
+        <VStack bg="whiteAlpha.100" p={2} borderRadius="md" gap={2}>
+          <Button size="xs" onMouseDown={() => mockApi.startMotion('up')} onMouseUp={() => mockApi.stopMotion('up')}><ChevronUp size={14}/></Button>
+          <HStack>
+            <Button size="xs" onMouseDown={() => mockApi.startMotion('left')} onMouseUp={() => mockApi.stopMotion('left')}><ChevronLeft size={14}/></Button>
+            <Box w="10px" />
+            <Button size="xs" onMouseDown={() => mockApi.startMotion('right')} onMouseUp={() => mockApi.stopMotion('right')}><ChevronRight size={14}/></Button>
           </HStack>
-          
-          {/* Live View Image */}
-          <Box 
-            w="full" 
-            h="150px" 
-            bg="black" 
-            borderRadius="4px" 
-            overflow="hidden"
-            position="relative"
-          >
-            <img 
-              src={`/api/indi/latest-image?ip=${bridgeIp}&t=${Date.now()}`}
-              alt="Canon Live"
-              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-              onError={(e) => {
-                // Fallback to placeholder on error
-                const target = e.target as HTMLImageElement;
-                target.style.display = 'none';
-              }}
-            />
-            {/* Crosshair overlay */}
-            <Box 
-              position="absolute" 
-              top="50%" left="50%"
-              transform="translate(-50%, -50%)"
-              pointerEvents="none"
-            >
-              <Box w="30px" h="2px" bg="rgba(0,240,255,0.6)" position="absolute" left="-15px" top="-1px" />
-              <Box h="30px" w="2px" bg="rgba(0,240,255,0.6)" position="absolute" top="-15px" left="-1px" />
-              <Box w="40px" h="40px" border="1px solid rgba(255,179,71,0.4)" borderRadius="full" position="absolute" left="-20px" top="-20px" />
+          <Button size="xs" onMouseDown={() => mockApi.startMotion('down')} onMouseUp={() => mockApi.stopMotion('down')}><ChevronDown size={14}/></Button>
+        </VStack>
+      )}
+
+      <VStack gap={2}>
+        {step.step === 'park' && <Button w="full" size="sm" bg="orange.500" onClick={syncParkPosition}>SYNC PARKING (0°)</Button>}
+        {step.step === 'limits-alt-max' && <Button w="full" size="sm" bg="var(--astro-teal)" onClick={saveMaxAlt}>VALIDER MAX ALT</Button>}
+        {step.step === 'limits-alt-min' && <Button w="full" size="sm" bg="var(--astro-teal)" onClick={saveMinAlt}>VALIDER MIN ALT</Button>}
+        {step.step === 'limits-az-max' && <Button w="full" size="sm" bg="var(--astro-teal)" onClick={saveMaxAz}>VALIDER MAX AZ (E)</Button>}
+        {step.step === 'limits-az-min' && <Button w="full" size="sm" bg="var(--astro-teal)" onClick={saveMinAz}>VALIDER MIN AZ (W)</Button>}
+        {step.step === 'camera-test' && <Button w="full" size="sm" bg="var(--astro-teal)" onClick={testCamera}>ALLER À L'ALIGNEMENT</Button>}
+        {step.step === 'alignment' && (
+          <VStack w="full" gap={2}>
+            <Box as="select" w="full" bg="black" color="white" fontSize="xs" p={1} onChange={(e:any) => setSelectedStar(BRIGHT_STARS.find(s=>s.name===e.target.value)||BRIGHT_STARS[0])}>
+              {BRIGHT_STARS.map(s => <option key={s.name}>{s.name}</option>)}
             </Box>
-          </Box>
-          
-          <Text fontSize="9px" color="whiteAlpha.500" mt={1} textAlign="center">
-            {language === 'fr' ? 'Positionnez la monture en utilisant le viseur' : 'Position mount using the eyepiece view'}
-          </Text>
-        </Box>
-      )}
-
-      {/* Errors */}
-      {errors.length > 0 && (
-        <Box bg="rgba(255,0,0,0.1)" border="1px solid rgba(255,0,0,0.3)" p={3} borderRadius="md">
-          <HStack gap={2}>
-            <Icon as={X} boxSize={4} color="red.400" />
-            <Text fontSize="12px" color="red.300">{errors[0]}</Text>
-          </HStack>
-        </Box>
-      )}
-
-      {/* Action Buttons */}
-      {step.isWaitingUser && (
-        <VStack gap={2}>
-          {step.step === 'park' && (
-            <VStack w="full" gap={2}>
-              <Button w="full" bg="orange.500" color="white" _hover={{ bg: "orange.600" }} onClick={syncParkPosition}>
-                <Icon as={RotateCcw} boxSize={4} mr={2} />
-                {language === 'fr' 
-                  ? `SYNCHRONISER POSITION (0°, ${parseFloat(config.latitude) < 0 ? '180°' : '0°'})` 
-                  : `SYNC POSITION (0°, ${parseFloat(config.latitude) < 0 ? '180°' : '0°'})`}
-              </Button>
-              <Text fontSize="10px" color="whiteAlpha.500" textAlign="center">
-                {language === 'fr' ? 'Utilisez ce bouton si les coordonnées ne correspondent pas à la position réelle' : 'Use this if coordinates don\'t match actual position'}
-              </Text>
-              <Button w="full" bg="green.500" color="white" _hover={{ bg: "green.600" }} onClick={verifyParkPosition}>
-                <Icon as={Check} boxSize={4} mr={2} />
-                {language === 'fr' ? 'POSITION GARÉE - CONTINUER' : 'PARKED - CONTINUE'}
-              </Button>
-            </VStack>
-          )}
-          
-          {step.step === 'limits-alt-max' && (
-            <Button w="full" bg="var(--astro-teal)" color="black" _hover={{ bg: "white" }} onClick={saveMaxAlt}>
-              <Icon as={Check} boxSize={4} mr={2} />
-              {language === 'fr' ? 'VALIDER ALTITUDE MAX' : 'VALIDATE MAX ALT'}
-            </Button>
-          )}
-          
-          {step.step === 'limits-alt-min' && (
-            <Button w="full" bg="var(--astro-teal)" color="black" _hover={{ bg: "white" }} onClick={saveMinAlt}>
-              <Icon as={Check} boxSize={4} mr={2} />
-              {language === 'fr' ? 'VALIDER ALTITUDE MIN' : 'VALIDATE MIN ALT'}
-            </Button>
-          )}
-          
-          {step.step === 'limits-az-max' && (
-            <Button w="full" bg="var(--astro-teal)" color="black" _hover={{ bg: "white" }} onClick={saveMaxAz}>
-              <Icon as={Check} boxSize={4} mr={2} />
-              {language === 'fr' ? 'VALIDER AZIMUT MAX (Est)' : 'VALIDATE MAX AZ (East)'}
-            </Button>
-          )}
-          
-          {step.step === 'limits-az-min' && (
-            <Button w="full" bg="var(--astro-teal)" color="black" _hover={{ bg: "white" }} onClick={saveMinAz}>
-              <Icon as={Check} boxSize={4} mr={2} />
-              {language === 'fr' ? 'VALIDER AZIMUT MIN (Ouest)' : 'VALIDATE MIN AZ (West)'}
-            </Button>
-          )}
-          
-          {step.step === 'camera-test' && (
-            <Button w="full" bg="var(--astro-teal)" color="black" _hover={{ bg: "white" }} onClick={testCamera}>
-              <Icon as={Camera} boxSize={4} mr={2} />
-              {language === 'fr' ? 'TEST CAPTURE 5s' : 'TEST CAPTURE 5s'}
-            </Button>
-          )}
-
-          <Button w="full" variant="ghost" color="whiteAlpha.600" onClick={reset}>
-            <Icon as={X} boxSize={4} mr={2} />
-            {language === 'fr' ? 'ANNULER' : 'CANCEL'}
-          </Button>
-        </VStack>
-      )}
-
-      {/* Complete */}
-      {step.step === 'complete' && (
-        <VStack gap={3}>
-          <Box bg="rgba(0,255,100,0.1)" p={4} borderRadius="8px" textAlign="center">
-            <Icon as={CheckCircle} boxSize={8} color="green.400" mb={2} />
-            <Text fontSize="14px" fontWeight="bold" color="green.300">
-              {language === 'fr' ? 'Calibration réussie!' : 'Calibration successful!'}
-            </Text>
-            <Text fontSize="11px" color="whiteAlpha.600" mt={2}>
-              {step.instruction}
-            </Text>
-          </Box>
-          
-          <Button w="full" bg="var(--astro-teal)" color="black" _hover={{ bg: "white" }} onClick={reset}>
-            <Icon as={RotateCcw} boxSize={4} mr={2} />
-            {language === 'fr' ? 'RECALIBRER' : 'RECALIBRATE'}
-          </Button>
-        </VStack>
-      )}
-
-      {/* Progress Indicators */}
-      <HStack gap={1} justify="center" mt={2}>
-        {['connection', 'park', 'limits-alt-max', 'limits-alt-min', 'limits-az-max', 'limits-az-min', 'camera-test', 'complete'].map((s, i) => {
-          const stepIndex = ['connection', 'park', 'limits-alt-max', 'limits-alt-min', 'limits-az-max', 'limits-az-min', 'camera-test', 'complete'].indexOf(step.step);
-          const isActive = s === step.step;
-          const isDone = i < stepIndex;
-          
-          return (
-            <Box 
-              key={s}
-              w="20px" 
-              h="4px" 
-              borderRadius="2px"
-              bg={isActive ? "var(--astro-teal)" : isDone ? "green.400" : "whiteAlpha.200"}
-            />
-          );
-        })}
-      </HStack>
+            {starAltAz && <Text fontSize="9px" color="orange.300">CIBLE: {starAltAz.alt.toFixed(1)}° / {starAltAz.az.toFixed(0)}°</Text>}
+            <Button w="full" size="sm" bg="var(--astro-gold)" onClick={startStarGoto}>GOTO</Button>
+            <Button w="full" size="sm" bg="green.500" onClick={syncStar}>SYNCHRONISER</Button>
+          </VStack>
+        )}
+        {step.step === 'complete' && <Button w="full" size="sm" bg="green.600" onClick={reset}>TERMINER</Button>}
+        <Button size="xs" variant="ghost" onClick={reset}>ANNULER</Button>
+      </VStack>
     </VStack>
   );
 };

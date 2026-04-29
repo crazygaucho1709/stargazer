@@ -10,12 +10,16 @@ from astropy.coordinates import SkyCoord, EarthLocation, AltAz
 from astropy.time import Time
 import astropy.units as u
 import shlex
+import os
+import json
 
 app = Flask(__name__)
 CORS(app)
 
 DEVICE_MOUNT = "Celestron NexStar HC"
 DEVICE_CCD = "Canon DSLR EOS 600D"
+
+latest_frame = None
 
 def indi_cmd(args, type_flag=None):
     try:
@@ -52,6 +56,37 @@ def debug_indi():
     ok, out, err = indi_cmd(["indi_getprop"])
     return jsonify({"success": ok, "output": out, "error": err})
 
+CONFIG_FILE = os.path.expanduser("~/stargazer_config.json")
+
+def load_config():
+    if os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE, 'r') as f:
+                return json.load(f)
+        except:
+            return {}
+    return {}
+
+def save_config(config):
+    try:
+        current = load_config()
+        current.update(config)
+        with open(CONFIG_FILE, 'w') as f:
+            json.dump(current, f)
+        return True
+    except:
+        return False
+
+@app.route("/config", methods=["GET", "POST"])
+def manage_config():
+    if request.method == "POST":
+        data = request.json
+        if save_config(data):
+            return jsonify({"success": True})
+        return jsonify({"success": False, "error": "Could not save config"}), 500
+    else:
+        return jsonify(load_config())
+
 @app.route("/health")
 def health():
     device = find_mount_device()
@@ -65,10 +100,17 @@ def server_status():
     connected = "On" in out if ok else False
     return jsonify([{"status": "True" if connected else "False"}])
 
-@app.route("/mount/start", methods=["POST"])
-def mount_start():
+def run_jog(device, prop, val, duration):
+    indi_cmd(["indi_setprop", f"{device}.{prop}.{val}=On"])
+    time.sleep(duration)
+    indi_cmd(["indi_setprop", f"{device}.{prop}.{val}=Off"])
+
+@app.route("/mount/jog", methods=["POST"])
+def mount_jog():
     data = request.json
     direction = data.get("direction", "up")
+    duration = float(data.get("duration", 0.5))
+    device = find_mount_device()
     
     if direction in ["up", "down"]:
         prop = "TELESCOPE_MOTION_NS"
@@ -77,23 +119,27 @@ def mount_start():
         prop = "TELESCOPE_MOTION_WE"
         val = "MOTION_WEST" if direction == "left" else "MOTION_EAST"
     
-    ok, out, err = indi_cmd(["indi_setprop", DEVICE_MOUNT + "." + prop + "." + val + "=On"])
-    return jsonify({"success": ok, "direction": direction, "action": "start", "error": err if not ok else ""})
+    # Run jog in a separate thread to avoid blocking Flask
+    import threading
+    thread = threading.Thread(target=run_jog, args=(device, prop, val, duration))
+    thread.daemon = True
+    thread.start()
+    
+    return jsonify({"success": True, "direction": direction, "message": "Jog started"})
 
 @app.route("/mount/stop", methods=["POST"])
 def mount_stop():
     data = request.json
     direction = data.get("direction", "up")
+    device = find_mount_device()
     
-    if direction in ["up", "down"]:
-        prop = "TELESCOPE_MOTION_NS"
-        val = "MOTION_NORTH" if direction == "up" else "MOTION_SOUTH"
-    else:
-        prop = "TELESCOPE_MOTION_WE"
-        val = "MOTION_WEST" if direction == "left" else "MOTION_EAST"
+    # To stop, we just turn off BOTH directions on both axes to be safe
+    indi_cmd(["indi_setprop", f"{device}.TELESCOPE_MOTION_NS.MOTION_NORTH=Off"])
+    indi_cmd(["indi_setprop", f"{device}.TELESCOPE_MOTION_NS.MOTION_SOUTH=Off"])
+    indi_cmd(["indi_setprop", f"{device}.TELESCOPE_MOTION_WE.MOTION_WEST=Off"])
+    indi_cmd(["indi_setprop", f"{device}.TELESCOPE_MOTION_WE.MOTION_EAST=Off"])
     
-    ok, out, err = indi_cmd(["indi_setprop", DEVICE_MOUNT + "." + prop + "." + val + "=Off"])
-    return jsonify({"success": ok, "direction": direction, "action": "stop", "error": err if not ok else ""})
+    return jsonify({"success": True, "message": "All motion stopped"})
 
 @app.route("/mount/slew", methods=["POST"])
 def mount_slew():
@@ -201,6 +247,33 @@ def mount_sync_master():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
+@app.route("/astro/coords", methods=["POST"])
+def get_altaz():
+    data = request.json
+    ra = float(data.get("ra", 0))
+    dec = float(data.get("dec", 0))
+    lat = float(data.get("lat", 0))
+    lon = float(data.get("lon", 0))
+    elev = float(data.get("elev", 0))
+    
+    try:
+        observatory = EarthLocation(lat=lat*u.deg, lon=lon*u.deg, height=elev*u.m)
+        obs_time = Time(datetime.datetime.utcnow())
+        
+        # Equatorial coordinate
+        target = SkyCoord(ra=ra*u.hourangle, dec=dec*u.deg, frame='icrs')
+        
+        # Convert to AltAz
+        altaz = target.transform_to(AltAz(obstime=obs_time, location=observatory))
+        
+        return jsonify({
+            "success": True,
+            "alt": altaz.alt.deg,
+            "az": altaz.az.deg
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
 @app.route("/ccd/connect", methods=["POST"])
 def ccd_connect():
     ok, out, err = indi_cmd(["indi_setprop", DEVICE_CCD + ".CONNECTION.CONNECT=On"])
@@ -289,6 +362,8 @@ def ccd_stream():
                             full_b64 = "".join(blob_data).replace("\n", "").replace("\r", "")
                             try:
                                 image_bytes = base64.b64decode(full_b64)
+                                global latest_frame
+                                latest_frame = image_bytes
                                 yield (b'--frame\r\n'
                                        b'Content-Type: image/jpeg\r\n'
                                        b'Content-Length: ' + str(len(image_bytes)).encode() + b'\r\n\r\n' +
@@ -312,17 +387,11 @@ def ccd_stream():
 
 @app.route("/ccd/latest")
 def ccd_latest():
-    # Attempt to get the latest Live View frame
-    ok, out, err = indi_cmd(["indi_getprop", f"{DEVICE_CCD}.CCD1.CCD1"])
-    if ok and "=" in out:
-        try:
-            b64_data = out.split("=", 1)[1].strip()
-            image_data = base64.b64decode(b64_data)
-            return Response(image_data, mimetype='image/jpeg')
-        except:
-            pass
+    global latest_frame
+    if latest_frame:
+        return Response(latest_frame, mimetype='image/jpeg')
     return Response(b'', status=404)
 
 if __name__ == "__main__":
-    print("INDI Bridge on port 5000...")
-    app.run(host="0.0.0.0", port=5000)
+    print("INDI Bridge on port 5005...")
+    app.run(host="0.0.0.0", port=5005)
