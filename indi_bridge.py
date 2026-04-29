@@ -5,6 +5,11 @@ import subprocess
 import time
 import base64
 import socket
+import datetime
+from astropy.coordinates import SkyCoord, EarthLocation, AltAz
+from astropy.time import Time
+import astropy.units as u
+import shlex
 
 app = Flask(__name__)
 CORS(app)
@@ -14,16 +19,49 @@ DEVICE_CCD = "Canon DSLR EOS 600D"
 
 def indi_cmd(args):
     try:
-        result = subprocess.run(args, capture_output=True, text=True, timeout=10)
+        # For setprop with spaces, shell=True with quotes often works best in some environments
+        if args[0] == "indi_setprop":
+            # We want: indi_setprop "Celestron GPS.PROP=VAL"
+            cmd_str = f'indi_setprop -h 127.0.0.1 "{args[1]}"'
+            if len(args) > 2:
+                for extra in args[2:]:
+                    cmd_str += f' "{extra}"'
+        else:
+            cmd_str = " ".join(shlex.quote(arg) for arg in ([args[0], "-h", "127.0.0.1"] + args[1:]))
+            
+        print(f"Running command: {cmd_str}", flush=True)
+        result = subprocess.run(cmd_str, shell=True, capture_output=True, text=True, timeout=10)
+        if result.returncode != 0:
+            print(f"Command failed: {result.stderr}", flush=True)
         return result.returncode == 0, result.stdout.strip(), result.stderr.strip()
     except Exception as e:
+        print(f"Command exception: {e}", flush=True)
         return False, "", str(e)
+
+def find_mount_device():
+    # Try to find which device has EQUATORIAL_EOD_COORD
+    ok, out, err = indi_cmd(["indi_getprop"])
+    if not ok: return "Celestron GPS" # Fallback
+    
+    for line in out.splitlines():
+        line = line.strip()
+        if ".EQUATORIAL_EOD_COORD.RA=" in line:
+            dev = line.split(".")[0].strip()
+            print(f"Found mount device: {repr(dev)}", flush=True)
+            return dev
+    return "Celestron GPS"
+
+@app.route("/debug/indi")
+def debug_indi():
+    ok, out, err = indi_cmd(["indi_getprop"])
+    return jsonify({"success": ok, "output": out, "error": err})
 
 @app.route("/health")
 def health():
-    ok, out, _ = indi_cmd(["indi_getprop", "-t", "3", DEVICE_MOUNT + ".CONNECTION.CONNECT"])
+    device = find_mount_device()
+    ok, out, _ = indi_cmd(["indi_getprop", "-t", "3", device + ".CONNECTION.CONNECT"])
     connected = "On" in out if ok else False
-    return jsonify({"status": "ok", "mount_connected": connected})
+    return jsonify({"status": "ok", "mount_connected": connected, "mount_device": device})
 
 @app.route("/server/status")
 def server_status():
@@ -102,6 +140,70 @@ def mount_jog():
     indi_cmd(["indi_setprop", DEVICE_MOUNT + "." + prop + "." + val + "=Off"])
     
     return jsonify({"success": ok, "direction": direction, "error": err if not ok else ""})
+
+@app.route("/mount/sync_master", methods=["POST"])
+def mount_sync_master():
+    data = request.json
+    lat = float(data.get("lat", 0))
+    lon = float(data.get("lon", 0))
+    elev = float(data.get("elev", 0))
+    alt = float(data.get("alt", 0))
+    az = float(data.get("az", 180)) # South by default
+
+    # Dynamically find the mount device name
+    device = find_mount_device()
+
+    try:
+        # 1. Update Geographic Location and Time in INDI
+        # Format time for INDI TIME_UTC: 2026-04-29T04:30:03
+        now_utc = datetime.datetime.utcnow()
+        indi_time_str = now_utc.strftime("%Y-%m-%dT%H:%M:%S")
+        
+        indi_cmd(["indi_setprop", f"{device}.GEOGRAPHIC_COORD.LAT={lat}"])
+        indi_cmd(["indi_setprop", f"{device}.GEOGRAPHIC_COORD.LONG={lon}"])
+        indi_cmd(["indi_setprop", f"{device}.GEOGRAPHIC_COORD.ELEV={elev}"])
+        indi_cmd(["indi_setprop", f"{device}.TIME_UTC.UTC={indi_time_str}"])
+
+        # 2. Calculate RA/Dec using astropy
+        observatory = EarthLocation(lat=lat*u.deg, lon=lon*u.deg, height=elev*u.m)
+        obs_time = Time(now_utc)
+        
+        # Define the AltAz coordinate
+        altaz = SkyCoord(alt=alt*u.deg, az=az*u.deg, frame='altaz', obstime=obs_time, location=observatory)
+        
+        # Convert to ICRS (Equatorial)
+        eq = altaz.transform_to('icrs')
+        ra_hours = eq.ra.hour
+        dec_deg = eq.dec.deg
+
+        # 3. Enable SYNC mode and set coords
+        indi_cmd(["indi_setprop", f"{device}.ON_COORD_SET.SYNC=On"])
+        time.sleep(0.5)
+        indi_cmd(["indi_setprop", f"{device}.ON_COORD_SET.TRACK=Off"])
+        time.sleep(0.5)
+        
+        # The NexStar driver accepts RA in hours (0-24) and Dec in degrees (-90 to +90)
+        # Use separate calls to avoid parsing issues with multiple assignments
+        ra_ok, _, ra_err = indi_cmd(["indi_setprop", f"{device}.EQUATORIAL_EOD_COORD.RA={ra_hours}"])
+        time.sleep(0.5)
+        dec_ok, _, dec_err = indi_cmd(["indi_setprop", f"{device}.EQUATORIAL_EOD_COORD.DEC={dec_deg}"])
+
+        # 4. Restore TRACK mode
+        time.sleep(0.5)
+        indi_cmd(["indi_setprop", f"{device}.ON_COORD_SET.TRACK=On"])
+
+        if ra_ok and dec_ok:
+            return jsonify({
+                "success": True, 
+                "calculated_ra": ra_hours, 
+                "calculated_dec": dec_deg,
+                "msg": "Master sync complete"
+            })
+        else:
+            return jsonify({"success": False, "error": f"{ra_err} {dec_err}"})
+            
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
 
 @app.route("/ccd/connect", methods=["POST"])
 def ccd_connect():
