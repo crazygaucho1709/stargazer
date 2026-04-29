@@ -66,7 +66,8 @@ export const ObjectFinder = ({ onSlew }: ObjectFinderProps) => {
         body: JSON.stringify({
           action: 'slew',
           ra: obj.ra_deg,
-          dec: obj.dec_deg
+          dec: obj.dec_deg,
+          ip: config.astroberryUrl.replace('http://', '').replace(':8624', '')
         })
       });
 

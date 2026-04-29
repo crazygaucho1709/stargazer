@@ -27,6 +27,7 @@ interface StackingResult {
 
 export const CaptureAndStack = () => {
   const { language, config } = useStargazerStore();
+  const bridgeIp = config.astroberryUrl.replace('http://', '').replace(':8624', '');
   
   // Capture Settings
   const [exposure, setExposure] = useState(30); // seconds
@@ -102,7 +103,7 @@ export const CaptureAndStack = () => {
       
       // Start exposure
       try {
-        await fetch('/api/indi/ccd?device=Canon%20DSLR%20EOS%20600D&exposure=' + exposure);
+        await fetch('/api/indi/ccd?device=Canon%20DSLR%20EOS%20600D&exposure=' + exposure + '&ip=' + bridgeIp);
       } catch (e) {
         console.error('Capture error:', e);
       }

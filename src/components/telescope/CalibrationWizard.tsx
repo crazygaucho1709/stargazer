@@ -27,6 +27,7 @@ interface StepStatus {
 
 export const CalibrationWizard = () => {
   const { language, alt, az, config } = useStargazerStore();
+  const bridgeIp = config.astroberryUrl.replace('http://', '').replace(':8624', '');
   const [step, setStep] = useState<StepStatus>({
     step: 'idle',
     isWaitingUser: false,
@@ -81,7 +82,7 @@ export const CalibrationWizard = () => {
     fetch('/api/indi/mount', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'sync', ra: 0, dec: 0 }) // Park position
+      body: JSON.stringify({ action: 'sync', ra: 0, dec: 0, ip: bridgeIp }) // Park position
     }).then(() => {
       setErrors([]);
       // Update store with synced position
@@ -175,7 +176,7 @@ export const CalibrationWizard = () => {
 
   const testCamera = async () => {
     try {
-      await fetch('/api/indi/ccd?device=Canon%20DSLR%20EOS%20600D&exposure=5');
+      await fetch(`/api/indi/ccd?device=Canon%20DSLR%20EOS%20600D&exposure=5&ip=${bridgeIp}`);
       setStep({
         step: 'complete',
         isWaitingUser: false,
@@ -281,7 +282,7 @@ export const CalibrationWizard = () => {
             position="relative"
           >
             <img 
-              src={`/api/indi/latest-image?t=${Date.now()}`}
+              src={`/api/indi/latest-image?ip=${bridgeIp}&t=${Date.now()}`}
               alt="Canon Live"
               style={{ width: '100%', height: '100%', objectFit: 'contain' }}
               onError={(e) => {

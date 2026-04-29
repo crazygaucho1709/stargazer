@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server';
 
-const BRIDGE_URL = 'http://192.168.178.142:5000';
-
 // Proxy commands to Python bridge
-async function sendToBridge(endpoint: string, data: any): Promise<any> {
+async function sendToBridge(bridgeIp: string, endpoint: string, data: any): Promise<any> {
+  const BRIDGE_URL = `http://${bridgeIp}:5000`;
   try {
     const res = await fetch(`${BRIDGE_URL}${endpoint}`, {
       method: 'POST',
@@ -19,7 +18,8 @@ async function sendToBridge(endpoint: string, data: any): Promise<any> {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { action, device = 'Celestron NexStar HC', ra, dec, direction, duration = 0.5 } = body;
+    const { action, device = 'Celestron NexStar HC', ra, dec, direction, duration = 0.5, ip } = body;
+    const bridgeIp = ip || '192.168.178.142';
     
     if (!action) {
       return NextResponse.json({ error: 'Missing action' }, { status: 400 });
@@ -30,27 +30,27 @@ export async function POST(request: Request) {
     switch (action) {
       case 'goto':
         // GOTO coordonnées RA/DEC
-        response = await sendToBridge('/mount/goto', { device, ra, dec });
+        response = await sendToBridge(bridgeIp, '/mount/goto', { device, ra, dec });
         break;
         
       case 'jog':
         // Mouvement relatif (flèches directionnelles)
-        response = await sendToBridge('/mount/jog', { device, direction, duration });
+        response = await sendToBridge(bridgeIp, '/mount/jog', { device, direction, duration });
         break;
         
       case 'slew':
         // Slew vers objet
-        response = await sendToBridge('/mount/slew', { device, ra, dec });
+        response = await sendToBridge(bridgeIp, '/mount/slew', { device, ra, dec });
         break;
         
       case 'abort':
         // Stop le mouvement
-        response = await sendToBridge('/mount/abort', { device });
+        response = await sendToBridge(bridgeIp, '/mount/abort', { device });
         break;
         
       case 'sync':
         // Sync position (parking)
-        response = await sendToBridge('/mount/sync', { device, ra, dec });
+        response = await sendToBridge(bridgeIp, '/mount/sync', { device, ra, dec });
         break;
         
       default:
