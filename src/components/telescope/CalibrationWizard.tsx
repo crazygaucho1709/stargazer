@@ -66,23 +66,39 @@ export const CalibrationWizard = () => {
     }
 
     // Step 2: Park position
+    const isSouthernHemisphere = parseFloat(config.latitude) < 0;
+    const parkAzimuth = isSouthernHemisphere ? 180 : 0;
+    const directionStrFR = isSouthernHemisphere ? "le Sud (Azimut 180°)" : "le Nord (Azimut 0°)";
+    const directionStrEN = isSouthernHemisphere ? "South (Azimuth 180°)" : "North (Azimuth 0°)";
+
     setStep({
       step: 'park',
       isWaitingUser: true,
       message: language === 'fr' ? 'Mise en station requise' : 'Parking required',
       instruction: language === 'fr' 
-        ? 'Garez la monture: tube horizontal, pointé vers le Nord (ou Sud). Altitude ≈ 0°, Azimut = 0° ou 180° selon votre hémisphère.'
-        : 'Park the mount: tube horizontal, pointing North (or South). Altitude ≈ 0°, Azimuth = 0° or 180° depending on hemisphere.'
+        ? `Garez la monture: tube horizontal (Altitude ≈ 0°), pointé vers ${directionStrFR}.`
+        : `Park the mount: tube horizontal (Altitude ≈ 0°), pointing ${directionStrEN}.`
     });
   };
 
   const syncParkPosition = () => {
     // Sync current physical position to park coordinates in Stargazer
     // Call API to sync mount position
+    const isSouthernHemisphere = parseFloat(config.latitude) < 0;
+    const parkAzimuth = isSouthernHemisphere ? 180 : 0;
+
     fetch('/api/indi/mount', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'sync', ra: 0, dec: 0, ip: bridgeIp }) // Park position
+      body: JSON.stringify({ 
+        action: 'sync_master', 
+        lat: parseFloat(config.latitude), 
+        lon: parseFloat(config.longitude), 
+        alt: 0, 
+        az: parkAzimuth, 
+        ip: bridgeIp 
+      }) // Master Sync position
+
     }).then(() => {
       setErrors([]);
       // Update store with synced position
@@ -102,8 +118,11 @@ export const CalibrationWizard = () => {
 
   const verifyParkPosition = () => {
     // Check if mount is roughly horizontal (altitude near 0) and pointing north/south
+    const isSouthernHemisphere = parseFloat(config.latitude) < 0;
+    const parkAzimuth = isSouthernHemisphere ? 180 : 0;
+
     const isHorizontal = Math.abs(alt) < 10; // Within 10 degrees of horizontal
-    const isNorthSouth = Math.abs(az) < 15 || Math.abs(az - 180) < 15 || Math.abs(az - 360) < 15;
+    const isNorthSouth = Math.abs(az - parkAzimuth) < 15 || Math.abs(az - (parkAzimuth + 360)) < 15;
     
     if (!isHorizontal || !isNorthSouth) {
       // Show error with sync option
@@ -327,7 +346,9 @@ export const CalibrationWizard = () => {
             <VStack w="full" gap={2}>
               <Button w="full" bg="orange.500" color="white" _hover={{ bg: "orange.600" }} onClick={syncParkPosition}>
                 <Icon as={RotateCcw} boxSize={4} mr={2} />
-                {language === 'fr' ? 'SYNCHRONISER POSITION (0°, 180°)' : 'SYNC POSITION (0°, 180°)'}
+                {language === 'fr' 
+                  ? `SYNCHRONISER POSITION (0°, ${parseFloat(config.latitude) < 0 ? '180°' : '0°'})` 
+                  : `SYNC POSITION (0°, ${parseFloat(config.latitude) < 0 ? '180°' : '0°'})`}
               </Button>
               <Text fontSize="10px" color="whiteAlpha.500" textAlign="center">
                 {language === 'fr' ? 'Utilisez ce bouton si les coordonnées ne correspondent pas à la position réelle' : 'Use this if coordinates don\'t match actual position'}

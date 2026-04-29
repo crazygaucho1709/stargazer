@@ -53,6 +53,14 @@ export async function POST(request: Request) {
         response = await sendToBridge(bridgeIp, '/mount/sync', { device, ra, dec });
         break;
         
+      case 'sync_master':
+        // Master sync with location and time
+        const { lat, lon, elev = 0, alt, az } = body;
+        response = await sendToBridge(bridgeIp, '/mount/sync_master', { 
+          lat, lon, elev, alt, az 
+        });
+        break;
+        
       default:
         return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
     }
