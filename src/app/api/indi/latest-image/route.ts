@@ -10,7 +10,7 @@ export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
     const bridgeIp = url.searchParams.get('ip') || '192.168.178.142';
-    const BRIDGE_URL = `http://${bridgeIp}:5005`;
+    const BRIDGE_URL = `http://localhost:5005`;
 
     // Fetch the latest image from the bridge with timeout
     const controller = new AbortController();
