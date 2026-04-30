@@ -5,7 +5,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { ip, ...data } = body;
     const bridgeIp = ip || '192.168.178.142';
-    const BRIDGE_URL = `http://${bridgeIp}:5005`;
+    const BRIDGE_URL = `http://localhost:5005`;
     
     const res = await fetch(`${BRIDGE_URL}/astro/coords`, {
       method: 'POST',

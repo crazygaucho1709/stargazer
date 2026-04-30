@@ -6,7 +6,7 @@ export async function GET(request: Request) {
     const device = searchParams.get('device') || 'Canon DSLR EOS 600D';
     const exposure = parseFloat(searchParams.get('exposure') || '0.1');
     const bridgeIp = searchParams.get('ip') || '192.168.178.142';
-    const BRIDGE_URL = `http://${bridgeIp}:5005`;
+    const BRIDGE_URL = `http://localhost:5005`;
     
     // Trigger capture via bridge
     const res = await fetch( `${BRIDGE_URL}/ccd/capture`, {

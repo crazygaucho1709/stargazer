@@ -39,7 +39,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { device, property, values, ip } = body;
-    const INDI_HOST = ip || '192.168.178.142';
+    const INDI_HOST = ip || 'localhost';
     
     if (!device || !property || !values) {
       return NextResponse.json({ error: 'Missing device, property or values' }, { status: 400 });
@@ -56,8 +56,8 @@ export async function POST(request: Request) {
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
-    const bridgeIp = url.searchParams.get('ip') || '192.168.178.142';
-    const BRIDGE_URL = `http://${bridgeIp}:5005`;
+    const bridgeIp = url.searchParams.get('ip') || 'localhost';
+    const BRIDGE_URL = `http://localhost:5005`;
     const res = await fetch( `${BRIDGE_URL}/health`, { cache: 'no-store' });
     const data = await res.json();
     return NextResponse.json([{ 

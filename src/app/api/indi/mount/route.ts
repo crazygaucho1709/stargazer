@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 // Proxy commands to Python bridge
 async function sendToBridge(bridgeIp: string, endpoint: string, data: any): Promise<any> {
-  const BRIDGE_URL = `http://${bridgeIp}:5005`;
+  const BRIDGE_URL = `http://localhost:5005`;
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout for hardware commands
   
@@ -24,8 +24,8 @@ async function sendToBridge(bridgeIp: string, endpoint: string, data: any): Prom
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { action, device = 'Celestron NexStar HC', ra, dec, direction, duration = 0.5, ip } = body;
-    const bridgeIp = ip || '192.168.178.142';
+    const { action, device = 'Celestron NexStar HC', ra, dec, direction, duration = 0.5 } = body;
+    const bridgeIp = 'localhost';
     
     if (!action) {
       return NextResponse.json({ error: 'Missing action' }, { status: 400 });
