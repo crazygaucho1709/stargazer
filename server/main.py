@@ -457,13 +457,105 @@ def reconnect_indi():
     indi.reconnect()
     return {"success": True, "message": "Reconnection triggered"}
 
+EKOS_PROFILE = os.getenv("EKOS_PROFILE", "Nexstar4SE")
+
 @app.post("/restart_kstars")
 def restart_kstars():
-    logger.warning("Restarting KStars application on Mac...")
-    os.system("killall KStars")
-    time.sleep(1)
-    os.system("open -a KStars")
-    return {"success": True, "message": "KStars restarted"}
+    import subprocess
+    logger.warning(f"Restarting KStars + Ekos (profile: {EKOS_PROFILE})...")
+
+    # 1. Kill any running KStars instance
+    subprocess.run(["killall", "-9", "KStars"], capture_output=True)
+    time.sleep(3)
+
+    # 2. Locate KStars via Spotlight (most reliable on macOS)
+    kstars_bin = None
+    spotlight = subprocess.run(
+        ["mdfind", "kMDItemCFBundleIdentifier == 'org.kde.kstars'"],
+        capture_output=True, text=True
+    )
+    for app_path in spotlight.stdout.strip().splitlines():
+        binary = os.path.join(app_path, "Contents/MacOS/KStars")
+        if os.path.exists(binary):
+            kstars_bin = binary
+            break
+
+    # 3. Fallback list
+    if not kstars_bin:
+        for candidate in [
+            "/Applications/KStars.app/Contents/MacOS/KStars",
+            os.path.expanduser("~/Applications/KStars.app/Contents/MacOS/KStars"),
+            "/usr/local/bin/kstars",
+            "/opt/homebrew/bin/kstars",
+        ]:
+            if os.path.exists(candidate):
+                kstars_bin = candidate
+                break
+
+    if kstars_bin:
+        logger.info(f"KStars binary found: {kstars_bin}")
+        # --ekos-profile selects the observatory profile
+        # Ekos auto-starts when a profile is specified at launch
+        proc = subprocess.Popen(
+            [kstars_bin, "--ekos-profile", EKOS_PROFILE],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        logger.info(f"KStars PID {proc.pid} started with profile '{EKOS_PROFILE}'")
+        # Give KStars time to load, then send Ekos connect via AppleScript
+        def _connect_ekos_after_delay():
+            time.sleep(8)
+            _trigger_ekos_connect()
+        threading.Thread(target=_connect_ekos_after_delay, daemon=True).start()
+    else:
+        # Last resort: open without profile, trigger Ekos via AppleScript
+        logger.warning("KStars binary not found via Spotlight, falling back to open -a")
+        subprocess.Popen(["open", "-a", "KStars"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        def _open_ekos_after_delay():
+            time.sleep(10)
+            _trigger_ekos_connect()
+        threading.Thread(target=_open_ekos_after_delay, daemon=True).start()
+
+    return {"success": True, "message": f"KStars restarting with Ekos profile '{EKOS_PROFILE}'"}
+
+
+def _trigger_ekos_connect():
+    """Open Ekos panel and click Start (connect all devices) via AppleScript."""
+    import subprocess
+    applescript = f'''
+    tell application "KStars"
+        activate
+    end tell
+    delay 2
+    tell application "System Events"
+        tell process "KStars"
+            -- Open Ekos via Tools menu if not already open
+            try
+                click menu item "Ekos..." of menu "Tools" of menu bar 1
+                delay 3
+            end try
+            -- Click the Start button (connects all Ekos devices for the profile)
+            try
+                click button "Start" of window 1
+            end try
+        end tell
+    end tell
+    '''
+    result = subprocess.run(["osascript", "-e", applescript], capture_output=True, text=True)
+    if result.returncode == 0:
+        logger.info("Ekos connect triggered via AppleScript")
+    else:
+        logger.warning(f"Ekos AppleScript trigger failed: {result.stderr.strip()}")
+
+
+@app.post("/launch_ekos")
+def launch_ekos():
+    """Trigger Ekos connect without restarting KStars (if KStars is already running)."""
+    import threading
+    threading.Thread(target=_trigger_ekos_connect, daemon=True).start()
+    return {"success": True, "message": "Ekos connect triggered"}
+
+
 
 @app.post("/ccd/capture")
 async def ccd_capture(req: CaptureRequest):
