@@ -2,51 +2,119 @@ import { NextResponse } from 'next/server';
 
 // Proxy commands to Python bridge
 async function sendToBridge(bridgeIp: string, endpoint: string, data: any): Promise<any> {
-  const BRIDGE_URL = `http://localhost:5005`;
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout for hardware commands
-  
-  try {
-    const res = await fetch( `${BRIDGE_URL}${endpoint}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-      signal: controller.signal
-    });
-    clearTimeout(timeoutId);
-    return await res.json();
-  } catch (error: any) {
-    clearTimeout(timeoutId);
-    throw new Error(`Bridge error: ${error.message}`);
+  // The Python bridge always runs on localhost alongside the Next.js app on port 5005
+  const BRIDGE_URL = `http://127.0.0.1:5005`;
+
+  // Retry logic with increasing timeout
+  const maxRetries = 2;
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    const controller = new AbortController();
+    // 30s timeout for hardware operations (slew can take time)
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    
+    try {
+      const res = await fetch(`${BRIDGE_URL}${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`HTTP ${res.status}: ${errorText}`);
+      }
+      
+      return await res.json();
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (attempt === maxRetries - 1) {
+        throw new Error(`Bridge error after ${maxRetries} attempts: ${error.message}`);
+      }
+      // Wait before retry
+      await new Promise(r => setTimeout(r, 1000));
+    }
   }
+  throw new Error('Unexpected error');
+}
+
+function parseRaToHours(coord: string | number): number {
+  if (typeof coord === 'number') {
+    return coord / 15.0; // Assume numeric input is in degrees
+  }
+  if (!coord) return 0;
+  
+  const strCoord = String(coord);
+  const match = strCoord.match(/([+-]?\d+)[h°]\s*(\d+)m?\s*([\d.]+)s?"?'?/);
+  if (match) {
+    const d = parseFloat(match[1]);
+    const m = parseFloat(match[2]);
+    const s = parseFloat(match[3]);
+    const sign = d < 0 || Object.is(d, -0) || strCoord.trim().startsWith('-') ? -1 : 1;
+    const value = (Math.abs(d) + m / 60 + s / 3600) * sign;
+    if (strCoord.includes('°')) {
+      return value / 15.0;
+    }
+    return value; // already in hours
+  }
+  
+  const parsed = parseFloat(strCoord);
+  return isNaN(parsed) ? 0 : parsed / 15.0;
+}
+
+function parseDecToDegrees(coord: string | number): number {
+  if (typeof coord === 'number') return coord;
+  if (!coord) return 0;
+  
+  const strCoord = String(coord);
+  const match = strCoord.match(/([+-]?\d+)[h°]\s*(\d+)m?\s*([\d.]+)s?"?'?/);
+  if (match) {
+    const d = parseFloat(match[1]);
+    const m = parseFloat(match[2]);
+    const s = parseFloat(match[3]);
+    const sign = d < 0 || Object.is(d, -0) || strCoord.trim().startsWith('-') ? -1 : 1;
+    return (Math.abs(d) + m / 60 + s / 3600) * sign;
+  }
+  
+  const parsed = parseFloat(strCoord);
+  return isNaN(parsed) ? 0 : parsed;
 }
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { action, device = 'Celestron NexStar HC', ra, dec, direction, duration = 0.5 } = body;
-    const bridgeIp = 'localhost';
+    let { action, device = 'Celestron NexStar HC', ra, dec, direction, state = 'start', duration = 0.5, ip } = body;
+    // Remove hardcoded device mapping, just use the device passed or default
+    if (!device || device === 'Celestron GPS') {
+      device = 'Celestron NexStar HC';
+    }
+    // Use provided IP (which might include port) or default to local Python bridge
+    const bridgeIp = ip || '127.0.0.1:5005';
     
     if (!action) {
       return NextResponse.json({ error: 'Missing action' }, { status: 400 });
     }
+    
+    const raHours = ra !== undefined ? parseRaToHours(ra) : undefined;
+    const decDegrees = dec !== undefined ? parseDecToDegrees(dec) : undefined;
     
     let response: string;
     
     switch (action) {
       case 'goto':
         // GOTO coordonnées RA/DEC
-        response = await sendToBridge(bridgeIp, '/mount/goto', { device, ra, dec });
+        response = await sendToBridge(bridgeIp, '/mount/goto', { device, ra: raHours, dec: decDegrees });
         break;
         
       case 'jog':
         // Mouvement relatif (flèches directionnelles)
-        response = await sendToBridge(bridgeIp, '/mount/jog', { device, direction, duration });
+        response = await sendToBridge(bridgeIp, '/mount/jog', { device, direction, state, duration });
         break;
         
       case 'slew':
         // Slew vers objet
-        response = await sendToBridge(bridgeIp, '/mount/slew', { device, ra, dec });
+        response = await sendToBridge(bridgeIp, '/mount/slew', { device, ra: raHours, dec: decDegrees });
         break;
         
       case 'abort':
@@ -56,7 +124,7 @@ export async function POST(request: Request) {
         
       case 'sync':
         // Sync position (parking)
-        response = await sendToBridge(bridgeIp, '/mount/sync', { device, ra, dec });
+        response = await sendToBridge(bridgeIp, '/mount/sync', { device, ra: raHours, dec: decDegrees });
         break;
         
       case 'sync_master':
@@ -65,6 +133,12 @@ export async function POST(request: Request) {
         response = await sendToBridge(bridgeIp, '/mount/sync_master', { 
           lat, lon, elev, alt, az 
         });
+        break;
+        
+      case 'rate':
+        // Changer la vitesse de mouvement (slider 1x - 9x)
+        const { rate } = body;
+        response = await sendToBridge(bridgeIp, '/mount/rate', { device, rate });
         break;
         
       default:

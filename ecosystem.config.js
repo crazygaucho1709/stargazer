@@ -16,7 +16,7 @@ module.exports = {
     {
       name: 'stargazer-frontend',
       script: 'npm',
-      args: 'run dev',
+      args: 'start',
       cwd: './',
       autorestart: true,
       watch: false,

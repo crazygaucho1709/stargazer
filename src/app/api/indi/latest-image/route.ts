@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
 // Simple 1x1 transparent pixel as fallback (base64 encoded)
 const FALLBACK_IMAGE = Buffer.from(
   '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/2wBDAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/wAARCAAgACADAREAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAj/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFAEBAAAAAAAAAAAAAAAAAAAAAP/EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhEDEQA/AL8A//Z',
@@ -9,8 +11,10 @@ const FALLBACK_IMAGE = Buffer.from(
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
-    const bridgeIp = url.searchParams.get('ip') || '192.168.178.142';
-    const BRIDGE_URL = `http://localhost:5005`;
+    const bridgeIp = url.searchParams.get('ip') || '127.0.0.1';
+    const safeIp = bridgeIp.startsWith('localhost') ? bridgeIp.replace('localhost', '127.0.0.1') : bridgeIp;
+    const finalIp = safeIp.includes(':') ? safeIp : `${safeIp}:5005`;
+    const BRIDGE_URL = `http://${finalIp}`;
 
     // Fetch the latest image from the bridge with timeout
     const controller = new AbortController();

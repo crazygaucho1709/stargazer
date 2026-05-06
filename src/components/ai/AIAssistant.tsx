@@ -85,7 +85,7 @@ export const AIAssistant = () => {
                     <HStack justify="space-between" mb={4}>
                         <VStack align="start" gap={0}>
                             <Text fontSize="16px" fontWeight="bold" color="var(--astro-teal)">
-                                {t("AI_SEEING", language)} {loading ? "--" : (weather.seeing?.toFixed(1) || "--")}"
+                                {t("AI_SEEING", language)} {loading ? "--" : (weather.seeing?.toFixed(1) || "--")}&quot;
                             </Text>
                             <Text fontSize="9px" opacity={0.6}>
                                 {weather.cloudCover !== undefined ? (

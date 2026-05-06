@@ -1,0 +1,336 @@
+import os
+import time
+import logging
+import threading
+import socket
+import base64
+import re
+from pathlib import Path
+from fastapi import FastAPI, HTTPException, Response, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
+import rawpy
+import imageio
+from datetime import datetime
+from astropy.coordinates import SkyCoord, EarthLocation, AltAz
+from astropy.time import Time
+import astropy.units as u
+from starlette.responses import StreamingResponse
+
+# Configuration
+INDI_HOST = "192.168.178.142"
+INDI_PORT = 7624
+STORAGE_PATH = os.getenv("STORAGE_PATH", "/Volumes/ASTRO_HDD/captures")
+THUMBNAIL_PATH = os.path.join(STORAGE_PATH, "thumbnails")
+
+# Logger setup
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("stargazer-backend")
+
+# Ensure directories exist with fallback
+if not os.path.exists("/Volumes/ASTRO_HDD"):
+    logger.warning("External HDD not found, falling back to local storage")
+    STORAGE_PATH = os.path.join(os.getcwd(), "captures")
+    THUMBNAIL_PATH = os.path.join(STORAGE_PATH, "thumbnails")
+
+Path(STORAGE_PATH).mkdir(parents=True, exist_ok=True)
+Path(THUMBNAIL_PATH).mkdir(parents=True, exist_ok=True)
+
+app = FastAPI(title="Stargazer Backend")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Serve thumbnails
+app.mount("/images", StaticFiles(directory=THUMBNAIL_PATH), name="images")
+
+# --- MODELS ---
+class SlewRequest(BaseModel):
+    ra: float
+    dec: float
+    device: str = "Celestron GPS"
+
+class CaptureRequest(BaseModel):
+    exposure: float
+    device: str = "Canon DSLR EOS 600D"
+
+class JogRequest(BaseModel):
+    direction: str
+    duration: float = 0.5
+    device: str = "Celestron GPS"
+
+class SyncMasterRequest(BaseModel):
+    lat: float
+    lon: float
+    alt: float
+    az: float
+    device: str = "Celestron GPS"
+
+class CoordsRequest(BaseModel):
+    ra: float
+    dec: float
+    lat: float
+    lon: float
+
+# --- INDI CLIENT ---
+class INDIClient:
+    def __init__(self):
+        self.connected = False
+        self.mount_connected = False
+        self.latest_frame = None
+        self.latest_image_path = None
+        self.sock = None
+        self.device_mount = "Celestron GPS"
+        self.device_ccd = "Canon DSLR EOS 600D"
+        self.thread = threading.Thread(target=self.run_loop)
+        self.thread.daemon = True
+        self.thread.start()
+
+    def run_loop(self):
+        while True:
+            try:
+                if not self.connected:
+                    self.connect()
+                time.sleep(5)
+            except Exception as e:
+                logger.error(f"INDI Loop error: {e}")
+                self.connected = False
+                time.sleep(5)
+
+    def connect(self):
+        try:
+            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.sock.settimeout(10)
+            self.sock.connect((INDI_HOST, INDI_PORT))
+            self.connected = True
+            logger.info(f"Connected to INDI at {INDI_HOST}:{INDI_PORT}")
+            
+            # Initial handshake
+            self.send('<getProperties version="1.7"/>')
+            self.send(f'<enableBLOB device="{self.device_ccd}">Also</enableBLOB>')
+            
+            # Start listener
+            self.listen()
+        except Exception as e:
+            logger.error(f"Connection failed: {e}")
+            self.connected = False
+
+    def send(self, xml):
+        if self.sock:
+            try:
+                self.sock.sendall((xml + "\n").encode())
+            except:
+                self.connected = False
+
+    def listen(self):
+        buffer = b""
+        while self.connected:
+            try:
+                data = self.sock.recv(65536)
+                if not data: break
+                buffer += data
+                
+                # Check for connection state
+                if b'name="CONNECTION"' in data and b'Celestron GPS' in data:
+                    chunk_str = data.decode('utf-8', errors='ignore')
+                    logger.info(f"INDI CONNECTION chunk: {chunk_str}")
+                    
+                    # More robust parsing for multi-line or varied formatting
+                    if 'name="CONNECT"' in chunk_str:
+                        # Find the value after the tag
+                        parts = chunk_str.split('name="CONNECT"')
+                        if len(parts) > 1:
+                            after_connect = parts[1]
+                            if 'On' in after_connect.split('</')[0]:
+                                self.mount_connected = True
+                                logger.info("Mount connection detected: ON")
+                            elif 'Off' in after_connect.split('</')[0]:
+                                self.mount_connected = False
+                                logger.info("Mount connection detected: OFF")
+                
+                # Maintain legacy buffer-based check for safety, but with improved matching
+                if b"CONNECTION" in buffer and b"CONNECT" in buffer:
+                    if b'name="CONNECT"' in buffer and (b'>On<' in buffer or b'\nOn\n' in buffer or b'On</' in buffer):
+                        self.mount_connected = True
+                    elif b'name="DISCONNECT"' in buffer and (b'>On<' in buffer or b'\nOn\n' in buffer or b'On</' in buffer):
+                        self.mount_connected = False
+
+                # Check for BLOBs
+                if b"<oneBLOB" in buffer and b"</oneBLOB>" in buffer:
+                    self.process_blobs(buffer)
+                    buffer = b""
+            except:
+                break
+        self.connected = False
+
+    def process_blobs(self, data):
+        try:
+            # Simple regex to extract blob data
+            match = re.search(b'format="([^"]+)"[^>]*>([^<]+)</oneBLOB>', data, re.DOTALL)
+            if match:
+                fmt = match.group(1).decode()
+                blob_content = match.group(2).decode().replace('\n', '').replace('\r', '')
+                raw_bytes = base64.b64decode(blob_content)
+                
+                ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+                filename = f"capture_{ts}.{fmt.lower()}"
+                filepath = os.path.join(STORAGE_PATH, filename)
+                
+                with open(filepath, 'wb') as f:
+                    f.write(raw_bytes)
+                
+                logger.info(f"Image saved: {filepath}")
+                self.latest_frame = raw_bytes
+                self.generate_thumb(filepath, ts)
+        except Exception as e:
+            logger.error(f"Blob error: {e}")
+
+    def generate_thumb(self, path, ts):
+        thumb_name = f"thumb_{ts}.jpg"
+        thumb_path = os.path.join(THUMBNAIL_PATH, thumb_name)
+        try:
+            if path.lower().endswith(".cr2") or path.lower().endswith(".cr3"):
+                with rawpy.imread(path) as raw:
+                    rgb = raw.postprocess(use_camera_wb=True, no_auto_bright=True, bright=1.0)
+                    imageio.imsave(thumb_path, rgb)
+            else:
+                # Basic copy if it's already a JPG or similar
+                with open(path, 'rb') as src, open(thumb_path, 'wb') as dst:
+                    dst.write(src.read())
+            self.latest_image_path = thumb_name
+        except Exception as e:
+            logger.error(f"Thumb error: {e}")
+
+indi = INDIClient()
+
+# --- ROUTES ---
+
+@app.get("/health")
+async def health():
+    return {
+        "status": "ok", 
+        "indi_connected": indi.connected,
+        "mount_connected": indi.mount_connected
+    }
+
+@app.post("/mount/jog")
+async def mount_jog(req: JogRequest):
+    if req.direction in ["up", "down"]:
+        prop = "TELESCOPE_MOTION_NS"
+        val = "MOTION_NORTH" if req.direction == "up" else "MOTION_SOUTH"
+    else:
+        prop = "TELESCOPE_MOTION_WE"
+        val = "MOTION_WEST" if req.direction == "left" else "MOTION_EAST"
+    
+    indi.send(f'<newSwitchVector device="{req.device}" name="{prop}"><oneSwitch name="{val}">On</oneSwitch></newSwitchVector>')
+    time.sleep(req.duration)
+    indi.send(f'<newSwitchVector device="{req.device}" name="{prop}"><oneSwitch name="{val}">Off</oneSwitch></newSwitchVector>')
+    return {"success": True}
+
+@app.post("/mount/slew")
+async def mount_slew(req: SlewRequest):
+    device = req.device if req.device != "Celestron NexStar HC" else "Celestron GPS"
+    indi.send(f'<newNumberVector device="{device}" name="EQUATORIAL_EOD_COORD"><oneNumber name="RA">{req.ra}</oneNumber><oneNumber name="DEC">{req.dec}</oneNumber></newNumberVector>')
+    return {"success": True}
+
+@app.post("/mount/sync_master")
+async def mount_sync_master(req: SyncMasterRequest):
+    now_utc = datetime.utcnow()
+    # Sync GPS and Time
+    indi.send(f'<newNumberVector device="{req.device}" name="GEOGRAPHIC_COORD"><oneNumber name="LAT">{req.lat}</oneNumber><oneNumber name="LONG">{req.lon}</oneNumber></newNumberVector>')
+    indi.send(f'<newTextVector device="{req.device}" name="TIME_UTC"><oneText name="UTC">{now_utc.strftime("%Y-%m-%dT%H:%M:%S")}</oneText></newTextVector>')
+    
+    # Calculate RA/Dec from Alt/Az
+    observatory = EarthLocation(lat=req.lat*u.deg, lon=req.lon*u.deg, height=0*u.m)
+    altaz = SkyCoord(alt=req.alt*u.deg, az=req.az*u.deg, frame='altaz', obstime=Time(now_utc), location=observatory)
+    eq = altaz.transform_to('icrs')
+    
+    indi.send(f'<newSwitchVector device="{req.device}" name="ON_COORD_SET"><oneSwitch name="SYNC">On</oneSwitch></newSwitchVector>')
+    indi.send(f'<newNumberVector device="{req.device}" name="EQUATORIAL_EOD_COORD"><oneNumber name="RA">{eq.ra.hour}</oneNumber><oneNumber name="DEC">{eq.dec.deg}</oneNumber></newNumberVector>')
+    indi.send(f'<newSwitchVector device="{req.device}" name="ON_COORD_SET"><oneSwitch name="TRACK">On</oneSwitch></newSwitchVector>')
+    
+    return {"success": True}
+
+@app.post("/ccd/capture")
+async def ccd_capture(req: CaptureRequest):
+    # Force Upload Client to handle image on Mac
+    indi.send(f'<newSwitchVector device="{req.device}" name="UPLOAD_MODE"><oneSwitch name="UPLOAD_CLIENT">On</oneSwitch></newSwitchVector>')
+    indi.send(f'<newNumberVector device="{req.device}" name="CCD_EXPOSURE"><oneNumber name="CCD_EXPOSURE_VALUE">{req.exposure}</oneNumber></newNumberVector>')
+    return {"success": True}
+
+@app.get("/ccd/latest")
+async def ccd_latest():
+    if indi.latest_frame:
+        return Response(indi.latest_frame, media_type="image/jpeg")
+    raise HTTPException(status_code=404, detail="No image available")
+
+@app.post("/astro/coords")
+async def get_astro_coords(req: CoordsRequest):
+    obs = EarthLocation(lat=req.lat*u.deg, lon=req.lon*u.deg, height=0*u.m)
+    time = Time(datetime.utcnow())
+    target = SkyCoord(ra=req.ra*u.hourangle, dec=req.dec*u.deg, frame='icrs')
+    altaz = target.transform_to(AltAz(obstime=time, location=obs))
+    return {"success": True, "alt": altaz.alt.deg, "az": altaz.az.deg}
+
+@app.get("/status")
+async def get_status():
+    return {
+        "connected": indi.connected,
+        "latest_image": indi.latest_image_path,
+        "storage": STORAGE_PATH,
+        "mount": indi.device_mount,
+        "ccd": indi.device_ccd
+    }
+
+# --- STREAMING ---
+def mjpeg_generator():
+    # Dedicated MJPEG socket listener
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect((INDI_HOST, INDI_PORT))
+        s.sendall(f'<getProperties version="1.7" device="{indi.device_ccd}"/>\r\n'.encode())
+        s.sendall(f'<enableBLOB device="{indi.device_ccd}">Also</enableBLOB>\r\n'.encode())
+        
+        buffer = b""
+        while True:
+            chunk = s.recv(65536)
+            if not chunk: break
+            buffer += chunk
+            
+            if b"<oneBLOB" in buffer and b"</oneBLOB>" in buffer:
+                # Extract blob (minimal parser for speed)
+                start = buffer.find(b">", buffer.find(b"<oneBLOB")) + 1
+                end = buffer.find(b"</oneBLOB>")
+                blob_data = buffer[start:end].replace(b"\n", b"").replace(b"\r", b"")
+                image_bytes = base64.b64decode(blob_data)
+                
+                yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + image_bytes + b'\r\n')
+                buffer = buffer[end+10:]
+    except Exception as e:
+        logger.error(f"Stream error: {e}")
+    finally:
+        s.close()
+
+@app.get("/ccd/stream")
+async def ccd_stream():
+    return StreamingResponse(mjpeg_generator(), media_type="multipart/x-mixed-replace; boundary=--frame")
+
+@app.post("/ccd/stream/start")
+async def ccd_stream_start(device: str = "Canon DSLR EOS 600D"):
+    indi.send(f'<newSwitchVector device="{device}" name="CCD_VIDEO_STREAM"><oneSwitch name="STREAM_ON">On</oneSwitch></newSwitchVector>')
+    return {"success": True}
+
+@app.post("/ccd/stream/stop")
+async def ccd_stream_stop(device: str = "Canon DSLR EOS 600D"):
+    indi.send(f'<newSwitchVector device="{device}" name="CCD_VIDEO_STREAM"><oneSwitch name="STREAM_OFF">On</oneSwitch></newSwitchVector>')
+    return {"success": True}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=5005)

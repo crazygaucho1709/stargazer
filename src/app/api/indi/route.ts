@@ -38,8 +38,15 @@ function sendIndiCommand(INDI_HOST: string, device: string, property: string, va
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { device, property, values, ip } = body;
-    const INDI_HOST = ip || 'localhost';
+    let { device, property, values, ip } = body;
+    // Strip port from ip if present (e.g. "localhost:5005" -> "localhost")
+    const rawIp = ip ? ip.split(':')[0] : 'localhost';
+    const INDI_HOST = rawIp;
+    
+    // Map driver name to actual INDI device name
+    if (device === 'Celestron GPS') {
+      device = 'Celestron NexStar HC';
+    }
     
     if (!device || !property || !values) {
       return NextResponse.json({ error: 'Missing device, property or values' }, { status: 400 });
@@ -56,8 +63,10 @@ export async function POST(request: Request) {
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
-    const bridgeIp = url.searchParams.get('ip') || 'localhost';
-    const BRIDGE_URL = `http://localhost:5005`;
+    const bridgeIp = url.searchParams.get('ip') || '127.0.0.1';
+    const safeIp = bridgeIp.startsWith('localhost') ? bridgeIp.replace('localhost', '127.0.0.1') : bridgeIp;
+    const finalIp = safeIp.includes(':') ? safeIp : `${safeIp}:5005`;
+    const BRIDGE_URL = `http://${finalIp}`;
     const res = await fetch( `${BRIDGE_URL}/health`, { cache: 'no-store' });
     const data = await res.json();
     return NextResponse.json([{ 

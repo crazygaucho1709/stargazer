@@ -4,8 +4,10 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { action, ip } = body;
-    const bridgeIp = ip || '192.168.178.142';
-    const BRIDGE_URL = `http://localhost:5005`;
+    const bridgeIp = ip || '127.0.0.1';
+    const safeIp = bridgeIp.startsWith('localhost') ? bridgeIp.replace('localhost', '127.0.0.1') : bridgeIp;
+    const finalIp = safeIp.includes(':') ? safeIp : `${safeIp}:5005`;
+    const BRIDGE_URL = `http://${finalIp}`;
     
     if (action === 'start' || action === 'stop') {
       const res = await fetch( `${BRIDGE_URL}/ccd/stream/${action}`, {

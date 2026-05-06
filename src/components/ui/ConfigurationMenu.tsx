@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     Box, IconButton, VStack, HStack, Text, Input, Button, Heading, Icon, Flex, Grid, Portal, Spinner
 } from "@chakra-ui/react";
 import {
-    Settings, Cpu, Radio, Zap, ShieldCheck, X, Camera, Telescope, Gamepad2, Compass, Layers, Wand2, Power, Globe, LocateFixed
+    Settings, Cpu, Radio, Zap, ShieldCheck, X, Camera, Telescope, Gamepad2, Compass, Layers, Wand2, Power, Globe, LocateFixed, Activity, RefreshCw
 } from "lucide-react";
 import { useStargazerStore } from "@/store/useStargazerStore";
 import { t } from "@/i18n/translations";
@@ -33,6 +33,7 @@ export const ConfigurationMenu = () => {
         { id: "capture", label: t("TAB_CAPTURE", language), icon: Layers },
         { id: "gamepad", label: t("TAB_GAMEPAD", language), icon: Gamepad2 },
         { id: "system", label: t("TAB_SYSTEM", language), icon: Globe },
+        { id: "bridge", label: language === 'fr' ? "RÉSEAU & LOGS" : "NETWORK & LOGS", icon: Activity },
     ];
 
     return (
@@ -124,6 +125,7 @@ export const ConfigurationMenu = () => {
                         {activeTab === "capture" && <CaptureAndStack />}
                         {activeTab === "gamepad" && <GamepadTab language={language} />}
                         {activeTab === "system" && <SystemTab config={config} updateConfig={updateConfig} language={language} setLanguage={setLanguage} />}
+                        {activeTab === "bridge" && <BridgeTab config={config} language={language} />}
                     </Box>
                 </Flex>
             </Box>
@@ -191,7 +193,7 @@ const WizardTabOld = ({ language, setActiveTab, onClose }: any) => {
         // Step 4: Test camera capture
         setWizardState(prev => ({ ...prev, step: 4 }));
         try {
-            const bridgeIp = config.astroberryUrl.replace('http://', '').replace(':8624', '');
+            const bridgeIp = config.astroberryUrl.includes('http') ? new URL(config.astroberryUrl).hostname : config.astroberryUrl.split(':')[0];
             await fetch(`/api/indi/ccd?device=Canon%20DSLR%20EOS%20600D&exposure=0.5&ip=${bridgeIp}`);
         } catch (e) {
             console.error('Camera test failed:', e);
@@ -589,6 +591,99 @@ const SystemTab = ({ config, updateConfig, language, setLanguage }: any) => {
                         <Text fontSize="10px" color={syncStatus.status === 'success' ? "green.400" : "red.400"}>{syncStatus.message}</Text>
                     )}
                 </VStack>
+            </Box>
+        </VStack>
+    );
+};
+
+const BridgeTab = ({ config, language }: any) => {
+    const [logs, setLogs] = useState<string[]>([]);
+    const [status, setStatus] = useState<{ type: 'idle' | 'loading' | 'success' | 'error', msg: string }>({ type: 'idle', msg: '' });
+
+    const fetchLogs = async () => {
+        try {
+            const res = await fetch(`/api/indi/logs?ip=${config.astroberryUrl}`);
+            const data = await res.json();
+            if (data.logs) {
+                setLogs(data.logs);
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    // Poll logs every 2s
+    useEffect(() => {
+        fetchLogs();
+        const interval = setInterval(fetchLogs, 2000);
+        return () => clearInterval(interval);
+    }, [config.astroberryUrl]);
+
+    const handleAction = async (action: 'reconnect' | 'restart_kstars') => {
+        setStatus({ type: 'loading', msg: '' });
+        try {
+            const res = await fetch('/api/indi/reconnect', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action, ip: config.astroberryUrl })
+            });
+            const data = await res.json();
+            setStatus({ type: data.success ? 'success' : 'error', msg: data.message || data.error });
+        } catch (e: any) {
+            setStatus({ type: 'error', msg: e.message });
+        }
+    };
+
+    return (
+        <VStack align="stretch" gap={8} h="full">
+            <Text fontSize="sm" color="whiteAlpha.600">
+                {language === 'fr' ? "Gérez la connexion au bridge INDI et consultez les logs en temps réel." : "Manage the INDI bridge connection and view real-time logs."}
+            </Text>
+
+            <HStack gap={4}>
+                <Button flex={1} bg="var(--astro-gold)" color="black" _hover={{ bg: "#e69c3a" }} onClick={() => handleAction('reconnect')} disabled={status.type === 'loading'}>
+                    <Icon as={RefreshCw} mr={2} />
+                    {language === 'fr' ? "Reconnecter Bridge INDI" : "Reconnect INDI Bridge"}
+                </Button>
+                <Button flex={1} variant="outline" colorScheme="red" onClick={() => handleAction('restart_kstars')} disabled={status.type === 'loading'}>
+                    <Icon as={Power} mr={2} />
+                    {language === 'fr' ? "Redémarrer KStars (Mac)" : "Restart KStars (Mac)"}
+                </Button>
+            </HStack>
+
+            {status.msg && (
+                <Text fontSize="12px" p={2} borderRadius="md" bg={status.type === 'success' ? 'rgba(0,255,0,0.1)' : 'rgba(255,0,0,0.1)'} color={status.type === 'success' ? 'green.400' : 'red.400'} border="1px solid" borderColor={status.type === 'success' ? 'green.800' : 'red.800'}>
+                    {status.msg}
+                </Text>
+            )}
+
+            <Box flex={1} minH="400px" bg="black" borderRadius="8px" border="1px solid rgba(255,255,255,0.1)" p={4} display="flex" flexDirection="column">
+                <HStack mb={2} justify="space-between">
+                    <HStack><Icon as={Activity} color="#00F0FF" boxSize={4} /><Text fontSize="12px" fontWeight="bold" letterSpacing="0.1em" color="#00F0FF">BRIDGE LOGS</Text></HStack>
+                    <IconButton aria-label="Refresh logs" size="xs" variant="ghost" color="whiteAlpha.600" onClick={fetchLogs}>
+                        <RefreshCw size={14} />
+                    </IconButton>
+                </HStack>
+                <Box flex={1} overflowY="auto" className="custom-scrollbar" display="flex" flexDirection="column-reverse">
+                    <VStack align="stretch" gap={1}>
+                        {logs.slice().reverse().map((log, i) => {
+                            const isError = log.includes("ERROR") || log.includes("failed");
+                            const isWarning = log.includes("WARNING");
+                            const isSuccess = log.includes("✅") || log.includes("Connected");
+                            
+                            let color = "whiteAlpha.800";
+                            if (isError) color = "red.400";
+                            if (isWarning) color = "yellow.400";
+                            if (isSuccess) color = "green.400";
+
+                            return (
+                                <Text key={i} fontSize="10px" fontFamily="monospace" color={color} wordBreak="break-all" borderBottom="1px solid rgba(255,255,255,0.05)" pb={1}>
+                                    {log}
+                                </Text>
+                            );
+                        })}
+                    </VStack>
+                </Box>
             </Box>
         </VStack>
     );

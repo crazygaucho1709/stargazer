@@ -80,7 +80,7 @@ export const ControlPanel = () => {
                 >
                     <HStack gap={3} mb={4}>
                         <Icon as={Telescope} color="#FFB300" boxSize={4} />
-                        <Heading size="xs" color="#FFB300" letterSpacing="0.2em" fontWeight="900">CHERCHEUR D'OBJETS</Heading>
+                        <Heading size="xs" color="#FFB300" letterSpacing="0.2em" fontWeight="900">CHERCHEUR D&apos;OBJETS</Heading>
                     </HStack>
                     <ObjectFinder />
                 </Box>

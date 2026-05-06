@@ -17,9 +17,10 @@ from astropy.coordinates import SkyCoord, EarthLocation, AltAz
 from astropy.time import Time
 import astropy.units as u
 from starlette.responses import StreamingResponse
+import collections
 
 # Configuration
-INDI_HOST = "192.168.1.50"
+INDI_HOST = "192.168.178.142"
 INDI_PORT = 7624
 STORAGE_PATH = os.getenv("STORAGE_PATH", "/Volumes/ASTRO_HDD/captures")
 THUMBNAIL_PATH = os.path.join(STORAGE_PATH, "thumbnails")
@@ -27,6 +28,17 @@ THUMBNAIL_PATH = os.path.join(STORAGE_PATH, "thumbnails")
 # Logger setup
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("stargazer-backend")
+
+# Setup memory log buffer for UI
+log_buffer = collections.deque(maxlen=200)
+class BufferHandler(logging.Handler):
+    def emit(self, record):
+        log_entry = self.format(record)
+        log_buffer.append(log_entry)
+
+buffer_handler = BufferHandler()
+buffer_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', datefmt='%H:%M:%S'))
+logger.addHandler(buffer_handler)
 
 # Ensure directories exist with fallback
 if not os.path.exists("/Volumes/ASTRO_HDD"):
@@ -62,7 +74,11 @@ class CaptureRequest(BaseModel):
 
 class JogRequest(BaseModel):
     direction: str
-    duration: float = 0.5
+    state: str = "start"
+    device: str = "Celestron NexStar HC"
+
+class RateRequest(BaseModel):
+    rate: int
     device: str = "Celestron NexStar HC"
 
 class SyncMasterRequest(BaseModel):
@@ -70,7 +86,7 @@ class SyncMasterRequest(BaseModel):
     lon: float
     alt: float
     az: float
-    device: str = "Celestron NexStar HC"
+    device: str = "Celestron GPS"
 
 class CoordsRequest(BaseModel):
     ra: float
@@ -82,10 +98,12 @@ class CoordsRequest(BaseModel):
 class INDIClient:
     def __init__(self):
         self.connected = False
+        self.mount_connected = False
         self.latest_frame = None
         self.latest_image_path = None
         self.sock = None
-        self.device_mount = "Celestron NexStar HC"
+        self.socket_lock = threading.Lock()  # Lock for thread-safe socket access
+        self.device_mount = "Celestron GPS"
         self.device_ccd = "Canon DSLR EOS 600D"
         self.thread = threading.Thread(target=self.run_loop)
         self.thread.daemon = True
@@ -102,54 +120,141 @@ class INDIClient:
                 self.connected = False
                 time.sleep(5)
 
+    def reconnect(self):
+        logger.info("Manual reconnect triggered from UI")
+        with self.socket_lock:
+            if self.sock:
+                try:
+                    self.sock.close()
+                except Exception as e:
+                    logger.error(f"Error closing socket on reconnect: {e}")
+                self.sock = None
+        self.connected = False
+        self.mount_connected = False
+
     def connect(self):
         try:
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+            if hasattr(socket, 'TCP_KEEPIDLE'):
+                self.sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, 3)
+            elif hasattr(socket, 'TCP_KEEPALIVE'): # macOS
+                self.sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPALIVE, 3)
+            
             self.sock.settimeout(10)
             self.sock.connect((INDI_HOST, INDI_PORT))
+            # Set non-blocking with timeout for listener thread
+            self.sock.settimeout(1.0)  # 1 second timeout for recv
             self.connected = True
             logger.info(f"Connected to INDI at {INDI_HOST}:{INDI_PORT}")
             
             # Initial handshake
             self.send('<getProperties version="1.7"/>')
+            time.sleep(0.5)
             self.send(f'<enableBLOB device="{self.device_ccd}">Also</enableBLOB>')
             
-            # Start listener
-            self.listen()
+            # Start listener in separate thread
+            listener_thread = threading.Thread(target=self.listen, daemon=True)
+            listener_thread.start()
+            logger.info("INDI listener thread started")
         except Exception as e:
             logger.error(f"Connection failed: {e}")
             self.connected = False
 
     def send(self, xml):
-        if self.sock:
-            try:
-                self.sock.sendall((xml + "\n").encode())
-            except:
-                self.connected = False
+        with self.socket_lock:
+            if self.sock and self.connected:
+                try:
+                    self.sock.sendall((xml + "\r\n").encode())
+                    logger.debug(f"Sent: {xml[:50]}...")
+                    return True
+                except Exception as e:
+                    logger.error(f"Send error: {e}")
+                    self.connected = False
+                    return False
+            else:
+                logger.warning("Socket not available for send")
+                return False
 
     def listen(self):
+        """Dedicated listener thread - handles all INDI incoming messages"""
         buffer = b""
         while self.connected:
             try:
-                data = self.sock.recv(65536)
-                if not data: break
+                if not self.sock:
+                    break
+                try:
+                    data = self.sock.recv(65536)
+                except socket.timeout:
+                    # Normal timeout, continue loop
+                    continue
+                
+                if not data:
+                    logger.warning("INDI socket closed by server")
+                    break
                 buffer += data
                 
-                # Check for BLOBs
-                if b"<oneBLOB" in buffer and b"</oneBLOB>" in buffer:
-                    self.process_blobs(buffer)
-                    buffer = b""
-            except:
+                # Check for connection state updates
+                if b'CONNECTION' in data and b'Celestron GPS' in data:
+                    chunk_str = data.decode('utf-8', errors='ignore')
+                    logger.info(f"INDI CONNECTION update: {chunk_str[:200]}")
+                    
+                    # Parse connection state
+                    if ('name="CONNECT"' in chunk_str and '>On<' in chunk_str) or ('name="CONNECTION"' in chunk_str and 'state="Ok"' in chunk_str):
+                        if not self.mount_connected:
+                            self.mount_connected = True
+                            logger.info("✅ Mount connected")
+                    elif ('name="DISCONNECT"' in chunk_str and '>On<' in chunk_str) or ('name="CONNECTION"' in chunk_str and 'state="Alert"' in chunk_str):
+                        if self.mount_connected:
+                            self.mount_connected = False
+                            logger.info("❌ Mount disconnected")
+
+                # Check for BLOBs (images)
+                if b"<oneBLOB" in buffer:
+                    # Find complete BLOB
+                    end_blob_idx = buffer.find(b"</oneBLOB>")
+                    if end_blob_idx != -1:
+                        self.process_blobs(buffer[:end_blob_idx + 10])
+                        buffer = buffer[end_blob_idx + 10:]
+                    elif len(buffer) > 50_000_000:  # Max 50MB buffer
+                        logger.warning("Buffer overflow, clearing")
+                        buffer = b""
+                else:
+                    # Prevent buffer from growing infinitely and causing O(N^2) CPU slowdown on 'in' checks
+                    if len(buffer) > 10000:
+                        buffer = buffer[-5000:]
+                        
+            except socket.timeout:
+                continue
+            except Exception as e:
+                logger.error(f"Listener error: {e}")
                 break
+        
+        logger.warning("INDI listener stopped")
         self.connected = False
 
     def process_blobs(self, data):
         try:
-            # Simple regex to extract blob data
-            match = re.search(b'format="([^"]+)"[^>]*>([^<]+)</oneBLOB>', data, re.DOTALL)
-            if match:
-                fmt = match.group(1).decode()
-                blob_content = match.group(2).decode().replace('\n', '').replace('\r', '')
+            start_idx = data.find(b'<oneBLOB')
+            if start_idx == -1: return
+            end_idx = data.find(b'</oneBLOB>', start_idx)
+            if end_idx == -1: return
+            
+            blob_tag = data[start_idx:end_idx]
+            
+            # Find format
+            fmt = "jpg"
+            fmt_start = blob_tag.find(b'format="')
+            if fmt_start != -1:
+                fmt_end = blob_tag.find(b'"', fmt_start + 8)
+                if fmt_end != -1:
+                    fmt = blob_tag[fmt_start+8:fmt_end].decode('utf-8', errors='ignore')
+            
+            # Find content
+            content_start = blob_tag.find(b'>')
+            if content_start != -1:
+                blob_content = blob_tag[content_start+1:]
+                blob_content = blob_content.replace(b'\n', b'').replace(b'\r', b'')
                 raw_bytes = base64.b64decode(blob_content)
                 
                 ts = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -187,50 +292,150 @@ indi = INDIClient()
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "indi_connected": indi.connected}
+    return {
+        "status": "ok", 
+        "indi_connected": indi.connected,
+        "mount_connected": indi.mount_connected
+    }
 
 @app.post("/mount/jog")
 async def mount_jog(req: JogRequest):
+    device = req.device
+    
     if req.direction in ["up", "down"]:
         prop = "TELESCOPE_MOTION_NS"
-        val = "MOTION_NORTH" if req.direction == "up" else "MOTION_SOUTH"
+        val_on = "MOTION_NORTH" if req.direction == "up" else "MOTION_SOUTH"
     else:
         prop = "TELESCOPE_MOTION_WE"
-        val = "MOTION_WEST" if req.direction == "left" else "MOTION_EAST"
+        val_on = "MOTION_WEST" if req.direction == "left" else "MOTION_EAST"
     
-    indi.send(f'<newSwitchVector device="{req.device}" name="{prop}"><oneSwitch name="{val}">On</oneSwitch></newSwitchVector>')
-    time.sleep(req.duration)
-    indi.send(f'<newSwitchVector device="{req.device}" name="{prop}"><oneSwitch name="{val}">Off</oneSwitch></newSwitchVector>')
+    if req.state == "stop":
+        logger.info(f"Jogging {device} {req.direction} -> STOP")
+        indi.send(f'<newSwitchVector device="{device}" name="{prop}"><oneSwitch name="{val_on}">Off</oneSwitch></newSwitchVector>')
+        return {"success": True}
+
+    xml = f'<newSwitchVector device="{device}" name="{prop}"><oneSwitch name="{val_on}">On</oneSwitch></newSwitchVector>'
+    logger.info(f"Jogging {device} {req.direction} -> start")
+    indi.send(xml)
+    return {"success": True}
+
+@app.post("/mount/rate")
+async def mount_rate(req: RateRequest):
+    device = req.device
+    rate_val = max(1, min(9, req.rate))
+    rate_name = f"{rate_val}x"
+    logger.info(f"Setting slew rate on {device} to {rate_name}")
+    indi.send(f'<newSwitchVector device="{device}" name="TELESCOPE_SLEW_RATE"><oneSwitch name="{rate_name}">On</oneSwitch></newSwitchVector>')
     return {"success": True}
 
 @app.post("/mount/slew")
 async def mount_slew(req: SlewRequest):
-    indi.send(f'<newNumberVector device="{req.device}" name="EQUATORIAL_EOD_COORD"><oneNumber name="RA">{req.ra}</oneNumber><oneNumber name="DEC">{req.dec}</oneNumber></newNumberVector>')
+    device = req.device
+    logger.info(f"Slewing {device} to RA={req.ra}, DEC={req.dec}")
+    indi.send(f'<newNumberVector device="{device}" name="EQUATORIAL_EOD_COORD"><oneNumber name="RA">{req.ra}</oneNumber><oneNumber name="DEC">{req.dec}</oneNumber></newNumberVector>')
+    indi.send(f'<newSwitchVector device="{device}" name="ON_COORD_SET"><oneSwitch name="SLEW">On</oneSwitch></newSwitchVector>')
+    return {"success": True}
+
+@app.post("/mount/goto")
+async def mount_goto(req: SlewRequest):
+    return await mount_slew(req)
+
+@app.post("/mount/abort")
+async def mount_abort(req: Request):
+    body = await req.json()
+    device = body.get("device", "Celestron GPS")
+    logger.info(f"Aborting motion for {device}")
+    indi.send(f'<newSwitchVector device="{device}" name="TELESCOPE_ABORT_MOTION"><oneSwitch name="ABORT">On</oneSwitch></newSwitchVector>')
+    return {"success": True}
+
+@app.post("/mount/sync")
+async def mount_sync(req: SlewRequest):
+    device = req.device
+    logger.info(f"Syncing {device} to RA={req.ra}, DEC={req.dec}")
+    indi.send(f'<newNumberVector device="{device}" name="EQUATORIAL_EOD_COORD"><oneNumber name="RA">{req.ra}</oneNumber><oneNumber name="DEC">{req.dec}</oneNumber></newNumberVector>')
+    indi.send(f'<newSwitchVector device="{device}" name="ON_COORD_SET"><oneSwitch name="SYNC">On</oneSwitch></newSwitchVector>')
+    # Revert to Track mode after sync
+    indi.send(f'<newSwitchVector device="{device}" name="ON_COORD_SET"><oneSwitch name="TRACK">On</oneSwitch></newSwitchVector>')
     return {"success": True}
 
 @app.post("/mount/sync_master")
 async def mount_sync_master(req: SyncMasterRequest):
+    device = req.device
     now_utc = datetime.utcnow()
+    logger.info(f"Master sync for {device} at {req.lat}, {req.lon}")
     # Sync GPS and Time
-    indi.send(f'<newNumberVector device="{req.device}" name="GEOGRAPHIC_COORD"><oneNumber name="LAT">{req.lat}</oneNumber><oneNumber name="LONG">{req.lon}</oneNumber></newNumberVector>')
-    indi.send(f'<newTextVector device="{req.device}" name="TIME_UTC"><oneText name="UTC">{now_utc.strftime("%Y-%m-%dT%H:%M:%S")}</oneText></newTextVector>')
+    indi.send(f'<newNumberVector device="{device}" name="GEOGRAPHIC_COORD"><oneNumber name="LAT">{req.lat}</oneNumber><oneNumber name="LONG">{req.lon}</oneNumber></newNumberVector>')
+    indi.send(f'<newTextVector device="{device}" name="TIME_UTC"><oneText name="UTC">{now_utc.strftime("%Y-%m-%dT%H:%M:%S")}</oneText></newTextVector>')
     
     # Calculate RA/Dec from Alt/Az
     observatory = EarthLocation(lat=req.lat*u.deg, lon=req.lon*u.deg, height=0*u.m)
     altaz = SkyCoord(alt=req.alt*u.deg, az=req.az*u.deg, frame='altaz', obstime=Time(now_utc), location=observatory)
     eq = altaz.transform_to('icrs')
     
-    indi.send(f'<newSwitchVector device="{req.device}" name="ON_COORD_SET"><oneSwitch name="SYNC">On</oneSwitch></newSwitchVector>')
-    indi.send(f'<newNumberVector device="{req.device}" name="EQUATORIAL_EOD_COORD"><oneNumber name="RA">{eq.ra.hour}</oneNumber><oneNumber name="DEC">{eq.dec.deg}</oneNumber></newNumberVector>')
-    indi.send(f'<newSwitchVector device="{req.device}" name="ON_COORD_SET"><oneSwitch name="TRACK">On</oneSwitch></newSwitchVector>')
+    indi.send(f'<newNumberVector device="{device}" name="EQUATORIAL_EOD_COORD"><oneNumber name="RA">{eq.ra.hour}</oneNumber><oneNumber name="DEC">{eq.dec.deg}</oneNumber></newNumberVector>')
+    indi.send(f'<newSwitchVector device="{device}" name="ON_COORD_SET"><oneSwitch name="SYNC">On</oneSwitch></newSwitchVector>')
+    indi.send(f'<newSwitchVector device="{device}" name="ON_COORD_SET"><oneSwitch name="TRACK">On</oneSwitch></newSwitchVector>')
     
     return {"success": True}
 
+@app.post("/slew")
+async def slew_telescope(req: SlewRequest):
+    # Log incoming request to verify format
+    logger.info(f"Slew request: RA={req.ra}, DEC={req.dec}")
+    
+    device = req.device
+    if device == "Celestron GPS":
+        device = "Celestron NexStar HC"
+        
+    if not indi.connected:
+        return {"success": False, "error": "INDI not connected"}
+
+    # Calculate actual J2000 coordinates from AltAz/Local for safety
+    # But here we assume UI sends J2000 direct
+    eq = SkyCoord(ra=req.ra*u.deg, dec=req.dec*u.deg, frame='icrs')
+    
+    # 1. Sync TIME and LOCATION first (NexStar requires this for precise goto)
+    now_utc = datetime.utcnow()
+    # We send dummy lat/lon if not provided, or better, we should have a global state.
+    # We will let Ekos handle GPS, just send the Goto.
+    
+    # 2. Set ON_COORD_SET to TRACK (meaning GOTO)
+    indi.send(f'<newSwitchVector device="{device}" name="ON_COORD_SET"><oneSwitch name="TRACK">On</oneSwitch></newSwitchVector>')
+    time.sleep(0.1)
+    
+    # 3. Send RA/DEC GOTO
+    indi.send(f'<newNumberVector device="{device}" name="EQUATORIAL_EOD_COORD"><oneNumber name="RA">{eq.ra.hour}</oneNumber><oneNumber name="DEC">{eq.dec.deg}</oneNumber></newNumberVector>')
+    
+    return {"success": True, "message": "Slew initiated"}
+
+@app.get("/logs")
+def get_logs():
+    return {"logs": list(log_buffer)}
+
+@app.post("/reconnect")
+def reconnect_indi():
+    logger.info("Force reconnecting INDI bridge...")
+    indi.reconnect()
+    return {"success": True, "message": "Reconnection triggered"}
+
+@app.post("/restart_kstars")
+def restart_kstars():
+    logger.warning("Restarting KStars application on Mac...")
+    os.system("killall KStars")
+    time.sleep(1)
+    os.system("open -a KStars")
+    return {"success": True, "message": "KStars restarted"}
+
 @app.post("/ccd/capture")
 async def ccd_capture(req: CaptureRequest):
+    device = req.device
+    # Common mapping for Canon DSLR
+    if "Canon" in device: device = "Canon DSLR EOS 600D"
+    
+    logger.info(f"Capturing on {device} with exposure {req.exposure}s")
     # Force Upload Client to handle image on Mac
-    indi.send(f'<newSwitchVector device="{req.device}" name="UPLOAD_MODE"><oneSwitch name="UPLOAD_CLIENT">On</oneSwitch></newSwitchVector>')
-    indi.send(f'<newNumberVector device="{req.device}" name="CCD_EXPOSURE"><oneNumber name="CCD_EXPOSURE_VALUE">{req.exposure}</oneNumber></newNumberVector>')
+    indi.send(f'<newSwitchVector device="{device}" name="UPLOAD_MODE"><oneSwitch name="UPLOAD_CLIENT">On</oneSwitch></newSwitchVector>')
+    indi.send(f'<newNumberVector device="{device}" name="CCD_EXPOSURE"><oneNumber name="CCD_EXPOSURE_VALUE">{req.exposure}</oneNumber></newNumberVector>')
     return {"success": True}
 
 @app.get("/ccd/latest")
@@ -254,7 +459,8 @@ async def get_status():
         "latest_image": indi.latest_image_path,
         "storage": STORAGE_PATH,
         "mount": indi.device_mount,
-        "ccd": indi.device_ccd
+        "ccd": indi.device_ccd,
+        "mount_connected": indi.mount_connected
     }
 
 # --- STREAMING ---
@@ -268,36 +474,47 @@ def mjpeg_generator():
         
         buffer = b""
         while True:
-            chunk = s.recv(65536)
-            if not chunk: break
-            buffer += chunk
+            data = s.recv(65536)
+            if not data: break
+            buffer += data
             
             if b"<oneBLOB" in buffer and b"</oneBLOB>" in buffer:
-                # Extract blob (minimal parser for speed)
-                start = buffer.find(b">", buffer.find(b"<oneBLOB")) + 1
-                end = buffer.find(b"</oneBLOB>")
-                blob_data = buffer[start:end].replace(b"\n", b"").replace(b"\r", b"")
-                image_bytes = base64.b64decode(blob_data)
-                
-                yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + image_bytes + b'\r\n')
-                buffer = buffer[end+10:]
+                match = re.search(b'format="([^"]+)"[^>]*>([^<]+)</oneBLOB>', buffer, re.DOTALL)
+                if match:
+                    blob_content = match.group(2).decode().replace('\n', '').replace('\r', '')
+                    raw_bytes = base64.b64decode(blob_content)
+                    yield (b'--frame\r\n'
+                           b'Content-Type: image/jpeg\r\n\r\n' + raw_bytes + b'\r\n')
+                buffer = b""
     except Exception as e:
-        logger.error(f"Stream error: {e}")
+        logger.error(f"MJPEG error: {e}")
     finally:
         s.close()
 
-@app.get("/ccd/stream")
-async def ccd_stream():
-    return StreamingResponse(mjpeg_generator(), media_type="multipart/x-mixed-replace; boundary=--frame")
+@app.get("/video_feed")
+async def video_feed():
+    return StreamingResponse(mjpeg_generator(), media_type="multipart/x-mixed-replace; boundary=frame")
 
 @app.post("/ccd/stream/start")
 async def ccd_stream_start(device: str = "Canon DSLR EOS 600D"):
+    # Ensure it's connected first just in case
+    indi.send(f'<newSwitchVector device="{device}" name="CONNECTION"><oneSwitch name="CONNECT">On</oneSwitch></newSwitchVector>')
+    # Give it a tiny bit of time to connect if it wasn't
+    time.sleep(0.5)
+    # Enable viewfinder (flips the mirror)
+    indi.send(f'<newSwitchVector device="{device}" name="viewfinder"><oneSwitch name="viewfinder0">On</oneSwitch></newSwitchVector>')
+    time.sleep(1)
+    # Set MJPEG encoder which is often required for live view stream on DSLR
+    indi.send(f'<newSwitchVector device="{device}" name="CCD_STREAM_ENCODER"><oneSwitch name="MJPEG">On</oneSwitch></newSwitchVector>')
+    # Turn on live stream
     indi.send(f'<newSwitchVector device="{device}" name="CCD_VIDEO_STREAM"><oneSwitch name="STREAM_ON">On</oneSwitch></newSwitchVector>')
     return {"success": True}
 
 @app.post("/ccd/stream/stop")
 async def ccd_stream_stop(device: str = "Canon DSLR EOS 600D"):
     indi.send(f'<newSwitchVector device="{device}" name="CCD_VIDEO_STREAM"><oneSwitch name="STREAM_OFF">On</oneSwitch></newSwitchVector>')
+    # Also turn off viewfinder
+    indi.send(f'<newSwitchVector device="{device}" name="viewfinder"><oneSwitch name="viewfinder1">On</oneSwitch></newSwitchVector>')
     return {"success": True}
 
 if __name__ == "__main__":

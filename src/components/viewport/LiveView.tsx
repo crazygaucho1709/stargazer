@@ -14,11 +14,13 @@ export const LiveView = () => {
     const [isLiveStreaming, setIsLiveStreaming] = useState(false);
     const [streamStatus, setStreamStatus] = useState<string>("");
 
-    const bridgeIp = config.astroberryUrl.replace('http://', '').replace(':8624', '');
+    const [bridgeIp, setBridgeIp] = useState("localhost");
 
-    // Calculate pan based on alt and az to simulate telescope slewing
-    const panX = -(az - 180) * 15; 
-    const panY = -(alt - 45) * 15; 
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            setBridgeIp(window.location.hostname);
+        }
+    }, []);
 
     // Canon DSLR live view - Poll for latest frame when not streaming
     useEffect(() => {
@@ -33,7 +35,7 @@ export const LiveView = () => {
         
         // Set the latest frame URL with cache-busting (use API proxy to avoid CORS)
         const updateFrame = () => {
-            setCcdImage(`/api/indi/latest-image?ip=${bridgeIp}&t=${Date.now()}`);
+            setCcdImage(`http://${bridgeIp}:5005/ccd/latest?t=${Date.now()}`);
         };
         
         // Initial frame
@@ -49,14 +51,10 @@ export const LiveView = () => {
     const startLiveView = async () => {
         try {
             setStreamStatus("Starting...");
-            const res = await fetch(`/api/indi/stream?device=Canon%20DSLR%20EOS%20600D&ip=${bridgeIp}`);
-            const data = await res.json();
-            
-            if (data.success) {
-                setCcdImage(data.streamUrl);
-                setIsLiveStreaming(true);
-                setStreamStatus("LIVE");
-            }
+            await fetch(`http://${bridgeIp}:5005/ccd/stream/start`, { method: 'POST' });
+            setCcdImage(`http://${bridgeIp}:5005/video_feed?t=${Date.now()}`);
+            setIsLiveStreaming(true);
+            setStreamStatus("LIVE");
         } catch (e) {
             setStreamStatus("Error");
         }
@@ -64,12 +62,9 @@ export const LiveView = () => {
 
     const stopLiveView = async () => {
         try {
-            await fetch(`/api/indi/liveview`, { 
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'stop', ip: bridgeIp })
-            });
+            await fetch(`http://${bridgeIp}:5005/ccd/stream/stop`, { method: 'POST' });
             setIsLiveStreaming(false);
+            setCcdImage(null);
             setStreamStatus("");
         } catch (e) {
             console.error(e);
@@ -114,9 +109,13 @@ export const LiveView = () => {
             window.removeEventListener('touchstart', handleActivity);
             clearInterval(checkInactivity);
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isLiveStreaming, lastActivity, showSafetyModal]);
 
-    const aladinUrl = `https://aladin.cds.unistra.fr/AladinLite/?target=${encodeURIComponent(ra + ' ' + dec)}&fov=${10 / zoom}&lang=${language}`;
+    // Format coordinates to avoid Aladin trying to resolve them as names (which causes CORS/SESAME errors)
+    const cleanRa = String(ra).replace(/[hms]/g, ' ').replace(/\s+/g, ' ').trim();
+    const cleanDec = String(dec).replace(/[°'"]/g, ' ').replace(/\s+/g, ' ').trim();
+    const aladinUrl = `https://aladin.cds.unistra.fr/AladinLite/?target=${encodeURIComponent(`${cleanRa} ${cleanDec}`)}&fov=${10 / zoom}&lang=${language}`;
 
     return (
         <Box
@@ -197,9 +196,9 @@ export const LiveView = () => {
                                 height: "100%",
                                 objectFit: "contain",
                                 opacity: isExposing ? 0.9 : 1,
-                                transform: `scale(${zoom}) translate(${panX}px, ${panY}px)`,
+                        transform: `scale(${zoom})`,
                                 transformOrigin: "center center",
-                                transition: isSlewing ? "transform 0.5s linear" : "transform 0.1s ease-out",
+                        transition: "transform 0.1s ease-out",
                                 background: "#000"
                             }}
                         />

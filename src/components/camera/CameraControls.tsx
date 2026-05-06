@@ -4,7 +4,6 @@
 import { Box, VStack, HStack, Text, Button, Icon, Grid } from "@chakra-ui/react";
 import { Camera, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Aperture, Settings2 } from "lucide-react";
 import { useStargazerStore } from "@/store/useStargazerStore";
-import { mockApi } from "@/services/mockApi";
 
 interface CameraControlsProps {
     variant?: "standard" | "circular";
@@ -31,18 +30,21 @@ const ControlButton = ({ icon: DirIcon, glowColor = "var(--astro-teal)" }: { ico
 );
 
 export const CameraControls = ({ variant = "standard" }: CameraControlsProps) => {
-    const { isExposing, setExposing } = useStargazerStore();
+    const { isExposing, setExposing, config } = useStargazerStore();
 
     const handleShoot = async () => {
         setExposing(true);
-        const res = await mockApi.capture(800, 30);
-        setExposing(false);
-
-        if (!res.success) {
-            // Note: In Chakra UI v3, toaster must be used via the environment or a custom hook, 
-            // but we can just use an alert for the sake of this disconnected state demo.
-            alert(`CAPTURE FAILED\n\n${res.error}`);
+        const bridgeIp = config.astroberryUrl.includes('http') ? new URL(config.astroberryUrl).hostname : config.astroberryUrl.split(':')[0];
+        try {
+            await fetch(`http://${bridgeIp}:5005/ccd/capture`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ exposure: 2.0, device: "Canon DSLR EOS 600D" })
+            });
+        } catch (e: any) {
+            alert(`CAPTURE FAILED\n\n${e.message}`);
         }
+        setExposing(false);
     };
 
     if (variant === "circular") {
