@@ -6,7 +6,7 @@ module.exports = {
       interpreter: 'server/venv/bin/python3',
       cwd: './',
       env: {
-        STORAGE_PATH: '/Volumes/ASTRO_HDD/captures',
+        STORAGE_PATH: '/Volumes/Data/captures',
         PYTHONPATH: '.'
       },
       autorestart: true,
