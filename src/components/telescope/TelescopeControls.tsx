@@ -5,7 +5,6 @@ import { Box, Grid, Button, VStack, HStack, Circle, Icon, Flex, Text } from "@ch
 import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Target, RotateCcw } from "lucide-react";
 import React from "react";
 import { useStargazerStore } from "@/store/useStargazerStore";
-import { mockApi } from "@/services/mockApi";
 
 interface TelescopeControlsProps {
     variant: "pad" | "jog" | "guiding";
@@ -49,7 +48,7 @@ const PadButton = ({ icon: DirIcon, glowColor = "var(--astro-teal)", onClick, on
 );
 
 export const TelescopeControls = ({ variant }: TelescopeControlsProps) => {
-    const { isSlewing, setSlewing, ra, dec, alt, az, setPosition } = useStargazerStore();
+    const { isSlewing, setSlewing, setPosition, config } = useStargazerStore();
     const activeDirectionRef = React.useRef<'up' | 'down' | 'left' | 'right' | null>(null);
     const [slewRate, setSlewRate] = React.useState(5);
 
@@ -58,18 +57,25 @@ export const TelescopeControls = ({ variant }: TelescopeControlsProps) => {
         
         // Stop motion if currently moving
         if (wasMoving) {
-            await mockApi.stopMotion(activeDirectionRef.current);
-            setSlewing(false);
+            await handleMoveStop();
         }
         
         // Change slew rate
         setSlewRate(value);
-        await mockApi.setSlewRate(value);
+        
+        // Send rate to backend
+        const bridgeIp = config.astroberryUrl.includes('http') ? new URL(config.astroberryUrl).hostname : config.astroberryUrl.split(':')[0];
+        try {
+            await fetch('/api/indi/mount', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'rate', rate: value, ip: bridgeIp })
+            });
+        } catch(e) {}
         
         // Restart motion if it was moving
         if (wasMoving && activeDirectionRef.current) {
-            await mockApi.startMotion(activeDirectionRef.current);
-            setSlewing(true);
+            await handleMoveStart(activeDirectionRef.current);
         }
     };
 
@@ -89,41 +95,48 @@ export const TelescopeControls = ({ variant }: TelescopeControlsProps) => {
         activeDirectionRef.current = direction;
         setSlewing(true);
         
-        const res = await mockApi.startMotion(direction);
-        
-        if (!res.success) {
-            alert(`SLEW ERROR\n\n${res.error}`);
+        const bridgeIp = config.astroberryUrl.includes('http') ? new URL(config.astroberryUrl).hostname : config.astroberryUrl.split(':')[0];
+        try {
+            // Send rate right before moving to be sure
+            fetch('/api/indi/mount', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'rate', rate: slewRate, ip: bridgeIp })
+            }).catch(() => {});
+
+            const res = await fetch('/api/indi/mount', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'jog',
+                    direction: direction,
+                    state: 'start',
+                    ip: bridgeIp
+                })
+            });
+            const data = await res.json();
+            if (!res.ok || !data.success) throw new Error(data.error || 'Failed to move hardware');
+        } catch (e: any) {
+            alert(`SLEW ERROR\n\n${e.message}`);
             setSlewing(false);
         }
     };
 
     const handleMoveStop = async () => {
-        const direction = activeDirectionRef.current;
-        if (!direction) return;
-        
         activeDirectionRef.current = null;
         
-        // Update position for UI feedback
-        let raParsed = parseCoordinate(ra);
-        let decParsed = parseCoordinate(dec);
-        let newAlt = alt;
-        let newAz = az;
-
-        // Estimate position change based on movement duration
-        if (direction === 'up') { decParsed.m += 2; newAlt = Math.min(90, newAlt + 1); }
-        if (direction === 'down') { decParsed.m -= 2; newAlt = Math.max(0, newAlt - 1); }
-        if (direction === 'right') { raParsed.m += 2; newAz = (newAz + 2) % 360; }
-        if (direction === 'left') { raParsed.m -= 2; newAz = (newAz - 2 + 360) % 360; }
-
-        const pad = (num: number) => String(num).padStart(2, '0');
-        const sign = decParsed.h >= 0 ? '+' : '-';
+        const bridgeIp = config.astroberryUrl.includes('http') ? new URL(config.astroberryUrl).hostname : config.astroberryUrl.split(':')[0];
+        try {
+            await fetch('/api/indi/mount', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'jog', direction: 'up', state: 'stop', ip: bridgeIp })
+            });
+        } catch (e) {
+            console.error("Stop motion failed", e);
+        }
         
-        const newRa = `${pad(raParsed.h)}h ${pad(raParsed.m)}m ${pad(raParsed.s)}s`;
-        const newDec = `${sign}${pad(Math.abs(decParsed.h))}° ${pad(Math.abs(decParsed.m))}' ${pad(Math.abs(decParsed.s))}"`;
-        
-        await mockApi.stopMotion(direction);
         setSlewing(false);
-        setPosition(newRa, newDec, newAlt, newAz);
     };
 
     if (variant === "pad") {

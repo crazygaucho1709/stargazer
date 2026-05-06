@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.stargazer.backend</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/matthieudelamourd/dev/project/web/stargazer/server/venv/bin/python3</string>
+        <string>/Users/matthieudelamourd/dev/project/web/stargazer/server/main.py</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>/Users/matthieudelamourd/dev/project/web/stargazer/server</string>
+    <key>StandardOutPath</key>
+    <string>/Users/matthieudelamourd/dev/project/web/stargazer/server/backend.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/matthieudelamourd/dev/project/web/stargazer/server/backend.log</string>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+</dict>
+</plist>

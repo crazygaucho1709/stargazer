@@ -4,6 +4,9 @@
 
 echo "--- Starting Stargazer Backend (Fat Server) ---"
 
+echo "Launching KStars..."
+open -a KStars || echo "KStars application not found or could not be launched."
+
 # Move to script directory
 cd "$(dirname "$0")"
 

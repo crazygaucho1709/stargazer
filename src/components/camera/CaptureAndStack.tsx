@@ -27,7 +27,7 @@ interface StackingResult {
 
 export const CaptureAndStack = () => {
   const { language, config } = useStargazerStore();
-  const bridgeIp = config.astroberryUrl.replace('http://', '').replace(':8624', '');
+  const bridgeIp = config.astroberryUrl.includes('http') ? new URL(config.astroberryUrl).hostname : config.astroberryUrl.split(':')[0];
   
   // Capture Settings
   const [exposure, setExposure] = useState(30); // seconds
@@ -103,7 +103,11 @@ export const CaptureAndStack = () => {
       
       // Start exposure
       try {
-        await fetch('/api/indi/ccd?device=Canon%20DSLR%20EOS%20600D&exposure=' + exposure + '&ip=' + bridgeIp);
+        await fetch(`http://${bridgeIp}:5005/ccd/capture`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ exposure: exposure, device: "Canon DSLR EOS 600D" })
+        });
       } catch (e) {
         console.error('Capture error:', e);
       }
@@ -135,7 +139,8 @@ export const CaptureAndStack = () => {
     if (frames.length > 0) {
       startStacking();
     }
-  }, [exposure, gain, numFrames, isAutoFocus, performAutoFocus, focusHFR]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [exposure, gain, numFrames, isAutoFocus, performAutoFocus, focusHFR, bridgeIp]);
 
   // Stacking with star alignment
   const startStacking = useCallback(async () => {
@@ -335,7 +340,7 @@ export const CaptureAndStack = () => {
           {stackingResult.snr > 0 && (
             <HStack justify="space-between" mt={2} fontSize="10px" color="whiteAlpha.500">
               <span>SNR: {stackingResult.snr.toFixed(1)}</span>
-              <span>FWHM: {stackingResult.fwhm.toFixed(2)}"</span>
+            <span>FWHM: {stackingResult.fwhm.toFixed(2)}&quot;</span>
             </HStack>
           )}
         </Box>
@@ -354,7 +359,7 @@ export const CaptureAndStack = () => {
             <Text color="whiteAlpha.600">Frames: <span style={{ color: '#00F0FF' }}>{stackingResult.framesUsed}</span></Text>
             <Text color="whiteAlpha.600">Exposure: <span style={{ color: '#00F0FF' }}>{stackingResult.totalExposure}s</span></Text>
             <Text color="whiteAlpha.600">SNR: <span style={{ color: '#00F0FF' }}>{stackingResult.snr.toFixed(1)}</span></Text>
-            <Text color="whiteAlpha.600">FWHM: <span style={{ color: '#00F0FF' }}>{stackingResult.fwhm.toFixed(2)}"</span></Text>
+            <Text color="whiteAlpha.600">FWHM: <span style={{ color: '#00F0FF' }}>{stackingResult.fwhm.toFixed(2)}&quot;</span></Text>
           </Grid>
         </Box>
       )}

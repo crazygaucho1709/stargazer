@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+rawpy
+imageio
+astropy
+pydantic

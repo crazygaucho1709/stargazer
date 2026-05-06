@@ -75,7 +75,7 @@ export function useEnvironmentData() {
             fetchWeather(defLat, defLon);
         };
 
-        if (!navigator.geolocation) {
+        if (!window.isSecureContext || !navigator.geolocation) {
             handleFallback("Geolocation not supported (Secure Context required)");
             return;
         }

@@ -4,7 +4,7 @@ import { useStargazerStore } from '@/store/useStargazerStore';
 let isHardwareConnected = false;
 
 const getBridgeIp = () => {
-    return useStargazerStore.getState().config.astroberryUrl.replace('http://', '').replace(':8624', '');
+    return useStargazerStore.getState().config.astroberryUrl.includes('http') ? new URL(useStargazerStore.getState().config.astroberryUrl).hostname : useStargazerStore.getState().config.astroberryUrl.split(':')[0];
 };
 
 // Helper to parse "06h 23m" into decimal hours
@@ -71,7 +71,7 @@ export const mockApi = {
         return { success: false, message: res.error || "Connection failed" };
     },
 
-    slew: async (ra: string, dec: string, device: string = 'Celestron NexStar HC'): Promise<{ success: boolean, error?: string }> => {
+    slew: async (ra: string, dec: string, device: string = 'Celestron GPS'): Promise<{ success: boolean, error?: string }> => {
         if (!isHardwareConnected) return { success: false, error: "Hardware offline." };
         try {
             const res = await fetch('/api/indi/mount', {
@@ -92,7 +92,7 @@ export const mockApi = {
         }
     },
 
-    sync: async (ra: string, dec: string, device: string = 'Celestron NexStar HC'): Promise<{ success: boolean, error?: string }> => {
+    sync: async (ra: string, dec: string, device: string = 'Celestron GPS'): Promise<{ success: boolean, error?: string }> => {
         if (!isHardwareConnected) return { success: false, error: "Hardware offline." };
         try {
             const res = await fetch('/api/indi/mount', {
@@ -132,7 +132,7 @@ export const mockApi = {
         }
     },
 
-    startMotion: async (direction: 'up' | 'down' | 'left' | 'right', device: string = 'Celestron NexStar HC'): Promise<{ success: boolean, error?: string }> => {
+    startMotion: async (direction: 'up' | 'down' | 'left' | 'right', device: string = 'Celestron GPS'): Promise<{ success: boolean, error?: string }> => {
         if (!isHardwareConnected) return { success: false, error: "Hardware offline." };
         try {
             const res = await fetch('/api/indi/mount', {
@@ -147,7 +147,7 @@ export const mockApi = {
         }
     },
 
-    stopMotion: async (direction: 'up' | 'down' | 'left' | 'right', device: string = 'Celestron NexStar HC'): Promise<{ success: boolean, error?: string }> => {
+    stopMotion: async (direction: 'up' | 'down' | 'left' | 'right', device: string = 'Celestron GPS'): Promise<{ success: boolean, error?: string }> => {
         if (!isHardwareConnected) return { success: false, error: "Hardware offline." };
         try {
             const res = await fetch('/api/indi/mount', {
@@ -162,7 +162,7 @@ export const mockApi = {
         }
     },
 
-    jog: async (direction: 'up' | 'down' | 'left' | 'right', device: string = 'Celestron NexStar HC'): Promise<{ success: boolean, error?: string }> => {
+    jog: async (direction: 'up' | 'down' | 'left' | 'right', device: string = 'Celestron GPS'): Promise<{ success: boolean, error?: string }> => {
         if (!isHardwareConnected) return { success: false, error: "Hardware offline." };
         try {
             const res = await fetch('/api/indi/mount', {
@@ -177,7 +177,7 @@ export const mockApi = {
         }
     },
 
-    setSlewRate: async (rate: number, device: string = 'Celestron NexStar HC'): Promise<{ success: boolean, error?: string, rate?: number }> => {
+    setSlewRate: async (rate: number, device: string = 'Celestron GPS'): Promise<{ success: boolean, error?: string, rate?: number }> => {
         const clampedRate = Math.max(1, Math.min(9, Math.round(rate)));
         if (!isHardwareConnected) return { success: false, error: "Hardware offline.", rate: clampedRate };
         try {

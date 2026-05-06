@@ -3,8 +3,10 @@ import { NextResponse } from 'next/server';
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
-    const bridgeIp = url.searchParams.get('ip') || '192.168.178.142';
-    const BRIDGE_URL = `http://localhost:5005`;
+    const bridgeIp = url.searchParams.get('ip') || '127.0.0.1';
+    const safeIp = bridgeIp.startsWith('localhost') ? bridgeIp.replace('localhost', '127.0.0.1') : bridgeIp;
+    const finalIp = safeIp.includes(':') ? safeIp : `${safeIp}:5005`;
+    const BRIDGE_URL = `http://${finalIp}`;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
 
@@ -24,8 +26,10 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { ip, ...config } = body;
-    const bridgeIp = ip || '192.168.178.142';
-    const BRIDGE_URL = `http://${bridgeIp}:5005`;
+    const bridgeIp = ip || '127.0.0.1';
+    const safeIp = bridgeIp.startsWith('localhost') ? bridgeIp.replace('localhost', '127.0.0.1') : bridgeIp;
+    const finalIp = safeIp.includes(':') ? safeIp : `${safeIp}:5005`;
+    const BRIDGE_URL = `http://${finalIp}`;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
     

@@ -5,35 +5,59 @@ import { MoveUpRight, Settings, AlertTriangle, ArrowUp, ArrowDown, ArrowLeft, Ar
 import { useState } from "react";
 import { useStargazerStore } from "@/store/useStargazerStore";
 import { t } from "@/i18n/translations";
-import { mockApi } from "@/services/mockApi";
 
 export const MountCalibration = () => {
-    const { mountLimits, setMountLimits, alt, az, language, setSlewing } = useStargazerStore();
+    const { mountLimits, setMountLimits, alt, az, language, setSlewing, config } = useStargazerStore();
     const [step, setStep] = useState<"idle" | "maxAlt" | "minAlt" | "maxAz" | "minAz">("idle");
     const [isMoving, setIsMoving] = useState(false);
 
     const handleSaveLimit = () => {
         if (step === "maxAlt") {
-            setMountLimits({ maxAlt: alt });
+            setMountLimits({ ...mountLimits, maxAlt: alt });
             setStep("minAlt");
         } else if (step === "minAlt") {
-            setMountLimits({ minAlt: alt });
+            setMountLimits({ ...mountLimits, minAlt: alt });
             setStep("maxAz");
         } else if (step === "maxAz") {
-            setMountLimits({ maxAz: az });
+            setMountLimits({ ...mountLimits, maxAz: az });
             setStep("minAz");
         } else if (step === "minAz") {
-            setMountLimits({ minAz: az });
+            const finalLimits = { ...mountLimits, minAz: az };
+            setMountLimits(finalLimits);
             setStep("idle");
+            
+            // Pousse les nouvelles limites matérielles directement sur la monture
+            const bridgeIp = config.astroberryUrl.includes('http') ? new URL(config.astroberryUrl).hostname : config.astroberryUrl.split(':')[0];
+            fetch('/api/indi/mount', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'sync_limits',
+                    limits: finalLimits,
+                    ip: bridgeIp
+                })
+            }).catch(console.error);
         }
     };
 
-    const moveMount = async (direction: 'up' | 'down' | 'left' | 'right', duration: number = 500) => {
+    const startJog = async (direction: 'up' | 'down' | 'left' | 'right') => {
         setIsMoving(true);
         setSlewing(true);
-        await mockApi.startMotion(direction);
-        await new Promise(r => setTimeout(r, duration));
-        await mockApi.stopMotion(direction);
+        const bridgeIp = config.astroberryUrl.replace('http://', '').replace(':8624', '');
+        fetch('/api/indi/mount', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'jog', direction, state: 'start', ip: bridgeIp })
+        }).catch(console.error);
+    };
+
+    const stopJog = async (direction: 'up' | 'down' | 'left' | 'right') => {
+        const bridgeIp = config.astroberryUrl.replace('http://', '').replace(':8624', '');
+        fetch('/api/indi/mount', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'jog', direction, state: 'stop', ip: bridgeIp })
+        }).catch(console.error);
         setSlewing(false);
         setIsMoving(false);
     };
@@ -108,15 +132,23 @@ export const MountCalibration = () => {
                     <HStack justify="center" gap={2} py={2}>
                         {step.includes("Alt") ? (
                             <VStack gap={1}>
-                                <Button size="sm" variant="outline" borderColor="var(--astro-teal)" color="var(--astro-teal)" w="50px" h="40px" onClick={() => moveMount('up', 500)} disabled={isMoving}><ArrowUp size={16} /></Button>
+                                <Button size="sm" variant="outline" borderColor="var(--astro-teal)" color="var(--astro-teal)" w="50px" h="40px" 
+                                    onMouseDown={() => startJog('up')} onMouseUp={() => stopJog('up')} onMouseLeave={() => stopJog('up')} 
+                                    onTouchStart={() => startJog('up')} onTouchEnd={() => stopJog('up')}><ArrowUp size={16} /></Button>
                                 <Text fontSize="8px" opacity={0.6}>UP</Text>
-                                <Button size="sm" variant="outline" borderColor="var(--astro-teal)" color="var(--astro-teal)" w="50px" h="40px" onClick={() => moveMount('down', 500)} disabled={isMoving}><ArrowDown size={16} /></Button>
+                                <Button size="sm" variant="outline" borderColor="var(--astro-teal)" color="var(--astro-teal)" w="50px" h="40px" 
+                                    onMouseDown={() => startJog('down')} onMouseUp={() => stopJog('down')} onMouseLeave={() => stopJog('down')} 
+                                    onTouchStart={() => startJog('down')} onTouchEnd={() => stopJog('down')}><ArrowDown size={16} /></Button>
                             </VStack>
                         ) : (
                             <HStack gap={1}>
-                                <Button size="sm" variant="outline" borderColor="var(--astro-teal)" color="var(--astro-teal)" w="50px" h="40px" onClick={() => moveMount('left', 500)} disabled={isMoving}><ArrowLeft size={16} /></Button>
+                                <Button size="sm" variant="outline" borderColor="var(--astro-teal)" color="var(--astro-teal)" w="50px" h="40px" 
+                                    onMouseDown={() => startJog('left')} onMouseUp={() => stopJog('left')} onMouseLeave={() => stopJog('left')} 
+                                    onTouchStart={() => startJog('left')} onTouchEnd={() => stopJog('left')}><ArrowLeft size={16} /></Button>
                                 <Text fontSize="8px" opacity={0.6}>AZ</Text>
-                                <Button size="sm" variant="outline" borderColor="var(--astro-teal)" color="var(--astro-teal)" w="50px" h="40px" onClick={() => moveMount('right', 500)} disabled={isMoving}><ArrowRight size={16} /></Button>
+                                <Button size="sm" variant="outline" borderColor="var(--astro-teal)" color="var(--astro-teal)" w="50px" h="40px" 
+                                    onMouseDown={() => startJog('right')} onMouseUp={() => stopJog('right')} onMouseLeave={() => stopJog('right')} 
+                                    onTouchStart={() => startJog('right')} onTouchEnd={() => stopJog('right')}><ArrowRight size={16} /></Button>
                             </HStack>
                         )}
                     </HStack>

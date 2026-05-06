@@ -13,7 +13,7 @@ interface ObjectFinderProps {
 }
 
 export const ObjectFinder = ({ onSlew }: ObjectFinderProps) => {
-  const { language, ra, dec, alt, az, setPosition, setSlewing, config } = useStargazerStore();
+  const { language, setPosition, setSlewing, config, mountLimits } = useStargazerStore();
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
   const [filterDifficulty, setFilterDifficulty] = useState<string>("all");
@@ -30,13 +30,12 @@ export const ObjectFinder = ({ onSlew }: ObjectFinderProps) => {
 
   // Calculate visible objects based on current time and location
   useEffect(() => {
-    // Default to Paris coordinates if not set
-    const lat = 48.8566;
-    const lon = 2.3522;
+    const lat = parseFloat(config.latitude) || 48.8566;
+    const lon = parseFloat(config.longitude) || 2.3522;
     
-    const objects = getVisibleObjects(currentTime, lat, lon, 20);
+    const objects = getVisibleObjects(currentTime, lat, lon, mountLimits.minAlt || 15);
     setVisibleObjects(objects);
-  }, [currentTime]);
+  }, [currentTime, config.latitude, config.longitude, mountLimits.minAlt]);
 
   // Filter objects based on search and filters
   const filteredObjects = useMemo(() => {
@@ -65,9 +64,10 @@ export const ObjectFinder = ({ onSlew }: ObjectFinderProps) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'slew',
+          device: config.driverInstance,
           ra: obj.ra_deg,
           dec: obj.dec_deg,
-          ip: config.astroberryUrl.replace('http://', '').replace(':8624', '')
+          ip: config.astroberryUrl.includes('http') ? new URL(config.astroberryUrl).hostname : config.astroberryUrl.split(':')[0]
         })
       });
 

@@ -5,8 +5,10 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const device = searchParams.get('device') || 'Canon DSLR EOS 600D';
     const exposure = parseFloat(searchParams.get('exposure') || '0.1');
-    const bridgeIp = searchParams.get('ip') || '192.168.178.142';
-    const BRIDGE_URL = `http://localhost:5005`;
+    const bridgeIp = searchParams.get('ip') || '127.0.0.1';
+    const safeIp = bridgeIp.startsWith('localhost') ? bridgeIp.replace('localhost', '127.0.0.1') : bridgeIp;
+    const finalIp = safeIp.includes(':') ? safeIp : `${safeIp}:5005`;
+    const BRIDGE_URL = `http://${finalIp}`;
     
     // Trigger capture via bridge
     const res = await fetch( `${BRIDGE_URL}/ccd/capture`, {
