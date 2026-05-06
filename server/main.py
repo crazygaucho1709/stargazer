@@ -110,55 +110,94 @@ class INDIClient:
         self.thread.start()
 
     def run_loop(self):
+        """Main reconnection loop with exponential backoff."""
+        retry_delay = 5      # initial delay in seconds
+        max_delay    = 60    # cap at 60s
         while True:
             try:
                 if not self.connected:
                     self.connect()
-                time.sleep(5)
+                    if self.connected:
+                        retry_delay = 5  # reset on success
+                    else:
+                        time.sleep(retry_delay)
+                        retry_delay = min(retry_delay * 2, max_delay)
+                else:
+                    time.sleep(5)
             except Exception as e:
                 logger.error(f"INDI Loop error: {e}")
+                self._close_socket()
                 self.connected = False
-                time.sleep(5)
+                time.sleep(retry_delay)
+                retry_delay = min(retry_delay * 2, max_delay)
 
-    def reconnect(self):
-        logger.info("Manual reconnect triggered from UI")
+    def _close_socket(self):
+        """Thread-safe socket cleanup."""
         with self.socket_lock:
             if self.sock:
                 try:
+                    self.sock.shutdown(socket.SHUT_RDWR)
+                except Exception:
+                    pass
+                try:
                     self.sock.close()
-                except Exception as e:
-                    logger.error(f"Error closing socket on reconnect: {e}")
+                except Exception:
+                    pass
                 self.sock = None
+
+    def _resolve_host(self):
+        """Try primary IP, fallback to mDNS hostname."""
+        candidates = [INDI_HOST, "astroberry.local", "astroberry"]
+        for host in candidates:
+            try:
+                socket.getaddrinfo(host, INDI_PORT, socket.AF_INET, socket.SOCK_STREAM)
+                logger.debug(f"Resolved INDI host: {host}")
+                return host
+            except socket.gaierror:
+                continue
+        return None
+
+    def reconnect(self):
+        logger.info("Manual reconnect triggered from UI")
+        self._close_socket()
         self.connected = False
         self.mount_connected = False
 
     def connect(self):
+        # Pre-check: resolve host before attempting TCP connect
+        host = self._resolve_host()
+        if not host:
+            logger.error(f"Connection failed: cannot resolve INDI host (tried {INDI_HOST}, astroberry.local)")
+            return
         try:
-            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
             if hasattr(socket, 'TCP_KEEPIDLE'):
-                self.sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, 3)
-            elif hasattr(socket, 'TCP_KEEPALIVE'): # macOS
-                self.sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPALIVE, 3)
-            
-            self.sock.settimeout(10)
-            self.sock.connect((INDI_HOST, INDI_PORT))
-            # Set non-blocking with timeout for listener thread
-            self.sock.settimeout(1.0)  # 1 second timeout for recv
+                sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, 10)
+            elif hasattr(socket, 'TCP_KEEPALIVE'):  # macOS
+                sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPALIVE, 10)
+            sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+            sock.settimeout(10)
+            sock.connect((host, INDI_PORT))
+            # Switch to short recv timeout for listener thread
+            sock.settimeout(1.0)
+            with self.socket_lock:
+                self.sock = sock
             self.connected = True
-            logger.info(f"Connected to INDI at {INDI_HOST}:{INDI_PORT}")
-            
+            logger.info(f"Connected to INDI at {host}:{INDI_PORT}")
+
             # Initial handshake
             self.send('<getProperties version="1.7"/>')
             time.sleep(0.5)
             self.send(f'<enableBLOB device="{self.device_ccd}">Also</enableBLOB>')
-            
+
             # Start listener in separate thread
             listener_thread = threading.Thread(target=self.listen, daemon=True)
             listener_thread.start()
             logger.info("INDI listener thread started")
         except Exception as e:
             logger.error(f"Connection failed: {e}")
+            self._close_socket()
             self.connected = False
 
     def send(self, xml):
