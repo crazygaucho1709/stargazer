@@ -1,20 +1,20 @@
 import { NextResponse } from 'next/server';
 
-export async function GET(request: Request) {
+export const dynamic = 'force-dynamic';
+
+const BRIDGE_URL = 'http://127.0.0.1:5005';
+
+export async function GET() {
   try {
-    const url = new URL(request.url);
-    const bridgeIp = url.searchParams.get('ip') || '127.0.0.1';
-    const safeIp = bridgeIp.startsWith('localhost') ? bridgeIp.replace('localhost', '127.0.0.1') : bridgeIp;
-    const finalIp = safeIp.includes(':') ? safeIp : `${safeIp}:5005`;
-    const BRIDGE_URL = `http://${finalIp}`;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-    const res = await fetch(`${BRIDGE_URL}/config`, { 
+    const res = await fetch(`${BRIDGE_URL}/config`, {
       cache: 'no-store',
       signal: controller.signal
     });
     clearTimeout(timeoutId);
+
     const data = await res.json();
     return NextResponse.json(data);
   } catch (error: any) {
@@ -25,14 +25,11 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { ip, ...config } = body;
-    const bridgeIp = ip || '127.0.0.1';
-    const safeIp = bridgeIp.startsWith('localhost') ? bridgeIp.replace('localhost', '127.0.0.1') : bridgeIp;
-    const finalIp = safeIp.includes(':') ? safeIp : `${safeIp}:5005`;
-    const BRIDGE_URL = `http://${finalIp}`;
+    const { ip: _ip, ...config } = body; // strip ip param, always use local bridge
+
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
-    
+
     const res = await fetch(`${BRIDGE_URL}/config`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -40,7 +37,7 @@ export async function POST(request: Request) {
       signal: controller.signal
     });
     clearTimeout(timeoutId);
-    
+
     const data = await res.json();
     return NextResponse.json(data);
   } catch (error: any) {

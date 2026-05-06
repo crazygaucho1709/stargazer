@@ -1,20 +1,20 @@
 import { NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
+const BRIDGE_URL = 'http://127.0.0.1:5005';
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { ip, ...data } = body;
-    const bridgeIp = ip || '127.0.0.1';
-    const safeIp = bridgeIp.startsWith('localhost') ? bridgeIp.replace('localhost', '127.0.0.1') : bridgeIp;
-    const finalIp = safeIp.includes(':') ? safeIp : `${safeIp}:5005`;
-    const BRIDGE_URL = `http://${finalIp}`;
-    
+    const { ip: _ip, ...data } = body; // strip ip param, always use local bridge
+
     const res = await fetch(`${BRIDGE_URL}/astro/coords`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
-    
+
     const json = await res.json();
     return NextResponse.json(json);
   } catch (error: any) {
