@@ -22,7 +22,7 @@ import collections
 # Configuration
 INDI_HOST = "192.168.178.142"
 INDI_PORT = 7624
-STORAGE_PATH = os.getenv("STORAGE_PATH", "/Volumes/ASTRO_HDD/captures")
+STORAGE_PATH = os.getenv("STORAGE_PATH", "/Volumes/Data2/captures")
 THUMBNAIL_PATH = os.path.join(STORAGE_PATH, "thumbnails")
 
 # Logger setup
@@ -41,7 +41,7 @@ buffer_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(m
 logger.addHandler(buffer_handler)
 
 # Ensure directories exist with fallback
-if not os.path.exists("/Volumes/ASTRO_HDD"):
+if not os.path.exists("/Volumes/Data2"):
     logger.warning("External HDD not found, falling back to local storage")
     STORAGE_PATH = os.path.join(os.getcwd(), "captures")
     THUMBNAIL_PATH = os.path.join(STORAGE_PATH, "thumbnails")
