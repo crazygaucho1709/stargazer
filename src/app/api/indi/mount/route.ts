@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
+const BRIDGE_URL = 'http://127.0.0.1:5005';
+
 // Proxy commands to Python bridge
 async function sendToBridge(bridgeIp: string, endpoint: string, data: any): Promise<any> {
   // The Python bridge always runs on localhost alongside the Next.js app on port 5005

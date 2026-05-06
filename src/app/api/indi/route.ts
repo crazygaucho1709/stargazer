@@ -1,85 +1,23 @@
 import { NextResponse } from 'next/server';
-import { Socket } from 'net';
 
-const INDI_PORT = 7624;
+export const dynamic = 'force-dynamic';
 
-interface IndiMessage {
-  device: string;
-  property: string;
-  values: Record<string, number | string>;
-}
+const BRIDGE_URL = 'http://127.0.0.1:5005';
 
-function sendIndiCommand(INDI_HOST: string, device: string, property: string, values: Record<string, number | string>): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const socket = new Socket();
-    
-    socket.setTimeout(10000);
-    
-    socket.connect(INDI_PORT, INDI_HOST, () => {
-      // Envoyer la commande INDI XML
-      const xml = `<newNumberVector device="${device}" name="${property}">${Object.entries(values).map(([name, val]) => `<oneNumber name="${name}">${val}</oneNumber>`).join('')}</newNumberVector>\n`;
-      socket.write(xml);
-      
-      // Fire and forget with a small delay to ensure the server receives it
-      setTimeout(() => {
-        socket.end();
-        resolve("Command sent");
-      }, 500);
-    });
-    
-    socket.on('error', (err) => reject(err));
-    socket.on('timeout', () => {
-      socket.destroy();
-      reject(new Error('INDI timeout: Serveur injoignable ou lent'));
-    });
-  });
-}
-
-export async function POST(request: Request) {
+export async function GET() {
   try {
-    const body = await request.json();
-    let { device, property, values, ip } = body;
-    // Strip port from ip if present (e.g. "localhost:5005" -> "localhost")
-    const rawIp = ip ? ip.split(':')[0] : 'localhost';
-    const INDI_HOST = rawIp;
-    
-    // Map driver name to actual INDI device name
-    if (device === 'Celestron GPS') {
-      device = 'Celestron NexStar HC';
-    }
-    
-    if (!device || !property || !values) {
-      return NextResponse.json({ error: 'Missing device, property or values' }, { status: 400 });
-    }
-    
-    const response = await sendIndiCommand(INDI_HOST, device, property, values);
-    return NextResponse.json({ success: true, response });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-  }
-}
-
-// Health check endpoint - proxies to Python bridge
-export async function GET(request: Request) {
-  try {
-    const url = new URL(request.url);
-    const bridgeIp = url.searchParams.get('ip') || '127.0.0.1';
-    const safeIp = bridgeIp.startsWith('localhost') ? bridgeIp.replace('localhost', '127.0.0.1') : bridgeIp;
-    const finalIp = safeIp.includes(':') ? safeIp : `${safeIp}:5005`;
-    const BRIDGE_URL = `http://${finalIp}`;
-    const res = await fetch( `${BRIDGE_URL}/health`, { cache: 'no-store' });
+    const res = await fetch(`${BRIDGE_URL}/health`, { cache: 'no-store' });
     const data = await res.json();
-    return NextResponse.json([{ 
-      status: data.mount_connected ? "True" : "False",
+    return NextResponse.json([{
+      status: data.mount_connected ? 'True' : 'False',
       mount_connected: data.mount_connected,
-      message: data.status 
+      message: data.status
     }]);
   } catch (error: any) {
-    // Return mock success so UI works when bridge is down
-    return NextResponse.json([{ 
-      status: "True", 
-      mount_connected: true,
-      message: "Mock mode - bridge offline",
+    return NextResponse.json([{
+      status: 'False',
+      mount_connected: false,
+      message: `Bridge offline: ${error.message}`,
       mock: true
     }]);
   }

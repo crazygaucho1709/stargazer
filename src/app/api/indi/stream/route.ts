@@ -1,27 +1,26 @@
 import { NextResponse } from 'next/server';
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const device = searchParams.get('device') || 'Canon DSLR EOS 600D';
-  const bridgeIp = searchParams.get('ip') || '127.0.0.1';
-  const safeIp = bridgeIp.startsWith('localhost') ? bridgeIp.replace('localhost', '127.0.0.1') : bridgeIp;
-  const finalIp = safeIp.includes(':') ? safeIp : `${safeIp}:5005`;
-  const BRIDGE_URL = `http://${finalIp}`;
-  
-  // Start the stream on the bridge
+export const dynamic = 'force-dynamic';
+
+const BRIDGE_URL = 'http://127.0.0.1:5005';
+
+export async function GET() {
   try {
-    await fetch( `${BRIDGE_URL}/ccd/stream/start`, {
+    const device = 'Canon DSLR EOS 600D';
+
+    // Start the stream on the bridge
+    await fetch(`${BRIDGE_URL}/ccd/stream/start`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' }
     });
+
+    return NextResponse.json({
+      success: true,
+      device,
+      streamUrl: `${BRIDGE_URL}/ccd/stream`
+    });
   } catch (error) {
     console.error('Failed to start stream:', error);
+    return NextResponse.json({ success: false, error: String(error) }, { status: 500 });
   }
-  
-  // Return the direct bridge stream URL for the frontend to use
-  return NextResponse.json({
-    success: true,
-    device,
-    streamUrl: `${BRIDGE_URL}/ccd/stream`
-  });
 }
