@@ -1981,3 +1981,5 @@ INFO:     127.0.0.1:51669 - "GET /health/full HTTP/1.1" 200 OK
 INFO:     127.0.0.1:59941 - "GET /logs/stream HTTP/1.1" 200 OK
 INFO:     127.0.0.1:62958 - "GET /logs/stream HTTP/1.1" 200 OK
 INFO:     127.0.0.1:59880 - "GET /logs/stream HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59808 - "HEAD /health/full HTTP/1.1" 405 Method Not Allowed
+INFO:     127.0.0.1:60984 - "GET /health/full HTTP/1.1" 200 OK
