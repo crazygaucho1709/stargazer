@@ -12753,3 +12753,20 @@ INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captur
 INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260507_101033..stream_jpg
 INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260507_101034..stream_jpg
 INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260507_101034..stream_jpg
+INFO:paramiko.transport:Connected (version 2.0, client OpenSSH_10.0p2)
+INFO:paramiko.transport:Authentication (password) successful!
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [25692]
+WARNING:stargazer-backend:External HDD not found, falling back to local storage
+INFO:stargazer-backend:Connected to INDI at 192.168.178.142:7624
+INFO:     Started server process [26617]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5005 (Press CTRL+C to quit)
+INFO:stargazer-backend:INDI listener thread started
+INFO:stargazer-backend:✅ Mount connected: Celestron GPS
+INFO:stargazer-backend:✅ CCD connected: Canon DSLR EOS 600D
+/Users/matt/dev/project/web/stargazer/server/main.py:518: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  now_utc = datetime.utcnow()
