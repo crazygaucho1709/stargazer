@@ -11,9 +11,16 @@ jobs:
     timeout-minutes: 15
 
     env:
-      DEPLOY_PATH: /Users/matt/dev/project/web/stargazer
+      DEPLOY_PATH: /Users/matthieudelamourd/dev/project/web/stargazer
 
     steps:
+      - name: 🔍 Debug Environment
+        run: |
+          echo "Current User: $(whoami)"
+          echo "Home: $HOME"
+          echo "PWD: $(pwd)"
+          ls -ld /Users/*
+
       - name: 📥 Pull latest code
         run: |
           cd ${{ env.DEPLOY_PATH }}
