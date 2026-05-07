@@ -1,10 +1,7 @@
 // src/app/layout.tsx
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import { Provider } from "@/components/Provider";
 import "./globals.css";
-
-const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
     title: "Stargazer | Observatory Dashboard",
@@ -19,7 +16,6 @@ export default function RootLayout({
     return (
         <html lang="fr" suppressHydrationWarning style={{ height: "100%", margin: 0, padding: 0 }}>
             <body
-                className={inter.className}
                 suppressHydrationWarning
                 style={{
                     height: "100%",
@@ -27,7 +23,8 @@ export default function RootLayout({
                     margin: 0,
                     padding: 0,
                     backgroundColor: "#000000",
-                    position: "relative"
+                    position: "relative",
+                    fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif"
                 }}
             >
                 <Provider>
