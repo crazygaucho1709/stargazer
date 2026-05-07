@@ -25,7 +25,7 @@ from starlette.responses import StreamingResponse
 import collections
 
 # Configuration
-INDI_HOST = os.getenv("INDI_HOST", "192.168.178.142")
+INDI_HOST = os.getenv("ASTROBERRY_HOST", os.getenv("INDI_HOST", "192.168.178.142"))
 INDI_PORT = int(os.getenv("INDI_PORT", "7624"))
 STORAGE_PATH = os.getenv("STORAGE_PATH", "/Volumes/Data2/captures")
 THUMBNAIL_PATH = os.path.join(STORAGE_PATH, "thumbnails")
@@ -347,6 +347,20 @@ async def health():
         "status": "ok", 
         "indi_connected": indi.connected,
         "mount_connected": indi.mount_connected
+    }
+
+@app.get("/debug/indi")
+async def debug_indi():
+    return {
+        "connected": indi.connected,
+        "mount_connected": indi.mount_connected,
+        "device_mount": indi.device_mount,
+        "device_ccd": indi.device_ccd,
+        "ccd_connected": indi.ccd_connected,
+        "mount_parked": indi.mount_parked,
+        "mount_tracking": indi.mount_tracking,
+        "host": indi.sock.getpeername() if indi.sock and indi.connected else None,
+        "candidates": [os.getenv("ASTROBERRY_HOST"), os.getenv("INDI_HOST"), "localhost", "127.0.0.1", "192.168.178.142"]
     }
 
 @app.post("/mount/jog")
