@@ -187,11 +187,7 @@ class INDIClient:
             logger.error(f"Connection failed: cannot resolve INDI host (tried {INDI_HOST})")
             return
 
-        # Pre-check: verify ICMP reachability to avoid "No route to host" socket hangs
-        if not raspi.ping():
-            logger.warning(f"Connection skipped: host {host} is not reachable via ping")
-            return
-
+        # Attempt TCP connection
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)

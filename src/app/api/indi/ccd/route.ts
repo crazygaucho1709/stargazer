@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
-const BRIDGE_URL = 'http://localhost:5005';
+const BRIDGE_URL = 'http://127.0.0.1:5005';
 
 export async function GET(request: Request) {
   try {

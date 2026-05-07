@@ -9,7 +9,7 @@ export async function GET(request: Request) {
     // Proxy for CCD image or other GET endpoints
     if (endpoint === 'ccd/latest') {
         try {
-            const res = await fetch('http://localhost:5005/ccd/latest', { cache: 'no-store' });
+            const res = await fetch('http://127.0.0.1:5005/ccd/latest', { cache: 'no-store' });
             if (!res.ok) return new Response(null, { status: res.status });
             const blob = await res.blob();
             return new Response(blob, {
@@ -24,7 +24,7 @@ export async function GET(request: Request) {
         console.log(`[PROXY] GET /${endpoint}`);
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
-        const res = await fetch(`http://localhost:5005/${endpoint}`, { 
+        const res = await fetch(`http://127.0.0.1:5005/${endpoint}`, { 
             cache: 'no-store',
             signal: controller.signal 
         });
@@ -64,7 +64,7 @@ export async function POST(request: Request) {
             if (text) body = JSON.parse(text);
         } catch (e) {}
 
-        const res = await fetch(`http://localhost:5005/${endpoint}`, {
+        const res = await fetch(`http://127.0.0.1:5005/${endpoint}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body)
