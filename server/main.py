@@ -213,6 +213,7 @@ class INDIClient:
 
     def send(self, xml):
         with self.socket_lock:
+            
             if self.sock and self.connected:
                 try:
                     self.sock.sendall((xml + "\r\n").encode())
