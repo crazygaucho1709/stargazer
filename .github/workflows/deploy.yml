@@ -11,7 +11,7 @@ jobs:
     timeout-minutes: 15
 
     env:
-      DEPLOY_PATH: /Users/matthieudelamourd/dev/project/web/stargazer
+      DEPLOY_PATH: /Users/matt/dev/project/web/stargazer
 
     steps:
       - name: 📥 Pull latest code
