@@ -1,0 +1,24 @@
+WARNING:stargazer-backend:External HDD not found, falling back to local storage
+INFO:stargazer-backend:Connected to INDI at 192.168.178.142:7624
+INFO:     Started server process [69650]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5005 (Press CTRL+C to quit)
+INFO:stargazer-backend:INDI listener thread started
+INFO:stargazer-backend:INDI CONNECTION update: <defSwitchVector device="Celestron GPS" name="CONNECTION" label="Connection" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-07T01:13:16">
+    <defSwitch n
+INFO:stargazer-backend:✅ Mount connected
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [69650]
+WARNING:stargazer-backend:External HDD not found, falling back to local storage
+INFO:stargazer-backend:Connected to INDI at 192.168.178.142:7624
+INFO:     Started server process [69742]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5005 (Press CTRL+C to quit)
+INFO:stargazer-backend:INDI listener thread started
+INFO:stargazer-backend:INDI CONNECTION update: <defSwitchVector device="Canon DSLR EOS 600D" name="CONNECTION" label="Connection" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-07T01:13:57">
+    <defSw
+INFO:stargazer-backend:✅ Mount connected
