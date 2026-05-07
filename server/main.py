@@ -30,7 +30,7 @@ INDI_PORT = 7624
 STORAGE_PATH = os.getenv("STORAGE_PATH", "/Volumes/Data2/captures")
 THUMBNAIL_PATH = os.path.join(STORAGE_PATH, "thumbnails")
 
-# Logger setup
+# Logger setup part
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("stargazer-backend")
 
