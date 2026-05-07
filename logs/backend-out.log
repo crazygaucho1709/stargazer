@@ -2418,3 +2418,4 @@ INFO:     127.0.0.1:60059 - "GET /ccd/latest HTTP/1.1" 200 OK
 INFO:     127.0.0.1:54763 - "GET /ccd/latest HTTP/1.1" 200 OK
 INFO:     127.0.0.1:54763 - "GET /health HTTP/1.1" 200 OK
 INFO:     127.0.0.1:54763 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62887 - "GET /health/full HTTP/1.1" 200 OK
