@@ -6,7 +6,6 @@ psutil
 rawpy
 imageio
 astropy
-pyindi-client
 numpy
 opencv-python
 pillow
