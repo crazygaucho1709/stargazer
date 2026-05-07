@@ -199,3 +199,271 @@ ERROR:stargazer-backend:Listener error: [Errno 54] Connection reset by peer
 WARNING:stargazer-backend:INDI listener stopped
 INFO:stargazer-backend:Connected to INDI at 192.168.178.142:7624
 INFO:stargazer-backend:INDI listener thread started
+WARNING:stargazer-backend:INDI socket closed by server
+WARNING:stargazer-backend:INDI listener stopped
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: [Errno 64] Host is down
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: [Errno 60] Operation timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: [Errno 60] Operation timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: [Errno 60] Operation timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+ERROR:stargazer-backend:Connection failed: timed out
+INFO:stargazer-backend:Connected to INDI at 192.168.178.142:7624
+INFO:stargazer-backend:INDI listener thread started
+WARNING:stargazer-backend:INDI socket closed by server
+WARNING:stargazer-backend:INDI listener stopped
+INFO:stargazer-backend:Connected to INDI at 192.168.178.142:7624
+INFO:stargazer-backend:INDI listener thread started
+INFO:stargazer-backend:🚫 CCD disconnected: Canon DSLR EOS 600D
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260507_082344..stream
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260507_082347..stream
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260507_082350..stream
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260507_082353..stream
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260507_082355..stream
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260507_082358..stream
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260507_082359..stream
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260507_082402..stream
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260507_082405..stream
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260507_082408..stream
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260507_082410..stream
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260507_082411..stream
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260507_082413..stream
+WARNING:stargazer-backend:INDI socket closed by server
+WARNING:stargazer-backend:INDI listener stopped
+ERROR:stargazer-backend:Connection failed: [Errno 61] Connection refused
+ERROR:stargazer-backend:Connection failed: [Errno 61] Connection refused
+ERROR:stargazer-backend:Connection failed: [Errno 61] Connection refused
+ERROR:stargazer-backend:Connection failed: [Errno 61] Connection refused
+ERROR:stargazer-backend:Connection failed: [Errno 61] Connection refused
+ERROR:stargazer-backend:Connection failed: [Errno 61] Connection refused
+ERROR:stargazer-backend:Connection failed: [Errno 61] Connection refused
+ERROR:stargazer-backend:Connection failed: [Errno 61] Connection refused
+INFO:stargazer-backend:Connected to INDI at 192.168.178.142:7624
+INFO:stargazer-backend:INDI listener thread started
+INFO:paramiko.transport:Connected (version 2.0, client OpenSSH_10.0p2)
+INFO:paramiko.transport:Authentication (password) successful!
+INFO:paramiko.transport:Connected (version 2.0, client OpenSSH_10.0p2)
+INFO:paramiko.transport:Authentication (password) successful!
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [94166]
+WARNING:stargazer-backend:External HDD not found, falling back to local storage
+INFO:     Started server process [17832]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5005 (Press CTRL+C to quit)
+INFO:stargazer-backend:Connected to INDI at 192.168.178.142:7624
+INFO:stargazer-backend:INDI listener thread started
+INFO:paramiko.transport:Connected (version 2.0, client OpenSSH_10.0p2)
+INFO:paramiko.transport:Authentication (password) successful!
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [17832]
+WARNING:stargazer-backend:External HDD not found, falling back to local storage
+INFO:     Started server process [17950]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5005 (Press CTRL+C to quit)
+INFO:stargazer-backend:Connected to INDI at 192.168.178.142:7624
+INFO:stargazer-backend:INDI listener thread started
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [17950]
+WARNING:stargazer-backend:External HDD not found, falling back to local storage
+INFO:     Started server process [18018]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5005 (Press CTRL+C to quit)
+INFO:stargazer-backend:Connected to INDI at 192.168.178.142:7624
+INFO:stargazer-backend:INDI listener thread started
+INFO:stargazer-backend:DEBUG: Received CONNECTION chunk: <defSwitchVector device="Canon DSLR EOS 600D" name="CONNECTION" label="Connection" group="Main Control" state="Ok" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-07T18:36:12">
+    <defSwitch name="CONNECT" label="Connect">
+On
+    </defSwitch>
+    <defSwitch name="DISCONNECT" label="Disconnect">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defTextVector device="Canon DSLR EOS 600D" name="DRIVER_INFO" label="Driver Info" group="General Info" state="Idle" perm="ro" timeout="60" timestamp="2...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [18018]
+WARNING:stargazer-backend:External HDD not found, falling back to local storage
+INFO:     Started server process [18079]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5005 (Press CTRL+C to quit)
+INFO:stargazer-backend:Connected to INDI at 192.168.178.142:7624
+INFO:stargazer-backend:INDI listener thread started
+INFO:stargazer-backend:DEBUG: Received CONNECTION chunk: <defSwitchVector device="Celestron GPS" name="CONNECTION" label="Connection" group="Main Control" state="Ok" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-07T18:36:51">
+    <defSwitch name="CONNECT" label="Connect">
+On
+    </defSwitch>
+    <defSwitch name="DISCONNECT" label="Disconnect">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="CONNECTION" label="Connection" group="Main Control" state="Ok" perm="rw" rule="OneOfMany" timeout="60" tim...
+INFO:stargazer-backend:✅ Mount connected: Celestron GPS
+INFO:stargazer-backend:✅ CCD connected: Canon DSLR EOS 600D
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+INFO:paramiko.transport:Connected (version 2.0, client OpenSSH_10.0p2)
+INFO:paramiko.transport:Authentication (password) successful!
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+INFO:paramiko.transport:Connected (version 2.0, client OpenSSH_10.0p2)
+INFO:paramiko.transport:Authentication (password) successful!
+INFO:paramiko.transport:Connected (version 2.0, client OpenSSH_10.0p2)
+INFO:paramiko.transport:Authentication (password) successful!
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:Restarting KStars + Ekos (profile: Nexstar4SE)...
+WARNING:stargazer-backend:KStars binary not found via Spotlight, falling back to open -a
+WARNING:stargazer-backend:Ekos AppleScript trigger failed: 29:48: execution error: Il est impossible d’obtenir application "KStars". (-1728)
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+INFO:paramiko.transport:Connected (version 2.0, client OpenSSH_10.0p2)
+INFO:paramiko.transport:Authentication (password) successful!
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+INFO:paramiko.transport:Connected (version 2.0, client OpenSSH_10.0p2)
+INFO:paramiko.transport:Authentication (password) successful!
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+INFO:paramiko.transport:Connected (version 2.0, client OpenSSH_10.0p2)
+INFO:paramiko.transport:Authentication (password) successful!
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+INFO:paramiko.transport:Connected (version 2.0, client OpenSSH_10.0p2)
+INFO:paramiko.transport:Authentication (password) successful!
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+INFO:paramiko.transport:Connected (version 2.0, client OpenSSH_10.0p2)
+INFO:paramiko.transport:Authentication (password) successful!
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...
+INFO:paramiko.transport:Connected (version 2.0, client OpenSSH_10.0p2)
+INFO:paramiko.transport:Authentication (password) successful!
+WARNING:stargazer-backend:INDI connection heartbeat timeout (45s), checking reachability...

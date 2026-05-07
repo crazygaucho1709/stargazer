@@ -136,6 +136,10 @@ class INDIClient:
                         time.sleep(retry_delay)
                         retry_delay = min(retry_delay * 2, max_delay)
                 else:
+                    # Active heartbeat: if no message for 10s, send getProperties to keep connection alive
+                    if time.time() - self.last_received > 10:
+                        logger.debug("Sending active heartbeat (getProperties)")
+                        self.send('<getProperties version="1.7"/>')
                     time.sleep(5)
             except Exception as e:
                 logger.error(f"INDI Loop error: {e}")
@@ -284,25 +288,55 @@ class INDIClient:
                 except Exception:
                     chunk_str = ""
 
-                # Track connection states for configured devices
+                # Robust property parsing for connection state tracking
                 if 'CONNECTION' in chunk_str:
-                    # Mount connection
-                    if self.device_mount in chunk_str:
-                        if 'name="CONNECT" state="On"' in chunk_str or '>On<' in chunk_str:
-                            self.mount_connected = True
-                            logger.info(f"✅ Mount connected: {self.device_mount}")
-                        elif 'name="DISCONNECT" state="On"' in chunk_str or 'state="Alert"' in chunk_str:
-                            self.mount_connected = False
-                            logger.info(f"❌ Mount disconnected: {self.device_mount}")
+                    # 1. Mount connection check
+                    mount_pattern = rf'<(?:set|def|new)SwitchVector[^>]*device="{re.escape(self.device_mount)}"[^>]*name="CONNECTION"[^>]*state="([^"]+)"'
+                    mount_match = re.search(mount_pattern, chunk_str)
+                    if mount_match:
+                        state = mount_match.group(1)
+                        context = chunk_str[mount_match.start():mount_match.start()+1000]
+                        # Check for CONNECT switch state
+                        is_connect_on = re.search(r'<(?:one|def)Switch[^>]*name="CONNECT"[^>]*>\s*On\s*</', context) is not None
+                        is_disconnect_on = re.search(r'<(?:one|def)Switch[^>]*name="DISCONNECT"[^>]*>\s*On\s*</', context) is not None
+                        
+                        if is_connect_on:
+                            if state != "Alert":
+                                if not self.mount_connected:
+                                    self.mount_connected = True
+                                    logger.info(f"✅ Mount connected: {self.device_mount}")
+                            else:
+                                if self.mount_connected:
+                                    self.mount_connected = False
+                                    logger.warning(f"⚠️ Mount connection alert/failure: {self.device_mount}")
+                        elif is_disconnect_on:
+                            if self.mount_connected:
+                                self.mount_connected = False
+                                logger.info(f"❌ Mount disconnected: {self.device_mount}")
                     
-                    # CCD connection
-                    if self.device_ccd in chunk_str:
-                        if 'name="CONNECT" state="On"' in chunk_str or '>On<' in chunk_str:
-                            self.ccd_connected = True
-                            logger.info(f"📸 CCD connected: {self.device_ccd}")
-                        elif 'name="DISCONNECT" state="On"' in chunk_str or 'state="Alert"' in chunk_str:
-                            self.ccd_connected = False
-                            logger.info(f"🚫 CCD disconnected: {self.device_ccd}")
+                    # 2. CCD connection check
+                    ccd_pattern = rf'<(?:set|def|new)SwitchVector[^>]*device="{re.escape(self.device_ccd)}"[^>]*name="CONNECTION"[^>]*state="([^"]+)"'
+                    ccd_match = re.search(ccd_pattern, chunk_str)
+                    if ccd_match:
+                        state = ccd_match.group(1)
+                        context = chunk_str[ccd_match.start():ccd_match.start()+1000]
+                        # Check for CONNECT switch state
+                        is_connect_on = re.search(r'<(?:one|def)Switch[^>]*name="CONNECT"[^>]*>\s*On\s*</', context) is not None
+                        is_disconnect_on = re.search(r'<(?:one|def)Switch[^>]*name="DISCONNECT"[^>]*>\s*On\s*</', context) is not None
+                        
+                        if is_connect_on:
+                            if state != "Alert":
+                                if not self.ccd_connected:
+                                    self.ccd_connected = True
+                                    logger.info(f"✅ CCD connected: {self.device_ccd}")
+                            else:
+                                if self.ccd_connected:
+                                    self.ccd_connected = False
+                                    logger.warning(f"⚠️ CCD connection alert/failure: {self.device_ccd}")
+                        elif is_disconnect_on:
+                            if self.ccd_connected:
+                                self.ccd_connected = False
+                                logger.info(f"❌ CCD disconnected: {self.device_ccd}")
 
                 # Check for BLOBs (images)
                 if b"<oneBLOB" in buffer:
@@ -570,22 +604,28 @@ def restart_kstars():
     # 2. Locate KStars via Spotlight (most reliable on macOS)
     kstars_bin = None
     spotlight = subprocess.run(
-        ["mdfind", "kMDItemCFBundleIdentifier == 'org.kde.kstars'"],
+        ["mdfind", "kMDItemDisplayName == 'KStars' || kMDItemCFBundleIdentifier == 'org.kde.kstars'"],
         capture_output=True, text=True
     )
     for app_path in spotlight.stdout.strip().splitlines():
-        binary = os.path.join(app_path, "Contents/MacOS/KStars")
-        if os.path.exists(binary):
-            kstars_bin = binary
-            break
+        if app_path.endswith(".app"):
+            binary = os.path.join(app_path, "Contents/MacOS/KStars")
+            if os.path.exists(binary):
+                kstars_bin = binary
+                break
 
-    # 3. Fallback list
+    # 3. Fallback list (expanded for case-sensitivity and common locations)
     if not kstars_bin:
         for candidate in [
             "/Applications/KStars.app/Contents/MacOS/KStars",
+            "/Applications/KStars.app/Contents/MacOS/kstars",
+            "/Applications/kstars.app/Contents/MacOS/kstars",
             os.path.expanduser("~/Applications/KStars.app/Contents/MacOS/KStars"),
-            "/usr/local/bin/kstars",
+            os.path.expanduser("~/Applications/KStars.app/Contents/MacOS/kstars"),
             "/opt/homebrew/bin/kstars",
+            "/usr/local/bin/kstars",
+            "/opt/kstars/bin/kstars",
+            "/Applications/Astronomy/KStars.app/Contents/MacOS/KStars",
         ]:
             if os.path.exists(candidate):
                 kstars_bin = candidate
@@ -757,6 +797,7 @@ class MountActionRequest(BaseModel):
 class TrackRequest(BaseModel):
     enabled: bool
 
+@app.get("/api/indi/health-full")
 @app.get("/health/full")
 async def health_full():
     """Complete infrastructure health report."""

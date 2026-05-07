@@ -9,7 +9,7 @@ export async function GET(request: Request) {
     // Proxy for CCD image or other GET endpoints
     if (endpoint === 'ccd/latest') {
         try {
-            const res = await fetch('http://192.168.178.91:5005/ccd/latest', { cache: 'no-store' });
+            const res = await fetch('http://localhost:5005/ccd/latest', { cache: 'no-store' });
             if (!res.ok) return new Response(null, { status: res.status });
             const blob = await res.blob();
             return new Response(blob, {
@@ -21,7 +21,7 @@ export async function GET(request: Request) {
     }
 
     try {
-        const res = await fetch(`http://192.168.178.91:5005/${endpoint}`, { cache: 'no-store' });
+        const res = await fetch(`http://localhost:5005/${endpoint}`, { cache: 'no-store' });
         const resText = await res.text();
         let data;
         try {
@@ -57,7 +57,7 @@ export async function POST(request: Request) {
             if (text) body = JSON.parse(text);
         } catch (e) {}
 
-        const res = await fetch(`http://192.168.178.91:5005/${endpoint}`, {
+        const res = await fetch(`http://localhost:5005/${endpoint}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body)

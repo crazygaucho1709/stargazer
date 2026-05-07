@@ -1985,3 +1985,20 @@ INFO:     127.0.0.1:59808 - "HEAD /health/full HTTP/1.1" 405 Method Not Allowed
 INFO:     127.0.0.1:60984 - "GET /health/full HTTP/1.1" 200 OK
 INFO:     127.0.0.1:53290 - "GET /health HTTP/1.1" 200 OK
 INFO:     127.0.0.1:53710 - "GET /mount/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49404 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50281 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57646 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65073 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65073 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:61154 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61792 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61987 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65287 - "POST /restart_kstars HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49384 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63317 - "GET /api/indi/health-full HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:64989 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62635 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62637 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58589 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61140 - "GET /health/full HTTP/1.1" 200 OK

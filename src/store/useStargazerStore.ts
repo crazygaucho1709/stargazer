@@ -95,7 +95,7 @@ export const useStargazerStore = create<StargazerState>()(
             liveViewMode: "NASA",
             config: {
                 aiKey: "",
-                astroberryUrl: "http://192.168.178.91:5005",
+                astroberryUrl: "http://localhost:5005",
                 driverInstance: "Celestron GPS",
                 baudRate: "9600",
                 wifiSsid: "Stargazer_Net",
