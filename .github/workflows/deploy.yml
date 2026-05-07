@@ -32,7 +32,8 @@ jobs:
       - name: 🐍 Install Python dependencies
         run: |
           cd /Users/matthieudelamourd/dev/project/web/stargazer
-          server/venv/bin/pip install -r server/requirements.txt --quiet 2>/dev/null || true
+          server/venv/bin/python3 -m pip install --upgrade pip
+          server/venv/bin/pip install -r server/requirements.txt
           echo "✅ Python dependencies OK"
 
       - name: ♻️ Restart services
