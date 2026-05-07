@@ -22,7 +22,13 @@ export async function GET(request: Request) {
 
     try {
         const res = await fetch(`http://127.0.0.1:5005/${endpoint}`, { cache: 'no-store' });
-        const data = await res.json();
+        const resText = await res.text();
+        let data;
+        try {
+            data = JSON.parse(resText);
+        } catch (e) {
+            data = { status: res.ok ? "ok" : "error", message: resText };
+        }
         
         // Return structured status for the ping logic
         return NextResponse.json([{
@@ -45,20 +51,29 @@ export async function POST(request: Request) {
     const endpoint = searchParams.get('endpoint') || 'command';
     
     try {
-        const body = await request.json();
+        let body = {};
+        try {
+            const text = await request.text();
+            if (text) body = JSON.parse(text);
+        } catch (e) {}
+
         const res = await fetch(`http://127.0.0.1:5005/${endpoint}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body)
         });
         
-        if (!res.ok) {
-            const errorText = await res.text();
-            return NextResponse.json({ error: `Backend Error: ${res.status} ${errorText}` }, { status: res.status });
+        const resText = await res.text();
+        try {
+            const data = JSON.parse(resText);
+            return NextResponse.json(data, { status: res.status });
+        } catch (e) {
+            return NextResponse.json({ 
+                success: res.ok, 
+                message: resText || (res.ok ? 'Success' : 'Backend returned invalid JSON'),
+                status: res.status 
+            }, { status: res.status });
         }
-        
-        const data = await res.json();
-        return NextResponse.json(data);
     } catch (error: any) {
         console.error(`Proxy POST error [${endpoint}]:`, error);
         return NextResponse.json({ error: error.message || 'Internal proxy error' }, { status: 500 });

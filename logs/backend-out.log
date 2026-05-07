@@ -1978,3 +1978,6 @@ INFO:     127.0.0.1:51089 - "GET /health HTTP/1.1" 200 OK
 INFO:     127.0.0.1:49156 - "GET /ccd/latest?t=1778125962562 HTTP/1.1" 200 OK
 INFO:     127.0.0.1:49156 - "GET /ccd/latest?t=1778125965567 HTTP/1.1" 200 OK
 INFO:     127.0.0.1:51669 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59941 - "GET /logs/stream HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62958 - "GET /logs/stream HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59880 - "GET /logs/stream HTTP/1.1" 200 OK

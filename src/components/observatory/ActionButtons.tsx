@@ -12,17 +12,25 @@ import React from "react";
 export const ActionButtons = () => {
     const [loadingAction, setLoadingAction] = useState<string | null>(null);
 
-    const handleAction = async (endpoint: string, method: string = 'POST') => {
+    const handleAction = async (endpoint: string, method: string = 'POST', body: any = {}) => {
         setLoadingAction(endpoint);
         try {
             const res = await fetch(endpoint, { 
                 method,
-                headers: { 'Content-Type': 'application/json' }
+                headers: { 'Content-Type': 'application/json' },
+                body: method === 'POST' ? JSON.stringify(body) : undefined
             });
-            const data = await res.json();
+            
+            const text = await res.text();
+            let data;
+            try {
+                data = JSON.parse(text);
+            } catch (e) {
+                data = { success: res.ok, message: text || (res.ok ? "Success" : "Invalid response from server") };
+            }
             
             if (data.success || res.ok) {
-                alert(data.message || "Action successful");
+                alert(data.message || data.response?.message || "Action successful");
             } else {
                 throw new Error(data.message || data.error || "Action failed");
             }
@@ -94,13 +102,13 @@ export const ActionButtons = () => {
                         <ActionBtn 
                             label="RESTART KSTARS+EKOS" 
                             icon={RefreshCw} 
-                            onClick={() => handleAction('/api/indi/reconnect', 'POST')}
+                            onClick={() => handleAction('/api/indi/reconnect', 'POST', { action: 'reconnect' })}
                             isLoading={loadingAction === '/api/indi/reconnect'}
                         />
                         <ActionBtn 
                             label="LAUNCH EKOS ONLY" 
                             icon={Rocket} 
-                            onClick={() => handleAction('/api/indi/launch_ekos')}
+                            onClick={() => handleAction('/api/indi/launch_ekos', 'POST')}
                             isLoading={loadingAction === '/api/indi/launch_ekos'}
                         />
                     </HStack>
@@ -108,7 +116,7 @@ export const ActionButtons = () => {
                         <ActionBtn 
                             label="RESTART RPI INDI" 
                             icon={Terminal} 
-                            onClick={() => handleAction('/api/astroberry', 'POST')}
+                            onClick={() => handleAction('/api/astroberry', 'POST', { action: 'restart-indi' })}
                             isLoading={loadingAction === '/api/astroberry'}
                         />
                         <ActionBtn 
@@ -117,7 +125,7 @@ export const ActionButtons = () => {
                             colorScheme="red"
                             onClick={() => {
                                 if (confirm("Reboot Astroberry? The observatory will be offline for ~60s.")) {
-                                    handleAction('/api/astroberry?action=reboot');
+                                    handleAction('/api/astroberry', 'POST', { action: 'reboot', confirm: 'confirm' });
                                 }
                             }}
                         />
