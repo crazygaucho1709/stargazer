@@ -25,8 +25,8 @@ from starlette.responses import StreamingResponse
 import collections
 
 # Configuration
-INDI_HOST = "192.168.178.142"
-INDI_PORT = 7624
+INDI_HOST = os.getenv("INDI_HOST", "192.168.178.142")
+INDI_PORT = int(os.getenv("INDI_PORT", "7624"))
 STORAGE_PATH = os.getenv("STORAGE_PATH", "/Volumes/Data2/captures")
 THUMBNAIL_PATH = os.path.join(STORAGE_PATH, "thumbnails")
 
@@ -158,7 +158,7 @@ class INDIClient:
 
     def _resolve_host(self):
         """Try primary IP, fallback to mDNS hostname."""
-        candidates = [INDI_HOST, "astroberry.local", "astroberry"]
+        candidates = [INDI_HOST, "localhost", "127.0.0.1", "astroberry.local", "astroberry"]
         for host in candidates:
             try:
                 socket.getaddrinfo(host, INDI_PORT, socket.AF_INET, socket.SOCK_STREAM)
