@@ -97,6 +97,11 @@ jobs:
           echo "--- Frontend Out Log ---"
           [ -f logs/frontend-out.log ] && tail -n 50 logs/frontend-out.log || echo "No out log found"
           
+          echo "--- Backend Error Log ---"
+          [ -f logs/backend-error.log ] && tail -n 50 logs/backend-error.log || echo "No error log found"
+          echo "--- Backend Out Log ---"
+          [ -f logs/backend-out.log ] && tail -n 50 logs/backend-out.log || echo "No out log found"
+          
           echo "✅ PM2 services updated and restarted"
 
       - name: 🏥 Health check
