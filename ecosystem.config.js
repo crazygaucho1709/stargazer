@@ -17,8 +17,9 @@ module.exports = {
     },
     {
       name: 'stargazer-frontend',
-      script: '/Users/matt/.nvm/versions/node/v24.14.0/bin/npm',
+      script: 'npm',
       args: 'start',
+      interpreter: 'none',
       cwd: './',
       error_file: 'logs/frontend-error.log',
       out_file: 'logs/frontend-out.log',

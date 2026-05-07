@@ -13,7 +13,7 @@ jobs:
     steps:
       - name: 📥 Pull latest code
         run: |
-          cd /Users/matt/dev/project/web/stargazer
+          cd /Users/matthieudelamourd/dev/project/web/stargazer
           # Auth via GITHUB_TOKEN pour éviter tout blocage interactif
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/crazygaucho1709/stargazer.git
           git fetch --all
@@ -22,19 +22,19 @@ jobs:
 
       - name: 📦 Install Node dependencies
         run: |
-          cd /Users/matt/dev/project/web/stargazer
+          cd /Users/matthieudelamourd/dev/project/web/stargazer
           npm ci --prefer-offline
           echo "✅ npm dependencies installed"
 
       - name: 🏗️ Build Next.js
         run: |
-          cd /Users/matt/dev/project/web/stargazer
+          cd /Users/matthieudelamourd/dev/project/web/stargazer
           npm run build
           echo "✅ Next.js build complete"
 
       - name: 🐍 Install Python dependencies
         run: |
-          cd /Users/matt/dev/project/web/stargazer
+          cd /Users/matthieudelamourd/dev/project/web/stargazer
           echo "Current directory: $(pwd)"
           
           # Si le dossier venv existe mais que le binaire python3 est absent, on purge
@@ -62,7 +62,7 @@ jobs:
 
       - name: ♻️ Restart services
         run: |
-          cd /Users/matt/dev/project/web/stargazer
+          cd /Users/matthieudelamourd/dev/project/web/stargazer
           # 'pm2 start' reloads the config file and updates existing processes
           pm2 start ecosystem.config.js --update-env
           pm2 save
