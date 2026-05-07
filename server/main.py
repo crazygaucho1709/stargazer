@@ -257,14 +257,10 @@ class INDIClient:
                 
                 # Check for heartbeat/stale connection (no data for 45s)
                 if time.time() - self.last_received > 45:
-                    logger.warning("INDI connection heartbeat timeout (45s), checking reachability...")
-                    if not raspi.ping():
-                        logger.error("Host unreachable during heartbeat check. Disconnecting.")
-                        break
-                    else:
-                        # Host is pingable but INDI is silent, maybe server is down?
-                        # We'll reset the timer once to avoid infinite loops if it's just idle
-                        self.last_received = time.time()
+                    logger.warning("INDI connection heartbeat timeout (45s), sending active heartbeat...")
+                    # Instead of pinging, we send getProperties to trigger a response from the INDI server
+                    self.send('<getProperties version="1.7"/>')
+                    self.last_received = time.time()  # Reset timer to give it a chance to respond
 
                 try:
                     data = self.sock.recv(65536)
@@ -770,8 +766,8 @@ async def ccd_stream_start(device: str = "Canon DSLR EOS 600D"):
     indi.send(f'<newSwitchVector device="{device}" name="CONNECTION"><oneSwitch name="CONNECT">On</oneSwitch></newSwitchVector>')
     # Give it a tiny bit of time to connect if it wasn't
     time.sleep(0.5)
-    # Enable live view (mirror up)
-    indi.send(f'<newSwitchVector device="{device}" name="viewfinder"><oneSwitch name="viewfinder1">On</oneSwitch></newSwitchVector>')
+    # Enable live view (mirror up) - viewfinder0 is "On" (Live View)
+    indi.send(f'<newSwitchVector device="{device}" name="viewfinder"><oneSwitch name="viewfinder0">On</oneSwitch></newSwitchVector>')
     time.sleep(1)
     # Set MJPEG encoder which is often required for live view stream on DSLR
     indi.send(f'<newSwitchVector device="{device}" name="CCD_STREAM_ENCODER"><oneSwitch name="MJPEG">On</oneSwitch></newSwitchVector>')
@@ -781,8 +777,10 @@ async def ccd_stream_start(device: str = "Canon DSLR EOS 600D"):
 
 @app.post("/ccd/stream/stop")
 async def ccd_stream_stop(device: str = "Canon DSLR EOS 600D"):
-    # Disable live view (mirror down)
-    indi.send(f'<newSwitchVector device="{device}" name="viewfinder"><oneSwitch name="viewfinder0">On</oneSwitch></newSwitchVector>')
+    # Turn off live stream first
+    indi.send(f'<newSwitchVector device="{device}" name="CCD_VIDEO_STREAM"><oneSwitch name="STREAM_OFF">On</oneSwitch></newSwitchVector>')
+    # Disable live view (mirror down) - viewfinder1 is "Off" (Viewfinder)
+    indi.send(f'<newSwitchVector device="{device}" name="viewfinder"><oneSwitch name="viewfinder1">On</oneSwitch></newSwitchVector>')
     return {"success": True}
 
 # ── NEW ENDPOINTS ────────────────────────────────────────────────────────────
@@ -828,9 +826,8 @@ async def health_full():
         p.name() == "KStars" for p in psutil.process_iter(['name'])
     )
 
-    # --- Astroberry (SSH, async) ---
-    pi_reachable = raspi.ping()
-    pi_status = raspi.get_status() if pi_reachable else {"reachable": False}
+    # --- Astroberry (SSH) ---
+    pi_status = raspi.get_status()
 
     return {
         "mac_mini": {
@@ -918,15 +915,11 @@ def mount_status():
 
 @app.get("/astroberry/status")
 async def astroberry_status():
-    if not raspi.ping():
-        return {"reachable": False, "error": "SSH port not reachable"}
     return raspi.get_status()
 
 
 @app.get("/astroberry/indi/logs")
 async def astroberry_indi_logs(lines: int = 50):
-    if not raspi.ping():
-        raise HTTPException(status_code=503, detail="Astroberry unreachable")
     logs = raspi.get_indi_logs(lines=lines)
     return {"logs": logs}
 

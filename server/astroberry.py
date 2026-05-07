@@ -81,33 +81,46 @@ def ping_ssh() -> bool:
 
 def get_status() -> Dict[str, Any]:
     """Return system status: CPU, temp, memory, uptime, indiserver state."""
-    try:
-        result = _run(
-            "echo CPU:$(top -bn1 | grep 'Cpu(s)' | awk '{print $2}' | cut -d. -f1); "
-            "echo TEMP:$(vcgencmd measure_temp 2>/dev/null | cut -d= -f2 || echo N/A); "
-            "echo MEM:$(free -m | awk 'NR==2{printf \"%s/%s\", $3, $2}'); "
-            "echo UPTIME:$(uptime -p 2>/dev/null || uptime); "
-            "echo INDI_PID:$(pgrep -x indiserver || echo 0); "
-            "echo INDI_DEVICES:$(ps aux | grep indiserver | grep -v grep | awk '{for(i=11;i<=NF;i++) printf $i\" \"; print \"\"}')"
-        )
-        data = {}
-        for line in result["stdout"].splitlines():
-            if ":" in line:
-                k, _, v = line.partition(":")
-                data[k.strip().lower()] = v.strip()
-        indi_pid = int(data.get("indi_pid", "0"))
+    # Attempt to fetch status via SSH
+    result = _run(
+        "echo CPU:$(top -bn1 | grep 'Cpu(s)' | awk '{print $2}' | cut -d. -f1); "
+        "echo TEMP:$(vcgencmd measure_temp 2>/dev/null | cut -d= -f2 || echo N/A); "
+        "echo MEM:$(free -m | awk 'NR==2{printf \"%s/%s\", $3, $2}'); "
+        "echo UPTIME:$(uptime -p 2>/dev/null || uptime); "
+        "echo INDI_PID:$(pgrep -x indiserver || echo 0); "
+        "echo INDI_DEVICES:$(ps aux | grep indiserver | grep -v grep | awk '{for(i=11;i<=NF;i++) printf $i\" \"; print \"\"}')"
+    )
+    
+    if not result["success"]:
+        # If SSH fails, try a simple socket check to see if it's at least alive
+        ssh_alive = ping_ssh()
+        ping_alive = ping()
+        logger.warning(f"Astroberry status fetch failed. SSH={ssh_alive}, Ping={ping_alive}")
         return {
-            "reachable": True,
-            "cpu_percent": data.get("cpu", "N/A"),
-            "temperature": data.get("temp", "N/A"),
-            "memory": data.get("mem", "N/A"),
-            "uptime": data.get("uptime", "N/A"),
-            "indi_running": indi_pid > 0,
-            "indi_pid": indi_pid,
-            "indi_devices": data.get("indi_devices", "").strip(),
+            "reachable": ssh_alive or ping_alive,
+            "ssh_reachable": ssh_alive,
+            "ping_reachable": ping_alive,
+            "error": result["stderr"] or "SSH connection failed"
         }
-    except Exception as e:
-        return {"reachable": False, "error": str(e)}
+
+    data = {}
+    for line in result["stdout"].splitlines():
+        if ":" in line:
+            k, _, v = line.partition(":")
+            data[k.strip().lower()] = v.strip()
+            
+    indi_pid = int(data.get("indi_pid", "0"))
+    return {
+        "reachable": True,
+        "ssh_reachable": True,
+        "cpu_percent": data.get("cpu", "N/A"),
+        "temperature": data.get("temp", "N/A"),
+        "memory": data.get("mem", "N/A"),
+        "uptime": data.get("uptime", "N/A"),
+        "indi_running": indi_pid > 0,
+        "indi_pid": indi_pid,
+        "indi_devices": data.get("indi_devices", "").strip(),
+    }
 
 
 def get_indi_logs(lines: int = 50) -> str:
