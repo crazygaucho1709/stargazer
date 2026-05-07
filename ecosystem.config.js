@@ -17,12 +17,15 @@ module.exports = {
     },
     {
       name: 'stargazer-frontend',
-      script: 'npm',
+      script: 'node_modules/next/dist/bin/next',
       args: 'start',
-      interpreter: 'none',
       cwd: './',
       error_file: 'logs/frontend-error.log',
       out_file: 'logs/frontend-out.log',
+      env: {
+        NODE_ENV: 'production',
+        PORT: 3000
+      },
       autorestart: true,
       watch: false,
       max_memory_restart: '1G'
