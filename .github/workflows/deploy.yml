@@ -13,9 +13,12 @@ jobs:
     steps:
       - name: 📥 Pull latest code
         run: |
-          git -C /Users/matthieudelamourd/dev/project/web/stargazer fetch --all
-          git -C /Users/matthieudelamourd/dev/project/web/stargazer reset --hard origin/main
-          echo "✅ Code updated to $(git -C /Users/matthieudelamourd/dev/project/web/stargazer rev-parse --short HEAD)"
+          cd /Users/matthieudelamourd/dev/project/web/stargazer
+          # Auth via GITHUB_TOKEN pour éviter tout blocage interactif
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/crazygaucho1709/stargazer.git
+          git fetch --all
+          git reset --hard origin/main
+          echo "✅ Code updated to $(git rev-parse --short HEAD)"
 
       - name: 📦 Install Node dependencies
         run: |
