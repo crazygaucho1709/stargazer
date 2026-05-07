@@ -35,15 +35,29 @@ jobs:
       - name: 🐍 Install Python dependencies
         run: |
           cd /Users/matthieudelamourd/dev/project/web/stargazer
-          # Ensure venv exists
+          echo "Current directory: $(pwd)"
+          
+          # Si le dossier venv existe mais que le binaire python3 est absent, on purge
+          if [ -d "server/venv" ] && [ ! -f "server/venv/bin/python3" ]; then
+            echo "⚠️ venv seems broken, removing it..."
+            rm -rf server/venv
+          fi
+
+          # Création si nécessaire
           if [ ! -d "server/venv" ]; then
+            echo "🚀 Creating new virtual environment..."
             python3 -m venv server/venv
           fi
+
+          echo "✅ venv directory check:"
+          ls -F server/venv/bin/python3 || echo "❌ python3 NOT FOUND in venv"
+
           # Install/Update
-          server/venv/bin/python3 -m pip install --upgrade pip
-          server/venv/bin/pip install --no-cache-dir -r server/requirements.txt
+          ./server/venv/bin/python3 -m pip install --upgrade pip
+          ./server/venv/bin/pip install --no-cache-dir -r server/requirements.txt
+          
           # Verification
-          server/venv/bin/python3 -c "import dotenv; print('✅ python-dotenv is verified')"
+          ./server/venv/bin/python3 -c "import dotenv; print('✅ python-dotenv is verified')"
           echo "✅ Python dependencies OK"
 
       - name: ♻️ Restart services
