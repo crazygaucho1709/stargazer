@@ -28,6 +28,8 @@ jobs:
           git fetch --all
           git reset --hard origin/main
           echo "✅ Code updated to $(git rev-parse --short HEAD)"
+          git log -1 --pretty=format:"%h - %s (%an)"
+          echo ""
 
       - name: 📦 Install Node dependencies
         run: |
@@ -46,7 +48,7 @@ jobs:
           # Verify static assets exist
           if [ -d ".next/static/chunks" ]; then
             echo "✅ Static chunks generated:"
-            ls .next/static/chunks | head -n 5
+            ls .next/static/chunks | head -n 10
           else
             echo "❌ Static chunks NOT FOUND"
             exit 1
@@ -69,11 +71,20 @@ jobs:
       - name: ♻️ Restart services
         run: |
           cd ${{ env.DEPLOY_PATH }}
-          # Robust restart: delete then start to avoid ghost processes/cached bundles
-          pm2 delete stargazer-frontend || true
-          pm2 delete stargazer-backend || true
+          # Aggressive cleanup to ensure no ghost processes
+          pm2 delete all || true
+          pkill -f "node" || true
+          pkill -f "next" || true
+          sleep 2
+          
+          # Start fresh
           pm2 start ecosystem.config.js --update-env
           pm2 save
+          
+          echo "✅ PM2 status after restart:"
+          pm2 list
+          echo "✅ PM2 details for frontend:"
+          pm2 show stargazer-frontend | grep -E "status|path|interpreter|args"
           echo "✅ PM2 services updated and restarted"
 
       - name: 🏥 Health check
