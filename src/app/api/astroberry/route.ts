@@ -43,7 +43,13 @@ export async function GET(request: Request) {
 // POST /api/astroberry  body: { action: 'restart-indi' | 'reboot', confirm?: string }
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    let body: any = {};
+    try {
+      const text = await request.text();
+      if (text) body = JSON.parse(text);
+    } catch (e) {
+      console.warn('Failed to parse request body as JSON');
+    }
     const { action, confirm = '' } = body;
     if (action === 'restart-indi') return proxy('/astroberry/indi/restart', 'POST');
     if (action === 'reboot') return proxy('/astroberry/reboot', 'POST', { confirm });

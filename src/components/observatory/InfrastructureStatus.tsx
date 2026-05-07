@@ -76,7 +76,15 @@ export const InfrastructureStatus = () => {
     const fetchData = async () => {
         try {
             const res = await fetch('/api/indi/health-full');
-            const json = await res.json();
+            const text = await res.text();
+            let json;
+            try {
+                json = JSON.parse(text);
+            } catch (e) {
+                console.error("Failed to parse health JSON:", text);
+                setError(true);
+                return;
+            }
             setData(json);
             setError(false);
         } catch (e) {
@@ -102,7 +110,7 @@ export const InfrastructureStatus = () => {
 
     const mac = data?.mac_mini || {};
     const astro = data?.astroberry || {};
-    const indi = data?.indi || {};
+    const indi = data?.indi_bridge || {};
     const mount = data?.mount || {};
 
     return (
@@ -112,41 +120,41 @@ export const InfrastructureStatus = () => {
                 icon={Cpu}
                 status={error ? 'error' : 'ok'}
                 metrics={[
-                    { label: "CPU", value: mac.cpu_usage || 0, unit: "%" },
+                    { label: "CPU", value: mac.cpu_percent || 0, unit: "%" },
                     { label: "RAM", value: mac.memory_used_gb || 0, unit: " GB" },
-                    { label: "Storage", value: mac.disk_usage || 0, unit: "%" }
+                    { label: "Storage", value: mac.disk_percent || 0, unit: "%" }
                 ]}
-                details={`Backend UP • ${mac.pm2_restarts || 0} restarts`}
+                details={`Backend UP • ${mac.pm2_apps?.[0]?.restarts || 0} restarts`}
             />
 
             <StatusCard 
                 title="Astroberry RPi"
                 icon={Activity}
-                status={astro.connected ? 'ok' : 'error'}
+                status={astro.reachable ? 'ok' : 'error'}
                 metrics={[
-                    { label: "Ping", value: astro.ping_ms || 0, unit: "ms" },
-                    { label: "CPU", value: astro.cpu_load || 0, unit: "%" },
-                    { label: "Temp", value: astro.temp_c || 0, unit: "°C" }
+                    { label: "Ping", value: astro.reachable ? (astro.ping_ms || 1) : 0, unit: "ms" },
+                    { label: "CPU", value: astro.cpu_percent || 0, unit: "%" },
+                    { label: "Temp", value: astro.temperature || 0, unit: "" }
                 ]}
-                details={astro.connected ? `SSH Connected • ${astro.uptime || 'N/A'}` : "Unreachable via SSH"}
+                details={astro.reachable ? `SSH Connected • ${astro.uptime || 'N/A'}` : "Unreachable via SSH"}
             />
 
             <StatusCard 
                 title="INDI Server"
                 icon={Terminal}
-                status={indi.running ? 'ok' : 'error'}
+                status={indi.connected ? 'ok' : 'error'}
                 metrics={[
-                    { label: "PID", value: indi.pid || "N/A" },
-                    { label: "Devices", value: (indi.devices || []).length },
-                    { label: "Uptime", value: indi.uptime || "N/A" }
+                    { label: "PID", value: astro.indi_pid || "N/A" },
+                    { label: "Devices", value: astro.indi_devices ? astro.indi_devices.split(' ').length : 0 },
+                    { label: "Uptime", value: astro.uptime || "N/A" }
                 ]}
-                details={indi.devices?.join(", ") || "No devices"}
+                details={astro.indi_devices || "No devices"}
             />
 
             <StatusCard 
                 title="NexStar 4SE"
                 icon={ShieldCheck}
-                status={mount.indi_connected && mount.mount_connected ? 'ok' : 'error'}
+                status={mount.connected ? 'ok' : 'error'}
                 metrics={[
                     { label: "RA", value: mount.ra || "00h00m00s" },
                     { label: "DEC", value: mount.dec || "+00°00'00\"" },
@@ -160,7 +168,7 @@ export const InfrastructureStatus = () => {
                 icon={HardDrive}
                 status={data?.camera?.connected ? 'ok' : 'warning'}
                 metrics={[
-                    { label: "Model", value: data?.camera?.name || "None" },
+                    { label: "Model", value: data?.camera?.device || "None" },
                     { label: "Battery", value: data?.camera?.battery || "N/A" },
                     { label: "Storage", value: data?.camera?.space || "N/A" }
                 ]}
@@ -173,7 +181,7 @@ export const InfrastructureStatus = () => {
                 status={data?.kstars?.running ? 'ok' : 'error'}
                 metrics={[
                     { label: "Status", value: data?.kstars?.running ? "RUNNING" : "STOPPED" },
-                    { label: "Profile", value: data?.kstars?.profile || "Nexstar4SE" },
+                    { label: "Profile", value: data?.kstars?.ekos_profile || "Nexstar4SE" },
                     { label: "PID", value: data?.kstars?.pid || "N/A" }
                 ]}
                 details={data?.kstars?.running ? "GUI Active on Mac Mini" : "Process not found"}

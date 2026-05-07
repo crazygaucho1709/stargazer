@@ -121,8 +121,8 @@ def restart_indi() -> Dict[str, Any]:
 
 
 def reboot(confirm_token: str) -> Dict[str, Any]:
-    """Reboot Astroberry. Requires confirmation token 'REBOOT_CONFIRMED'."""
-    if confirm_token != "REBOOT_CONFIRMED":
+    """Reboot Astroberry. Requires confirmation token."""
+    if confirm_token not in ["REBOOT_CONFIRMED", "confirm"]:
         return {"success": False, "error": "Invalid confirmation token"}
     logger.warning("Rebooting Astroberry!")
     result = _run("sudo reboot", timeout=5)

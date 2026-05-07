@@ -237,7 +237,6 @@ class INDIClient:
                 try:
                     data = self.sock.recv(65536)
                 except socket.timeout:
-                    # Normal timeout, continue loop
                     continue
                 
                 if not data:
@@ -245,44 +244,51 @@ class INDIClient:
                     break
                 buffer += data
                 
-                # Check for connection state updates
-                if b'CONNECTION' in data and b'Celestron GPS' in data:
-                    chunk_str = data.decode('utf-8', errors='ignore')
-                    logger.info(f"INDI CONNECTION update: {chunk_str[:200]}")
-                    
-                    # Parse connection state
-                    if ('name="CONNECT"' in chunk_str and '>On<' in chunk_str) or ('name="CONNECTION"' in chunk_str and 'state="Ok"' in chunk_str):
-                        if not self.mount_connected:
+                # Check for property updates (Switch/Number vectors)
+                chunk_str = data.decode('utf-8', errors='ignore')
+                
+                # Track connection states for configured devices
+                if 'CONNECTION' in chunk_str:
+                    # Mount connection
+                    if self.device_mount in chunk_str:
+                        if 'name="CONNECT" state="On"' in chunk_str or '>On<' in chunk_str:
                             self.mount_connected = True
-                            logger.info("✅ Mount connected")
-                    elif ('name="DISCONNECT"' in chunk_str and '>On<' in chunk_str) or ('name="CONNECTION"' in chunk_str and 'state="Alert"' in chunk_str):
-                        if self.mount_connected:
+                            logger.info(f"✅ Mount connected: {self.device_mount}")
+                        elif 'name="DISCONNECT" state="On"' in chunk_str or 'state="Alert"' in chunk_str:
                             self.mount_connected = False
-                            logger.info("❌ Mount disconnected")
+                            logger.info(f"❌ Mount disconnected: {self.device_mount}")
+                    
+                    # CCD connection
+                    if self.device_ccd in chunk_str:
+                        if 'name="CONNECT" state="On"' in chunk_str or '>On<' in chunk_str:
+                            self.ccd_connected = True
+                            logger.info(f"📸 CCD connected: {self.device_ccd}")
+                        elif 'name="DISCONNECT" state="On"' in chunk_str or 'state="Alert"' in chunk_str:
+                            self.ccd_connected = False
+                            logger.info(f"🚫 CCD disconnected: {self.device_ccd}")
 
                 # Check for BLOBs (images)
                 if b"<oneBLOB" in buffer:
-                    # Find complete BLOB
                     end_blob_idx = buffer.find(b"</oneBLOB>")
                     if end_blob_idx != -1:
                         self.process_blobs(buffer[:end_blob_idx + 10])
                         buffer = buffer[end_blob_idx + 10:]
-                    elif len(buffer) > 50_000_000:  # Max 50MB buffer
+                    elif len(buffer) > 50_000_000:
                         logger.warning("Buffer overflow, clearing")
                         buffer = b""
                 else:
-                    # Prevent buffer from growing infinitely and causing O(N^2) CPU slowdown on 'in' checks
-                    if len(buffer) > 10000:
+                    # Keep a small window for overlap if no BLOB is pending
+                    if len(buffer) > 20000:
                         buffer = buffer[-5000:]
                         
-            except socket.timeout:
-                continue
             except Exception as e:
                 logger.error(f"Listener error: {e}")
                 break
         
         logger.warning("INDI listener stopped")
         self.connected = False
+        self.mount_connected = False
+        self.ccd_connected = False
 
     def process_blobs(self, data):
         try:
@@ -404,14 +410,6 @@ async def mount_slew(req: SlewRequest):
 @app.post("/mount/goto")
 async def mount_goto(req: SlewRequest):
     return await mount_slew(req)
-
-@app.post("/mount/abort")
-async def mount_abort(req: Request):
-    body = await req.json()
-    device = body.get("device", "Celestron GPS")
-    logger.info(f"Aborting motion for {device}")
-    indi.send(f'<newSwitchVector device="{device}" name="TELESCOPE_ABORT_MOTION"><oneSwitch name="ABORT">On</oneSwitch></newSwitchVector>')
-    return {"success": True}
 
 @app.post("/mount/sync")
 async def mount_sync(req: SlewRequest):
@@ -779,9 +777,9 @@ def mount_unpark():
 
 @app.post("/mount/abort")
 def mount_abort():
-    logger.warning("ABORT MOTION sent to mount")
+    logger.warning(f"ABORT MOTION sent to mount: {indi.device_mount}")
     indi.send(f'<newSwitchVector device="{indi.device_mount}" name="TELESCOPE_ABORT_MOTION"><oneSwitch name="ABORT">On</oneSwitch></newSwitchVector>')
-    return {"success": True, "message": "Abort sent"}
+    return {"success": True, "message": "Abort motion command sent to mount"}
 
 
 @app.post("/mount/track")

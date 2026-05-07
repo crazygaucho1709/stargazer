@@ -4,9 +4,9 @@ export const dynamic = 'force-dynamic';
 
 const BRIDGE_URL = 'http://127.0.0.1:5005';
 
-export async function POST(req: Request) {
+export async function POST(req: Request, { params }: { params: { action: string } }) {
   try {
-    const { pathname } = new URL(req.url);
+    const action = params.action;
     
     // Safely get body
     let body = {};
@@ -19,8 +19,6 @@ export async function POST(req: Request) {
       console.warn('Failed to parse request body as JSON, using empty object');
     }
     
-    // Map /api/mount/X to backend /mount/X
-    const action = pathname.split('/').pop();
     let endpoint = `/mount/${action}`;
     
     // Special cases if any
