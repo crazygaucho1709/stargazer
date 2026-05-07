@@ -3,14 +3,28 @@ export const dynamic = 'force-dynamic';
 const BRIDGE_URL = 'http://127.0.0.1:5005';
 
 async function proxy(endpoint: string, method = 'GET', body?: any) {
-  const res = await fetch(`${BRIDGE_URL}${endpoint}`, {
-    method,
-    cache: 'no-store',
-    headers: body ? { 'Content-Type': 'application/json' } : {},
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const data = await res.json();
-  return NextResponse.json(data, { status: res.status });
+  try {
+    const res = await fetch(`${BRIDGE_URL}${endpoint}`, {
+      method,
+      cache: 'no-store',
+      headers: body ? { 'Content-Type': 'application/json' } : {},
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    
+    const resText = await res.text();
+    try {
+      const data = JSON.parse(resText);
+      return NextResponse.json(data, { status: res.status });
+    } catch (e) {
+      return NextResponse.json({ 
+        success: res.ok, 
+        message: resText || (res.ok ? 'Success' : 'Backend returned invalid JSON'),
+        raw: resText
+      }, { status: res.status });
+    }
+  } catch (error: any) {
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
 }
 
 // GET /api/astroberry?action=status|indi-logs

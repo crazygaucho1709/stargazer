@@ -20,17 +20,18 @@ async function sendToBridge(bridgeIp: string, endpoint: string, data: any): Prom
       const res = await fetch(`${BRIDGE_URL}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(data || {}),
         signal: controller.signal
       });
       clearTimeout(timeoutId);
       
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(`HTTP ${res.status}: ${errorText}`);
+      const resText = await res.text();
+      try {
+        return JSON.parse(resText);
+      } catch (e) {
+        if (res.ok) return { success: true, message: resText || 'Action successful' };
+        throw new Error(`HTTP ${res.status}: ${resText || 'Backend returned invalid JSON'}`);
       }
-      
-      return await res.json();
     } catch (error: any) {
       clearTimeout(timeoutId);
       if (attempt === maxRetries - 1) {
@@ -49,13 +50,14 @@ function parseRaToHours(coord: string | number): number {
   }
   if (!coord) return 0;
   
-  const strCoord = String(coord);
-  const match = strCoord.match(/([+-]?\d+)[h°]\s*(\d+)m?\s*([\d.]+)s?"?'?/);
+  const strCoord = String(coord).trim();
+  // Match various formats: 12:34:56, 12h 34m 56s, 12 34 56
+  const match = strCoord.match(/([+-]?\d+)[h°:\s]\s*(\d+)[m':\s]\s*([\d.]+)[s":\s]?/);
   if (match) {
     const d = parseFloat(match[1]);
     const m = parseFloat(match[2]);
     const s = parseFloat(match[3]);
-    const sign = d < 0 || Object.is(d, -0) || strCoord.trim().startsWith('-') ? -1 : 1;
+    const sign = d < 0 || Object.is(d, -0) || strCoord.startsWith('-') ? -1 : 1;
     const value = (Math.abs(d) + m / 60 + s / 3600) * sign;
     if (strCoord.includes('°')) {
       return value / 15.0;
@@ -71,13 +73,13 @@ function parseDecToDegrees(coord: string | number): number {
   if (typeof coord === 'number') return coord;
   if (!coord) return 0;
   
-  const strCoord = String(coord);
-  const match = strCoord.match(/([+-]?\d+)[h°]\s*(\d+)m?\s*([\d.]+)s?"?'?/);
+  const strCoord = String(coord).trim();
+  const match = strCoord.match(/([+-]?\d+)[h°:\s]\s*(\d+)[m':\s]\s*([\d.]+)[s":\s]?/);
   if (match) {
     const d = parseFloat(match[1]);
     const m = parseFloat(match[2]);
     const s = parseFloat(match[3]);
-    const sign = d < 0 || Object.is(d, -0) || strCoord.trim().startsWith('-') ? -1 : 1;
+    const sign = d < 0 || Object.is(d, -0) || strCoord.startsWith('-') ? -1 : 1;
     return (Math.abs(d) + m / 60 + s / 3600) * sign;
   }
   

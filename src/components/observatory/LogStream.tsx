@@ -23,14 +23,26 @@ export const LogStream = () => {
     const eventSourceRef = useRef<EventSource | null>(null);
 
     useEffect(() => {
-        // Connect to SSE endpoint
-        const eventSource = new EventSource('http://localhost:5005/logs/stream');
+        // Connect to SSE endpoint via Next.js proxy to avoid CORS and localhost issues
+        const eventSource = new EventSource('/api/logs/stream');
         eventSourceRef.current = eventSource;
+        
+        let retryCount = 0;
 
         eventSource.onmessage = (event) => {
             try {
-                const data = JSON.parse(event.data);
-                setLogs(prev => [...prev.slice(-199), data]);
+                const rawData = JSON.parse(event.data);
+                
+                // Map backend format to LogEntry interface
+                const logEntry: LogEntry = {
+                    time: rawData.time || new Date().toLocaleTimeString(),
+                    source: (rawData.source || 'BACKEND').toUpperCase(),
+                    level: (rawData.level || (rawData.message?.includes('ERROR') ? 'ERROR' : 'INFO')).toUpperCase(),
+                    message: rawData.message || ''
+                };
+                
+                setLogs(prev => [...prev.slice(-199), logEntry]);
+                retryCount = 0;
             } catch (e) {
                 console.error("Error parsing log event:", e);
             }
@@ -39,6 +51,17 @@ export const LogStream = () => {
         eventSource.onerror = (err) => {
             console.error("SSE Connection Error:", err);
             eventSource.close();
+            
+            // Simple retry logic
+            if (retryCount < 5) {
+                retryCount++;
+                setTimeout(() => {
+                    console.log(`Retrying log connection (attempt ${retryCount})...`);
+                    // Triggers effect cleanup and re-run if we were to depend on a state,
+                    // but since this is in mount, we just manually reconnect
+                    window.location.reload(); // Simple way to reset stateful SSE
+                }, 5000);
+            }
         };
 
         return () => {
