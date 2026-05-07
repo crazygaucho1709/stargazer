@@ -72,9 +72,12 @@ jobs:
         run: |
           cd ${{ env.DEPLOY_PATH }}
           # Aggressive cleanup to ensure no ghost processes
+          mkdir -p logs
           pm2 delete all || true
-          pkill -f "node" || true
-          pkill -f "next" || true
+          
+          # Targeted cleanup to avoid killing the GitHub runner itself
+          lsof -ti:3000 | xargs kill -9 || true
+          lsof -ti:5005 | xargs kill -9 || true
           sleep 2
           
           # Start fresh
@@ -84,7 +87,16 @@ jobs:
           echo "✅ PM2 status after restart:"
           pm2 list
           echo "✅ PM2 details for frontend:"
-          pm2 show stargazer-frontend | grep -E "status|path|interpreter|args"
+          pm2 show stargazer-frontend
+          
+          echo "🔍 Waiting for startup..."
+          sleep 10
+          
+          echo "--- Frontend Error Log ---"
+          [ -f logs/frontend-error.log ] && tail -n 50 logs/frontend-error.log || echo "No error log found"
+          echo "--- Frontend Out Log ---"
+          [ -f logs/frontend-out.log ] && tail -n 50 logs/frontend-out.log || echo "No out log found"
+          
           echo "✅ PM2 services updated and restarted"
 
       - name: 🏥 Health check
