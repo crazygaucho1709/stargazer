@@ -63,10 +63,10 @@ jobs:
       - name: ♻️ Restart services
         run: |
           cd /Users/matthieudelamourd/dev/project/web/stargazer
-          pm2 restart stargazer-backend
-          pm2 restart stargazer-frontend
+          # 'pm2 start' reloads the config file and updates existing processes
+          pm2 start ecosystem.config.js
           pm2 save
-          echo "✅ PM2 services restarted"
+          echo "✅ PM2 services updated and restarted"
 
       - name: 🏥 Health check
         run: |
