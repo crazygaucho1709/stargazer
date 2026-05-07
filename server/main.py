@@ -873,6 +873,20 @@ async def backend_restart():
     return {"success": True, "message": "Backend restarting in 1s..."}
 
 
+@app.get("/debug/indi")
+async def debug_indi():
+    return {
+        "connected": indi.connected,
+        "mount_connected": indi.mount_connected,
+        "device_mount": indi.device_mount,
+        "device_ccd": indi.device_ccd,
+        "ccd_connected": indi.ccd_connected,
+        "mount_parked": indi.mount_parked,
+        "mount_tracking": indi.mount_tracking,
+        "host": "connected" if indi.sock and indi.connected else "disconnected",
+        "candidates": [os.getenv("ASTROBERRY_HOST"), os.getenv("INDI_HOST"), "localhost", "127.0.0.1", "192.168.178.142"]
+    }
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=5005)

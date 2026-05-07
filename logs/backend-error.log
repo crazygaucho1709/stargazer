@@ -22,3 +22,146 @@ INFO:stargazer-backend:INDI listener thread started
 INFO:stargazer-backend:INDI CONNECTION update: <defSwitchVector device="Canon DSLR EOS 600D" name="CONNECTION" label="Connection" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-07T01:13:57">
     <defSw
 INFO:stargazer-backend:✅ Mount connected
+INFO:stargazer-backend:INDI CONNECTION update: <defSwitchVector device="Celestron GPS" name="CONNECTION" label="Connection" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-07T03:00:57">
+    <defSwitch n
+INFO:stargazer-backend:INDI CONNECTION update: <defTextVector device="Celestron GPS" name="DRIVER_INFO" label="Driver Info" group="Connection" state="Idle" perm="ro" timeout="60" timestamp="2026-05-07T03:00:57">
+    <defText name="DRIVER_NAME" lab
+INFO:stargazer-backend:INDI CONNECTION update: <newSwitchVector device="Celestron GPS" name="CONNECTION">
+    <oneSwitch name="CONNECT">
+On
+    </oneSwitch>
+</newSwitchVector>
+
+INFO:stargazer-backend:INDI CONNECTION update: <setSwitchVector device="Celestron GPS" name="CONNECTION" state="Ok" timeout="60" timestamp="2026-05-07T03:00:57">
+    <oneSwitch name="CONNECT">
+On
+    </oneSwitch>
+    <oneSwitch name="DISCONNECT">
+
+INFO:stargazer-backend:INDI CONNECTION update: <defSwitchVector device="Celestron GPS" name="CONNECTION" label="Connection" group="Main Control" state="Ok" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-07T03:01:00">
+    <defSwitch nam
+INFO:stargazer-backend:INDI CONNECTION update: <defTextVector device="Celestron GPS" name="DRIVER_INFO" label="Driver Info" group="Connection" state="Idle" perm="ro" timeout="60" timestamp="2026-05-07T03:01:00">
+    <defText name="DRIVER_NAME" lab
+INFO:paramiko.transport:Connected (version 2.0, client OpenSSH_10.0p2)
+INFO:paramiko.transport:Authentication (password) successful!
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_171954..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_171954..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_171954..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_171954..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_171954..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_171955..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_171955..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_171955..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_171955..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_171955..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_171956..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_171956..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_171956..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_171956..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_171956..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_171956..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_171956..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_171956..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_171956..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_171956..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_171957..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_171957..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_171957..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_171957..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_171957..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_171957..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_171957..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_171957..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_171957..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_171958..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_171958..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_171958..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_171958..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_171958..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_171958..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_171958..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_171959..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_171959..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_171959..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_171959..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_171959..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_171959..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_171959..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_171959..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172000..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172000..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172000..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172000..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172000..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172000..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172000..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172001..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172001..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172001..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172001..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172001..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172001..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172001..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172001..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172002..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172002..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172002..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172002..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172002..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172002..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172002..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172003..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172003..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172003..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172003..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172003..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172003..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172003..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172003..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172004..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172004..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172004..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172004..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172004..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172004..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172004..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172005..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172005..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172005..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172005..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172005..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172005..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172005..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172006..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172006..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172006..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172006..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172006..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172006..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172006..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172007..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172007..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172007..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172007..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172007..stream_jpg
+INFO:stargazer-backend:Image saved: /Users/matt/dev/project/web/stargazer/captures/capture_20260506_172007..stream_jpg
+INFO:paramiko.transport:Connected (version 2.0, client OpenSSH_10.0p2)
+INFO:paramiko.transport:Authentication (password) successful!
+INFO:paramiko.transport:Connected (version 2.0, client OpenSSH_10.0p2)
+INFO:paramiko.transport:Authentication (password) successful!
+INFO:stargazer-backend:Jogging Celestron NexStar HC up -> STOP
+INFO:stargazer-backend:Jogging Celestron NexStar HC up -> STOP
+INFO:stargazer-backend:Setting slew rate on Celestron NexStar HC to 6x
+INFO:stargazer-backend:Setting slew rate on Celestron NexStar HC to 7x
+INFO:stargazer-backend:Setting slew rate on Celestron NexStar HC to 8x
+INFO:stargazer-backend:Setting slew rate on Celestron NexStar HC to 9x
+INFO:paramiko.transport:Connected (version 2.0, client OpenSSH_10.0p2)
+INFO:paramiko.transport:Authentication (password) successful!
+INFO:paramiko.transport:Connected (version 2.0, client OpenSSH_10.0p2)
+INFO:paramiko.transport:Authentication (password) successful!
+INFO:paramiko.transport:Connected (version 2.0, client OpenSSH_10.0p2)
+INFO:paramiko.transport:Authentication (password) successful!
+INFO:paramiko.transport:Connected (version 2.0, client OpenSSH_10.0p2)
+INFO:paramiko.transport:Authentication (password) successful!
+INFO:paramiko.transport:Connected (version 2.0, client OpenSSH_10.0p2)
+INFO:paramiko.transport:Authentication (password) successful!

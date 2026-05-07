@@ -214,7 +214,7 @@ export const mockApi = {
 
     getWeather: async (lat: number = 48.8566, lon: number = 2.3522): Promise<any> => {
         try {
-            const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,cloud_cover`);
+            const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,cloud_cover&daily=sunrise,sunset&timezone=auto`);
             const data = await res.json();
             if (data.current) {
                 const seeing = Math.max(0.1, Math.min(2.0, 2.0 - (data.current.cloud_cover / 100) - (data.current.wind_speed_10m / 20)));
@@ -224,7 +224,9 @@ export const mockApi = {
                     windSpeed: data.current.wind_speed_10m,
                     humidity: data.current.relative_humidity_2m,
                     cloudCover: data.current.cloud_cover,
-                    seeing: parseFloat(seeing.toFixed(2))
+                    seeing: parseFloat(seeing.toFixed(2)),
+                    sunrise: data.daily?.sunrise?.[0]?.split('T')[1],
+                    sunset: data.daily?.sunset?.[0]?.split('T')[1]
                 };
             }
         } catch (err: any) { return { success: false, error: err.message }; }

@@ -196,7 +196,9 @@ export const TelescopeControls = ({ variant }: TelescopeControlsProps) => {
 
                 {/* Central Target / Slewing Indicator */}
                 <Circle size="46px" border="2px solid" bg="rgba(10, 20, 40, 0.8)" borderColor={isSlewing ? "var(--astro-gold)" : "var(--astro-teal)"} className={isSlewing ? "pulse-glow" : ""} zIndex={2}>
-                    <Icon as={Target} boxSize={5} color={isSlewing ? "var(--astro-gold)" : "var(--astro-teal)"} />
+                    <Box color={isSlewing ? "var(--astro-gold)" : "var(--astro-teal)"}>
+                        <Target size={20} />
+                    </Box>
                 </Circle>
 
                 {/* Slew Rate Slider */}

@@ -88,7 +88,9 @@ export const MountCalibration = () => {
         <VStack align="stretch" gap={4} color="var(--astro-starlight)" w="full">
             <HStack justify="space-between">
                 <HStack gap={2}>
-                    <Icon as={Settings} boxSize={4} color="var(--astro-teal)" className={isCalibrating ? "pulse-glow" : ""} />
+                    <Box color="var(--astro-teal)" className={isCalibrating ? "pulse-glow" : ""}>
+                        <Settings size={16} />
+                    </Box>
                     <Text fontSize="12px" fontWeight="bold" letterSpacing="0.1em">{t("CALIB_LIMITS_TITLE", language)}</Text>
                 </HStack>
                 {isCalibrating && <Text fontSize="10px" color="var(--astro-gold)" className="pulse-glow">{t("CALIB_IN_PROGRESS", language)}</Text>}
@@ -123,7 +125,9 @@ export const MountCalibration = () => {
             ) : (
                 <VStack align="stretch" gap={3} bg="rgba(0, 0, 0, 0.3)" p={3} borderRadius="8px" borderLeft="2px solid var(--astro-gold)">
                     <HStack gap={2}>
-                        <Icon as={AlertTriangle} boxSize={4} color="var(--astro-gold)" />
+                        <Box color="var(--astro-gold)">
+                            <AlertTriangle size={16} />
+                        </Box>
                         <Text fontSize="10px" fontWeight="bold" color="var(--astro-gold)">{step.toUpperCase()}</Text>
                     </HStack>
                     <Text fontSize="10px" lineHeight={1.4}>{getStepInstruction()}</Text>

@@ -36,7 +36,7 @@ export const CameraControls = ({ variant = "standard" }: CameraControlsProps) =>
         setExposing(true);
         const bridgeIp = config.astroberryUrl.includes('http') ? new URL(config.astroberryUrl).hostname : config.astroberryUrl.split(':')[0];
         try {
-            await fetch(`http://${bridgeIp}:5005/ccd/capture`, {
+            await fetch(`/api/indi?endpoint=ccd/capture`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ exposure: 2.0, device: "Canon DSLR EOS 600D" })
