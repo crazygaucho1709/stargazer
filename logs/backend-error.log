@@ -165,3 +165,5 @@ INFO:paramiko.transport:Connected (version 2.0, client OpenSSH_10.0p2)
 INFO:paramiko.transport:Authentication (password) successful!
 INFO:paramiko.transport:Connected (version 2.0, client OpenSSH_10.0p2)
 INFO:paramiko.transport:Authentication (password) successful!
+INFO:paramiko.transport:Connected (version 2.0, client OpenSSH_10.0p2)
+INFO:paramiko.transport:Authentication (password) successful!
