@@ -1,0 +1,936 @@
+ ⨯ Error: Cannot find module '/Users/matt/dev/project/web/stargazer/.next/server/pages/_error.js'
+Require stack:
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1456:15)
+    at /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:55:36
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1066:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1071:22)
+    at Module._load (node:internal/modules/cjs/loader:1242:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1556:12)
+    at mod.require (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:152:16)
+    at requirePage (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js:109:84) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js'
+  ]
+}
+ ⨯ Error: Cannot find module '/Users/matt/dev/project/web/stargazer/.next/server/pages/_error.js'
+Require stack:
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1456:15)
+    at /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:55:36
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1066:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1071:22)
+    at Module._load (node:internal/modules/cjs/loader:1242:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1556:12)
+    at mod.require (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:152:16)
+    at requirePage (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js:109:84) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js'
+  ]
+}
+ ⨯ Error: Cannot find module '/Users/matt/dev/project/web/stargazer/.next/server/pages/_error.js'
+Require stack:
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1456:15)
+    at /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:55:36
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1066:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1071:22)
+    at Module._load (node:internal/modules/cjs/loader:1242:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1556:12)
+    at mod.require (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:152:16)
+    at requirePage (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js:109:84) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js'
+  ]
+}
+ ⨯ Error: Cannot find module '/Users/matt/dev/project/web/stargazer/.next/server/pages/_error.js'
+Require stack:
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1456:15)
+    at /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:55:36
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1066:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1071:22)
+    at Module._load (node:internal/modules/cjs/loader:1242:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1556:12)
+    at mod.require (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:152:16)
+    at requirePage (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js:109:84) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js'
+  ]
+}
+ ⨯ Error: Cannot find module '/Users/matt/dev/project/web/stargazer/.next/server/pages/_error.js'
+Require stack:
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1456:15)
+    at /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:55:36
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1066:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1071:22)
+    at Module._load (node:internal/modules/cjs/loader:1242:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1556:12)
+    at mod.require (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:152:16)
+    at requirePage (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js:109:84) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js'
+  ]
+}
+ ⨯ Error: Cannot find module '/Users/matt/dev/project/web/stargazer/.next/server/pages/_error.js'
+Require stack:
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1456:15)
+    at /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:55:36
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1066:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1071:22)
+    at Module._load (node:internal/modules/cjs/loader:1242:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1556:12)
+    at mod.require (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:152:16)
+    at requirePage (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js:109:84) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js'
+  ]
+}
+ ⨯ Error: Cannot find module '/Users/matt/dev/project/web/stargazer/.next/server/pages/_error.js'
+Require stack:
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1456:15)
+    at /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:55:36
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1066:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1071:22)
+    at Module._load (node:internal/modules/cjs/loader:1242:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1556:12)
+    at mod.require (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:152:16)
+    at requirePage (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js:109:84) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js'
+  ]
+}
+ ⨯ Error: Cannot find module '/Users/matt/dev/project/web/stargazer/.next/server/pages/_error.js'
+Require stack:
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1456:15)
+    at /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:55:36
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1066:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1071:22)
+    at Module._load (node:internal/modules/cjs/loader:1242:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1556:12)
+    at mod.require (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:152:16)
+    at requirePage (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js:109:84) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js'
+  ]
+}
+ ⨯ Error: Cannot find module '/Users/matt/dev/project/web/stargazer/.next/server/app/api/indi/health-full/route.js'
+Require stack:
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1456:15)
+    at /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:55:36
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1066:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1071:22)
+    at Module._load (node:internal/modules/cjs/loader:1242:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1556:12)
+    at mod.require (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:152:16)
+    at requirePage (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js:109:84) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js'
+  ]
+}
+ ⨯ Error: Cannot find module '/Users/matt/dev/project/web/stargazer/.next/server/pages/_error.js'
+Require stack:
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1456:15)
+    at /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:55:36
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1066:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1071:22)
+    at Module._load (node:internal/modules/cjs/loader:1242:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1556:12)
+    at mod.require (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:152:16)
+    at requirePage (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js:109:84) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js'
+  ]
+}
+ ⨯ Error: Cannot find module '/Users/matt/dev/project/web/stargazer/.next/server/app/api/indi/mount/route.js'
+Require stack:
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1456:15)
+    at /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:55:36
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1066:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1071:22)
+    at Module._load (node:internal/modules/cjs/loader:1242:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1556:12)
+    at mod.require (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:152:16)
+    at requirePage (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js:109:84) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js'
+  ]
+}
+ ⨯ Error: Cannot find module '/Users/matt/dev/project/web/stargazer/.next/server/pages/_error.js'
+Require stack:
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1456:15)
+    at /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:55:36
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1066:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1071:22)
+    at Module._load (node:internal/modules/cjs/loader:1242:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1556:12)
+    at mod.require (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:152:16)
+    at requirePage (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js:109:84) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js'
+  ]
+}
+ ⨯ Error: Cannot find module '/Users/matt/dev/project/web/stargazer/.next/server/app/api/indi/mount/route.js'
+Require stack:
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1456:15)
+    at /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:55:36
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1066:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1071:22)
+    at Module._load (node:internal/modules/cjs/loader:1242:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1556:12)
+    at mod.require (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:152:16)
+    at requirePage (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js:109:84) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js'
+  ]
+}
+ ⨯ Error: Cannot find module '/Users/matt/dev/project/web/stargazer/.next/server/pages/_error.js'
+Require stack:
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1456:15)
+    at /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:55:36
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1066:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1071:22)
+    at Module._load (node:internal/modules/cjs/loader:1242:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1556:12)
+    at mod.require (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:152:16)
+    at requirePage (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js:109:84) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js'
+  ]
+}
+ ⨯ Error: Cannot find module '/Users/matt/dev/project/web/stargazer/.next/server/app/api/indi/mount/route.js'
+Require stack:
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1456:15)
+    at /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:55:36
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1066:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1071:22)
+    at Module._load (node:internal/modules/cjs/loader:1242:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1556:12)
+    at mod.require (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:152:16)
+    at requirePage (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js:109:84) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js'
+  ]
+}
+ ⨯ Error: Cannot find module '/Users/matt/dev/project/web/stargazer/.next/server/pages/_error.js'
+Require stack:
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1456:15)
+    at /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:55:36
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1066:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1071:22)
+    at Module._load (node:internal/modules/cjs/loader:1242:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1556:12)
+    at mod.require (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:152:16)
+    at requirePage (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js:109:84) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js'
+  ]
+}
+ ⨯ Error: Cannot find module '/Users/matt/dev/project/web/stargazer/.next/server/app/api/indi/mount/route.js'
+Require stack:
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1456:15)
+    at /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:55:36
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1066:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1071:22)
+    at Module._load (node:internal/modules/cjs/loader:1242:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1556:12)
+    at mod.require (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:152:16)
+    at requirePage (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js:109:84) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js'
+  ]
+}
+ ⨯ Error: Cannot find module '/Users/matt/dev/project/web/stargazer/.next/server/pages/_error.js'
+Require stack:
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1456:15)
+    at /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:55:36
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1066:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1071:22)
+    at Module._load (node:internal/modules/cjs/loader:1242:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1556:12)
+    at mod.require (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:152:16)
+    at requirePage (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js:109:84) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js'
+  ]
+}
+ ⨯ Error: Cannot find module '/Users/matt/dev/project/web/stargazer/.next/server/app/api/indi/mount/route.js'
+Require stack:
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1456:15)
+    at /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:55:36
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1066:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1071:22)
+    at Module._load (node:internal/modules/cjs/loader:1242:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1556:12)
+    at mod.require (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:152:16)
+    at requirePage (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js:109:84) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js'
+  ]
+}
+ ⨯ Error: Cannot find module '/Users/matt/dev/project/web/stargazer/.next/server/pages/_error.js'
+Require stack:
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1456:15)
+    at /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:55:36
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1066:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1071:22)
+    at Module._load (node:internal/modules/cjs/loader:1242:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1556:12)
+    at mod.require (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:152:16)
+    at requirePage (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js:109:84) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js'
+  ]
+}
+ ⨯ Error: Cannot find module '/Users/matt/dev/project/web/stargazer/.next/server/app/api/indi/mount/route.js'
+Require stack:
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1456:15)
+    at /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:55:36
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1066:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1071:22)
+    at Module._load (node:internal/modules/cjs/loader:1242:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1556:12)
+    at mod.require (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:152:16)
+    at requirePage (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js:109:84) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js'
+  ]
+}
+ ⨯ Error: Cannot find module '/Users/matt/dev/project/web/stargazer/.next/server/pages/_error.js'
+Require stack:
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1456:15)
+    at /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:55:36
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1066:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1071:22)
+    at Module._load (node:internal/modules/cjs/loader:1242:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1556:12)
+    at mod.require (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:152:16)
+    at requirePage (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js:109:84) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js'
+  ]
+}
+ ⨯ Error: Cannot find module '/Users/matt/dev/project/web/stargazer/.next/server/app/api/indi/mount/route.js'
+Require stack:
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1456:15)
+    at /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:55:36
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1066:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1071:22)
+    at Module._load (node:internal/modules/cjs/loader:1242:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1556:12)
+    at mod.require (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:152:16)
+    at requirePage (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js:109:84) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js'
+  ]
+}
+ ⨯ Error: Cannot find module '/Users/matt/dev/project/web/stargazer/.next/server/pages/_error.js'
+Require stack:
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1456:15)
+    at /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:55:36
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1066:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1071:22)
+    at Module._load (node:internal/modules/cjs/loader:1242:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1556:12)
+    at mod.require (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:152:16)
+    at requirePage (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js:109:84) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js'
+  ]
+}
+ ⨯ Error: Cannot find module '/Users/matt/dev/project/web/stargazer/.next/server/app/api/indi/health-full/route.js'
+Require stack:
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1456:15)
+    at /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:55:36
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1066:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1071:22)
+    at Module._load (node:internal/modules/cjs/loader:1242:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1556:12)
+    at mod.require (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:152:16)
+    at requirePage (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js:109:84) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js'
+  ]
+}
+ ⨯ Error: Cannot find module '/Users/matt/dev/project/web/stargazer/.next/server/pages/_error.js'
+Require stack:
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1456:15)
+    at /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:55:36
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1066:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1071:22)
+    at Module._load (node:internal/modules/cjs/loader:1242:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1556:12)
+    at mod.require (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:152:16)
+    at requirePage (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js:109:84) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js'
+  ]
+}
+ ⨯ Error: Cannot find module '/Users/matt/dev/project/web/stargazer/.next/server/app/api/logs/stream/route.js'
+Require stack:
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1456:15)
+    at /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:55:36
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1066:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1071:22)
+    at Module._load (node:internal/modules/cjs/loader:1242:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1556:12)
+    at mod.require (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:152:16)
+    at requirePage (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js:109:84) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js'
+  ]
+}
+ ⨯ Error: Cannot find module '/Users/matt/dev/project/web/stargazer/.next/server/pages/_error.js'
+Require stack:
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1456:15)
+    at /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:55:36
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1066:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1071:22)
+    at Module._load (node:internal/modules/cjs/loader:1242:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1556:12)
+    at mod.require (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:152:16)
+    at requirePage (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js:109:84) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js'
+  ]
+}
+ ⨯ Error: Cannot find module '/Users/matt/dev/project/web/stargazer/.next/server/app/api/indi/logs/route.js'
+Require stack:
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1456:15)
+    at /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:55:36
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1066:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1071:22)
+    at Module._load (node:internal/modules/cjs/loader:1242:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1556:12)
+    at mod.require (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:152:16)
+    at requirePage (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js:109:84) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js'
+  ]
+}
+ ⨯ Error: Cannot find module '/Users/matt/dev/project/web/stargazer/.next/server/pages/_error.js'
+Require stack:
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1456:15)
+    at /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:55:36
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1066:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1071:22)
+    at Module._load (node:internal/modules/cjs/loader:1242:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1556:12)
+    at mod.require (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:152:16)
+    at requirePage (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js:109:84) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js'
+  ]
+}
+ ⨯ Error: Cannot find module '/Users/matt/dev/project/web/stargazer/.next/server/app/api/indi/liveview/route.js'
+Require stack:
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1456:15)
+    at /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:55:36
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1066:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1071:22)
+    at Module._load (node:internal/modules/cjs/loader:1242:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1556:12)
+    at mod.require (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:152:16)
+    at requirePage (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js:109:84) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js'
+  ]
+}
+ ⨯ Error: Cannot find module '/Users/matt/dev/project/web/stargazer/.next/server/pages/_error.js'
+Require stack:
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1456:15)
+    at /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:55:36
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1066:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1071:22)
+    at Module._load (node:internal/modules/cjs/loader:1242:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1556:12)
+    at mod.require (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:152:16)
+    at requirePage (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js:109:84) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js'
+  ]
+}
+ ⨯ Error: Cannot find module '/Users/matt/dev/project/web/stargazer/.next/server/app/api/indi/stream/route.js'
+Require stack:
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1456:15)
+    at /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:55:36
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1066:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1071:22)
+    at Module._load (node:internal/modules/cjs/loader:1242:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1556:12)
+    at mod.require (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:152:16)
+    at requirePage (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js:109:84) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js'
+  ]
+}
+ ⨯ Error: Cannot find module '/Users/matt/dev/project/web/stargazer/.next/server/pages/_error.js'
+Require stack:
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1456:15)
+    at /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:55:36
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1066:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1071:22)
+    at Module._load (node:internal/modules/cjs/loader:1242:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1556:12)
+    at mod.require (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:152:16)
+    at requirePage (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js:109:84) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js'
+  ]
+}
+ ⨯ Error: Cannot find module '/Users/matt/dev/project/web/stargazer/.next/server/app/api/indi/liveview/route.js'
+Require stack:
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1456:15)
+    at /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:55:36
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1066:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1071:22)
+    at Module._load (node:internal/modules/cjs/loader:1242:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1556:12)
+    at mod.require (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:152:16)
+    at requirePage (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js:109:84) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js'
+  ]
+}
+ ⨯ Error: Cannot find module '/Users/matt/dev/project/web/stargazer/.next/server/pages/_error.js'
+Require stack:
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js
+- /Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1456:15)
+    at /Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:55:36
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1066:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1071:22)
+    at Module._load (node:internal/modules/cjs/loader:1242:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1556:12)
+    at mod.require (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:152:16)
+    at requirePage (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js:109:84) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/require.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/next.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js',
+    '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js'
+  ]
+}

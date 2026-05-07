@@ -73,7 +73,7 @@ export const ActionButtons = () => {
                         <ActionBtn 
                             label="RESTART KSTARS+EKOS" 
                             icon={RefreshCw} 
-                            onClick={() => execute('/api/indi/reconnect', 'RESTART KSTARS', { body: { action: 'reconnect' } })}
+                            onClick={() => execute('/api/indi/reconnect', 'RESTART KSTARS', { body: { action: 'restart_kstars' } })}
                             isLoading={isPending}
                         />
                         <ActionBtn 
