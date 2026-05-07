@@ -21,7 +21,14 @@ export async function GET(request: Request) {
     }
 
     try {
-        const res = await fetch(`http://localhost:5005/${endpoint}`, { cache: 'no-store' });
+        console.log(`[PROXY] GET /${endpoint}`);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+        const res = await fetch(`http://localhost:5005/${endpoint}`, { 
+            cache: 'no-store',
+            signal: controller.signal 
+        });
+        clearTimeout(timeoutId);
         const resText = await res.text();
         let data;
         try {

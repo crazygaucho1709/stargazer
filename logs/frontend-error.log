@@ -960,3 +960,49 @@ TypeError [ERR_INVALID_STATE]: Invalid state: WritableStream is closed
     at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
   code: 'ERR_INVALID_STATE'
 }
+Log stream proxy error: TypeError: terminated
+    at Fetch.onAborted (node:internal/deps/undici/undici:12826:53)
+    at Fetch.emit (node:events:508:28)
+    at Fetch.terminate (node:internal/deps/undici/undici:11963:14)
+    at Object.onError (node:internal/deps/undici/undici:12950:38)
+    at Request.onError (node:internal/deps/undici/undici:3015:31)
+    at Object.errorRequest (node:internal/deps/undici/undici:1887:17)
+    at Socket.onHttpSocketClose (node:internal/deps/undici/undici:7661:14)
+    at Socket.emit (node:events:520:35)
+    at TCP.<anonymous> (node:net:346:12) {
+  [cause]: BodyTimeoutError: Body Timeout Error
+      at FastTimer.onParserTimeout [as _onTimeout] (node:internal/deps/undici/undici:7533:32)
+      at Timeout.onTick [as _onTimeout] (node:internal/deps/undici/undici:692:17)
+      at listOnTimeout (node:internal/timers:605:17)
+      at process.processTimers (node:internal/timers:541:7) {
+    code: 'UND_ERR_BODY_TIMEOUT'
+  }
+}
+Log stream proxy error: TypeError: terminated
+    at Fetch.onAborted (node:internal/deps/undici/undici:12826:53)
+    at Fetch.emit (node:events:508:28)
+    at Fetch.terminate (node:internal/deps/undici/undici:11963:14)
+    at Object.onError (node:internal/deps/undici/undici:12950:38)
+    at Request.onError (node:internal/deps/undici/undici:3015:31)
+    at Object.errorRequest (node:internal/deps/undici/undici:1887:17)
+    at Socket.onHttpSocketClose (node:internal/deps/undici/undici:7661:14)
+    at Socket.emit (node:events:520:35)
+    at TCP.<anonymous> (node:net:346:12) {
+  [cause]: SocketError: other side closed
+      at Socket.onHttpSocketEnd (node:internal/deps/undici/undici:7635:26)
+      at Socket.emit (node:events:520:35)
+      at endReadableNT (node:internal/streams/readable:1729:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'UND_ERR_SOCKET',
+    socket: {
+      localAddress: '127.0.0.1',
+      localPort: 55863,
+      remoteAddress: '127.0.0.1',
+      remotePort: 5005,
+      remoteFamily: 'IPv4',
+      timeout: undefined,
+      bytesWritten: 237,
+      bytesRead: 197
+    }
+  }
+}

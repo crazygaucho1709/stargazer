@@ -214,6 +214,9 @@ class INDIClient:
             self.send('<getProperties version="1.7"/>')
             time.sleep(0.5)
             self.send(f'<enableBLOB device="{self.device_ccd}">Also</enableBLOB>')
+            
+            # Safety: Ensure mirror is down on connection (prevent sensor heat/damage)
+            self.send(f'<newSwitchVector device="{self.device_ccd}" name="viewfinder"><oneSwitch name="viewfinder0">On</oneSwitch></newSwitchVector>')
 
             # Start listener in separate thread
             listener_thread = threading.Thread(target=self.listen, daemon=True)
@@ -771,8 +774,8 @@ async def ccd_stream_start(device: str = "Canon DSLR EOS 600D"):
     indi.send(f'<newSwitchVector device="{device}" name="CONNECTION"><oneSwitch name="CONNECT">On</oneSwitch></newSwitchVector>')
     # Give it a tiny bit of time to connect if it wasn't
     time.sleep(0.5)
-    # Enable viewfinder (flips the mirror)
-    indi.send(f'<newSwitchVector device="{device}" name="viewfinder"><oneSwitch name="viewfinder0">On</oneSwitch></newSwitchVector>')
+    # Enable live view (mirror up)
+    indi.send(f'<newSwitchVector device="{device}" name="viewfinder"><oneSwitch name="viewfinder1">On</oneSwitch></newSwitchVector>')
     time.sleep(1)
     # Set MJPEG encoder which is often required for live view stream on DSLR
     indi.send(f'<newSwitchVector device="{device}" name="CCD_STREAM_ENCODER"><oneSwitch name="MJPEG">On</oneSwitch></newSwitchVector>')
@@ -782,9 +785,8 @@ async def ccd_stream_start(device: str = "Canon DSLR EOS 600D"):
 
 @app.post("/ccd/stream/stop")
 async def ccd_stream_stop(device: str = "Canon DSLR EOS 600D"):
-    indi.send(f'<newSwitchVector device="{device}" name="CCD_VIDEO_STREAM"><oneSwitch name="STREAM_OFF">On</oneSwitch></newSwitchVector>')
-    # Also turn off viewfinder
-    indi.send(f'<newSwitchVector device="{device}" name="viewfinder"><oneSwitch name="viewfinder1">On</oneSwitch></newSwitchVector>')
+    # Disable live view (mirror down)
+    indi.send(f'<newSwitchVector device="{device}" name="viewfinder"><oneSwitch name="viewfinder0">On</oneSwitch></newSwitchVector>')
     return {"success": True}
 
 # ── NEW ENDPOINTS ────────────────────────────────────────────────────────────

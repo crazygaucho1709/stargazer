@@ -32,7 +32,7 @@ export const mockApi = {
         if (!url) return { success: false, error: "No URL configured" };
         try {
             const controller = new AbortController();
-            const id = setTimeout(() => controller.abort(), 10000); 
+            const id = setTimeout(() => controller.abort(), 20000); 
             
             const apiUrl = `/api/indi?ip=${getBridgeIp()}`;
             
