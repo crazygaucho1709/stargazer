@@ -1,8 +1,9 @@
 fastapi
 uvicorn
-rawpy
-imageio
-pydantic
-astropy
-python-multipart
-starlette
+pyindi-client
+numpy
+opencv-python
+pillow
+python-dotenv
+paramiko
+psutil

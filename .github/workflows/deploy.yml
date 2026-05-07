@@ -1,0 +1,75 @@
+name: 🚀 Deploy Stargazer
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:   # allow manual trigger from GitHub UI
+
+jobs:
+  deploy:
+    name: Pull → Build → Restart
+    runs-on: self-hosted   # ← runs directly on Mac Mini (no external SSH needed)
+    timeout-minutes: 15
+
+    steps:
+      - name: 📥 Pull latest code
+        run: |
+          git -C /Users/matthieudelamourd/dev/project/web/stargazer fetch --all
+          git -C /Users/matthieudelamourd/dev/project/web/stargazer reset --hard origin/main
+          echo "✅ Code updated to $(git -C /Users/matthieudelamourd/dev/project/web/stargazer rev-parse --short HEAD)"
+
+      - name: 📦 Install Node dependencies
+        run: |
+          cd /Users/matthieudelamourd/dev/project/web/stargazer
+          npm ci --prefer-offline
+          echo "✅ npm dependencies installed"
+
+      - name: 🏗️ Build Next.js
+        run: |
+          cd /Users/matthieudelamourd/dev/project/web/stargazer
+          npm run build
+          echo "✅ Next.js build complete"
+
+      - name: 🐍 Install Python dependencies
+        run: |
+          cd /Users/matthieudelamourd/dev/project/web/stargazer
+          server/venv/bin/pip install -r server/requirements.txt --quiet 2>/dev/null || true
+          echo "✅ Python dependencies OK"
+
+      - name: ♻️ Restart services
+        run: |
+          cd /Users/matthieudelamourd/dev/project/web/stargazer
+          pm2 restart stargazer-backend
+          pm2 restart stargazer-frontend
+          pm2 save
+          echo "✅ PM2 services restarted"
+
+      - name: 🏥 Health check
+        run: |
+          sleep 8
+          # Backend health
+          HEALTH=$(curl -sf http://localhost:5005/health || echo '{}')
+          echo "Backend: $HEALTH"
+          if echo "$HEALTH" | grep -q '"status":"ok"'; then
+            echo "✅ Backend healthy"
+          else
+            echo "❌ Backend health check failed"
+            exit 1
+          fi
+          # Frontend health
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000)
+          echo "Frontend HTTP: $HTTP_CODE"
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "✅ Frontend healthy"
+          else
+            echo "❌ Frontend returned $HTTP_CODE"
+            exit 1
+          fi
+
+      - name: 📢 Notify
+        if: always()
+        run: |
+          STATUS="${{ job.status }}"
+          COMMIT="${{ github.sha }}"
+          SHORT="${COMMIT:0:7}"
+          AUTHOR="${{ github.actor }}"
+          echo "Deploy $STATUS | $SHORT by $AUTHOR"

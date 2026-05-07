@@ -14,6 +14,8 @@ import { useEnvironmentData } from "@/hooks/useEnvironmentData";
 import { CalibrationWizard } from "@/components/telescope/CalibrationWizard";
 import { ObjectFinder } from "@/components/telescope/ObjectFinder";
 import { CaptureAndStack } from "@/components/camera/CaptureAndStack";
+import ObservatoryPanel from "@/components/observatory/ObservatoryPanel";
+
 
 export const ConfigurationMenu = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -34,6 +36,7 @@ export const ConfigurationMenu = () => {
         { id: "gamepad", label: t("TAB_GAMEPAD", language), icon: Gamepad2 },
         { id: "system", label: t("TAB_SYSTEM", language), icon: Globe },
         { id: "bridge", label: language === 'fr' ? "RÉSEAU & LOGS" : "NETWORK & LOGS", icon: Activity },
+        { id: "observatory", label: language === 'fr' ? "OBSERVATOIRE" : "OBSERVATORY", icon: Radio },
     ];
 
     return (
@@ -126,6 +129,7 @@ export const ConfigurationMenu = () => {
                         {activeTab === "gamepad" && <GamepadTab language={language} />}
                         {activeTab === "system" && <SystemTab config={config} updateConfig={updateConfig} language={language} setLanguage={setLanguage} />}
                         {activeTab === "bridge" && <BridgeTab config={config} language={language} />}
+                        {activeTab === "observatory" && <ObservatoryPanel />}
                     </Box>
                 </Flex>
             </Box>
