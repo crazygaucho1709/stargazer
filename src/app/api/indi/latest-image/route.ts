@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
-const BRIDGE_URL = 'http://127.0.0.1:5005';
+const BRIDGE_URL = 'http://192.168.178.91:5005';
 
 // Simple 1x1 transparent pixel as fallback (base64 encoded)
 const FALLBACK_IMAGE = Buffer.from(
