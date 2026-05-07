@@ -23,6 +23,8 @@ from astropy.time import Time
 import astropy.units as u
 from starlette.responses import StreamingResponse
 import collections
+import astroberry as raspi
+import psutil
 
 # Configuration
 INDI_HOST = os.getenv("ASTROBERRY_HOST", os.getenv("INDI_HOST", "192.168.178.142"))
@@ -178,11 +180,18 @@ class INDIClient:
         # Pre-check: resolve host before attempting TCP connect
         host = self._resolve_host()
         if not host:
-            logger.error(f"Connection failed: cannot resolve INDI host (tried {INDI_HOST}, astroberry.local)")
+            logger.error(f"Connection failed: cannot resolve INDI host (tried {INDI_HOST})")
             return
+
+        # Pre-check: verify ICMP reachability to avoid "No route to host" socket hangs
+        if not raspi.ping():
+            logger.warning(f"Connection skipped: host {host} is not reachable via ping")
+            return
+
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+
             if hasattr(socket, 'TCP_KEEPIDLE'):
                 sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, 10)
             elif hasattr(socket, 'TCP_KEEPALIVE'):  # macOS
@@ -213,40 +222,68 @@ class INDIClient:
 
     def send(self, xml):
         with self.socket_lock:
-            
             if self.sock and self.connected:
                 try:
                     self.sock.sendall((xml + "\r\n").encode())
                     logger.debug(f"Sent: {xml[:50]}...")
                     return True
+                except (socket.error, BrokenPipeError, ConnectionResetError) as e:
+                    logger.error(f"Send failure (socket error): {e}")
+                    self.connected = False
+                    self._close_socket()
+                    return False
                 except Exception as e:
                     logger.error(f"Send error: {e}")
-                    self.connected = False
+                    # Don't necessarily disconnect on non-socket errors, but log it
                     return False
             else:
-                logger.warning("Socket not available for send")
+                # If we're not connected, try a quick reachability check
+                if not self.connected:
+                    logger.warning("Socket not available for send, attempting lazy reconnect...")
                 return False
 
     def listen(self):
         """Dedicated listener thread - handles all INDI incoming messages"""
         buffer = b""
+        self.last_received = time.time()
+        
         while self.connected:
             try:
                 if not self.sock:
                     break
+                
+                # Check for heartbeat/stale connection (no data for 45s)
+                if time.time() - self.last_received > 45:
+                    logger.warning("INDI connection heartbeat timeout (45s), checking reachability...")
+                    if not raspi.ping():
+                        logger.error("Host unreachable during heartbeat check. Disconnecting.")
+                        break
+                    else:
+                        # Host is pingable but INDI is silent, maybe server is down?
+                        # We'll reset the timer once to avoid infinite loops if it's just idle
+                        self.last_received = time.time()
+
                 try:
                     data = self.sock.recv(65536)
                 except socket.timeout:
                     continue
+                except socket.error as e:
+                    logger.error(f"Socket error during recv: {e}")
+                    break
                 
                 if not data:
                     logger.warning("INDI socket closed by server")
                     break
+                
+                self.last_received = time.time()
                 buffer += data
                 
                 # Check for property updates (Switch/Number vectors)
-                chunk_str = data.decode('utf-8', errors='ignore')
-                
+                try:
+                    chunk_str = data.decode('utf-8', errors='ignore')
+                except Exception:
+                    chunk_str = ""
+
                 # Track connection states for configured devices
                 if 'CONNECTION' in chunk_str:
                     # Mount connection
@@ -289,6 +326,7 @@ class INDIClient:
         self.connected = False
         self.mount_connected = False
         self.ccd_connected = False
+        self._close_socket()
 
     def process_blobs(self, data):
         try:
@@ -416,10 +454,47 @@ async def mount_sync(req: SlewRequest):
     device = req.device
     logger.info(f"Syncing {device} to RA={req.ra}, DEC={req.dec}")
     indi.send(f'<newNumberVector device="{device}" name="EQUATORIAL_EOD_COORD"><oneNumber name="RA">{req.ra}</oneNumber><oneNumber name="DEC">{req.dec}</oneNumber></newNumberVector>')
+    time.sleep(0.2)
     indi.send(f'<newSwitchVector device="{device}" name="ON_COORD_SET"><oneSwitch name="SYNC">On</oneSwitch></newSwitchVector>')
+    time.sleep(0.1)
     # Revert to Track mode after sync
     indi.send(f'<newSwitchVector device="{device}" name="ON_COORD_SET"><oneSwitch name="TRACK">On</oneSwitch></newSwitchVector>')
+
     return {"success": True}
+
+@app.post("/command")
+async def handle_generic_command(req: Request):
+    """Handle generic INDI commands from the frontend."""
+    try:
+        data = await req.json()
+        action = data.get("action")
+        device = data.get("device")
+        
+        if not indi.connected:
+            if not indi.connect():
+                return {"success": False, "error": "Hardware offline or unreachable"}
+
+        if action == "syncLocation":
+            lat = data.get("values", {}).get("LAT")
+            lon = data.get("values", {}).get("LONG")
+            elev = data.get("values", {}).get("ELEV", 0)
+            
+            if lat is None or lon is None:
+                return {"success": False, "error": "Missing LAT or LONG values"}
+
+            # Send to INDI
+            indi.send(f'<newNumberVector device="{device}" name="GEOGRAPHIC_COORD"><oneNumber name="LAT">{lat}</oneNumber><oneNumber name="LONG">{lon}</oneNumber><oneNumber name="ELEV">{elev}</oneNumber></newNumberVector>')
+            
+            # Also sync time while we're at it
+            now_utc = datetime.utcnow()
+            indi.send(f'<newTextVector device="{device}" name="TIME_UTC"><oneText name="UTC">{now_utc.strftime("%Y-%m-%dT%H:%M:%S")}</oneText></newTextVector>')
+            
+            return {"success": True, "message": f"Location and Time synced to {device}"}
+
+        return {"success": False, "error": f"Unknown action: {action}"}
+    except Exception as e:
+        logger.error(f"Command error: {e}")
+        return {"success": False, "error": str(e)}
 
 @app.post("/mount/sync_master")
 async def mount_sync_master(req: SyncMasterRequest):
@@ -674,8 +749,7 @@ async def ccd_stream_stop(device: str = "Canon DSLR EOS 600D"):
 
 # ── NEW ENDPOINTS ────────────────────────────────────────────────────────────
 
-import astroberry as raspi
-import psutil
+# --- INFRASTRUCTURE ---
 
 class MountActionRequest(BaseModel):
     confirm: str = ""

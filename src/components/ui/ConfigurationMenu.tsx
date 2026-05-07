@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
     Box, IconButton, VStack, HStack, Text, Input, Button, Heading, Icon, Flex, Grid, Portal, Spinner
 } from "@chakra-ui/react";
@@ -11,7 +11,9 @@ import { useStargazerStore } from "@/store/useStargazerStore";
 import { t } from "@/i18n/translations";
 import { mockApi } from "@/services/mockApi";
 import { useEnvironmentData } from "@/hooks/useEnvironmentData";
+import { useAstroAction } from "@/hooks/useAstroAction";
 import { CalibrationWizard } from "@/components/telescope/CalibrationWizard";
+import { AutoAlignWizard } from "@/components/telescope/AutoAlignWizard";
 import { ObjectFinder } from "@/components/telescope/ObjectFinder";
 import { CaptureAndStack } from "@/components/camera/CaptureAndStack";
 import ObservatoryPanel from "@/components/observatory/ObservatoryPanel";
@@ -27,6 +29,7 @@ export const ConfigurationMenu = () => {
     const { config, updateConfig, language, setLanguage } = useStargazerStore();
 
     const tabs = [
+        { id: "autoalign", label: language === 'fr' ? "AUTO-ALIGN IA" : "AUTO-ALIGN AI", icon: LocateFixed },
         { id: "wizard", label: t("TAB_WIZARD", language), icon: Wand2 },
         { id: "hardware", label: t("TAB_HARDWARE", language), icon: Cpu },
         { id: "mount", label: t("TAB_MOUNT", language), icon: Telescope },
@@ -120,6 +123,7 @@ export const ConfigurationMenu = () => {
 
                     {/* Content Area */}
                     <Box flex={1} p={8} overflowY="auto" className="custom-scrollbar">
+                        {activeTab === "autoalign" && <AutoAlignWizardWrapper language={language} />}
                         {activeTab === "wizard" && <CalibrationWizardWrapper language={language} setActiveTab={setActiveTab} onClose={onClose} />}
                         {activeTab === "hardware" && <HardwareTab config={config} updateConfig={updateConfig} language={language} />}
                         {activeTab === "mount" && <MountTab config={config} updateConfig={updateConfig} language={language} />}
@@ -140,6 +144,27 @@ export const ConfigurationMenu = () => {
 
 /* --- TAB COMPONENTS --- */
 
+const AutoAlignWizardWrapper = ({ language }: { language: string }) => (
+    <VStack align="stretch" gap={8}>
+        <Box bg="rgba(0,255,209,0.04)" p={6} borderRadius="8px" border="1px solid rgba(0,255,209,0.18)">
+            <HStack mb={4} gap={3}>
+                <Icon as={LocateFixed} color="var(--astro-teal)" boxSize={6} />
+                <VStack align="start" gap={0}>
+                    <Heading size="sm" color="white">
+                        {language === 'fr' ? 'Auto-Alignement IA' : 'Auto-Align AI'}
+                    </Heading>
+                    <Text fontSize="10px" color="whiteAlpha.500" letterSpacing="0.08em">
+                        {language === 'fr'
+                            ? 'Localisation autonome par plate solving — 3 captures — triangulation'
+                            : 'Autonomous localization via plate solving — 3 captures — triangulation'}
+                    </Text>
+                </VStack>
+            </HStack>
+            <AutoAlignWizard />
+        </Box>
+    </VStack>
+);
+
 const CalibrationWizardWrapper = ({ language, setActiveTab, onClose }: any) => {
     return (
         <VStack align="stretch" gap={8}>
@@ -156,92 +181,8 @@ const CalibrationWizardWrapper = ({ language, setActiveTab, onClose }: any) => {
     );
 };
 
-// Keep old WizardTab for reference but not used
-const WizardTabOld = ({ language, setActiveTab, onClose }: any) => {
-    const { config } = useStargazerStore();
-    const [wizardState, setWizardState] = useState({ step: 1, isRunning: false, error: "" });
 
-    const runWizard = async () => {
-        setWizardState({ step: 1, isRunning: true, error: "" });
-        
-        // Step 1: Verify connection
-        console.log("Wizard: Step 1 - Ping", config.astroberryUrl);
-        const pingRes = await mockApi.ping(config.astroberryUrl, config.driverInstance);
-        console.log("Wizard: Ping result", pingRes);
-        
-        if (!pingRes.success) {
-            setWizardState({ step: 1, isRunning: false, error: `Connection failed: ${pingRes.error}. Check Astroberry is online.` });
-            return;
-        }
 
-        // Step 2: Connect mount
-        setWizardState(prev => ({ ...prev, step: 2 }));
-        const mountRes = await mockApi.testConnection(config.astroberryUrl, config.driverInstance);
-        if (!mountRes.success) {
-            setWizardState({ step: 2, isRunning: false, error: `Mount connection failed: ${mountRes.message}` });
-            return;
-        }
-        await new Promise(r => setTimeout(r, 1000));
-
-        // Step 3: Test mount slew
-        setWizardState(prev => ({ ...prev, step: 3 }));
-        const slewRes = await mockApi.startMotion('right');
-        await new Promise(r => setTimeout(r, 500));
-        await mockApi.stopMotion('right');
-        if (!slewRes.success) {
-            setWizardState({ step: 3, isRunning: false, error: `Mount slew test failed: ${slewRes.error}` });
-            return;
-        }
-        await new Promise(r => setTimeout(r, 1000));
-
-        // Step 4: Test camera capture
-        setWizardState(prev => ({ ...prev, step: 4 }));
-        try {
-            const bridgeIp = config.astroberryUrl.includes('http') ? new URL(config.astroberryUrl).hostname : config.astroberryUrl.split(':')[0];
-            await fetch(`/api/indi/ccd?device=Canon%20DSLR%20EOS%20600D&exposure=0.5&ip=${bridgeIp}`);
-        } catch (e) {
-            console.error('Camera test failed:', e);
-        }
-        await new Promise(r => setTimeout(r, 2000));
-
-        setWizardState({ step: 5, isRunning: false, error: "" });
-    };
-
-    return (
-        <VStack align="stretch" gap={8}>
-            <Box bg="rgba(0, 240, 255, 0.05)" p={6} borderRadius="8px" border="1px solid rgba(0, 240, 255, 0.2)">
-                <HStack mb={4} gap={3}>
-                    <Icon as={Wand2} color="#00F0FF" boxSize={6} />
-                    <Heading size="sm" color="white">{t("TAB_WIZARD", language)}</Heading>
-                </HStack>
-                <Text fontSize="sm" color="whiteAlpha.800" mb={6} lineHeight={1.6}>
-                    {t("WIZ_DESC", language)}
-                </Text>
-                {wizardState.error && (
-                    <Text fontSize="12px" color="red.400" mb={4} p={3} bg="rgba(255,0,0,0.1)" borderRadius="md">
-                        {wizardState.error}
-                    </Text>
-                )}
-                <Flex gap={4}>
-                    <Button colorScheme="cyan" bg="#00F0FF" color="black" _hover={{ bg: "#00c4cc" }} onClick={runWizard} disabled={wizardState.isRunning}>
-                        {wizardState.isRunning ? <Spinner size="sm" mr={2} /> : <Power size={16} style={{ marginRight: '8px' }} />}
-                        {t("WIZ_BTN_START", language)}
-                    </Button>
-                    <Button variant="outline" borderColor="whiteAlpha.300" color="whiteAlpha.800" _hover={{ bg: "whiteAlpha.100" }} disabled={wizardState.isRunning} onClick={() => { setActiveTab("mount"); }}>
-                        {t("WIZ_BTN_SKIP", language)}
-                    </Button>
-                </Flex>
-            </Box>
-
-            <Grid templateColumns="repeat(2, 1fr)" gap={6}>
-                <WizardStep step={1} title={t("WIZ_STEP1_TITLE", language)} status={wizardState.step > 1 ? "DONE" : wizardState.step === 1 && wizardState.isRunning ? "ACTIVE" : "PENDING"} desc={t("WIZ_STEP1_DESC", language)} language={language} />
-                <WizardStep step={2} title={t("WIZ_STEP2_TITLE", language)} status={wizardState.step > 2 ? "DONE" : wizardState.step === 2 ? "ACTIVE" : "PENDING"} desc={t("WIZ_STEP2_DESC", language)} language={language} />
-                <WizardStep step={3} title={t("WIZ_STEP3_TITLE", language)} status={wizardState.step > 3 ? "DONE" : wizardState.step === 3 ? "ACTIVE" : "PENDING"} desc={t("WIZ_STEP3_DESC", language)} language={language} />
-                <WizardStep step={4} title={t("WIZ_STEP4_TITLE", language)} status={wizardState.step > 4 ? "DONE" : wizardState.step === 4 ? "ACTIVE" : "PENDING"} desc={t("WIZ_STEP4_DESC", language)} language={language} />
-            </Grid>
-        </VStack>
-    );
-};
 
 const WizardStep = ({ step, title, status, desc, action, language }: any) => {
     const isDone = status === "DONE";
@@ -268,12 +209,14 @@ const WizardStep = ({ step, title, status, desc, action, language }: any) => {
 };
 
 const HardwareTab = ({ config, updateConfig, language }: any) => {
-    const [testStatus, setTestStatus] = useState<{ status: 'idle' | 'testing' | 'success' | 'error', message: string }>({ status: 'idle', message: '' });
+    const { execute, isPending } = useAstroAction();
 
     const handleTest = async () => {
-        setTestStatus({ status: 'testing', message: '' });
-        const res = await mockApi.testConnection(config.astroberryUrl, config.driverInstance);
-        setTestStatus({ status: res.success ? 'success' : 'error', message: res.message });
+        await execute(
+            () => mockApi.testConnection(config.astroberryUrl, config.driverInstance),
+            language === 'fr' ? "TEST DE CONNEXION" : "CONNECTION TEST",
+            { loadingMessage: language === 'fr' ? "VÉRIFICATION DE LA LIAISON..." : "VERIFYING LINK..." }
+        );
     };
 
     return (
@@ -300,15 +243,10 @@ const HardwareTab = ({ config, updateConfig, language }: any) => {
                             </select>
                         </Box>
                     </HStack>
-                    <Button w="full" colorScheme="cyan" variant="outline" size="sm" onClick={handleTest} disabled={testStatus.status === 'testing'}>
-                        {testStatus.status === 'testing' ? <Spinner size="sm" mr={2} /> : null}
+                    <Button w="full" colorScheme="cyan" variant="outline" size="sm" onClick={handleTest} disabled={isPending}>
+                        {isPending ? <Spinner size="sm" mr={2} /> : null}
                         {t("HW_BTN_TEST", language)}
                     </Button>
-                    {testStatus.message && (
-                        <Text fontSize="12px" color={testStatus.status === 'success' ? "green.400" : "red.400"} mt={2}>
-                            {testStatus.message}
-                        </Text>
-                    )}
                 </VStack>
             </Box>
 
@@ -371,16 +309,16 @@ const MountTab = ({ config, updateConfig, language }: any) => {
 };
 
 const CameraTab = ({ config, updateConfig, language }: any) => {
-    const [focusStatus, setFocusStatus] = useState<{ status: 'idle' | 'running' | 'success' | 'error', hfr?: number, error?: string }>({ status: 'idle' });
+    const { execute, isPending } = useAstroAction();
+    const [lastHfr, setLastHfr] = useState<number | null>(null);
 
     const handleFocus = async () => {
-        setFocusStatus({ status: 'running' });
-        const res = await mockApi.runAiFocus();
-        if (res.success) {
-            setFocusStatus({ status: 'success', hfr: res.hfr });
-        } else {
-            setFocusStatus({ status: 'error', error: res.error });
-        }
+        const res = await execute(
+            () => mockApi.runAiFocus(),
+            language === 'fr' ? "CALIBRATION AUTO-FOCUS" : "AUTO-FOCUS CALIBRATION",
+            { loadingMessage: language === 'fr' ? "ANALYSE DU RAYON DE DEMI-FLUX (HFR)..." : "ANALYZING HALF-FLUX RADIUS (HFR)..." }
+        ) as any;
+        if (res?.success) setLastHfr(res.hfr);
     };
 
     return (
@@ -414,9 +352,6 @@ const CameraTab = ({ config, updateConfig, language }: any) => {
                 <HStack mb={4} gap={2}><Icon as={LocateFixed} boxSize={4} color="var(--astro-gold)" /><Text fontSize="12px" fontWeight="bold" letterSpacing="0.1em" color="var(--astro-gold)">{t("CAM_AI_FOCUS_TITLE", language)}</Text></HStack>
                 <VStack gap={5} align="stretch" bg="rgba(255, 179, 71, 0.05)" p={5} borderRadius="8px" border="1px solid rgba(255, 179, 71, 0.2)">
                     <Text fontSize="11px" color="whiteAlpha.800">{t("CAM_AI_FOCUS_DESC", language)}</Text>
-                    {focusStatus.status === 'error' && (
-                        <Text fontSize="12px" color="red.400" bg="rgba(255,0,0,0.1)" p={3} borderRadius="md">{focusStatus.error}</Text>
-                    )}
                     <HStack justify="space-between">
                         <VStack align="start" gap={0}>
                             <Text fontSize="12px" color="white">{t("CAM_AI_FOCUS_EN", language)}</Text>
@@ -424,9 +359,9 @@ const CameraTab = ({ config, updateConfig, language }: any) => {
                         </VStack>
                         <input type="checkbox" checked={config.aiFocus} onChange={(e) => updateConfig({ aiFocus: e.target.checked })} style={{ accentColor: "var(--astro-gold)", width: "18px", height: "18px" }} />
                     </HStack>
-                    <Button size="sm" w="full" bg="var(--astro-gold)" color="black" _hover={{ bg: "#e69c3a" }} onClick={handleFocus} disabled={focusStatus.status === 'running'}>
-                        {focusStatus.status === 'running' ? <Spinner size="sm" mr={2} /> : null}
-                        {focusStatus.status === 'success' ? `HFR CALIBRATED: ${focusStatus.hfr?.toFixed(2)}` : t("CAM_AI_FOCUS_BTN", language)}
+                    <Button size="sm" w="full" bg="var(--astro-gold)" color="black" _hover={{ bg: "#e69c3a" }} onClick={handleFocus} disabled={isPending}>
+                        {isPending ? <Spinner size="sm" mr={2} /> : null}
+                        {lastHfr !== null ? `HFR CALIBRATED: ${lastHfr.toFixed(2)}` : t("CAM_AI_FOCUS_BTN", language)}
                     </Button>
                 </VStack>
             </Box>
@@ -525,12 +460,10 @@ const CaptureTab = ({ config, updateConfig, language }: any) => (
 );
 
 const SystemTab = ({ config, updateConfig, language, setLanguage }: any) => {
-    const [syncStatus, setSyncStatus] = useState<{ status: 'idle' | 'syncing' | 'success' | 'error', message: string }>({ status: 'idle', message: '' });
+    const { execute, isPending } = useAstroAction();
     const envData = useEnvironmentData();
 
     const handleSyncLoc = async () => {
-        setSyncStatus({ status: 'syncing', message: '' });
-        
         let latStr = config.latitude?.toString().replace(',', '.').trim() || "";
         let lonStr = config.longitude?.toString().replace(',', '.').trim() || "";
         
@@ -543,13 +476,18 @@ const SystemTab = ({ config, updateConfig, language, setLanguage }: any) => {
                 lat = envData.latitude;
                 lon = envData.longitude;
             } else {
-                setSyncStatus({ status: 'error', message: 'Invalid coordinates and no GPS signal' });
-                return;
+                throw new Error('Invalid coordinates and no GPS signal');
             }
         }
-        
-        const res = await mockApi.syncLocation(lat, lon, config.driverInstance || "Celestron GPS");
-        setSyncStatus({ status: res.success ? 'success' : 'error', message: res.success ? `Location synced: ${lat.toFixed(4)}, ${lon.toFixed(4)}` : res.error || 'Failed to sync' });
+
+        await execute(
+            () => mockApi.syncLocation(lat, lon, config.driverInstance || "Celestron GPS"),
+            language === 'fr' ? "SYNCHRONISATION" : "SYNCING",
+            {
+                loadingMessage: language === 'fr' ? "SYNCHRONISATION DE LA POSITION..." : "SYNCING LOCATION...",
+                successMessage: `Location synced: ${lat.toFixed(4)}, ${lon.toFixed(4)}`
+            }
+        );
     };
 
     return (
@@ -587,13 +525,10 @@ const SystemTab = ({ config, updateConfig, language, setLanguage }: any) => {
                             <Input bg="rgba(0,0,0,0.5)" borderColor="whiteAlpha.200" placeholder="2.3522" value={config.longitude} onChange={(e) => updateConfig({ longitude: e.target.value })} />
                         </Box>
                     </HStack>
-                    <Button size="sm" w="full" variant="outline" colorScheme="cyan" onClick={handleSyncLoc} disabled={syncStatus.status === 'syncing'}>
-                        {syncStatus.status === 'syncing' ? <Spinner size="sm" mr={2} /> : null}
+                    <Button size="sm" w="full" variant="outline" colorScheme="cyan" onClick={handleSyncLoc} disabled={isPending}>
+                        {isPending ? <Spinner size="sm" mr={2} /> : null}
                         {t("SYS_APPLY_LOC", language)}
                     </Button>
-                    {syncStatus.message && (
-                        <Text fontSize="10px" color={syncStatus.status === 'success' ? "green.400" : "red.400"}>{syncStatus.message}</Text>
-                    )}
                 </VStack>
             </Box>
         </VStack>
@@ -604,7 +539,7 @@ const BridgeTab = ({ config, language }: any) => {
     const [logs, setLogs] = useState<string[]>([]);
     const [status, setStatus] = useState<{ type: 'idle' | 'loading' | 'success' | 'error', msg: string }>({ type: 'idle', msg: '' });
 
-    const fetchLogs = async () => {
+    const fetchLogs = useCallback(async () => {
         try {
             const res = await fetch(`/api/indi/logs?ip=${config.astroberryUrl}`);
             const data = await res.json();
@@ -614,14 +549,14 @@ const BridgeTab = ({ config, language }: any) => {
         } catch (e) {
             console.error(e);
         }
-    };
+    }, [config.astroberryUrl]);
 
     // Poll logs every 2s
     useEffect(() => {
         fetchLogs();
         const interval = setInterval(fetchLogs, 2000);
         return () => clearInterval(interval);
-    }, [config.astroberryUrl]);
+    }, [fetchLogs]);
 
     const handleAction = async (action: 'reconnect' | 'restart_kstars') => {
         setStatus({ type: 'loading', msg: '' });

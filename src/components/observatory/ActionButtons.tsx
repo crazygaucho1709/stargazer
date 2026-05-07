@@ -1,45 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import React from "react";
 import { 
     VStack, HStack, Button, Icon, Text, Box
 } from "@chakra-ui/react";
 import { 
     Power, RefreshCw, Anchor, Compass, ShieldAlert, Rocket, Terminal
 } from "lucide-react";
-import React from "react";
+import { useAstroAction } from "@/hooks/useAstroAction";
 
 export const ActionButtons = () => {
-    const [loadingAction, setLoadingAction] = useState<string | null>(null);
-
-    const handleAction = async (endpoint: string, method: string = 'POST', body: any = {}) => {
-        setLoadingAction(endpoint);
-        try {
-            const res = await fetch(endpoint, { 
-                method,
-                headers: { 'Content-Type': 'application/json' },
-                body: method === 'POST' ? JSON.stringify(body) : undefined
-            });
-            
-            const text = await res.text();
-            let data;
-            try {
-                data = JSON.parse(text);
-            } catch (e) {
-                data = { success: res.ok, message: text || (res.ok ? "Success" : "Invalid response from server") };
-            }
-            
-            if (data.success || res.ok) {
-                alert(data.message || data.response?.message || "Action successful");
-            } else {
-                throw new Error(data.message || data.error || "Action failed");
-            }
-        } catch (e: any) {
-            alert("Error: " + e.message);
-        } finally {
-            setLoadingAction(null);
-        }
-    };
+    const { execute, isPending } = useAstroAction();
 
     const ActionBtn = ({ label, icon: IconComp, onClick, colorScheme = "gray", isLoading = false, variant = "outline" }: any) => (
         <Button 
@@ -72,23 +43,23 @@ export const ActionButtons = () => {
                         label="PARK MOUNT" 
                         icon={Anchor} 
                         colorScheme="yellow" 
-                        onClick={() => handleAction('/api/mount/park')}
-                        isLoading={loadingAction === '/api/mount/park'}
+                        onClick={() => execute('/api/mount/park', 'PARK MOUNT')}
+                        isLoading={isPending}
                     />
                     <ActionBtn 
                         label="UNPARK" 
                         icon={Compass} 
                         colorScheme="green" 
-                        onClick={() => handleAction('/api/mount/unpark')}
-                        isLoading={loadingAction === '/api/mount/unpark'}
+                        onClick={() => execute('/api/mount/unpark', 'UNPARK MOUNT')}
+                        isLoading={isPending}
                     />
                     <ActionBtn 
                         label="ABORT ALL" 
                         icon={ShieldAlert} 
                         colorScheme="red" 
                         variant="solid"
-                        onClick={() => handleAction('/api/mount/abort')}
-                        isLoading={loadingAction === '/api/mount/abort'}
+                        onClick={() => execute('/api/mount/abort', 'ABORTING ALL', { body: { action: 'abort_all' } })}
+                        isLoading={isPending}
                     />
                 </HStack>
             </Box>
@@ -102,22 +73,22 @@ export const ActionButtons = () => {
                         <ActionBtn 
                             label="RESTART KSTARS+EKOS" 
                             icon={RefreshCw} 
-                            onClick={() => handleAction('/api/indi/reconnect', 'POST', { action: 'reconnect' })}
-                            isLoading={loadingAction === '/api/indi/reconnect'}
+                            onClick={() => execute('/api/indi/reconnect', 'RESTART KSTARS', { body: { action: 'reconnect' } })}
+                            isLoading={isPending}
                         />
                         <ActionBtn 
                             label="LAUNCH EKOS ONLY" 
                             icon={Rocket} 
-                            onClick={() => handleAction('/api/indi/launch_ekos', 'POST')}
-                            isLoading={loadingAction === '/api/indi/launch_ekos'}
+                            onClick={() => execute('/api/indi/launch_ekos', 'LAUNCH EKOS')}
+                            isLoading={isPending}
                         />
                     </HStack>
                     <HStack w="full" gap={3}>
                         <ActionBtn 
                             label="RESTART RPI INDI" 
                             icon={Terminal} 
-                            onClick={() => handleAction('/api/astroberry', 'POST', { action: 'restart-indi' })}
-                            isLoading={loadingAction === '/api/astroberry'}
+                            onClick={() => execute('/api/astroberry', 'RESTART INDI', { body: { action: 'restart-indi' } })}
+                            isLoading={isPending}
                         />
                         <ActionBtn 
                             label="REBOOT ASTROBERRY" 
@@ -125,9 +96,10 @@ export const ActionButtons = () => {
                             colorScheme="red"
                             onClick={() => {
                                 if (confirm("Reboot Astroberry? The observatory will be offline for ~60s.")) {
-                                    handleAction('/api/astroberry', 'POST', { action: 'reboot', confirm: 'confirm' });
+                                    execute('/api/astroberry', 'REBOOT', { body: { action: 'reboot', confirm: 'confirm' } });
                                 }
                             }}
+                            isLoading={isPending}
                         />
                     </HStack>
                 </VStack>

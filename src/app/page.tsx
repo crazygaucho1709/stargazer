@@ -8,6 +8,7 @@ import { AIAssistant } from "@/components/ai/AIAssistant";
 import { MountCalibration } from "@/components/telescope/MountCalibration";
 import { AstroPod } from "@/components/ui/AstroPod";
 import { ConfigurationMenu } from "@/components/ui/ConfigurationMenu";
+import { GlobalLoader } from "@/components/ui/GlobalLoader";
 import { useStargazerStore } from "@/store/useStargazerStore";
 import { t } from "@/i18n/translations";
 import { useEffect, useState } from "react";
@@ -18,7 +19,7 @@ import {
 } from "lucide-react";
 
 export default function Home() {
-    const { isConnected: connected, setConnected, isExposing, alt, az, language } = useStargazerStore();
+    const { isConnected: connected, setConnected, isExposing, alt, az, language, isLoading } = useStargazerStore();
     const [statusText, setStatusText] = useState("");
     const envData = useEnvironmentData();
     const [mounted, setMounted] = useState(false);
@@ -60,6 +61,7 @@ export default function Home() {
 
     return (
         <Box h="100vh" w="100vw" position="relative" overflow="hidden" bg="#030509">
+            <GlobalLoader />
             <LiveView />
             
             <Box position="absolute" inset="0" pointerEvents="none" zIndex={1} bg="radial-gradient(circle at center, transparent 40%, rgba(3, 5, 9, 0.95) 100%)" />

@@ -6,6 +6,8 @@ import { useStargazerStore } from "@/store/useStargazerStore";
 import { t } from "@/i18n/translations";
 import { Crosshair, Target, Scan, ShieldCheck, Camera, Globe, ZoomIn, ZoomOut, Play, Square, AlertTriangle } from "lucide-react";
 import { useState, useEffect } from "react";
+import { HfrOverlay } from "@/components/observatory/HfrOverlay";
+import { CaptureProgress } from "@/components/observatory/CaptureProgress";
 
 export const LiveView = () => {
     const { isExposing, isSlewing, ra, dec, alt, az, liveViewMode, setLiveViewMode, zoom, setZoom, language, config } = useStargazerStore();
@@ -51,8 +53,12 @@ export const LiveView = () => {
     const startLiveView = async () => {
         try {
             setStreamStatus("Starting...");
-            await fetch(`/api/indi?endpoint=ccd/stream/start`, { method: 'POST' });
-            setCcdImage(`/api/indi?endpoint=video_feed&t=${Date.now()}`);
+            await fetch('/api/indi/liveview', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'start' })
+            });
+            setCcdImage(`/api/indi/stream?t=${Date.now()}`);
             setIsLiveStreaming(true);
             setStreamStatus("LIVE");
         } catch (e) {
@@ -62,7 +68,11 @@ export const LiveView = () => {
 
     const stopLiveView = async () => {
         try {
-            await fetch(`http://${bridgeIp}:5005/ccd/stream/stop`, { method: 'POST' });
+            await fetch('/api/indi/liveview', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'stop' })
+            });
             setIsLiveStreaming(false);
             setCcdImage(null);
             setStreamStatus("");
@@ -352,6 +362,10 @@ export const LiveView = () => {
                         </VStack>
                     </HStack>
                 </VStack>
+
+                {/* Overlays */}
+                {liveViewMode === "CANON" && config.showHfrOverlay && <HfrOverlay />}
+                <CaptureProgress />
             </Box>
 
             <style jsx global>{`

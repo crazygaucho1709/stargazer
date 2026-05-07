@@ -1,10 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Box, VStack, HStack, Text, Button, Icon, Badge, Flex } from "@chakra-ui/react";
-import { CheckCircle, AlertTriangle, Telescope, Camera, Compass, ArrowRight, RotateCcw, MapPin, Video, Check, X, AlertCircle, Target, Star, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Box, VStack, HStack, Text, Button, Icon, Badge, Flex, Grid, Spinner } from "@chakra-ui/react";
+import { 
+  Telescope, Target, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, 
+  Settings2, Activity, MapPin, CheckCircle2, AlertTriangle, RefreshCw, X
+} from "lucide-react";
 import { useStargazerStore } from "@/store/useStargazerStore";
 import { mockApi } from "@/services/mockApi";
+import { useAstroAction } from "@/hooks/useAstroAction";
+import { Tooltip } from "@/components/ui/tooltip";
 
 type CalibrationStep = 
   | 'idle' 
@@ -42,17 +47,31 @@ const BRIGHT_STARS = [
 export const CalibrationWizard = () => {
   const { language, config, setMountLimits, mountLimits, setSlewing } = useStargazerStore();
   const bridgeIp = config.astroberryUrl.includes('http') ? new URL(config.astroberryUrl).hostname : config.astroberryUrl.split(':')[0];
+  
   const [step, setStep] = useState<StepStatus>({
     step: 'idle',
     isWaitingUser: false,
     message: '',
     instruction: ''
   });
-  const [errors, setErrors] = useState<string[]>([]);
+  
   const [videoActive, setVideoActive] = useState(false);
   const [selectedStar, setSelectedStar] = useState(BRIGHT_STARS[0]);
   const [imageTime, setImageTime] = useState(Date.now());
   const [starAltAz, setStarAltAz] = useState<{alt: number, az: number} | null>(null);
+
+  const { execute: performAction, isPending, error: actionError } = useAstroAction();
+
+  // Step Progress Calculation
+  const getStepProgress = () => {
+    const steps: CalibrationStep[] = [
+      'connection', 'init-mount', 'park', 'limits-alt-max', 
+      'limits-alt-min', 'limits-az-max', 'limits-az-min', 
+      'camera-test', 'alignment', 'complete'
+    ];
+    const idx = steps.indexOf(step.step);
+    return idx === -1 ? 0 : ((idx + 1) / steps.length) * 100;
+  };
 
   useEffect(() => {
     if (step.step !== 'alignment') return;
@@ -70,7 +89,6 @@ export const CalibrationWizard = () => {
   useEffect(() => {
     if (step.step !== 'idle' && step.step !== 'complete') {
       setVideoActive(true);
-      // Start camera stream
       fetch('/api/indi/liveview', { 
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' },
@@ -85,93 +103,110 @@ export const CalibrationWizard = () => {
     if (!videoActive) return;
     const interval = setInterval(() => {
       setImageTime(Date.now());
-    }, 1000); // Contrôle le rafraîchissement à 1 image/sec
+    }, 1000);
     return () => clearInterval(interval);
   }, [videoActive]);
 
   const startCalibration = async () => {
-    setErrors([]);
-    setStep({
-      step: 'connection',
-      isWaitingUser: false,
-      message: language === 'fr' ? 'Vérification connexion...' : 'Checking connection...',
-      instruction: ''
-    });
+    await performAction(async () => {
+        setStep({
+            step: 'connection',
+            isWaitingUser: false,
+            message: language === 'fr' ? 'Vérification connexion...' : 'Checking connection...',
+            instruction: ''
+        });
 
-    const ping = await mockApi.ping(config.astroberryUrl, config.driverInstance);
-    if (!ping.success) {
-      setStep({ step: 'idle', isWaitingUser: false, message: '', instruction: '' });
-      setErrors([language === 'fr' ? 'Connexion échouée.' : 'Connection failed.']);
-      return;
-    }
+        const ping = await mockApi.ping(config.astroberryUrl, config.driverInstance);
+        if (!ping.success) {
+            throw new Error(language === 'fr' ? 'Connexion échouée.' : 'Connection failed.');
+        }
 
-    setStep({
-      step: 'init-mount',
-      isWaitingUser: false,
-      message: language === 'fr' ? 'Initialisation NexStar...' : 'Initializing NexStar...',
-      instruction: language === 'fr' ? 'Écrasement raquette : Envoi Heure (UTC), GPS et Limites...' : 'Overriding Hand Controller: Pushing Time, GPS & Limits...'
-    });
+        setStep({
+            step: 'init-mount',
+            isWaitingUser: false,
+            message: language === 'fr' ? 'Initialisation NexStar...' : 'Initializing NexStar...',
+            instruction: language === 'fr' ? 'Écrasement raquette : Envoi Heure (UTC), GPS et Limites...' : 'Overriding Hand Controller: Pushing Time, GPS & Limits...'
+        });
 
-    try {
-      await fetch('/api/indi/mount', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'sync_master',
-          lat: parseFloat(config.latitude),
-          lon: parseFloat(config.longitude),
-          utcTime: new Date().toISOString(),
-          limits: mountLimits,
-          ip: bridgeIp
-        })
-      });
-    } catch (e) {
-      console.error("Mount sync failed", e);
-    }
+        await fetch('/api/indi/mount', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'sync_master',
+                lat: parseFloat(config.latitude),
+                lon: parseFloat(config.longitude),
+                utcTime: new Date().toISOString(),
+                limits: mountLimits,
+                ip: bridgeIp
+            })
+        });
 
-    await new Promise(r => setTimeout(r, 1500)); // Petit délai pour laisser l'UI s'afficher et INDI digérer
+        await new Promise(r => setTimeout(r, 1500));
 
-    const isSouthernHemisphere = parseFloat(config.latitude) < 0;
-    setStep({
-      step: 'park',
-      isWaitingUser: true,
-      message: language === 'fr' ? 'Mise en station' : 'Parking',
-      instruction: language === 'fr' 
-        ? `Garez la monture: tube horizontal, pointé vers le ${isSouthernHemisphere ? 'Sud' : 'Nord'}.`
-        : `Park the mount: tube horizontal, pointing ${isSouthernHemisphere ? 'South' : 'North'}.`
-    });
+        const isSouthernHemisphere = parseFloat(config.latitude) < 0;
+        setStep({
+            step: 'park',
+            isWaitingUser: true,
+            message: language === 'fr' ? 'Mise en station' : 'Parking',
+            instruction: language === 'fr' 
+                ? `Garez la monture: tube horizontal, pointé vers le ${isSouthernHemisphere ? 'Sud' : 'Nord'}.`
+                : `Park the mount: tube horizontal, pointing ${isSouthernHemisphere ? 'South' : 'North'}.`
+        });
+    }, "CALIBRATION WIZARD START");
   };
 
   const syncParkPosition = async () => {
-    const isSouthernHemisphere = parseFloat(config.latitude) < 0;
-    try {
-      await fetch('/api/indi/mount', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'sync_master',
-          lat: parseFloat(config.latitude),
-          lon: parseFloat(config.longitude),
-          alt: 0,
-          az: isSouthernHemisphere ? 180 : 0,
-          ip: bridgeIp
-        })
-      });
+    await performAction(async () => {
+        const isSouthernHemisphere = parseFloat(config.latitude) < 0;
+        await fetch('/api/indi/mount', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'sync_master',
+                lat: parseFloat(config.latitude),
+                lon: parseFloat(config.longitude),
+                alt: 0,
+                az: isSouthernHemisphere ? 180 : 0,
+                ip: bridgeIp
+            })
+        });
 
-      setStep({
-        step: 'limits-alt-max',
-        isWaitingUser: true,
-        message: language === 'fr' ? 'Altitude Max' : 'Max Altitude',
-        instruction: language === 'fr' ? 'Montez au maximum sécurisé.' : 'Raise to max safe position.'
-      });
-    } catch (e: any) {
-      setErrors([e.message || "Sync Error"]);
-    }
+        setStep({
+            step: 'limits-alt-max',
+            isWaitingUser: true,
+            message: language === 'fr' ? 'Altitude Max' : 'Max Altitude',
+            instruction: language === 'fr' ? 'Montez au maximum sécurisé.' : 'Raise to max safe position.'
+        });
+    }, "SYNC PARK POSITION");
   };
 
-  const saveMaxAlt = () => {
-    const { alt } = useStargazerStore.getState();
-    setMountLimits({ ...mountLimits, maxAlt: alt });
+  // Fetch live altitude from mount, fall back to store value
+  const getCurrentAlt = async (): Promise<number> => {
+    try {
+      const res = await fetch('/api/mount/status', { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        if (typeof data.alt === 'number') return data.alt;
+      }
+    } catch {}
+    return useStargazerStore.getState().alt;
+  };
+
+  // Fetch live azimuth from mount, fall back to store value
+  const getCurrentAz = async (): Promise<number> => {
+    try {
+      const res = await fetch('/api/mount/status', { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        if (typeof data.az === 'number') return data.az;
+      }
+    } catch {}
+    return useStargazerStore.getState().az;
+  };
+
+  const saveMaxAlt = async () => {
+    const currentAlt = await getCurrentAlt();
+    setMountLimits({ ...mountLimits, maxAlt: currentAlt });
     setStep({
       step: 'limits-alt-min',
       isWaitingUser: true,
@@ -180,9 +215,9 @@ export const CalibrationWizard = () => {
     });
   };
 
-  const saveMinAlt = () => {
-    const { alt } = useStargazerStore.getState();
-    setMountLimits({ ...mountLimits, minAlt: alt });
+  const saveMinAlt = async () => {
+    const currentAlt = await getCurrentAlt();
+    setMountLimits({ ...mountLimits, minAlt: currentAlt });
     setStep({
       step: 'limits-az-max',
       isWaitingUser: true,
@@ -191,9 +226,9 @@ export const CalibrationWizard = () => {
     });
   };
 
-  const saveMaxAz = () => {
-    const { az } = useStargazerStore.getState();
-    setMountLimits({ ...mountLimits, maxAz: az });
+  const saveMaxAz = async () => {
+    const currentAz = await getCurrentAz();
+    setMountLimits({ ...mountLimits, maxAz: currentAz });
     setStep({
       step: 'limits-az-min',
       isWaitingUser: true,
@@ -202,10 +237,10 @@ export const CalibrationWizard = () => {
     });
   };
 
-  const saveMinAz = () => {
-    const { az } = useStargazerStore.getState();
-    setMountLimits({ ...mountLimits, minAz: az });
-    mockApi.saveConfig({ mountLimits: { ...mountLimits, minAz: az } });
+  const saveMinAz = async () => {
+    const currentAz = await getCurrentAz();
+    setMountLimits({ ...mountLimits, minAz: currentAz });
+    mockApi.saveConfig({ mountLimits: { ...mountLimits, minAz: currentAz } });
     setStep({
       step: 'camera-test',
       isWaitingUser: true,
@@ -214,50 +249,36 @@ export const CalibrationWizard = () => {
     });
   };
 
-  const testCamera = async () => {
-    setStep({
-      step: 'alignment',
-      isWaitingUser: true,
-      message: language === 'fr' ? 'Alignement' : 'Alignment',
-      instruction: 'Choisissez une étoile et centrez-la.'
-    });
-  };
-
   const startStarGoto = async () => {
-    setSlewing(true);
-    try {
-      await fetch('/api/indi/mount', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'slew', device: config.driverInstance, ra: selectedStar.ra, dec: selectedStar.dec, ip: bridgeIp })
-      });
-    } catch (e: any) {
-      setErrors([e.message || "GOTO error"]);
-    }
-    setSlewing(false);
+    await performAction(async () => {
+        setSlewing(true);
+        await fetch('/api/indi/mount', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'slew', device: config.driverInstance, ra: selectedStar.ra, dec: selectedStar.dec, ip: bridgeIp })
+        });
+        setSlewing(false);
+    }, "STAR GOTO");
   };
 
   const syncStar = async () => {
-    try {
-      await fetch('/api/indi/mount', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'sync', ra: selectedStar.ra, dec: selectedStar.dec, ip: bridgeIp })
-      });
-      setStep({
-        step: 'complete',
-        isWaitingUser: false,
-        message: 'Terminé',
-        instruction: 'Alignement réussi.'
-      });
-    } catch (e: any) {
-      setErrors([e.message || "Sync error"]);
-    }
+    await performAction(async () => {
+        await fetch('/api/indi/mount', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'sync', ra: selectedStar.ra, dec: selectedStar.dec, ip: bridgeIp })
+        });
+        setStep({
+            step: 'complete',
+            isWaitingUser: false,
+            message: 'Terminé',
+            instruction: 'Alignement réussi.'
+        });
+    }, "SYNC STAR");
   };
 
   const reset = () => {
     setStep({ step: 'idle', isWaitingUser: false, message: '', instruction: '' });
-    setErrors([]);
   };
   
   const jogMount = (direction: 'up' | 'down' | 'left' | 'right') => {
@@ -278,58 +299,266 @@ export const CalibrationWizard = () => {
 
   if (step.step === 'idle') {
     return (
-      <Button w="full" bg="var(--astro-teal)" color="black" onClick={startCalibration}>
-        {language === 'fr' ? 'DÉMARRER CALIBRATION' : 'START CALIBRATION'}
-      </Button>
+      <VStack gap={4} w="full">
+        <Box 
+            p={6} 
+            w="full" 
+            className="astro-panel" 
+            border="1px solid rgba(0, 255, 209, 0.2)"
+            textAlign="center"
+        >
+            <Icon as={Settings2} boxSize={8} color="var(--astro-teal)" mb={4} className="ping-slow" />
+            <Text fontSize="14px" fontWeight="bold" letterSpacing="0.2em" color="white" mb={2}>
+                {language === 'fr' ? 'CALIBRATION SYSTÈME' : 'SYSTEM CALIBRATION'}
+            </Text>
+            <Text fontSize="11px" color="whiteAlpha.600" mb={6}>
+                {language === 'fr' 
+                  ? 'Initialisez votre observatoire: connexion, limites et alignement céleste.'
+                  : 'Initialize your observatory: connection, limits, and celestial alignment.'}
+            </Text>
+            <Button 
+                w="full" 
+                bg="var(--astro-teal)" 
+                color="black" 
+                _hover={{ bg: "white", transform: "scale(1.02)" }}
+                transition="all 0.3s"
+                onClick={startCalibration}
+            >
+                {language === 'fr' ? 'LANCER LE WIZARD' : 'LAUNCH WIZARD'}
+            </Button>
+        </Box>
+      </VStack>
     );
   }
 
   return (
-    <VStack align="stretch" gap={4}>
-      <Box bg="rgba(0,240,255,0.1)" p={3} borderRadius="md" borderLeft="3px solid var(--astro-teal)">
-        <Text fontSize="12px" fontWeight="bold" color="white">{step.message}</Text>
-        <Text fontSize="10px" color="whiteAlpha.700">{step.instruction}</Text>
+    <VStack align="stretch" gap={4} w="full" className="astro-panel" p={4} border="1px solid rgba(0, 255, 209, 0.1)">
+      {/* Header & Progress */}
+      <VStack align="stretch" gap={2}>
+        <HStack justify="space-between">
+            <HStack gap={2}>
+                <Icon as={Activity} boxSize={4} color="var(--astro-teal)" className="scanning" />
+                <Text fontSize="10px" fontWeight="bold" letterSpacing="0.1em" color="var(--astro-teal)">
+                    {step.step.toUpperCase().replace('-', ' ')}
+                </Text>
+            </HStack>
+            <Text fontSize="10px" color="whiteAlpha.500">
+                {Math.round(getStepProgress())}%
+            </Text>
+        </HStack>
+        <Box w="full" h="2px" bg="rgba(255,255,255,0.05)" borderRadius="full" overflow="hidden">
+            <Box 
+                h="full" 
+                bg="var(--astro-teal)" 
+                transition="width 0.5s ease-out"
+                style={{ width: `${getStepProgress()}%` }}
+                boxShadow="0 0 10px var(--astro-teal)"
+            />
+        </Box>
+      </VStack>
+
+      {/* Message Area */}
+      <Box 
+        bg="rgba(0,240,255,0.05)" 
+        p={3} 
+        borderRadius="4px" 
+        borderLeft="2px solid var(--astro-teal)"
+        position="relative"
+        overflow="hidden"
+      >
+        <Box 
+            position="absolute" 
+            top="0" 
+            left="0" 
+            w="full" 
+            h="full" 
+            className="scanline" 
+            opacity={0.1}
+            pointerEvents="none"
+        />
+        <Text fontSize="12px" fontWeight="bold" color="white" mb={1}>{step.message}</Text>
+        <Text fontSize="10px" color="whiteAlpha.700" lineHeight="1.4">{step.instruction}</Text>
       </Box>
 
+      {/* Live View HUD */}
       {videoActive && (
-        <Box bg="black" borderRadius="md" border="1px solid var(--astro-teal)" h="150px" position="relative">
+        <Box 
+            bg="black" 
+            borderRadius="4px" 
+            border="1px solid rgba(0, 255, 209, 0.3)" 
+            h="180px" 
+            position="relative"
+            overflow="hidden"
+        >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={`/api/indi/latest-image?ip=${bridgeIp}&t=${imageTime}`} style={{ width:'100%', height:'100%', objectFit:'contain' }} alt="Live" />
-          <Box position="absolute" top="50%" left="50%" transform="translate(-50%,-50%)" w="20px" h="20px" border="1px solid rgba(0,240,255,0.5)" borderRadius="full" />
+          <img 
+            src={`/api/indi/latest-image?ip=${bridgeIp}&t=${imageTime}`} 
+            style={{ width:'100%', height:'100%', objectFit:'contain' }} 
+            alt="Live" 
+          />
+          
+          {/* HUD Overlays */}
+          <Box position="absolute" top="0" left="0" w="full" h="full" pointerEvents="none">
+              {/* Reticle */}
+              <Box position="absolute" top="50%" left="50%" transform="translate(-50%,-50%)" w="40px" h="40px">
+                  <Box position="absolute" top="0" left="50%" transform="translateX(-50%)" w="1px" h="10px" bg="var(--astro-teal)" />
+                  <Box position="absolute" bottom="0" left="50%" transform="translateX(-50%)" w="1px" h="10px" bg="var(--astro-teal)" />
+                  <Box position="absolute" left="0" top="50%" transform="translateY(-50%)" w="10px" h="1px" bg="var(--astro-teal)" />
+                  <Box position="absolute" right="0" top="50%" transform="translateY(-50%)" w="10px" h="1px" bg="var(--astro-teal)" />
+                  <Box position="absolute" top="50%" left="50%" transform="translate(-50%,-50%)" w="20px" h="20px" border="1px solid rgba(0, 255, 209, 0.3)" borderRadius="full" />
+              </Box>
+              
+              {/* Corner Accents */}
+              <Box position="absolute" top="10px" left="10px" w="10px" h="10px" borderTop="1px solid var(--astro-teal)" borderLeft="1px solid var(--astro-teal)" />
+              <Box position="absolute" top="10px" right="10px" w="10px" h="10px" borderTop="1px solid var(--astro-teal)" borderRight="1px solid var(--astro-teal)" />
+              <Box position="absolute" bottom="10px" left="10px" w="10px" h="10px" borderBottom="1px solid var(--astro-teal)" borderLeft="1px solid var(--astro-teal)" />
+              <Box position="absolute" bottom="10px" right="10px" w="10px" h="10px" borderBottom="1px solid var(--astro-teal)" borderRight="1px solid var(--astro-teal)" />
+          </Box>
+          
+          <Badge position="absolute" bottom={2} right={2} variant="solid" bg="rgba(0,0,0,0.6)" color="var(--astro-teal)" fontSize="8px">
+              LIVE_FEED_STABLE
+          </Badge>
         </Box>
       )}
 
+      {/* Manual Controls - HUD Style */}
       {step.isWaitingUser && step.step !== 'complete' && (
-        <VStack bg="whiteAlpha.100" p={2} borderRadius="md" gap={2}>
-          <Button size="xs" onMouseDown={() => jogMount('up')} onMouseUp={() => stopMount('up')} onMouseLeave={() => stopMount('up')} onTouchStart={() => jogMount('up')} onTouchEnd={() => stopMount('up')}><ChevronUp size={14}/></Button>
-          <HStack>
-            <Button size="xs" onMouseDown={() => jogMount('left')} onMouseUp={() => stopMount('left')} onMouseLeave={() => stopMount('left')} onTouchStart={() => jogMount('left')} onTouchEnd={() => stopMount('left')}><ChevronLeft size={14}/></Button>
-            <Box w="10px" />
-            <Button size="xs" onMouseDown={() => jogMount('right')} onMouseUp={() => stopMount('right')} onMouseLeave={() => stopMount('right')} onTouchStart={() => jogMount('right')} onTouchEnd={() => stopMount('right')}><ChevronRight size={14}/></Button>
-          </HStack>
-          <Button size="xs" onMouseDown={() => jogMount('down')} onMouseUp={() => stopMount('down')} onMouseLeave={() => stopMount('down')} onTouchStart={() => jogMount('down')} onTouchEnd={() => stopMount('down')}><ChevronDown size={14}/></Button>
+        <VStack bg="rgba(255,255,255,0.02)" p={4} borderRadius="4px" border="1px solid rgba(255,255,255,0.05)" gap={4}>
+          <Text fontSize="10px" fontWeight="bold" letterSpacing="0.1em" color="whiteAlpha.400">MANUAL JOG CONTROL</Text>
+          <Grid templateColumns="repeat(3, 1fr)" gap={2} w="fit-content">
+            <Box />
+            <Button 
+                variant="ghost" 
+                size="sm" 
+                color="var(--astro-teal)"
+                _hover={{ bg: "rgba(0, 255, 209, 0.1)" }}
+                onMouseDown={() => jogMount('up')} 
+                onMouseUp={() => stopMount('up')} 
+                onMouseLeave={() => stopMount('up')}
+            ><ChevronUp size={20}/></Button>
+            <Box />
+            
+            <Button 
+                variant="ghost" 
+                size="sm" 
+                color="var(--astro-teal)"
+                _hover={{ bg: "rgba(0, 255, 209, 0.1)" }}
+                onMouseDown={() => jogMount('left')} 
+                onMouseUp={() => stopMount('left')} 
+                onMouseLeave={() => stopMount('left')}
+            ><ChevronLeft size={20}/></Button>
+            <Box display="flex" alignItems="center" justifyContent="center">
+                <Box w="4px" h="4px" bg="var(--astro-teal)" borderRadius="full" className="ping-slow" />
+            </Box>
+            <Button 
+                variant="ghost" 
+                size="sm" 
+                color="var(--astro-teal)"
+                _hover={{ bg: "rgba(0, 255, 209, 0.1)" }}
+                onMouseDown={() => jogMount('right')} 
+                onMouseUp={() => stopMount('right')} 
+                onMouseLeave={() => stopMount('right')}
+            ><ChevronRight size={20}/></Button>
+            
+            <Box />
+            <Button 
+                variant="ghost" 
+                size="sm" 
+                color="var(--astro-teal)"
+                _hover={{ bg: "rgba(0, 255, 209, 0.1)" }}
+                onMouseDown={() => jogMount('down')} 
+                onMouseUp={() => stopMount('down')} 
+                onMouseLeave={() => stopMount('down')}
+            ><ChevronDown size={20}/></Button>
+            <Box />
+          </Grid>
         </VStack>
       )}
 
-      <VStack gap={2}>
-        {step.step === 'park' && <Button w="full" size="sm" bg="orange.500" onClick={syncParkPosition}>SYNC PARKING (0°)</Button>}
-        {step.step === 'limits-alt-max' && <Button w="full" size="sm" bg="var(--astro-teal)" onClick={saveMaxAlt}>VALIDER MAX ALT</Button>}
-        {step.step === 'limits-alt-min' && <Button w="full" size="sm" bg="var(--astro-teal)" onClick={saveMinAlt}>VALIDER MIN ALT</Button>}
-        {step.step === 'limits-az-max' && <Button w="full" size="sm" bg="var(--astro-teal)" onClick={saveMaxAz}>VALIDER MAX AZ (E)</Button>}
-        {step.step === 'limits-az-min' && <Button w="full" size="sm" bg="var(--astro-teal)" onClick={saveMinAz}>VALIDER MIN AZ (W)</Button>}
-        {step.step === 'camera-test' && <Button w="full" size="sm" bg="var(--astro-teal)" onClick={testCamera}>ALLER À L&apos;ALIGNEMENT</Button>}
+      {/* Action Buttons */}
+      <VStack gap={3}>
+        {step.step === 'park' && (
+            <Button w="full" size="md" bg="var(--astro-gold)" color="black" onClick={syncParkPosition} disabled={isPending}>
+                {isPending ? <Spinner size="sm" mr={2} /> : null}
+                CONFIRMER POSITION REPOS (0°, 0°)
+            </Button>
+        )}
+        
+        {['limits-alt-max', 'limits-alt-min', 'limits-az-max', 'limits-az-min'].includes(step.step) && (
+            <Button w="full" size="md" bg="var(--astro-teal)" color="black" onClick={() => {
+                if (step.step === 'limits-alt-max') saveMaxAlt();
+                else if (step.step === 'limits-alt-min') saveMinAlt();
+                else if (step.step === 'limits-az-max') saveMaxAz();
+                else if (step.step === 'limits-az-min') saveMinAz();
+            }}>
+                VALIDER POSITION ACTUELLE
+            </Button>
+        )}
+
+        {step.step === 'camera-test' && (
+            <Button w="full" size="md" bg="var(--astro-teal)" color="black" onClick={() => setStep({
+                step: 'alignment',
+                isWaitingUser: true,
+                message: language === 'fr' ? 'Alignement Stellaire' : 'Stellar Alignment',
+                instruction: language === 'fr' ? 'Choisissez une étoile brillante et centrez-la.' : 'Pick a bright star and center it.'
+            })}>
+                PASSER À L&apos;ALIGNEMENT
+            </Button>
+        )}
+
         {step.step === 'alignment' && (
-          <VStack w="full" gap={2}>
-            <Box as="select" w="full" bg="black" color="white" fontSize="xs" p={1} onChange={(e:any) => setSelectedStar(BRIGHT_STARS.find(s=>s.name===e.target.value)||BRIGHT_STARS[0])}>
-              {BRIGHT_STARS.map(s => <option key={s.name}>{s.name}</option>)}
+          <VStack w="full" gap={3} p={3} bg="rgba(0,0,0,0.2)" borderRadius="4px">
+            <Box as="select" w="full" bg="black" color="var(--astro-teal)" fontSize="xs" p={2} border="1px solid rgba(0, 255, 209, 0.2)" borderRadius="4px" onChange={(e:any) => setSelectedStar(BRIGHT_STARS.find(s=>s.name===e.target.value)||BRIGHT_STARS[0])}>
+              {BRIGHT_STARS.map(s => <option key={s.name} value={s.name}>{s.name.toUpperCase()}</option>)}
             </Box>
-            {starAltAz && <Text fontSize="9px" color="orange.300">CIBLE: {starAltAz.alt.toFixed(1)}° / {starAltAz.az.toFixed(0)}°</Text>}
-            <Button w="full" size="sm" bg="var(--astro-gold)" onClick={startStarGoto}>GOTO</Button>
-            <Button w="full" size="sm" bg="green.500" onClick={syncStar}>SYNCHRONISER</Button>
+            
+            {starAltAz ? (
+                <HStack w="full" justify="space-between" px={1}>
+                    <Text fontSize="10px" color="whiteAlpha.600">TARGET POSITION:</Text>
+                    <Text fontSize="10px" fontWeight="bold" color="var(--astro-gold)">
+                        ALT {starAltAz.alt.toFixed(1)}° / AZ {starAltAz.az.toFixed(0)}°
+                    </Text>
+                </HStack>
+            ) : selectedStar && (
+                <Text fontSize="10px" color="orange.300">
+                    ⚠ {language === 'fr' ? 'Alt/Az non calculable — backend hors ligne ou étoile sous l\'horizon' : 'Cannot compute Alt/Az — backend offline or star below horizon'}
+                </Text>
+            )}
+            
+            <HStack w="full" gap={2}>
+                <Button flex={1} size="sm" variant="outline" borderColor="var(--astro-gold)" color="var(--astro-gold)" onClick={startStarGoto} disabled={isPending}>
+                    {isPending ? <Spinner size="sm" mr={2} /> : null}
+                    GOTO
+                </Button>
+                <Button flex={1} size="sm" bg="green.600" color="white" onClick={syncStar} disabled={isPending}>
+                    {isPending ? <Spinner size="sm" mr={2} /> : null}
+                    SYNC
+                </Button>
+            </HStack>
           </VStack>
         )}
-        {step.step === 'complete' && <Button w="full" size="sm" bg="green.600" onClick={reset}>TERMINER</Button>}
-        <Button size="xs" variant="ghost" onClick={reset}>ANNULER</Button>
+
+        {step.step === 'complete' && (
+            <VStack w="full" gap={4}>
+                <Icon as={CheckCircle2} boxSize={10} color="green.400" />
+                <Text fontSize="14px" fontWeight="bold" color="white">CALIBRATION RÉUSSIE</Text>
+                <Button w="full" size="md" bg="green.600" color="white" onClick={reset}>
+                    FERMER LE WIZARD
+                </Button>
+            </VStack>
+        )}
+
+        {actionError && (
+            <HStack bg="red.500/10" p={2} borderRadius="4px" border="1px solid red.500/30" w="full">
+                <Icon as={AlertTriangle} boxSize={3} color="red.400" />
+                <Text fontSize="9px" color="red.400">{actionError}</Text>
+            </HStack>
+        )}
+
+        <Button size="xs" variant="ghost" color="whiteAlpha.400" _hover={{ color: "red.400" }} onClick={reset}>
+            <X size={12} style={{ marginRight: '4px' }} />
+            {language === 'fr' ? 'ANNULER' : 'CANCEL'}
+        </Button>
       </VStack>
     </VStack>
   );
