@@ -10,6 +10,3 @@ pyindi-client
 numpy
 opencv-python
 pillow
-python-dotenv
-paramiko
-psutil

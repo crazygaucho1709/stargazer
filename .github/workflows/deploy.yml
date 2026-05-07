@@ -32,8 +32,15 @@ jobs:
       - name: 🐍 Install Python dependencies
         run: |
           cd /Users/matthieudelamourd/dev/project/web/stargazer
+          # Ensure venv exists
+          if [ ! -d "server/venv" ]; then
+            python3 -m venv server/venv
+          fi
+          # Install/Update
           server/venv/bin/python3 -m pip install --upgrade pip
-          server/venv/bin/pip install -r server/requirements.txt
+          server/venv/bin/pip install --no-cache-dir -r server/requirements.txt
+          # Verification
+          server/venv/bin/python3 -c "import dotenv; print('✅ python-dotenv is verified')"
           echo "✅ Python dependencies OK"
 
       - name: ♻️ Restart services
