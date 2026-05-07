@@ -5,6 +5,7 @@ import { Box, Grid, Button, VStack, HStack, Circle, Icon, Flex, Text } from "@ch
 import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Target, RotateCcw } from "lucide-react";
 import React from "react";
 import { useStargazerStore } from "@/store/useStargazerStore";
+import { useAstroAction } from "@/hooks/useAstroAction";
 
 interface TelescopeControlsProps {
     variant: "pad" | "jog" | "guiding";
@@ -49,6 +50,7 @@ const PadButton = ({ icon: DirIcon, glowColor = "var(--astro-teal)", onClick, on
 
 export const TelescopeControls = ({ variant }: TelescopeControlsProps) => {
     const { isSlewing, setSlewing, setPosition, config } = useStargazerStore();
+    const { execute } = useAstroAction();
     const activeDirectionRef = React.useRef<'up' | 'down' | 'left' | 'right' | null>(null);
     const [slewRate, setSlewRate] = React.useState(5);
 
@@ -63,15 +65,11 @@ export const TelescopeControls = ({ variant }: TelescopeControlsProps) => {
         // Change slew rate
         setSlewRate(value);
         
-        // Send rate to backend
-        const bridgeIp = config.astroberryUrl.includes('http') ? new URL(config.astroberryUrl).hostname : config.astroberryUrl.split(':')[0];
-        try {
-            await fetch('/api/indi/mount', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'rate', rate: value, ip: bridgeIp })
-            });
-        } catch(e) {}
+        // Send rate to backend using hook
+        await execute('/api/indi/mount', `SET RATE ${value}x`, {
+            body: { action: 'rate', rate: value, ip: config.astroberryUrl },
+            showGlobalLoader: false // No need for full screen loader for rate change
+        });
         
         // Restart motion if it was moving
         if (wasMoving && activeDirectionRef.current) {
@@ -79,62 +77,32 @@ export const TelescopeControls = ({ variant }: TelescopeControlsProps) => {
         }
     };
 
-    const parseCoordinate = (coord: string) => {
-        const parts = coord.match(/[-+]?\d+/g);
-        if (parts && parts.length >= 3) {
-            return {
-                h: parseInt(parts[0]),
-                m: parseInt(parts[1]),
-                s: parseInt(parts[2])
-            };
-        }
-        return { h: 0, m: 0, s: 0 };
-    };
-
     const handleMoveStart = async (direction: 'up' | 'down' | 'left' | 'right') => {
         activeDirectionRef.current = direction;
         setSlewing(true);
         
-        const bridgeIp = config.astroberryUrl.includes('http') ? new URL(config.astroberryUrl).hostname : config.astroberryUrl.split(':')[0];
-        try {
-            // Send rate right before moving to be sure
-            fetch('/api/indi/mount', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'rate', rate: slewRate, ip: bridgeIp })
-            }).catch(() => {});
-
-            const res = await fetch('/api/indi/mount', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    action: 'jog',
-                    direction: direction,
-                    state: 'start',
-                    ip: bridgeIp
-                })
-            });
-            const data = await res.json();
-            if (!res.ok || !data.success) throw new Error(data.error || 'Failed to move hardware');
-        } catch (e: any) {
-            alert(`SLEW ERROR\n\n${e.message}`);
-            setSlewing(false);
-        }
+        // Execute movement via hook
+        const result = await execute('/api/indi/mount', `SLEW ${direction.toUpperCase()}`, {
+            body: {
+                action: 'jog',
+                direction: direction,
+                state: 'start',
+                ip: config.astroberryUrl
+            },
+            showGlobalLoader: false
+        });
+        if (!result.success) setSlewing(false);
     };
 
     const handleMoveStop = async () => {
+        if (!activeDirectionRef.current) return;
+        
         activeDirectionRef.current = null;
         
-        const bridgeIp = config.astroberryUrl.includes('http') ? new URL(config.astroberryUrl).hostname : config.astroberryUrl.split(':')[0];
-        try {
-            await fetch('/api/indi/mount', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'jog', direction: 'up', state: 'stop', ip: bridgeIp })
-            });
-        } catch (e) {
-            console.error("Stop motion failed", e);
-        }
+        await execute('/api/indi/mount', "HALT", {
+            body: { action: 'jog', direction: 'up', state: 'stop', ip: config.astroberryUrl },
+            showGlobalLoader: false
+        });
         
         setSlewing(false);
     };

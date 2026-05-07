@@ -4,3 +4,7 @@ rawpy
 imageio
 astropy
 pydantic
+flask
+flask-cors
+psutil
+python-dotenv

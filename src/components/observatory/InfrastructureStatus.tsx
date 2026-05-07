@@ -134,7 +134,7 @@ export const InfrastructureStatus = () => {
                 metrics={[
                     { label: "Ping", value: astro.reachable ? (astro.ping_ms || 1) : 0, unit: "ms" },
                     { label: "CPU", value: astro.cpu_percent || 0, unit: "%" },
-                    { label: "Temp", value: astro.temperature || 0, unit: "" }
+                    { label: "Temp", value: astro.temperature || 0, unit: "°C" }
                 ]}
                 details={astro.reachable ? `SSH Connected • ${astro.uptime || 'N/A'}` : "Unreachable via SSH"}
             />

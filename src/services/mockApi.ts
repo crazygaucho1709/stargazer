@@ -235,7 +235,28 @@ export const mockApi = {
 
     capture: async (iso: number, exposure: number): Promise<any> => {
         if (!isHardwareConnected) return { success: false, error: "Hardware offline." };
-        return { success: true, data: "https://images.unsplash.com/photo-1462331940025-496dfbfc7564?auto=format&fit=crop&w=800&q=80" };
+        try {
+            // Trigger CCD capture via backend bridge
+            const captureRes = await fetch('/api/indi', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'capture',
+                    iso,
+                    exposure,
+                    endpoint: 'ccd/capture'
+                })
+            });
+            if (!captureRes.ok) {
+                return { success: false, error: `Capture failed: HTTP ${captureRes.status}` };
+            }
+            // Wait for exposure to complete (+500ms buffer)
+            await new Promise(r => setTimeout(r, (exposure * 1000) + 500));
+            // Return latest image URL via proxy (cache-busted)
+            return { success: true, data: `/api/indi?endpoint=ccd/latest&t=${Date.now()}` };
+        } catch (err: any) {
+            return { success: false, error: err.message };
+        }
     },
 
     runAiFocus: async (): Promise<any> => {
@@ -264,12 +285,20 @@ export const mockApi = {
     },
 
     syncLocation: async (lat: number, lon: number, device: string): Promise<any> => {
-        if (!isHardwareConnected) return { success: false, error: "Hardware offline." };
+        const { config } = useStargazerStore.getState();
+        
+        // Try to ensure we are connected before syncing
+        if (!isHardwareConnected) {
+            const pingRes = await mockApi.ping(config.astroberryUrl, config.driverInstance); 
+            if (!pingRes.success) return { success: false, error: `Hardware offline. ${pingRes.error || "Could not sync location."}` };
+        }
+        
         try {
             const formattedLat = parseFloat(lat.toFixed(4));
             let formattedLon = parseFloat(lon.toFixed(4));
-            if (formattedLon < 0) formattedLon += 360;
-
+            // Normalize longitude to 0-360 for INDI if needed, but usually -180 to 180 is fine
+            // Some drivers prefer 0-360, others -180 to 180. We'll stick to what was there but add safety.
+            
             const res = await fetch('/api/indi', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

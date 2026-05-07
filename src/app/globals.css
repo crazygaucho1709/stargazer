@@ -4,13 +4,13 @@
 @tailwind utilities;
 
 :root {
-  --astro-teal: #FF3333;
+  --astro-teal: #00FFD1;
   --astro-gold: #FFB347;
   --astro-cobalt: #1E3A8A;
   --astro-starlight: #E2E8F0;
 }
 
-@import url('https://fonts.googleapis.com/css2?family=Jura:wght@400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Jura:wght@400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
 
 html,
 body {
@@ -26,13 +26,17 @@ body {
   font-family: 'Space Grotesk', sans-serif;
   background-image: 
     radial-gradient(circle at 50% 0%, rgba(30, 58, 138, 0.15), transparent 50%),
-    radial-gradient(circle at 10% 80%, rgba(255, 51, 51, 0.05), transparent 40%);
+    radial-gradient(circle at 10% 80%, rgba(0, 255, 209, 0.05), transparent 40%);
 }
 
 h1, h2, h3, .hud-font {
   font-family: 'Jura', sans-serif;
   letter-spacing: 0.1em;
   text-transform: uppercase;
+}
+
+.mono-font {
+  font-family: 'JetBrains Mono', monospace;
 }
 
 /* Elegant Glass Panel */
@@ -45,7 +49,7 @@ h1, h2, h3, .hud-font {
   border-radius: 16px;
   box-shadow: 
     0 10px 40px rgba(0, 0, 0, 0.5),
-    inset 0 0 20px rgba(255, 51, 51, 0.02);
+    inset 0 0 20px rgba(0, 255, 209, 0.02);
   position: relative;
   transition: all 0.3s ease;
 }
@@ -70,6 +74,43 @@ h1, h2, h3, .hud-font {
 @keyframes pulse-glow {
   from { filter: drop-shadow(0 0 2px var(--astro-teal)); opacity: 0.8; }
   to { filter: drop-shadow(0 0 12px var(--astro-teal)); opacity: 1; }
+}
+
+.ping-slow {
+  animation: ping-slow 3s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes ping-slow {
+  75%, 100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+.scanning {
+  position: relative;
+  overflow: hidden;
+}
+
+.scanning::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 255, 209, 0.1) 50%,
+    transparent 100%
+  );
+  animation: scan 3s linear infinite;
+}
+
+@keyframes scan {
+  from { transform: translateY(-100%); }
+  to { transform: translateY(100%); }
 }
 
 /* Custom Scrollbar */

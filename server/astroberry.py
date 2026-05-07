@@ -53,14 +53,30 @@ def _run(cmd: str, timeout: int = 10) -> Dict[str, Any]:
 # ── Public API ───────────────────────────────────────────────────────────────
 
 def ping() -> bool:
-    """Return True if Astroberry is reachable via SSH."""
+    """Return True if Astroberry is reachable via ICMP (ping)."""
+    import subprocess
+    try:
+        # -c 2: two packets for better reliability, -W 1: 1s timeout per packet
+        result = subprocess.run(
+            ["ping", "-c", "2", "-W", "1", ASTROBERRY_HOST],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+        return result.returncode == 0
+    except Exception:
+        return False
+
+
+def ping_ssh() -> bool:
+    """Return True if Astroberry SSH port is reachable."""
     import socket
     try:
-        s = socket.create_connection((ASTROBERRY_HOST, ASTROBERRY_PORT), timeout=4)
+        s = socket.create_connection((ASTROBERRY_HOST, ASTROBERRY_PORT), timeout=2)
         s.close()
         return True
     except Exception:
         return False
+
 
 
 def get_status() -> Dict[str, Any]:

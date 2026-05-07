@@ -8,6 +8,9 @@ import { Radio, Activity, Terminal } from "lucide-react";
 import { InfrastructureStatus } from "./InfrastructureStatus";
 import { ActionButtons } from "./ActionButtons";
 import { LogStream } from "./LogStream";
+import { GlobalLoader } from "../ui/GlobalLoader";
+import { CaptureProgress } from "./CaptureProgress";
+import { HfrOverlay } from "./HfrOverlay";
 
 export default function ObservatoryPanel() {
     return (

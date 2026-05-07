@@ -21,6 +21,8 @@ interface Config {
     captureFormat: string;
     sensorCooling: boolean;
     aiFocus: boolean;
+    showHfrOverlay: boolean;
+    showAiFocusCorrections: boolean;
     exposureTime: number;
     isoGain: string;
     frameCount: number;
@@ -54,11 +56,22 @@ interface StargazerState {
     liveViewMode: "NASA" | "CANON";
     config: Config;
     mountLimits: MountLimits;
+    captureProgress: number;
+    stackingProgress: number;
+    isLoading: boolean;
+    hfr: number | null;
+    isGlobalLoading: boolean;
+    globalLoadingMessage: string;
 
     setLanguage: (lang: "en" | "fr") => void;
     setConnected: (status: boolean) => void;
     setSlewing: (status: boolean) => void;
     setExposing: (status: boolean) => void;
+    setCaptureProgress: (progress: number) => void;
+    setStackingProgress: (progress: number) => void;
+    setIsLoading: (status: boolean) => void;
+    setHfr: (hfr: number | null) => void;
+    setGlobalLoading: (isLoading: boolean, message?: string) => void;
     setPosition: (ra: string, dec: string, alt?: number, az?: number) => void;
     setZoom: (zoom: number) => void;
     addTarget: (target: Target) => void;
@@ -91,6 +104,8 @@ export const useStargazerStore = create<StargazerState>()(
                 captureFormat: "RAW",
                 sensorCooling: true,
                 aiFocus: true,
+                showHfrOverlay: true,
+                showAiFocusCorrections: true,
                 exposureTime: 120,
                 isoGain: "800",
                 frameCount: 30,
@@ -108,6 +123,12 @@ export const useStargazerStore = create<StargazerState>()(
                 maxAz: 360,
                 minAz: 0,
             },
+            captureProgress: 0,
+            stackingProgress: 0,
+            isLoading: false,
+            hfr: null,
+            isGlobalLoading: false,
+            globalLoadingMessage: "",
             targets: [
                 { id: "1", name: "M42 - Orion Nebula", type: "Nebula", ra: "05h 35m", dec: "-05° 23'" },
                 { id: "2", name: "M31 - Andromeda Galaxy", type: "Galaxy", ra: "00h 42m", dec: "+41° 16'" },
@@ -119,6 +140,12 @@ export const useStargazerStore = create<StargazerState>()(
             setConnected: (status) => set({ isConnected: status }),
             setSlewing: (status) => set({ isSlewing: status }),
             setExposing: (status) => set({ isExposing: status }),
+            setCaptureProgress: (captureProgress) => set({ captureProgress }),
+            setStackingProgress: (stackingProgress) => set({ stackingProgress }),
+            setIsLoading: (status) => set({ isLoading: status }),
+            setHfr: (hfr) => set({ hfr }),
+            setGlobalLoading: (isGlobalLoading, globalLoadingMessage = "") => 
+                set({ isGlobalLoading, globalLoadingMessage }),
             setPosition: (ra, dec, alt, az) => set((state) => ({ 
                 ra, dec, 
                 alt: alt ?? state.alt, 
