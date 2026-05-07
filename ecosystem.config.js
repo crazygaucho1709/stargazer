@@ -8,7 +8,7 @@ module.exports = {
       error_file: 'logs/backend-error.log',
       out_file: 'logs/backend-out.log',
       env: {
-        STORAGE_PATH: '/Volumes/Data/captures',
+        STORAGE_PATH: '/Volumes/Data2/captures',
         PYTHONPATH: '.',
         ASTROBERRY_HOST: '192.168.178.142',
         INDI_HOST: '192.168.178.142'
