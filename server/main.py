@@ -5,7 +5,12 @@ import threading
 import socket
 import base64
 import re
+import json
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load .env file (server/.env)
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '.env'))
 from fastapi import FastAPI, HTTPException, Response, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -105,6 +110,12 @@ class INDIClient:
         self.socket_lock = threading.Lock()  # Lock for thread-safe socket access
         self.device_mount = "Celestron GPS"
         self.device_ccd = "Canon DSLR EOS 600D"
+        # Mount telemetry state
+        self.mount_ra: float = 0.0
+        self.mount_dec: float = 0.0
+        self.mount_parked: bool = False
+        self.mount_tracking: bool = False
+        self.ccd_connected: bool = False
         self.thread = threading.Thread(target=self.run_loop)
         self.thread.daemon = True
         self.thread.start()
@@ -647,6 +658,205 @@ async def ccd_stream_stop(device: str = "Canon DSLR EOS 600D"):
     # Also turn off viewfinder
     indi.send(f'<newSwitchVector device="{device}" name="viewfinder"><oneSwitch name="viewfinder1">On</oneSwitch></newSwitchVector>')
     return {"success": True}
+
+# ── NEW ENDPOINTS ────────────────────────────────────────────────────────────
+
+import astroberry as raspi
+import psutil
+
+class MountActionRequest(BaseModel):
+    confirm: str = ""
+
+class TrackRequest(BaseModel):
+    enabled: bool
+
+@app.get("/health/full")
+async def health_full():
+    """Complete infrastructure health report."""
+    import subprocess
+
+    # --- Mac Mini stats ---
+    cpu = psutil.cpu_percent(interval=0.5)
+    mem = psutil.virtual_memory()
+    disk = psutil.disk_usage('/')
+    pm2_result = subprocess.run(
+        ["pm2", "jlist"], capture_output=True, text=True
+    )
+    pm2_apps = []
+    try:
+        apps = json.loads(pm2_result.stdout)
+        for a in apps:
+            pm2_apps.append({
+                "name": a.get("name"),
+                "status": a.get("pm2_env", {}).get("status"),
+                "uptime": a.get("pm2_env", {}).get("pm_uptime"),
+                "restarts": a.get("pm2_env", {}).get("restart_time"),
+                "cpu": a.get("monit", {}).get("cpu"),
+                "memory": a.get("monit", {}).get("memory"),
+            })
+    except Exception:
+        pass
+
+    # --- KStars ---
+    kstars_running = any(
+        p.name() == "KStars" for p in psutil.process_iter(['name'])
+    )
+
+    # --- Astroberry (SSH, async) ---
+    pi_reachable = raspi.ping()
+    pi_status = raspi.get_status() if pi_reachable else {"reachable": False}
+
+    return {
+        "mac_mini": {
+            "cpu_percent": cpu,
+            "memory_used_gb": round(mem.used / 1e9, 2),
+            "memory_total_gb": round(mem.total / 1e9, 2),
+            "memory_percent": mem.percent,
+            "disk_used_gb": round(disk.used / 1e9, 1),
+            "disk_total_gb": round(disk.total / 1e9, 1),
+            "disk_percent": disk.percent,
+            "pm2_apps": pm2_apps,
+        },
+        "kstars": {
+            "running": kstars_running,
+            "ekos_profile": EKOS_PROFILE,
+        },
+        "indi_bridge": {
+            "connected": indi.connected,
+            "mount_connected": indi.mount_connected,
+            "ccd_connected": indi.ccd_connected,
+            "host": INDI_HOST,
+            "port": INDI_PORT,
+        },
+        "mount": {
+            "connected": indi.mount_connected,
+            "ra": indi.mount_ra,
+            "dec": indi.mount_dec,
+            "parked": indi.mount_parked,
+            "tracking": indi.mount_tracking,
+            "device": indi.device_mount,
+        },
+        "camera": {
+            "connected": indi.ccd_connected,
+            "device": indi.device_ccd,
+        },
+        "astroberry": pi_status,
+    }
+
+
+@app.post("/mount/park")
+def mount_park():
+    if not indi.mount_connected:
+        raise HTTPException(status_code=503, detail="Mount not connected")
+    logger.info("Parking mount...")
+    indi.send(f'<newSwitchVector device="{indi.device_mount}" name="TELESCOPE_PARK"><oneSwitch name="PARK">On</oneSwitch></newSwitchVector>')
+    return {"success": True, "message": "Park command sent"}
+
+
+@app.post("/mount/unpark")
+def mount_unpark():
+    if not indi.mount_connected:
+        raise HTTPException(status_code=503, detail="Mount not connected")
+    logger.info("Unparking mount...")
+    indi.send(f'<newSwitchVector device="{indi.device_mount}" name="TELESCOPE_PARK"><oneSwitch name="UNPARK">On</oneSwitch></newSwitchVector>')
+    return {"success": True, "message": "Unpark command sent"}
+
+
+@app.post("/mount/abort")
+def mount_abort():
+    logger.warning("ABORT MOTION sent to mount")
+    indi.send(f'<newSwitchVector device="{indi.device_mount}" name="TELESCOPE_ABORT_MOTION"><oneSwitch name="ABORT">On</oneSwitch></newSwitchVector>')
+    return {"success": True, "message": "Abort sent"}
+
+
+@app.post("/mount/track")
+def mount_track(req: TrackRequest):
+    mode = "On" if req.enabled else "Off"
+    logger.info(f"Mount tracking: {mode}")
+    indi.send(f'<newSwitchVector device="{indi.device_mount}" name="TELESCOPE_TRACK_STATE"><oneSwitch name="TRACK_{mode.upper()}">On</oneSwitch></newSwitchVector>')
+    return {"success": True, "tracking": req.enabled}
+
+
+@app.get("/mount/status")
+def mount_status():
+    return {
+        "connected": indi.mount_connected,
+        "ra": indi.mount_ra,
+        "dec": indi.mount_dec,
+        "parked": indi.mount_parked,
+        "tracking": indi.mount_tracking,
+    }
+
+
+# --- Astroberry endpoints ---
+
+@app.get("/astroberry/status")
+async def astroberry_status():
+    if not raspi.ping():
+        return {"reachable": False, "error": "SSH port not reachable"}
+    return raspi.get_status()
+
+
+@app.get("/astroberry/indi/logs")
+async def astroberry_indi_logs(lines: int = 50):
+    if not raspi.ping():
+        raise HTTPException(status_code=503, detail="Astroberry unreachable")
+    logs = raspi.get_indi_logs(lines=lines)
+    return {"logs": logs}
+
+
+@app.post("/astroberry/indi/restart")
+async def astroberry_indi_restart():
+    logger.info("Remote restart of indiserver on Astroberry")
+    result = raspi.restart_indi()
+    # After restarting indiserver, trigger INDI bridge reconnect
+    if result["success"]:
+        time.sleep(3)
+        indi.reconnect()
+        logger.info("INDI bridge reconnect triggered after indiserver restart")
+    return result
+
+
+@app.post("/astroberry/reboot")
+async def astroberry_reboot(req: MountActionRequest):
+    return raspi.reboot(req.confirm)
+
+
+# --- Log stream (SSE) ---
+
+@app.get("/logs/stream")
+async def logs_stream():
+    """Server-Sent Events stream of all logs (backend + astroberry poll)."""
+    async def event_generator():
+        last_idx = len(log_buffer)
+        while True:
+            current = list(log_buffer)
+            new_entries = current[last_idx:]
+            if new_entries:
+                for entry in new_entries:
+                    yield f"data: {json.dumps({'source': 'backend', 'message': entry})}\n\n"
+                last_idx = len(current)
+            await asyncio.sleep(1)
+
+    from fastapi.responses import StreamingResponse as SR
+    import asyncio
+    return SR(event_generator(), media_type="text/event-stream",
+              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+# --- Backend self-restart ---
+
+@app.post("/backend/restart")
+async def backend_restart():
+    """Restart the PM2 backend process (triggers PM2 autorestart)."""
+    import subprocess, threading
+    logger.warning("Backend self-restart requested via API")
+    def _restart():
+        time.sleep(1)
+        subprocess.run(["pm2", "restart", "stargazer-backend"], capture_output=True)
+    threading.Thread(target=_restart, daemon=True).start()
+    return {"success": True, "message": "Backend restarting in 1s..."}
+
 
 if __name__ == "__main__":
     import uvicorn
