@@ -934,3 +934,29 @@ Require stack:
     '/Users/matt/dev/project/web/stargazer/node_modules/next/dist/cli/next-start.js'
   ]
 }
+Log stream proxy error: TypeError: terminated
+    at Fetch.onAborted (node:internal/deps/undici/undici:12826:53)
+    at Fetch.emit (node:events:508:28)
+    at Fetch.terminate (node:internal/deps/undici/undici:11963:14)
+    at Object.onError (node:internal/deps/undici/undici:12950:38)
+    at Request.onError (node:internal/deps/undici/undici:3015:31)
+    at Object.errorRequest (node:internal/deps/undici/undici:1887:17)
+    at Socket.onHttpSocketClose (node:internal/deps/undici/undici:7661:14)
+    at Socket.emit (node:events:520:35)
+    at TCP.<anonymous> (node:net:346:12) {
+  [cause]: BodyTimeoutError: Body Timeout Error
+      at FastTimer.onParserTimeout [as _onTimeout] (node:internal/deps/undici/undici:7533:32)
+      at Timeout.onTick [as _onTimeout] (node:internal/deps/undici/undici:692:17)
+      at listOnTimeout (node:internal/timers:605:17)
+      at process.processTimers (node:internal/timers:541:7) {
+    code: 'UND_ERR_BODY_TIMEOUT'
+  }
+}
+TypeError [ERR_INVALID_STATE]: Invalid state: WritableStream is closed
+    at writableStreamClose (node:internal/webstreams/writablestream:724:7)
+    at writableStreamDefaultWriterClose (node:internal/webstreams/writablestream:1101:10)
+    at WritableStreamDefaultWriter.close (node:internal/webstreams/writablestream:426:12)
+    at /Users/matt/dev/project/web/stargazer/.next/server/app/api/logs/stream/route.js:1:958
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+  code: 'ERR_INVALID_STATE'
+}
