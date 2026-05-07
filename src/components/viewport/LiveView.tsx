@@ -35,7 +35,7 @@ export const LiveView = () => {
         
         // Set the latest frame URL with cache-busting (use API proxy to avoid CORS)
         const updateFrame = () => {
-            setCcdImage(`http://${bridgeIp}:5005/ccd/latest?t=${Date.now()}`);
+            setCcdImage(`/api/indi?endpoint=ccd/latest&t=${Date.now()}`);
         };
         
         // Initial frame
@@ -46,13 +46,13 @@ export const LiveView = () => {
         
         return () => clearInterval(interval);
         
-    }, [liveViewMode, bridgeIp, isLiveStreaming]);
+    }, [liveViewMode, isLiveStreaming]);
 
     const startLiveView = async () => {
         try {
             setStreamStatus("Starting...");
-            await fetch(`http://${bridgeIp}:5005/ccd/stream/start`, { method: 'POST' });
-            setCcdImage(`http://${bridgeIp}:5005/video_feed?t=${Date.now()}`);
+            await fetch(`/api/indi?endpoint=ccd/stream/start`, { method: 'POST' });
+            setCcdImage(`/api/indi?endpoint=video_feed&t=${Date.now()}`);
             setIsLiveStreaming(true);
             setStreamStatus("LIVE");
         } catch (e) {

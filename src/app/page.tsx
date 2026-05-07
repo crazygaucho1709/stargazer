@@ -1,6 +1,6 @@
 "use client";
 
-import { Box, VStack, HStack, Text, Icon, Flex, Grid } from "@chakra-ui/react";
+import { Box, VStack, HStack, Text, Icon, Flex, Grid, Circle } from "@chakra-ui/react";
 import { TelescopeControls } from "@/components/telescope/TelescopeControls";
 import { CameraControls } from "@/components/camera/CameraControls";
 import { LiveView } from "@/components/viewport/LiveView";
@@ -14,17 +14,25 @@ import { useEffect, useState } from "react";
 import { mockApi } from "@/services/mockApi";
 import { useEnvironmentData } from "@/hooks/useEnvironmentData";
 import {
-    Activity, ShieldCheck, Database, Zap, Binary, Globe, Radio, Orbit, Clock, MapPin, Compass, Thermometer
+    Activity, Zap, Orbit, Clock, MapPin, Compass, Thermometer, Power, Telescope
 } from "lucide-react";
 
 export default function Home() {
-    const { setConnected, isExposing, alt, az, language } = useStargazerStore();
-    const [statusText, setStatusText] = useState(t("ESTABLISHING_LINK", language));
+    const { isConnected: connected, setConnected, isExposing, alt, az, language } = useStargazerStore();
+    const [statusText, setStatusText] = useState("");
     const envData = useEnvironmentData();
+    const [mounted, setMounted] = useState(false);
 
     const [wasConnected, setWasConnected] = useState(false);
 
     useEffect(() => {
+        setMounted(true);
+        setStatusText(t("ESTABLISHING_LINK", language));
+    }, [language]);
+
+    useEffect(() => {
+        if (!mounted) return;
+
         const checkConnection = async () => {
             const storeState = useStargazerStore.getState();
             const res = await mockApi.ping(storeState.config.astroberryUrl, storeState.config.driverInstance);
@@ -32,9 +40,7 @@ export default function Home() {
             setConnected(res.success);
             if (res.success) {
                 setStatusText(t("SYSTEM_ONLINE", language));
-                // Auto-sync GPS when first coming online or if we haven't synced yet
                 if (!wasConnected && envData.latitude !== null && envData.longitude !== null) {
-                    // Try to push the location if the hardware supports it
                     mockApi.syncLocation(envData.latitude, envData.longitude, storeState.config.driverInstance);
                 }
                 setWasConnected(true);
@@ -46,20 +52,20 @@ export default function Home() {
         checkConnection();
         const interval = setInterval(checkConnection, 8000);
         return () => clearInterval(interval);
-    }, [setConnected, language, wasConnected, envData.latitude, envData.longitude]);
+    }, [setConnected, language, wasConnected, envData.latitude, envData.longitude, mounted]);
+
+    if (!mounted) {
+        return <Box h="100vh" w="100vw" bg="#030509" />;
+    }
 
     return (
         <Box h="100vh" w="100vw" position="relative" overflow="hidden" bg="#030509">
-            {/* Background Atmosphere & Viewport */}
             <LiveView />
             
-            {/* Vignette Overlay */}
             <Box position="absolute" inset="0" pointerEvents="none" zIndex={1} bg="radial-gradient(circle at center, transparent 40%, rgba(3, 5, 9, 0.95) 100%)" />
 
-            {/* MAIN HUD INTERFACE - STRICT LAYOUT TO PREVENT OVERLAP */}
             <Flex direction="column" h="full" w="full" position="relative" zIndex={20} pointerEvents="none">
                 
-                {/* TOP HEADER PANEL */}
                 <Flex
                     w="full" h="70px" px={8}
                     align="center" justify="space-between"
@@ -68,17 +74,18 @@ export default function Home() {
                     pointerEvents="auto"
                 >
                     <HStack gap={6}>
-                        <Icon as={Orbit} boxSize={7} color="var(--astro-teal)" className="pulse-glow" />
-                        <VStack align="start" gap={0}>
-                            <Text fontSize="18px" className="hud-font" color="var(--astro-starlight)" lineHeight={1}>{t("APP_TITLE", language)}</Text>
-                            <Text fontSize="9px" letterSpacing="0.2em" color="var(--astro-teal)" opacity={0.8}>{t("APP_SUBTITLE", language)}</Text>
+                        <VStack align="start" gap={1}>
+                            <Orbit size={28} color="var(--astro-teal)" className="pulse-glow" />
+                            <VStack align="start" gap={0}>
+                                <Text fontSize="18px" className="hud-font" color="var(--astro-starlight)" lineHeight={1}>{t("APP_TITLE", language)}</Text>
+                                <Text fontSize="9px" letterSpacing="0.2em" color="var(--astro-teal)" opacity={0.8}>{t("APP_SUBTITLE", language)}</Text>
+                            </VStack>
                         </VStack>
                     </HStack>
 
-                    {/* Environment & GPS Stats in Top Bar */}
                     <HStack gap={8} opacity={0.9}>
                         <HStack gap={3}>
-                            <Icon as={Clock} boxSize={4} color="var(--astro-starlight)" opacity={0.6}/>
+                            <Clock size={16} color="var(--astro-starlight)" opacity={0.6}/>
                             <VStack align="start" gap={0}>
                                 <Text fontSize="8px" color="var(--astro-starlight)" opacity={0.6}>{t("SYS_TIME", language)}</Text>
                                 <HStack gap={2}>
@@ -90,7 +97,7 @@ export default function Home() {
                         <Box h="24px" w="1px" bg="rgba(255, 255, 255, 0.1)" />
                         
                         <HStack gap={3}>
-                            <Icon as={MapPin} boxSize={4} color="var(--astro-starlight)" opacity={0.6}/>
+                            <MapPin size={16} color="var(--astro-starlight)" opacity={0.6}/>
                             <VStack align="start" gap={0}>
                                 <Text fontSize="8px" color="var(--astro-starlight)" opacity={0.6}>{t("GPS_COORD", language)}</Text>
                                 <Text fontSize="11px" className="hud-font" color="var(--astro-teal)">
@@ -101,7 +108,7 @@ export default function Home() {
                         <Box h="24px" w="1px" bg="rgba(255, 255, 255, 0.1)" />
 
                         <HStack gap={3}>
-                            <Icon as={Compass} boxSize={4} color="var(--astro-gold)" />
+                            <Compass size={16} color="var(--astro-gold)" />
                             <VStack align="start" gap={0}>
                                 <Text fontSize="8px" color="var(--astro-starlight)" opacity={0.6}>{t("POSITION", language)}</Text>
                                 <Text fontSize="11px" className="hud-font" color="var(--astro-gold)">
@@ -112,7 +119,19 @@ export default function Home() {
                         <Box h="24px" w="1px" bg="rgba(255, 255, 255, 0.1)" />
 
                         <HStack gap={3}>
-                            <Icon as={Thermometer} boxSize={4} color="var(--astro-starlight)" opacity={0.6} />
+                            {connected ? (
+                                <Circle size="8px" bg="var(--astro-teal)" boxShadow="0 0 8px var(--astro-teal)" />
+                            ) : (
+                                <Circle size="8px" bg="var(--astro-error)" boxShadow="0 0 8px var(--astro-error)" />
+                            )}
+                            <Text fontSize="11px" className="hud-font" color={connected ? "var(--astro-teal)" : "var(--astro-error)"} letterSpacing="0.1em">
+                                {connected ? "SYS_STABLE" : "SYS_OFFLINE"}
+                            </Text>
+                        </HStack>
+                        <Box h="24px" w="1px" bg="rgba(255, 255, 255, 0.1)" />
+
+                        <HStack gap={3}>
+                            <Thermometer size={16} color="var(--astro-starlight)" opacity={0.6} />
                             <VStack align="start" gap={0}>
                                 <Text fontSize="8px" color="var(--astro-starlight)" opacity={0.6}>{t("EXT_WEATHER", language)}</Text>
                                 <Text fontSize="11px" className="hud-font" color="white">
@@ -123,24 +142,22 @@ export default function Home() {
                     </HStack>
 
                     <HStack gap={8}>
-                        <VStack align="end" gap={0}>
-                            <Text fontSize="8px" color="var(--astro-starlight)" opacity={0.6}>{t("SYSTEM_STATUS", language)}</Text>
-                            <HStack gap={2}>
-                                <Text fontSize="12px" className="hud-font" color={statusText.includes("ONLINE") ? "var(--astro-teal)" : "var(--astro-gold)"}>{statusText}</Text>
-                                <Box w="6px" h="6px" borderRadius="full" bg={statusText.includes("ONLINE") ? "var(--astro-teal)" : "var(--astro-gold)"} className="pulse-glow" />
+                        <VStack align="end" gap={2}>
+                            <HStack gap={4}>
+                                <VStack align="end" gap={0}>
+                                    <Text fontSize="10px" color="var(--astro-teal)" fontWeight="bold" letterSpacing="0.1em">{connected ? t("ACTIVE_LINK", language) : t("LINK_ERROR", language)}</Text>
+                                    <Text fontSize="8px" opacity={0.6}>{statusText}</Text>
+                                </VStack>
+                                <Box p={1} borderRadius="full" border="1px solid" borderColor={connected ? "var(--astro-teal)" : "var(--astro-gold)"}>
+                                    <Zap size={14} color={connected ? "var(--astro-teal)" : "var(--astro-gold)"} />
+                                </Box>
                             </HStack>
-                        </VStack>
-                        {/* Settings Button */}
-                        <Box pointerEvents="auto" position="relative" w="40px" h="40px">
                             <ConfigurationMenu />
-                        </Box>
+                        </VStack>
                     </HStack>
                 </Flex>
 
-                {/* MIDDLE PANELS (Left and Right Columns) */}
                 <Flex flex={1} justify="space-between" align="stretch" p={8} pb={12}>
-                    
-                    {/* LEFT COLUMN: Controls & Mount */}
                     <VStack w="360px" justify="space-between" align="stretch" h="full" pointerEvents="auto">
                         <AstroPod title={t("MOUNT_NAVIGATOR", language)} glowColor="teal">
                             <VStack gap={5}>
@@ -157,9 +174,7 @@ export default function Home() {
                         </AstroPod>
                     </VStack>
 
-                    {/* CENTER EMPTY SPACE FOR VIEWPORT CROSSHAIRS */}
                     <Flex flex={1} align="flex-end" justify="center" pb={10}>
-                        {/* Bottom Center Mini Bar */}
                         <HStack 
                             className="astro-panel"
                             px={8} py={3} borderRadius="full"
@@ -167,15 +182,16 @@ export default function Home() {
                             bg="rgba(10, 20, 40, 0.85)" border="1px solid rgba(255,255,255,0.1)"
                         >
                             <HStack gap={4}>
-                                <Icon as={Radio} boxSize={4} color="var(--astro-teal)" />
-                                <VStack align="start" gap={0}>
-                                    <Text fontSize="8px" color="var(--astro-starlight)" opacity={0.6}>{t("LATENCY", language)}</Text>
-                                    <Text fontSize="11px" className="hud-font">12ms</Text>
-                                </VStack>
+                                <Box className={connected ? "pulse-glow" : ""} color={connected ? "var(--astro-teal)" : "whiteAlpha.400"}>
+                                    <Power size={14} />
+                                </Box>
+                                <Text fontSize="10px" color={connected ? "var(--astro-starlight)" : "whiteAlpha.400"}>
+                                    {connected ? "BRIDGE_UP" : "BRIDGE_DOWN"}
+                                </Text>
                             </HStack>
                             <Box h="16px" w="1px" bg="rgba(255, 255, 255, 0.1)" />
                             <HStack gap={4}>
-                                <Icon as={Activity} boxSize={4} color={isExposing ? "var(--astro-gold)" : "var(--astro-teal)"} />
+                                <Activity size={16} color={isExposing ? "var(--astro-gold)" : "var(--astro-teal)"} />
                                 <VStack align="start" gap={0}>
                                     <Text fontSize="8px" color="var(--astro-starlight)" opacity={0.6}>{t("SEQUENCE", language)}</Text>
                                     <Text fontSize="11px" className="hud-font" color={isExposing ? "var(--astro-gold)" : "white"}>

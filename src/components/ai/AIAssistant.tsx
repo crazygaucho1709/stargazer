@@ -11,16 +11,20 @@ import { useState, useEffect } from "react";
 export const AIAssistant = () => {
     const { language, ra, dec } = useStargazerStore();
     const envData = useEnvironmentData();
+    const [mounted, setMounted] = useState(false);
     const [weather, setWeather] = useState<{
         temperature?: number;
         windSpeed?: number;
         humidity?: number;
         cloudCover?: number;
         seeing?: number;
+        sunrise?: string;
+        sunset?: string;
     }>({});
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        setMounted(true);
         const fetchWeather = async () => {
             setLoading(true);
             // Use actual GPS coordinates from environment, fallback to Tahiti
@@ -34,7 +38,9 @@ export const AIAssistant = () => {
                     windSpeed: data.windSpeed,
                     humidity: data.humidity,
                     cloudCover: data.cloudCover,
-                    seeing: data.seeing
+                    seeing: data.seeing,
+                    sunrise: data.sunrise,
+                    sunset: data.sunset
                 });
             }
             setLoading(false);
@@ -67,11 +73,13 @@ export const AIAssistant = () => {
         return t("AI_CONDITIONS_EXCELLENT", language);
     };
 
+    if (!mounted) return null;
+
     return (
         <VStack align="stretch" gap={4} color="var(--astro-starlight)" w="full">
             <HStack justify="space-between">
                 <HStack gap={2}>
-                    <Icon as={BrainCircuit} boxSize={5} color="var(--astro-gold)" className="pulse-glow" />
+                    <BrainCircuit size={18} color="var(--astro-gold)" className="pulse-glow" />
                     <Text fontSize="12px" fontWeight="bold" letterSpacing="0.1em">{t("AI_METEO_ORACLE", language)}</Text>
                 </HStack>
                 <Text fontSize="10px" color="var(--astro-teal)">{loading ? "Loading..." : t("AI_ANALYSIS_OK", language)}</Text>
@@ -97,7 +105,11 @@ export const AIAssistant = () => {
                         </VStack>
                         <VStack align="end" gap={0}>
                             <HStack>
-                                <Icon as={weather.cloudCover && weather.cloudCover < 30 ? Sun : Cloud} boxSize={4} color={weather.cloudCover && weather.cloudCover < 30 ? "var(--astro-gold)" : "whiteAlpha.500"} />
+                                {weather.cloudCover !== undefined && weather.cloudCover < 30 ? (
+                                    <Sun size={16} color="var(--astro-gold)" />
+                                ) : (
+                                    <Cloud size={16} color="rgba(255,255,255,0.5)" />
+                                )}
                                 <Text fontSize="12px" fontWeight="bold">{getConditionText()}</Text>
                             </HStack>
                             <Text fontSize="9px" opacity={0.6}>
@@ -112,28 +124,58 @@ export const AIAssistant = () => {
                     
                     <HStack justify="space-between" fontSize="10px" opacity={0.8} bg="rgba(255,255,255,0.02)" p={2} borderRadius="md">
                         <HStack gap={1}>
-                            <Icon as={Thermometer} boxSize={3.5} color="var(--astro-teal)"/>
+                            <Thermometer size={14} color="var(--astro-teal)"/>
                             <Text>{loading ? "--" : (weather.temperature?.toFixed(0) || "--")}°C</Text>
                         </HStack>
                         <HStack gap={1}>
-                            <Icon as={Wind} boxSize={3.5} color="whiteAlpha.700"/>
+                            <Wind size={14} color="rgba(255,255,255,0.7)"/>
                             <Text>{loading ? "--" : (weather.windSpeed?.toFixed(0) || "--")} km/h</Text>
                         </HStack>
                         <HStack gap={1}>
-                            <Icon as={CloudFog} boxSize={3.5} color="whiteAlpha.700"/>
+                            <CloudFog size={14} color="rgba(255,255,255,0.7)"/>
                             <Text>{loading ? "--" : (weather.humidity?.toFixed(0) || "--")}% Hum</Text>
                         </HStack>
                         <HStack gap={1}>
-                            <Icon as={weather.cloudCover && weather.cloudCover < 50 ? Sun : Cloud} boxSize={3.5} color={weather.cloudCover && weather.cloudCover < 30 ? "var(--astro-gold)" : "whiteAlpha.700"}/>
+                            {weather.cloudCover !== undefined && weather.cloudCover < 30 ? (
+                                <Sun size={14} color="var(--astro-gold)" />
+                            ) : (
+                                <Cloud size={14} color="rgba(255,255,255,0.7)" />
+                            )}
                             <Text>{loading ? "--" : (weather.cloudCover || 0)}%</Text>
                         </HStack>
+                    </HStack>
+                </Box>
+                
+                {/* Ephemeris Section */}
+                <Box bg="rgba(0, 0, 0, 0.3)" p={4} borderRadius="8px" borderLeft="2px solid var(--astro-gold)">
+                    <HStack justify="space-between" mb={2}>
+                        <HStack gap={2}>
+                            <Moon size={16} color="var(--astro-gold)" />
+                            <Text fontSize="12px" fontWeight="bold" letterSpacing="0.1em" color="whiteAlpha.800">EPHEMERIS</Text>
+                        </HStack>
+                    </HStack>
+                    <HStack justify="space-between" fontSize="11px">
+                        <VStack align="start" gap={0}>
+                            <Text opacity={0.6} fontSize="9px">SUNRISE</Text>
+                            <HStack>
+                                <Sun size={12} color="#F6AD55" />
+                                <Text fontWeight="bold">{weather.sunrise || "--:--"}</Text>
+                            </HStack>
+                        </VStack>
+                        <VStack align="end" gap={0}>
+                            <Text opacity={0.6} fontSize="9px">SUNSET</Text>
+                            <HStack>
+                                <Moon size={12} color="#7986CB" />
+                                <Text fontWeight="bold">{weather.sunset || "--:--"}</Text>
+                            </HStack>
+                        </VStack>
                     </HStack>
                 </Box>
 
                 {/* AI Suggestion */}
                 <Box border="1px solid rgba(255, 179, 71, 0.3)" p={4} bg="rgba(255, 179, 71, 0.05)" position="relative" borderRadius="8px">
                     <Box position="absolute" top={-3} left={4} bg="#030509" px={2} border="1px solid rgba(255, 179, 71, 0.3)" borderRadius="sm">
-                        <HStack gap={1}><Icon as={Star} boxSize={3} color="var(--astro-gold)" /><Text fontSize="8px" color="var(--astro-gold)" fontWeight="bold">{t("AI_ADVICE", language)}</Text></HStack>
+                        <HStack gap={1}><Star size={12} color="var(--astro-gold)" /><Text fontSize="8px" color="var(--astro-gold)" fontWeight="bold">{t("AI_ADVICE", language)}</Text></HStack>
                     </Box>
                     <VStack align="start" gap={3} mt={2}>
                         <Text fontSize="12px" fontWeight="bold" color="white">{getAdvice()}</Text>
