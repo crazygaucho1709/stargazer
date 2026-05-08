@@ -35,6 +35,9 @@ export const translations = {
         DECLINATION: "DECLINATION",
         SKY_MAP: "SKY MAP",
         LIVE_SENSOR: "LIVE SENSOR",
+        CANON_STANDBY: "CANON EOS 600D — SHUTTER CLOSED",
+        CANON_STANDBY_HINT: "Click LIVE to open the shutter",
+        CANON_CONNECTION_ERROR: "Canon Connection Error",
 
         // Configuration Menu
         CONFIG_TITLE: "OBSERVATORY CONTROL CENTER",
@@ -190,6 +193,9 @@ export const translations = {
         DECLINATION: "DÉCLINAISON",
         SKY_MAP: "CARTE DU CIEL",
         LIVE_SENSOR: "CAPTEUR DIRECT",
+        CANON_STANDBY: "CANON EOS 600D — OBTURATEUR FERMÉ",
+        CANON_STANDBY_HINT: "Cliquez sur LIVE pour ouvrir l'obturateur",
+        CANON_CONNECTION_ERROR: "Erreur de connexion au Canon",
 
         // Configuration Menu
         CONFIG_TITLE: "CENTRE DE CONTRÔLE DE L'OBSERVATOIRE",
