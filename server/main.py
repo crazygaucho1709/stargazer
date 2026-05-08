@@ -110,7 +110,7 @@ class INDIClient:
         self.latest_image_path = None
         self.sock = None
         self.socket_lock = threading.Lock()  # Lock for thread-safe socket access
-        self.device_mount = "Celestron GPS"
+        self.device_mount = "Celestron NexStar HC"
         self.device_ccd = "Canon DSLR EOS 600D"
         # Mount telemetry state
         self.mount_ra: float = 0.0
