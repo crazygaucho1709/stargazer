@@ -92,23 +92,23 @@ export default function Home() {
             <Flex direction="column" h="full" w="full" position="relative" zIndex={20} pointerEvents="none">
                 
                 <Flex
-                    w="full" h="70px" px={8}
+                    w="full" h="56px" px={6}
                     align="center" justify="space-between"
                     borderBottom="1px solid rgba(255, 255, 255, 0.05)"
                     bg="rgba(3, 5, 9, 0.85)" backdropFilter="blur(20px)"
                     pointerEvents="auto"
                 >
-                    <HStack gap={6}>
-                        <VStack align="start" gap={1}>
-                            <Orbit size={28} color="var(--astro-teal)" className="pulse-glow" />
+                    <HStack gap={4}>
+                        <HStack align="center" gap={3}>
+                            <Orbit size={22} color="var(--astro-teal)" className="pulse-glow" />
                             <VStack align="start" gap={0}>
-                                <Text fontSize="18px" className="hud-font" color="var(--astro-starlight)" lineHeight={1}>{t("APP_TITLE", language)}</Text>
-                                <Text fontSize="9px" letterSpacing="0.2em" color="var(--astro-teal)" opacity={0.8}>{t("APP_SUBTITLE", language)}</Text>
+                                <Text fontSize="15px" className="hud-font" color="var(--astro-starlight)" lineHeight={1}>{t("APP_TITLE", language)}</Text>
+                                <Text fontSize="8px" letterSpacing="0.2em" color="var(--astro-teal)" opacity={0.8}>{t("APP_SUBTITLE", language)}</Text>
                             </VStack>
-                        </VStack>
+                        </HStack>
                     </HStack>
 
-                    <HStack gap={8} opacity={0.9}>
+                    <HStack gap={6} opacity={0.9}>
                         <HStack gap={3}>
                             <Clock size={16} color="var(--astro-starlight)" opacity={0.6}/>
                             <VStack align="start" gap={0}>
@@ -182,12 +182,16 @@ export default function Home() {
                     </HStack>
                 </Flex>
 
-                <Flex flex={1} justify="space-between" align="stretch" p={8} pb={12}>
-                    <VStack w="360px" justify="space-between" align="stretch" h="full" pointerEvents="auto">
+                <Flex flex={1} justify="space-between" align="stretch" px={5} pt={3} pb={3} minH={0}>
+                    <VStack
+                        w="340px" align="stretch" h="full" pointerEvents="auto" gap={3}
+                        overflowY="auto" overflowX="hidden" pr={1}
+                        className="hud-scroll"
+                    >
                         <AstroPod title={t("MOUNT_NAVIGATOR", language)} glowColor="teal">
-                            <VStack gap={5}>
+                            <VStack gap={3}>
                                 <TelescopeControls variant="pad" />
-                                <HStack justify="space-between" w="full" mt={2} fontSize="10px" color="var(--astro-starlight)" opacity={0.8}>
+                                <HStack justify="space-between" w="full" mt={1} fontSize="10px" color="var(--astro-starlight)" opacity={0.8}>
                                     <Text>{t("TRK", language)} {t("SIDEREAL", language)}</Text>
                                     <Text>{t("ERR", language)} 0.04&quot;</Text>
                                 </HStack>
@@ -199,40 +203,18 @@ export default function Home() {
                         </AstroPod>
                     </VStack>
 
-                    <Flex flex={1} align="flex-end" justify="center" pb={10}>
-                        <HStack 
-                            className="astro-panel"
-                            px={8} py={3} borderRadius="full"
-                            gap={10} pointerEvents="auto"
-                            bg="rgba(10, 20, 40, 0.85)" border="1px solid rgba(255,255,255,0.1)"
-                        >
-                            <HStack gap={4}>
-                                <Box className={connected ? "pulse-glow" : ""} color={connected ? "var(--astro-teal)" : "whiteAlpha.400"}>
-                                    <Power size={14} />
-                                </Box>
-                                <Text fontSize="10px" color={connected ? "var(--astro-starlight)" : "whiteAlpha.400"}>
-                                    {connected ? "BRIDGE_UP" : "BRIDGE_DOWN"}
-                                </Text>
-                            </HStack>
-                            <Box h="16px" w="1px" bg="rgba(255, 255, 255, 0.1)" />
-                            <HStack gap={4}>
-                                <Activity size={16} color={isExposing ? "var(--astro-gold)" : "var(--astro-teal)"} />
-                                <VStack align="start" gap={0}>
-                                    <Text fontSize="8px" color="var(--astro-starlight)" opacity={0.6}>{t("SEQUENCE", language)}</Text>
-                                    <Text fontSize="11px" className="hud-font" color={isExposing ? "var(--astro-gold)" : "white"}>
-                                        {isExposing ? t("CAPTURING", language) : t("STANDBY", language)}
-                                    </Text>
-                                </VStack>
-                            </HStack>
-                        </HStack>
-                    </Flex>
+                    <Box flex={1} pointerEvents="none" />
 
                     {/* RIGHT COLUMN: Sensor & Oracle Only */}
-                    <VStack w="360px" justify="flex-start" align="stretch" h="full" pointerEvents="auto" gap={4}>
+                    <VStack
+                        w="340px" align="stretch" h="full" pointerEvents="auto" gap={3}
+                        overflowY="auto" overflowX="hidden" pl={1}
+                        className="hud-scroll"
+                    >
                         <AstroPod title={t("IMAGING_SENSOR", language)} glowColor="teal">
-                            <VStack gap={5} w="full">
+                            <VStack gap={3} w="full">
                                 <CameraControls variant="circular" />
-                                <Box w="full" bg="rgba(0,0,0,0.3)" p={3} borderRadius="8px" borderLeft="2px solid var(--astro-teal)">
+                                <Box w="full" bg="rgba(0,0,0,0.3)" p={2} borderRadius="8px" borderLeft="2px solid var(--astro-teal)">
                                     <HStack justify="space-between" fontSize="10px" color="var(--astro-starlight)">
                                         <Text>{t("SENSOR_TEMP", language)} -15°C</Text>
                                         <Text>{t("COOLER", language)} 85%</Text>
@@ -245,6 +227,40 @@ export default function Home() {
                             <AIAssistant />
                         </AstroPod>
                     </VStack>
+                </Flex>
+
+                {/* Bottom-center status pill: lifted out of the main Flex so the
+                    side columns get the full available height instead of
+                    being squeezed by the pill's footprint. */}
+                <Flex
+                    position="absolute" bottom={3} left="50%" transform="translateX(-50%)"
+                    zIndex={30} pointerEvents="auto"
+                >
+                    <HStack
+                        className="astro-panel"
+                        px={6} py={2} borderRadius="full"
+                        gap={6}
+                        bg="rgba(10, 20, 40, 0.85)" border="1px solid rgba(255,255,255,0.1)"
+                    >
+                        <HStack gap={3}>
+                            <Box className={connected ? "pulse-glow" : ""} color={connected ? "var(--astro-teal)" : "whiteAlpha.400"}>
+                                <Power size={14} />
+                            </Box>
+                            <Text fontSize="10px" color={connected ? "var(--astro-starlight)" : "whiteAlpha.400"}>
+                                {connected ? "BRIDGE_UP" : "BRIDGE_DOWN"}
+                            </Text>
+                        </HStack>
+                        <Box h="14px" w="1px" bg="rgba(255, 255, 255, 0.1)" />
+                        <HStack gap={3}>
+                            <Activity size={14} color={isExposing ? "var(--astro-gold)" : "var(--astro-teal)"} />
+                            <VStack align="start" gap={0}>
+                                <Text fontSize="8px" color="var(--astro-starlight)" opacity={0.6}>{t("SEQUENCE", language)}</Text>
+                                <Text fontSize="11px" className="hud-font" color={isExposing ? "var(--astro-gold)" : "white"}>
+                                    {isExposing ? t("CAPTURING", language) : t("STANDBY", language)}
+                                </Text>
+                            </VStack>
+                        </HStack>
+                    </HStack>
                 </Flex>
 
             </Flex>

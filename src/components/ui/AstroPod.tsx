@@ -52,7 +52,7 @@ export const AstroPod = ({ title, children, width = "auto", height = "auto", glo
             >
                 <Box
                     className="astro-panel"
-                    w="100%" h="100%" p={5}
+                    w="100%" h="100%" p={4}
                 >
                     {children}
                 </Box>

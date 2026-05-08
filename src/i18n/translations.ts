@@ -145,6 +145,11 @@ export const translations = {
         CALIB_CANCEL: "CANCEL",
 
         // AI Assistant
+        AI_ADVICE_TITLE_EXCELLENT: "Excellent",
+        AI_ADVICE_TITLE_GOOD: "Good",
+        AI_ADVICE_TITLE_FAIR: "Fair",
+        AI_ADVICE_TITLE_DIFFICULT: "Difficult",
+        AI_ADVICE_TITLE_POOR: "Critical",
         AI_METEO_ORACLE: "METEO & A.I. ORACLE",
         AI_ANALYSIS_OK: "ANALYSIS OK",
         AI_SEEING: "SEEING:",
@@ -303,6 +308,11 @@ export const translations = {
         CALIB_CANCEL: "ANNULER",
 
         // AI Assistant
+        AI_ADVICE_TITLE_EXCELLENT: "Excellent",
+        AI_ADVICE_TITLE_GOOD: "Bon",
+        AI_ADVICE_TITLE_FAIR: "Acceptable",
+        AI_ADVICE_TITLE_DIFFICULT: "Difficile",
+        AI_ADVICE_TITLE_POOR: "Critique",
         AI_METEO_ORACLE: "MÉTÉO & ORACLE I.A.",
         AI_ANALYSIS_OK: "ANALYSE OK",
         AI_SEEING: "SEEING:",

@@ -114,8 +114,8 @@ export const CameraControls = ({ variant = "standard" }: CameraControlsProps) =>
 
     if (variant === "circular") {
         return (
-            <VStack w="full" gap={4}>
-                <Box position="relative" w="160px" h="160px">
+            <VStack w="full" gap={3}>
+                <Box position="relative" w="140px" h="140px">
                     {/* Outer HUD Ring */}
                     <Box
                         position="absolute"
@@ -190,8 +190,8 @@ export const CameraControls = ({ variant = "standard" }: CameraControlsProps) =>
                 </Box>
 
                 {/* Advanced AI & HUD Controls */}
-                <VStack w="full" gap={3} pt={4} borderTop="1px solid" borderColor="whiteAlpha.100">
-                    <HStack w="full" justify="space-between" bg="rgba(0, 255, 180, 0.03)" p={3} borderRadius="lg" border="1px solid rgba(0, 255, 180, 0.1)">
+                <VStack w="full" gap={2} pt={3} borderTop="1px solid" borderColor="whiteAlpha.100">
+                    <HStack w="full" justify="space-between" bg="rgba(0, 255, 180, 0.03)" p={2} borderRadius="lg" border="1px solid rgba(0, 255, 180, 0.1)">
                         <VStack align="start" gap={1}>
                             <HStack gap={2}>
                                 <Brain size={14} color="var(--astro-teal)" />
@@ -222,7 +222,7 @@ export const CameraControls = ({ variant = "standard" }: CameraControlsProps) =>
                         />
                     </HStack>
 
-                    <HStack w="full" justify="space-between" bg="rgba(255, 215, 0, 0.03)" p={3} borderRadius="lg" border="1px solid rgba(255, 215, 0, 0.1)">
+                    <HStack w="full" justify="space-between" bg="rgba(255, 215, 0, 0.03)" p={2} borderRadius="lg" border="1px solid rgba(255, 215, 0, 0.1)">
                         <HStack gap={2}>
                             <Eye size={14} color="var(--astro-gold)" />
                             <VStack align="start" gap={0}>
