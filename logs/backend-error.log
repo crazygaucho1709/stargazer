@@ -13718,3 +13718,13 @@ INFO:     Uvicorn running on http://0.0.0.0:5005 (Press CTRL+C to quit)
 INFO:stargazer-backend:INDI listener thread started
 INFO:stargazer-backend:✅ CCD connected: Canon DSLR EOS 600D
 INFO:stargazer-backend:Jogging Celestron NexStar HC up -> start
+INFO:stargazer-backend:Force reconnecting INDI bridge...
+INFO:stargazer-backend:Manual reconnect triggered from UI
+ERROR:stargazer-backend:Socket error during recv: [Errno 9] Bad file descriptor
+WARNING:stargazer-backend:INDI listener stopped
+INFO:stargazer-backend:Connected to INDI at 192.168.178.142:7624
+INFO:stargazer-backend:INDI listener thread started
+INFO:stargazer-backend:✅ CCD connected: Canon DSLR EOS 600D
+INFO:stargazer-backend:Jogging Celestron NexStar HC up -> start
+INFO:paramiko.transport:Connected (version 2.0, client OpenSSH_10.0p2)
+INFO:paramiko.transport:Authentication (password) successful!
