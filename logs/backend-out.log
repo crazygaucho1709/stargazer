@@ -2857,3 +2857,7 @@ INFO:     127.0.0.1:49677 - "GET /health HTTP/1.1" 200 OK
 INFO:     127.0.0.1:50076 - "GET /health HTTP/1.1" 200 OK
 INFO:     127.0.0.1:50310 - "GET /health HTTP/1.1" 200 OK
 INFO:     127.0.0.1:50679 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50915 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51281 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51321 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51505 - "GET /debug/indi HTTP/1.1" 200 OK
