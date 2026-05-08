@@ -214,12 +214,16 @@ class INDIClient:
 
             # Initial handshake
             self.send('<getProperties version="1.7"/>')
+            time.sleep(1.0) # More time for properties to load
+            
+            # Explicitly connect Mount and CCD since KStars is missing
+            logger.info("Auto-connecting hardware devices via INDI...")
+            self.send(f'<newSwitchVector device="{self.device_mount}" name="CONNECTION"><oneSwitch name="CONNECT">On</oneSwitch></newSwitchVector>')
+            self.send(f'<newSwitchVector device="{self.device_ccd}" name="CONNECTION"><oneSwitch name="CONNECT">On</oneSwitch></newSwitchVector>')
+            
             time.sleep(0.5)
             self.send(f'<enableBLOB device="{self.device_ccd}">Also</enableBLOB>')
             
-            # Handshake: Viewfinder auto-trigger removed to prevent unintended sensor heat.
-            # self.send(f'<newSwitchVector device="{self.device_ccd}" name="viewfinder"><oneSwitch name="viewfinder1">On</oneSwitch></newSwitchVector>')
-
             # Start listener in separate thread
             listener_thread = threading.Thread(target=self.listen, daemon=True)
             listener_thread.start()
@@ -1062,16 +1066,15 @@ async def astroberry_indi_logs(lines: int = 50):
     return {"logs": logs}
 
 
-@app.post("/astroberry/indi/restart")
-async def astroberry_indi_restart():
-    logger.info("Remote restart of indiserver on Astroberry")
-    result = raspi.restart_indi()
-    # After restarting indiserver, trigger INDI bridge reconnect
-    if result["success"]:
-        time.sleep(3)
-        indi.reconnect()
-        logger.info("INDI bridge reconnect triggered after indiserver restart")
-    return result
+@app.post("/reconnect")
+async def reconnect_indi():
+    logger.info("Force reconnecting INDI bridge and remote server...")
+    # 1. Restart remote indiserver
+    raspi.restart_indi()
+    time.sleep(3)
+    # 2. Reconnect local client
+    indi.reconnect()
+    return {"success": True, "message": "Full hardware stack reconnection triggered"}
 
 
 @app.post("/astroberry/reboot")
