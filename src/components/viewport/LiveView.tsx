@@ -24,30 +24,20 @@ export const LiveView = () => {
         }
     }, []);
 
-    // Canon DSLR live view - Poll for latest frame when not streaming
+    // Canon DSLR live view: switching to CANON mode by itself MUST NOT open
+    // the shutter or fetch frames from the camera. The shutter only opens
+    // when the user explicitly clicks the green "LIVE" button (which calls
+    // startLiveView() and posts /ccd/stream/start), and closes when they
+    // click "STOP". So while we're in CANON mode but not streaming, just
+    // show the placeholder — no polling, no auto-fetch.
     useEffect(() => {
         if (liveViewMode !== "CANON") return;
-        
         setCcdError(false);
-        
-        if (isLiveStreaming) {
-            // When streaming, the streamURL is set natively, no need to poll
-            return;
+        // When isLiveStreaming flips off (user clicked STOP), make sure any
+        // previous stream/object URL is cleared so the placeholder reappears.
+        if (!isLiveStreaming) {
+            setCcdImage(null);
         }
-        
-        // Set the latest frame URL with cache-busting (use API proxy to avoid CORS)
-        const updateFrame = () => {
-            setCcdImage(`/api/indi?endpoint=ccd/latest&t=${Date.now()}`);
-        };
-        
-        // Initial frame
-        updateFrame();
-        
-        // Poll for new frames at a slow rate
-        const interval = setInterval(updateFrame, 3000);
-        
-        return () => clearInterval(interval);
-        
     }, [liveViewMode, isLiveStreaming]);
 
     const startLiveView = async () => {
@@ -193,7 +183,7 @@ export const LiveView = () => {
                         </Box>
                     ) : ccdError ? (
                         <Box display="flex" alignItems="center" justifyContent="center" w="100%" h="100%" bg="#112233">
-                            <Text color="var(--astro-gold)" fontSize="18px">Canon Connection Error</Text>
+                            <Text color="var(--astro-gold)" fontSize="18px">{t("CANON_CONNECTION_ERROR", language)}</Text>
                         </Box>
                     ) : ccdImage ? (
                         /* eslint-disable-next-line @next/next/no-img-element */
@@ -216,7 +206,8 @@ export const LiveView = () => {
                         <Box display="flex" alignItems="center" justifyContent="center" w="100%" h="100%" bg="#000">
                             <VStack gap={3}>
                                 <Icon as={Camera} boxSize={12} color="var(--astro-teal)" opacity={0.5} />
-                                <Text color="var(--astro-teal)" fontSize="14px">Initializing Canon EOS 600D...</Text>
+                                <Text color="var(--astro-teal)" fontSize="14px" className="hud-font">{t("CANON_STANDBY", language)}</Text>
+                                <Text color="whiteAlpha.500" fontSize="11px">{t("CANON_STANDBY_HINT", language)}</Text>
                             </VStack>
                         </Box>
                     )}
