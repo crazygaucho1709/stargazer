@@ -24,30 +24,53 @@ export const LiveView = () => {
         }
     }, []);
 
-    // Canon DSLR live view - Poll for latest frame when not streaming
+    // Canon DSLR live view - Poll for latest frame when not streaming.
+    // We fetch() first and only swap the <img> src when the backend actually
+    // has a frame, to avoid the 404 console spam that happens when the camera
+    // hasn't captured anything yet (or is disconnected).
     useEffect(() => {
         if (liveViewMode !== "CANON") return;
-        
+
         setCcdError(false);
-        
+
         if (isLiveStreaming) {
             // When streaming, the streamURL is set natively, no need to poll
             return;
         }
-        
-        // Set the latest frame URL with cache-busting (use API proxy to avoid CORS)
-        const updateFrame = () => {
-            setCcdImage(`/api/indi?endpoint=ccd/latest&t=${Date.now()}`);
+
+        let cancelled = false;
+        let lastObjectUrl: string | null = null;
+
+        const updateFrame = async () => {
+            try {
+                const res = await fetch(`/api/indi?endpoint=ccd/latest&t=${Date.now()}`, {
+                    cache: 'no-store',
+                });
+                if (cancelled) return;
+                if (!res.ok) {
+                    // No frame available yet (backend returns 404 before first
+                    // capture). Keep the placeholder; don't pollute console.
+                    return;
+                }
+                const blob = await res.blob();
+                if (cancelled || blob.size === 0) return;
+                const url = URL.createObjectURL(blob);
+                if (lastObjectUrl) URL.revokeObjectURL(lastObjectUrl);
+                lastObjectUrl = url;
+                setCcdImage(url);
+            } catch {
+                // Network blip (backend restart, etc.) — silently keep last frame
+            }
         };
-        
-        // Initial frame
+
         updateFrame();
-        
-        // Poll for new frames at a slow rate
         const interval = setInterval(updateFrame, 3000);
-        
-        return () => clearInterval(interval);
-        
+
+        return () => {
+            cancelled = true;
+            clearInterval(interval);
+            if (lastObjectUrl) URL.revokeObjectURL(lastObjectUrl);
+        };
     }, [liveViewMode, isLiveStreaming]);
 
     const startLiveView = async () => {
