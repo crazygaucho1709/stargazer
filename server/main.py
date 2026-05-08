@@ -213,7 +213,7 @@ class INDIClient:
             self.send(f'<enableBLOB device="{self.device_ccd}">Also</enableBLOB>')
             
             # Safety: Ensure mirror is down on connection (prevent sensor heat/damage)
-            self.send(f'<newSwitchVector device="{self.device_ccd}" name="viewfinder"><oneSwitch name="viewfinder0">On</oneSwitch></newSwitchVector>')
+            self.send(f'<newSwitchVector device="{self.device_ccd}" name="viewfinder"><oneSwitch name="viewfinder1">On</oneSwitch></newSwitchVector>')
 
             # Start listener in separate thread
             listener_thread = threading.Thread(target=self.listen, daemon=True)
@@ -334,6 +334,33 @@ class INDIClient:
                                 self.ccd_connected = False
                                 logger.info(f"❌ CCD disconnected: {self.device_ccd}")
 
+                # 3. RA/DEC parsing
+                if 'EQUATORIAL_EOD_COORD' in chunk_str:
+                    ra_match = re.search(r'<oneNumber name="RA">([^<]+)</oneNumber>', chunk_str)
+                    dec_match = re.search(r'<oneNumber name="DEC">([^<]+)</oneNumber>', chunk_str)
+                    if ra_match:
+                        try:
+                            self.mount_ra = float(ra_match.group(1))
+                        except ValueError: pass
+                    if dec_match:
+                        try:
+                            self.mount_dec = float(dec_match.group(1))
+                        except ValueError: pass
+
+                # 4. Park state parsing
+                if 'TELESCOPE_PARK' in chunk_str:
+                    parked_on = re.search(r'<(?:one|def)Switch[^>]*name="PARK"[^>]*>\s*On\s*</', chunk_str) is not None
+                    unparked_on = re.search(r'<(?:one|def)Switch[^>]*name="UNPARK"[^>]*>\s*On\s*</', chunk_str) is not None
+                    if parked_on: self.mount_parked = True
+                    elif unparked_on: self.mount_parked = False
+
+                # 5. Tracking state parsing
+                if 'TELESCOPE_TRACK_STATE' in chunk_str:
+                    track_on = re.search(r'<(?:one|def)Switch[^>]*name="TRACK_ON"[^>]*>\s*On\s*</', chunk_str) is not None
+                    track_off = re.search(r'<(?:one|def)Switch[^>]*name="TRACK_OFF"[^>]*>\s*On\s*</', chunk_str) is not None
+                    if track_on: self.mount_tracking = True
+                    elif track_off: self.mount_tracking = False
+
                 # Check for BLOBs (images)
                 if b"<oneBLOB" in buffer:
                     end_blob_idx = buffer.find(b"</oneBLOB>")
@@ -435,6 +462,8 @@ async def debug_indi():
         "ccd_connected": indi.ccd_connected,
         "mount_parked": indi.mount_parked,
         "mount_tracking": indi.mount_tracking,
+        "mount_ra": indi.mount_ra,
+        "mount_dec": indi.mount_dec,
         "host": indi.sock.getpeername() if indi.sock and indi.connected else None,
         "candidates": [os.getenv("ASTROBERRY_HOST"), os.getenv("INDI_HOST"), "localhost", "127.0.0.1", "192.168.178.142"]
     }
@@ -522,6 +551,13 @@ async def handle_generic_command(req: Request):
             indi.send(f'<newTextVector device="{device}" name="TIME_UTC"><oneText name="UTC">{now_utc.strftime("%Y-%m-%dT%H:%M:%S")}</oneText></newTextVector>')
             
             return {"success": True, "message": f"Location and Time synced to {device}"}
+
+        if action == "capture" or data.get("endpoint") == "ccd/capture":
+            exposure = data.get("exposure", 1.0)
+            return await ccd_capture(CaptureRequest(exposure=exposure, device=device or indi.device_ccd))
+
+        if action == "focus" or data.get("endpoint") == "ccd/focus":
+            return await ccd_focus(req)
 
         return {"success": False, "error": f"Unknown action: {action}"}
     except Exception as e:
@@ -703,6 +739,21 @@ async def ccd_capture(req: CaptureRequest):
     # Force Upload Client to handle image on Mac
     indi.send(f'<newSwitchVector device="{device}" name="UPLOAD_MODE"><oneSwitch name="UPLOAD_CLIENT">On</oneSwitch></newSwitchVector>')
     indi.send(f'<newNumberVector device="{device}" name="CCD_EXPOSURE"><oneNumber name="CCD_EXPOSURE_VALUE">{req.exposure}</oneNumber></newNumberVector>')
+    return {"success": True}
+
+@app.post("/ccd/focus")
+async def ccd_focus(req: Request):
+    data = await req.json()
+    device = data.get("device", indi.device_ccd)
+    direction = data.get("direction", "IN")
+    steps = data.get("steps", 50)
+    
+    logger.info(f"Focusing {device} {direction} by {steps} steps")
+    # Mapping for common focusers
+    if direction == "IN":
+        indi.send(f'<newNumberVector device="{device}" name="FOCUS_MOTION"><oneNumber name="FOCUS_INOUT">1</oneNumber></newNumberVector>')
+    else:
+        indi.send(f'<newNumberVector device="{device}" name="FOCUS_MOTION"><oneNumber name="FOCUS_INOUT">-1</oneNumber></newNumberVector>')
     return {"success": True}
 
 @app.get("/ccd/latest")

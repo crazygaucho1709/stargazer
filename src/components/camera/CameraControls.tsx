@@ -53,7 +53,7 @@ export const CameraControls = ({ variant = "standard" }: CameraControlsProps) =>
     const handleFocusAction = async (direction: string) => {
         await execute('/api/indi', `FOCUS ${direction}`, {
             body: { 
-                endpoint: 'ccd/focus',
+                action: 'focus',
                 direction,
                 steps: 50,
                 device: "Canon DSLR EOS 600D"
@@ -84,7 +84,7 @@ export const CameraControls = ({ variant = "standard" }: CameraControlsProps) =>
 
         const result = await execute(`/api/indi`, "IMAGE CAPTURE", {
             body: { 
-                endpoint: 'ccd/capture',
+                action: 'capture',
                 exposure: config.exposureTime || 2.0, 
                 device: "Canon DSLR EOS 600D" 
             },
