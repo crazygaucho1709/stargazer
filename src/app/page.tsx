@@ -36,24 +36,47 @@ export default function Home() {
 
         const checkConnection = async () => {
             const storeState = useStargazerStore.getState();
-            const res = await mockApi.ping(storeState.config.astroberryUrl, storeState.config.driverInstance);
-            
-            setConnected(res.success);
-            if (res.success) {
-                setStatusText(t("SYSTEM_ONLINE", language));
-                if (!wasConnected && envData.latitude !== null && envData.longitude !== null) {
-                    mockApi.syncLocation(envData.latitude, envData.longitude, storeState.config.driverInstance);
+            try {
+                // We use the same endpoint as ping but more frequently for telemetry
+                const res = await fetch(`/api/indi?endpoint=health`, { 
+                    cache: 'no-store',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                if (res.ok) {
+                    const data = await res.json();
+                    // data is [ { status, mount_connected, indi_connected, ... } ]
+                    if (Array.isArray(data) && data.length > 0) {
+                        const health = data[0];
+                        const isOk = health.status === "True";
+                        setConnected(isOk);
+                        
+                        if (isOk) {
+                            setStatusText(t("SYSTEM_ONLINE", language));
+                            setWasConnected(true);
+                            
+                            // If backend provided coordinates, update store
+                            // Note: We need the backend to return RA/Dec in /health
+                            if (health.ra && health.dec) {
+                                useStargazerStore.getState().setPosition(health.ra, health.dec);
+                            }
+                        } else {
+                            setStatusText(t("LINK_OFFLINE", language));
+                            setWasConnected(false);
+                        }
+                    }
                 }
-                setWasConnected(true);
-            } else {
-                setStatusText(`${t("LINK_OFFLINE", language)} - ${res.error || 'Unknown Error'}`);
+            } catch (err: any) {
+                setConnected(false);
+                setStatusText(`${t("LINK_OFFLINE", language)} - ${err.message}`);
                 setWasConnected(false);
             }
         };
+
         checkConnection();
-        const interval = setInterval(checkConnection, 8000);
+        const interval = setInterval(checkConnection, 2000); // 2s polling
         return () => clearInterval(interval);
-    }, [setConnected, language, wasConnected, envData.latitude, envData.longitude, mounted]);
+    }, [setConnected, language, mounted]);
 
     if (!mounted) {
         return <Box h="100vh" w="100vw" bg="#030509" />;

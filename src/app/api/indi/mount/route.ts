@@ -141,6 +141,11 @@ export async function POST(request: Request) {
         });
         break;
         
+      case 'abort_all':
+        // Abort all hardware processes
+        response = await sendToBridge(bridgeIp, '/command', { action: 'abort_all' });
+        break;
+        
       case 'rate':
         // Changer la vitesse de mouvement (slider 1x - 9x)
         const { rate } = body;
