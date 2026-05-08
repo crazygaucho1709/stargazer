@@ -2556,3 +2556,303 @@ INFO:     127.0.0.1:59575 - "GET /health HTTP/1.1" 200 OK
 INFO:     127.0.0.1:59580 - "POST /mount/jog HTTP/1.1" 200 OK
 INFO:     127.0.0.1:59598 - "GET /health/full HTTP/1.1" 200 OK
 INFO:     127.0.0.1:60057 - "GET /indi/devices HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58081 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58085 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58081 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58085 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58081 - "POST /command HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58081 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58081 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58081 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58081 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58081 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58081 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58081 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58081 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58081 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58081 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58081 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58081 - "POST /mount/jog HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58081 - "POST /mount/jog HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58081 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58081 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58081 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58081 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58081 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58081 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58081 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58081 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58081 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58081 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58081 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58081 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58081 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58081 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58081 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58081 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58081 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58081 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58081 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58081 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58081 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58081 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58081 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58081 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58081 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58081 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58081 - "POST /mount/jog HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58081 - "POST /mount/jog HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58081 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58081 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58081 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58081 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58081 - "POST /ccd/stream/start HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61813 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58081 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62433 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62879 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63102 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63504 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63878 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64113 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64373 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64745 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64974 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65341 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49179 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49595 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49995 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50355 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50552 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "POST /command HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "POST /mount/jog HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "POST /mount/jog HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56755 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57135 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57322 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57721 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57952 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58327 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58738 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59134 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59320 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59320 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59320 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59320 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59320 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59320 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59320 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59320 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59320 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59320 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59320 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59320 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59320 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59320 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59320 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59320 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60711 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59320 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59320 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59320 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59320 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59320 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59320 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59320 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59320 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59320 - "GET /ccd/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59320 - "POST /ccd/stream/start HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59320 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62092 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62475 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62878 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63293 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63655 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64050 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64450 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64671 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65056 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65462 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49456 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49826 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50197 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50594 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51002 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51376 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51603 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51808 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52182 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52407 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52780 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53179 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53556 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53781 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54143 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54368 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54368 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54564 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54970 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55369 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55564 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55791 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56188 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56383 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56615 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56984 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57187 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57622 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57987 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58384 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58790 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59202 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59607 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59803 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60173 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60577 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60973 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61161 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61391 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61580 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61942 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62173 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62573 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62813 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63215 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63594 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63820 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64235 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64599 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64972 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65378 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49221 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49423 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49848 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50048 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50276 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50648 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50851 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51075 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51486 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51852 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52055 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52432 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52696 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53064 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53252 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53456 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53850 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54083 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54453 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54650 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55023 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55286 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55650 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55847 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56072 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56453 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56846 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57072 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57435 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57629 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57886 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58258 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58466 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58865 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59273 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59641 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60018 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60213 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60664 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60864 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61234 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61436 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61860 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62056 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62466 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62840 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63240 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63433 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63662 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64035 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64035 - "POST /mount/slew HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64236 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64601 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64860 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65040 - "POST /mount/slew HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65040 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65432 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49306 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49677 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50076 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50310 - "GET /health HTTP/1.1" 200 OK

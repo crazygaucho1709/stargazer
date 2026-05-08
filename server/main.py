@@ -73,7 +73,7 @@ app.mount("/images", StaticFiles(directory=THUMBNAIL_PATH), name="images")
 class SlewRequest(BaseModel):
     ra: float
     dec: float
-    device: str = "Celestron NexStar HC"
+    device: str = "Celestron GPS"
 
 class CaptureRequest(BaseModel):
     exposure: float
@@ -82,18 +82,18 @@ class CaptureRequest(BaseModel):
 class JogRequest(BaseModel):
     direction: str
     state: str = "start"
-    device: str = "Celestron NexStar HC"
+    device: str = "Celestron GPS"
 
 class RateRequest(BaseModel):
     rate: int
-    device: str = "Celestron NexStar HC"
+    device: str = "Celestron GPS"
 
 class SyncMasterRequest(BaseModel):
     lat: float
     lon: float
     alt: float
     az: float
-    device: str = "Celestron NexStar HC"
+    device: str = "Celestron GPS"
 
 class CoordsRequest(BaseModel):
     ra: float
@@ -110,8 +110,9 @@ class INDIClient:
         self.latest_image_path = None
         self.sock = None
         self.socket_lock = threading.Lock()  # Lock for thread-safe socket access
-        self.device_mount = "Celestron NexStar HC"
+        self.device_mount = "Celestron GPS"
         self.device_ccd = "Canon DSLR EOS 600D"
+        self.frame_condition = threading.Condition()
         # Mount telemetry state
         self.mount_ra: float = 0.0
         self.mount_dec: float = 0.0
@@ -372,7 +373,7 @@ class INDIClient:
             if fmt_start != -1:
                 fmt_end = blob_tag.find(b'"', fmt_start + 8)
                 if fmt_end != -1:
-                    fmt = blob_tag[fmt_start+8:fmt_end].decode('utf-8', errors='ignore')
+                    fmt = blob_tag[fmt_start+8:fmt_end].decode('utf-8', errors='ignore').strip('.')
             
             # Find content
             content_start = blob_tag.find(b'>')
@@ -389,7 +390,9 @@ class INDIClient:
                     f.write(raw_bytes)
                 
                 logger.info(f"Image saved: {filepath}")
-                self.latest_frame = raw_bytes
+                with self.frame_condition:
+                    self.latest_frame = raw_bytes
+                    self.frame_condition.notify_all()
                 self.generate_thumb(filepath, ts)
         except Exception as e:
             logger.error(f"Blob error: {e}")
@@ -729,31 +732,25 @@ async def get_status():
 
 # --- STREAMING ---
 def mjpeg_generator():
-    # Dedicated MJPEG socket listener
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.connect((INDI_HOST, INDI_PORT))
-        s.sendall(f'<getProperties version="1.7" device="{indi.device_ccd}"/>\r\n'.encode())
-        s.sendall(f'<enableBLOB device="{indi.device_ccd}">Also</enableBLOB>\r\n'.encode())
-        
-        buffer = b""
-        while True:
-            data = s.recv(65536)
-            if not data: break
-            buffer += data
+    """Yield frames from the global INDI client latest_frame."""
+    last_frame_time = 0
+    while True:
+        with indi.frame_condition:
+            # Wait for a new frame or timeout
+            if not indi.frame_condition.wait(timeout=2.0):
+                # If timeout, maybe send the last frame again or wait
+                if not indi.connected:
+                    break
+                continue
             
-            if b"<oneBLOB" in buffer and b"</oneBLOB>" in buffer:
-                match = re.search(b'format="([^"]+)"[^>]*>([^<]+)</oneBLOB>', buffer, re.DOTALL)
-                if match:
-                    blob_content = match.group(2).decode().replace('\n', '').replace('\r', '')
-                    raw_bytes = base64.b64decode(blob_content)
-                    yield (b'--frame\r\n'
-                           b'Content-Type: image/jpeg\r\n\r\n' + raw_bytes + b'\r\n')
-                buffer = b""
-    except Exception as e:
-        logger.error(f"MJPEG error: {e}")
-    finally:
-        s.close()
+            frame = indi.latest_frame
+            
+        if frame:
+            yield (b'--frame\r\n'
+                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+        
+        # Small sleep to prevent CPU hogging if frames come too fast
+        time.sleep(0.01)
 
 @app.get("/video_feed")
 async def video_feed():

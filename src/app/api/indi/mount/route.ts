@@ -90,10 +90,10 @@ function parseDecToDegrees(coord: string | number): number {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    let { action, device = 'Celestron NexStar HC', ra, dec, direction, state = 'start', duration = 0.5, ip } = body;
-    // Remove hardcoded device mapping, just use the device passed or default
-    if (!device || device === 'Celestron GPS') {
-      device = 'Celestron NexStar HC';
+    let { action, device = 'Celestron GPS', ra, dec, direction, state = 'start', duration = 0.5, ip } = body;
+    // Use 'Celestron GPS' as default if not specified
+    if (!device) {
+      device = 'Celestron GPS';
     }
     // Use provided IP (which might include port) or default to local Python bridge
     const bridgeIp = ip || '127.0.0.1:5005';

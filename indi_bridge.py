@@ -22,7 +22,7 @@ CORS(app)
 ASTROBERRY_HOST = os.getenv("ASTROBERRY_HOST", "192.168.178.142")
 INDI_HOST = os.getenv("INDI_HOST", ASTROBERRY_HOST)
 INDI_PORT = int(os.getenv("INDI_PORT", "7624"))
-DEVICE_MOUNT = os.getenv("DEVICE_MOUNT", "Celestron NexStar HC")
+DEVICE_MOUNT = os.getenv("DEVICE_MOUNT", "Celestron GPS")
 DEVICE_CCD = os.getenv("DEVICE_CCD", "Canon DSLR EOS 600D")
 EKOS_PROFILE = os.getenv("EKOS_PROFILE", "Nexstar4SE")
 

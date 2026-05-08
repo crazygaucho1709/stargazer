@@ -268,16 +268,59 @@ export const AIAssistant = () => {
                     <VStack align="start" gap={3} mt={2}>
                         <Text fontSize="12px" fontWeight="bold" color="white">{getAdvice()}</Text>
                         <Text fontSize="11px" opacity={0.8} lineHeight={1.6}>
-                            {language === 'fr' ? 
-                                (weather.windSpeed && weather.windSpeed > 10 ? 
-                                    `Vent modéré (${weather.windSpeed.toFixed(0)} km/h). Réduire les temps d'exposition.` :
-                                    "Conditions favorables pour l'imagerie longue pose."
-                                ) :
-                                (weather.windSpeed && weather.windSpeed > 10 ?
-                                    `Moderate wind (${weather.windSpeed.toFixed(0)} km/h). Reduce exposure times.` :
-                                    "Favorable conditions for long exposure imaging."
-                                )
-                            }
+                            {(() => {
+                                // Calculate observation score (same as getConditionText and getAdvice)
+                                let score = 100;
+                                
+                                if (weather.cloudCover > 70) score -= 60;
+                                else if (weather.cloudCover > 50) score -= 40;
+                                else if (weather.cloudCover > 30) score -= 20;
+                                else if (weather.cloudCover > 15) score -= 10;
+                                
+                                if (weather.windSpeed && weather.windSpeed > 25) score -= 20;
+                                else if (weather.windSpeed && weather.windSpeed > 15) score -= 10;
+                                else if (weather.windSpeed && weather.windSpeed > 8) score -= 5;
+                                
+                                if (weather.humidity && weather.humidity > 80) score -= 15;
+                                else if (weather.humidity && weather.humidity > 70) score -= 10;
+                                else if (weather.humidity && weather.humidity > 60) score -= 5;
+                                
+                                if (weather.seeing) {
+                                    if (weather.seeing > 1.5) score -= 15;
+                                    else if (weather.seeing > 1.2) score -= 10;
+                                    else if (weather.seeing < 0.5) score += 10;
+                                }
+                                
+                                // Generate detailed advice based on score
+                                if (score >= 85) {
+                                    return language === 'fr' 
+                                        ? "Conditions idéales pour l'imagerie longue pose."
+                                        : "Ideal conditions for long exposure imaging.";
+                                }
+                                
+                                if (score >= 70) {
+                                    return language === 'fr' 
+                                        ? "Bonnes conditions pour l'imagerie longue pose."
+                                        : "Good conditions for long exposure imaging.";
+                                }
+                                
+                                if (score >= 50) {
+                                    return language === 'fr' 
+                                        ? "Conditions acceptables pour l'imagerie courte pose."
+                                        : "Acceptable conditions for short exposure imaging.";
+                                }
+                                
+                                if (score >= 30) {
+                                    return language === 'fr' 
+                                        ? "Conditions difficiles. Imagerie longue pose déconseillée."
+                                        : "Difficult conditions. Long exposure imaging not recommended.";
+                                }
+                                
+                                // score < 30
+                                return language === 'fr' 
+                                    ? "Conditions très défavorables. Observation visuelle uniquement."
+                                    : "Very poor conditions. Visual observation only.";
+                            })()}
                             {" "}{t("AI_HORIZON_LIMITS", language)} <Text as="span" color="var(--astro-teal)" fontWeight="bold">3h45 {t("AI_CONTINUOUS_TRACKING", language)}</Text> {t("AI_ON_ORION", language)}
                         </Text>
                         <HStack w="full" mt={2}>
