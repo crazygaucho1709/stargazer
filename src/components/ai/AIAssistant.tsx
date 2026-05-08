@@ -55,34 +55,7 @@ export const AIAssistant = () => {
     const getConditionText = () => {
         if (loading) return t("AI_ANALYSIS_OK", language);
         if (!weather.cloudCover) return t("AI_ANALYSIS_OK", language);
-        
-        // Calculate overall observation score (0-100)
-        let score = 100;
-        
-        // Cloud cover impact (most important factor)
-        if (weather.cloudCover > 70) score -= 60;
-        else if (weather.cloudCover > 50) score -= 40;
-        else if (weather.cloudCover > 30) score -= 20;
-        else if (weather.cloudCover > 15) score -= 10;
-        
-        // Wind impact
-        if (weather.windSpeed && weather.windSpeed > 25) score -= 20;
-        else if (weather.windSpeed && weather.windSpeed > 15) score -= 10;
-        else if (weather.windSpeed && weather.windSpeed > 8) score -= 5;
-        
-        // Humidity impact
-        if (weather.humidity && weather.humidity > 80) score -= 15;
-        else if (weather.humidity && weather.humidity > 70) score -= 10;
-        else if (weather.humidity && weather.humidity > 60) score -= 5;
-        
-        // Seeing impact
-        if (weather.seeing) {
-            if (weather.seeing > 1.5) score -= 15;
-            else if (weather.seeing > 1.2) score -= 10;
-            else if (weather.seeing < 0.5) score += 10; // Excellent seeing
-        }
-        
-        // Generate condition text based on score
+        const score = getObservationScore();
         if (score >= 85) return language === 'fr' ? "Excellentes conditions" : "Excellent conditions";
         if (score >= 70) return language === 'fr' ? "Bonnes conditions" : "Good conditions";
         if (score >= 50) return language === 'fr' ? "Conditions acceptables" : "Acceptable conditions";
@@ -90,58 +63,77 @@ export const AIAssistant = () => {
         return language === 'fr' ? "Conditions difficiles" : "Poor conditions";
     };
 
-    const getAdvice = () => {
-        if (loading) return t("AI_CONDITIONS_EXCELLENT", language);
-        
-        // Calculate observation score (same as getConditionText)
+    // Returns the same observation-quality score used in getConditionText().
+    // Single source of truth so the title, condition label, and detailed
+    // paragraph stay aligned with each other.
+    const getObservationScore = () => {
         let score = 100;
-        
-        if (weather.cloudCover > 70) score -= 60;
-        else if (weather.cloudCover > 50) score -= 40;
-        else if (weather.cloudCover > 30) score -= 20;
-        else if (weather.cloudCover > 15) score -= 10;
-        
+
+        if (weather.cloudCover !== undefined) {
+            if (weather.cloudCover > 70) score -= 60;
+            else if (weather.cloudCover > 50) score -= 40;
+            else if (weather.cloudCover > 30) score -= 20;
+            else if (weather.cloudCover > 15) score -= 10;
+        }
+
         if (weather.windSpeed && weather.windSpeed > 25) score -= 20;
         else if (weather.windSpeed && weather.windSpeed > 15) score -= 10;
         else if (weather.windSpeed && weather.windSpeed > 8) score -= 5;
-        
+
         if (weather.humidity && weather.humidity > 80) score -= 15;
         else if (weather.humidity && weather.humidity > 70) score -= 10;
         else if (weather.humidity && weather.humidity > 60) score -= 5;
-        
+
         if (weather.seeing) {
             if (weather.seeing > 1.5) score -= 15;
             else if (weather.seeing > 1.2) score -= 10;
             else if (weather.seeing < 0.5) score += 10;
         }
-        
-        // Generate advice based on score (consistent with condition text)
+
+        return score;
+    };
+
+    // Short, single-word title shown above the AI advice paragraph.
+    const getAdviceTitle = () => {
+        if (loading || weather.cloudCover === undefined) return t("AI_ADVICE_TITLE_EXCELLENT", language);
+        const score = getObservationScore();
+        if (score >= 85) return t("AI_ADVICE_TITLE_EXCELLENT", language);
+        if (score >= 70) return t("AI_ADVICE_TITLE_GOOD", language);
+        if (score >= 50) return t("AI_ADVICE_TITLE_FAIR", language);
+        if (score >= 30) return t("AI_ADVICE_TITLE_DIFFICULT", language);
+        return t("AI_ADVICE_TITLE_POOR", language);
+    };
+
+    // Full-sentence advice paragraph shown under the title.
+    const getAdviceDescription = () => {
+        if (loading || weather.cloudCover === undefined) {
+            return language === 'fr'
+                ? "Analyse des conditions en cours..."
+                : "Analysing conditions...";
+        }
+        const score = getObservationScore();
+
         if (score >= 85) {
-            return language === 'fr' 
+            return language === 'fr'
                 ? "Conditions parfaites pour l'astrophotographie longue exposition et planétaire."
                 : "Perfect conditions for long exposure and planetary astrophotography.";
         }
-        
         if (score >= 70) {
-            return language === 'fr' 
+            return language === 'fr'
                 ? "Bonnes conditions pour l'imagerie deep-sky. Temps d'exposition modérés recommandés."
                 : "Good conditions for deep-sky imaging. Moderate exposure times recommended.";
         }
-        
         if (score >= 50) {
-            return language === 'fr' 
+            return language === 'fr'
                 ? "Conditions acceptables pour les cibles lumineuses uniquement. Courtes expositions recommandées."
                 : "Acceptable conditions for bright targets only. Short exposures recommended.";
         }
-        
         if (score >= 30) {
-            return language === 'fr' 
+            return language === 'fr'
                 ? "Conditions difficiles. Imagerie longue exposition déconseillée. Attendre une amélioration."
                 : "Difficult conditions. Long exposure imaging not recommended. Wait for improvement.";
         }
-        
-        // score < 30
-        return language === 'fr' 
+        return language === 'fr'
             ? "Conditions très défavorables. Observation visuelle uniquement possible pendant de courtes périodes."
             : "Very poor conditions. Visual observation only possible during short periods.";
     };
@@ -149,11 +141,11 @@ export const AIAssistant = () => {
     if (!mounted) return null;
 
     return (
-        <VStack align="stretch" gap={4} color="var(--astro-starlight)" w="full">
+        <VStack align="stretch" gap={3} color="var(--astro-starlight)" w="full">
             <HStack justify="space-between">
                 <HStack gap={2}>
-                    <BrainCircuit size={18} color="var(--astro-gold)" className="pulse-glow" />
-                    <Text fontSize="12px" fontWeight="bold" letterSpacing="0.1em">{t("AI_METEO_ORACLE", language)}</Text>
+                    <BrainCircuit size={16} color="var(--astro-gold)" className="pulse-glow" />
+                    <Text fontSize="11px" fontWeight="bold" letterSpacing="0.1em">{t("AI_METEO_ORACLE", language)}</Text>
                 </HStack>
                 <HStack gap={2}>
                     <Button
@@ -175,12 +167,12 @@ export const AIAssistant = () => {
 
             <Box borderTop="1px dashed rgba(255, 255, 255, 0.1)" my={1} />
 
-            <VStack align="stretch" gap={4}>
+            <VStack align="stretch" gap={3}>
                 {/* Environmental Data */}
-                <Box bg="rgba(0, 0, 0, 0.3)" p={4} borderRadius="8px" borderLeft="2px solid var(--astro-teal)">
-                    <HStack justify="space-between" mb={4}>
+                <Box bg="rgba(0, 0, 0, 0.3)" p={3} borderRadius="8px" borderLeft="2px solid var(--astro-teal)">
+                    <HStack justify="space-between" mb={2}>
                         <VStack align="start" gap={0}>
-                            <Text fontSize="16px" fontWeight="bold" color="var(--astro-teal)">
+                            <Text fontSize="15px" fontWeight="bold" color="var(--astro-teal)">
                                 {t("AI_SEEING", language)} {loading ? "--" : (weather.seeing?.toFixed(1) || "--")}&quot;
                             </Text>
                             <Text fontSize="9px" opacity={0.6}>
@@ -235,8 +227,8 @@ export const AIAssistant = () => {
                 </Box>
                 
                 {/* Ephemeris Section */}
-                <Box bg="rgba(0, 0, 0, 0.3)" p={4} borderRadius="8px" borderLeft="2px solid var(--astro-gold)">
-                    <HStack justify="space-between" mb={2}>
+                <Box bg="rgba(0, 0, 0, 0.3)" p={3} borderRadius="8px" borderLeft="2px solid var(--astro-gold)">
+                    <HStack justify="space-between" mb={1}>
                         <HStack gap={2}>
                             <Moon size={16} color="var(--astro-gold)" />
                             <Text fontSize="12px" fontWeight="bold" letterSpacing="0.1em" color="whiteAlpha.800">EPHEMERIS</Text>
@@ -261,74 +253,22 @@ export const AIAssistant = () => {
                 </Box>
 
                 {/* AI Suggestion */}
-                <Box border="1px solid rgba(255, 179, 71, 0.3)" p={4} bg="rgba(255, 179, 71, 0.05)" position="relative" borderRadius="8px">
+                <Box border="1px solid rgba(255, 179, 71, 0.3)" p={3} bg="rgba(255, 179, 71, 0.05)" position="relative" borderRadius="8px">
                     <Box position="absolute" top={-3} left={4} bg="#030509" px={2} border="1px solid rgba(255, 179, 71, 0.3)" borderRadius="sm">
                         <HStack gap={1}><Star size={12} color="var(--astro-gold)" /><Text fontSize="8px" color="var(--astro-gold)" fontWeight="bold">{t("AI_ADVICE", language)}</Text></HStack>
                     </Box>
-                    <VStack align="start" gap={3} mt={2}>
-                        <Text fontSize="12px" fontWeight="bold" color="white">{getAdvice()}</Text>
-                        <Text fontSize="11px" opacity={0.8} lineHeight={1.6}>
-                            {(() => {
-                                // Calculate observation score (same as getConditionText and getAdvice)
-                                let score = 100;
-                                
-                                if (weather.cloudCover > 70) score -= 60;
-                                else if (weather.cloudCover > 50) score -= 40;
-                                else if (weather.cloudCover > 30) score -= 20;
-                                else if (weather.cloudCover > 15) score -= 10;
-                                
-                                if (weather.windSpeed && weather.windSpeed > 25) score -= 20;
-                                else if (weather.windSpeed && weather.windSpeed > 15) score -= 10;
-                                else if (weather.windSpeed && weather.windSpeed > 8) score -= 5;
-                                
-                                if (weather.humidity && weather.humidity > 80) score -= 15;
-                                else if (weather.humidity && weather.humidity > 70) score -= 10;
-                                else if (weather.humidity && weather.humidity > 60) score -= 5;
-                                
-                                if (weather.seeing) {
-                                    if (weather.seeing > 1.5) score -= 15;
-                                    else if (weather.seeing > 1.2) score -= 10;
-                                    else if (weather.seeing < 0.5) score += 10;
-                                }
-                                
-                                // Generate detailed advice based on score
-                                if (score >= 85) {
-                                    return language === 'fr' 
-                                        ? "Conditions idéales pour l'imagerie longue pose."
-                                        : "Ideal conditions for long exposure imaging.";
-                                }
-                                
-                                if (score >= 70) {
-                                    return language === 'fr' 
-                                        ? "Bonnes conditions pour l'imagerie longue pose."
-                                        : "Good conditions for long exposure imaging.";
-                                }
-                                
-                                if (score >= 50) {
-                                    return language === 'fr' 
-                                        ? "Conditions acceptables pour l'imagerie courte pose."
-                                        : "Acceptable conditions for short exposure imaging.";
-                                }
-                                
-                                if (score >= 30) {
-                                    return language === 'fr' 
-                                        ? "Conditions difficiles. Imagerie longue pose déconseillée."
-                                        : "Difficult conditions. Long exposure imaging not recommended.";
-                                }
-                                
-                                // score < 30
-                                return language === 'fr' 
-                                    ? "Conditions très défavorables. Observation visuelle uniquement."
-                                    : "Very poor conditions. Visual observation only.";
-                            })()}
-                            {" "}{t("AI_HORIZON_LIMITS", language)} <Text as="span" color="var(--astro-teal)" fontWeight="bold">3h45 {t("AI_CONTINUOUS_TRACKING", language)}</Text> {t("AI_ON_ORION", language)}
+                    <VStack align="start" gap={2} mt={1}>
+                        <Text fontSize="13px" fontWeight="bold" color="var(--astro-gold)" letterSpacing="0.05em" className="hud-font">{getAdviceTitle()}</Text>
+                        <Text fontSize="11px" opacity={0.85} lineHeight={1.5}>
+                            {getAdviceDescription()}{" "}
+                            {t("AI_HORIZON_LIMITS", language)} <Text as="span" color="var(--astro-teal)" fontWeight="bold">3h45 {t("AI_CONTINUOUS_TRACKING", language)}</Text> {t("AI_ON_ORION", language)}
                         </Text>
-                        <HStack w="full" mt={2}>
+                        <HStack w="full" mt={1}>
                             <Button 
                                 size="sm" w="full" bg="rgba(255, 179, 71, 0.1)" 
                                 border="1px solid var(--astro-gold)" color="var(--astro-gold)"
                                 _hover={{ bg: "var(--astro-gold)", color: "black", boxShadow: "0 0 15px rgba(255, 179, 71, 0.4)" }}
-                                fontSize="10px" py={4}
+                                fontSize="10px" h="32px"
                             >
                                 <Sparkles size={14} style={{ marginRight: '6px' }} />
                                 {t("AI_START_SEQUENCE", language)}

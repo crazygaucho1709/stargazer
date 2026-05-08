@@ -128,6 +128,26 @@ h1, h2, h3, .hud-font {
   background: var(--astro-teal);
 }
 
+/* Subtle scrollbar for HUD side columns. Hidden until the column is hovered
+   so it doesn't clutter the chrome on screens where everything fits. */
+.hud-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.06) transparent;
+}
+.hud-scroll::-webkit-scrollbar {
+  width: 3px;
+}
+.hud-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.hud-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 3px;
+}
+.hud-scroll:hover::-webkit-scrollbar-thumb {
+  background: rgba(0, 255, 209, 0.25);
+}
+
 /* Slew Rate Slider Thumb */
 .slew-rate-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
