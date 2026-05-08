@@ -906,7 +906,9 @@ async def ccd_focus(req: Request):
 async def ccd_latest():
     if indi.latest_frame:
         return Response(indi.latest_frame, media_type="image/jpeg")
-    raise HTTPException(status_code=404, detail="No image available")
+    # No frame yet (camera not connected, no exposure taken). Return 204 so
+    # the polling LiveView doesn't spam the browser console with 404 errors.
+    return Response(status_code=204)
 
 @app.post("/astro/coords")
 async def get_astro_coords(req: CoordsRequest):
