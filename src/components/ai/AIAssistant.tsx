@@ -9,7 +9,7 @@ import { useEnvironmentData } from "@/hooks/useEnvironmentData";
 import { useState, useEffect } from "react";
 
 export const AIAssistant = () => {
-    const { language, ra, dec } = useStargazerStore();
+    const { language, ra, dec, setLanguage } = useStargazerStore();
     const envData = useEnvironmentData();
     const [mounted, setMounted] = useState(false);
     const [weather, setWeather] = useState<{
@@ -56,21 +56,94 @@ export const AIAssistant = () => {
         if (loading) return t("AI_ANALYSIS_OK", language);
         if (!weather.cloudCover) return t("AI_ANALYSIS_OK", language);
         
-        if (weather.cloudCover < 20) return t("AI_CLEAR_NIGHT", language);
-        if (weather.cloudCover < 50) return language === 'fr' ? "Nuageux partiel" : "Partly cloudy";
-        return language === 'fr' ? "Nuageux" : "Cloudy";
+        // Calculate overall observation score (0-100)
+        let score = 100;
+        
+        // Cloud cover impact (most important factor)
+        if (weather.cloudCover > 70) score -= 60;
+        else if (weather.cloudCover > 50) score -= 40;
+        else if (weather.cloudCover > 30) score -= 20;
+        else if (weather.cloudCover > 15) score -= 10;
+        
+        // Wind impact
+        if (weather.windSpeed && weather.windSpeed > 25) score -= 20;
+        else if (weather.windSpeed && weather.windSpeed > 15) score -= 10;
+        else if (weather.windSpeed && weather.windSpeed > 8) score -= 5;
+        
+        // Humidity impact
+        if (weather.humidity && weather.humidity > 80) score -= 15;
+        else if (weather.humidity && weather.humidity > 70) score -= 10;
+        else if (weather.humidity && weather.humidity > 60) score -= 5;
+        
+        // Seeing impact
+        if (weather.seeing) {
+            if (weather.seeing > 1.5) score -= 15;
+            else if (weather.seeing > 1.2) score -= 10;
+            else if (weather.seeing < 0.5) score += 10; // Excellent seeing
+        }
+        
+        // Generate condition text based on score
+        if (score >= 85) return language === 'fr' ? "Excellentes conditions" : "Excellent conditions";
+        if (score >= 70) return language === 'fr' ? "Bonnes conditions" : "Good conditions";
+        if (score >= 50) return language === 'fr' ? "Conditions acceptables" : "Acceptable conditions";
+        if (score >= 30) return language === 'fr' ? "Conditions limites" : "Marginal conditions";
+        return language === 'fr' ? "Conditions difficiles" : "Poor conditions";
     };
 
     const getAdvice = () => {
         if (loading) return t("AI_CONDITIONS_EXCELLENT", language);
         
-        if (weather.cloudCover && weather.cloudCover > 50) {
-            return language === 'fr' ? "Conditions non optimales pour l'imagerie" : "Suboptimal conditions for imaging";
+        // Calculate observation score (same as getConditionText)
+        let score = 100;
+        
+        if (weather.cloudCover > 70) score -= 60;
+        else if (weather.cloudCover > 50) score -= 40;
+        else if (weather.cloudCover > 30) score -= 20;
+        else if (weather.cloudCover > 15) score -= 10;
+        
+        if (weather.windSpeed && weather.windSpeed > 25) score -= 20;
+        else if (weather.windSpeed && weather.windSpeed > 15) score -= 10;
+        else if (weather.windSpeed && weather.windSpeed > 8) score -= 5;
+        
+        if (weather.humidity && weather.humidity > 80) score -= 15;
+        else if (weather.humidity && weather.humidity > 70) score -= 10;
+        else if (weather.humidity && weather.humidity > 60) score -= 5;
+        
+        if (weather.seeing) {
+            if (weather.seeing > 1.5) score -= 15;
+            else if (weather.seeing > 1.2) score -= 10;
+            else if (weather.seeing < 0.5) score += 10;
         }
-        if (weather.windSpeed && weather.windSpeed > 15) {
-            return language === 'fr' ? "Vent élevé - réduire temps d'exposition" : "High wind - reduce exposure time";
+        
+        // Generate advice based on score (consistent with condition text)
+        if (score >= 85) {
+            return language === 'fr' 
+                ? "Conditions parfaites pour l'astrophotographie longue exposition et planétaire."
+                : "Perfect conditions for long exposure and planetary astrophotography.";
         }
-        return t("AI_CONDITIONS_EXCELLENT", language);
+        
+        if (score >= 70) {
+            return language === 'fr' 
+                ? "Bonnes conditions pour l'imagerie deep-sky. Temps d'exposition modérés recommandés."
+                : "Good conditions for deep-sky imaging. Moderate exposure times recommended.";
+        }
+        
+        if (score >= 50) {
+            return language === 'fr' 
+                ? "Conditions acceptables pour les cibles lumineuses uniquement. Courtes expositions recommandées."
+                : "Acceptable conditions for bright targets only. Short exposures recommended.";
+        }
+        
+        if (score >= 30) {
+            return language === 'fr' 
+                ? "Conditions difficiles. Imagerie longue exposition déconseillée. Attendre une amélioration."
+                : "Difficult conditions. Long exposure imaging not recommended. Wait for improvement.";
+        }
+        
+        // score < 30
+        return language === 'fr' 
+            ? "Conditions très défavorables. Observation visuelle uniquement possible pendant de courtes périodes."
+            : "Very poor conditions. Visual observation only possible during short periods.";
     };
 
     if (!mounted) return null;
@@ -82,7 +155,22 @@ export const AIAssistant = () => {
                     <BrainCircuit size={18} color="var(--astro-gold)" className="pulse-glow" />
                     <Text fontSize="12px" fontWeight="bold" letterSpacing="0.1em">{t("AI_METEO_ORACLE", language)}</Text>
                 </HStack>
-                <Text fontSize="10px" color="var(--astro-teal)">{loading ? "Loading..." : t("AI_ANALYSIS_OK", language)}</Text>
+                <HStack gap={2}>
+                    <Button
+                        size="xs"
+                        onClick={() => setLanguage(language === 'en' ? 'fr' : 'en')}
+                        bg="rgba(255, 255, 255, 0.1)"
+                        borderColor="rgba(255, 255, 255, 0.2)"
+                        color="var(--astro-starlight)"
+                        w="50px"
+                        fontSize="10px"
+                        h="20px"
+                        _hover={{ bg: "rgba(255, 255, 255, 0.2)" }}
+                    >
+                        {language.toUpperCase()}
+                    </Button>
+                    <Text fontSize="10px" color="var(--astro-teal)">{loading ? "Loading..." : t("AI_ANALYSIS_OK", language)}</Text>
+                </HStack>
             </HStack>
 
             <Box borderTop="1px dashed rgba(255, 255, 255, 0.1)" my={1} />

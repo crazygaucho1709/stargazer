@@ -2549,3 +2549,10 @@ INFO:     127.0.0.1:58180 - "GET /health HTTP/1.1" 200 OK
 INFO:     127.0.0.1:58185 - "POST /mount/jog HTTP/1.1" 200 OK
 INFO:     127.0.0.1:59244 - "GET /health HTTP/1.1" 200 OK
 INFO:     127.0.0.1:59250 - "POST /mount/jog HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59533 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59564 - "POST /indi/reconnect HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:59570 - "POST /reconnect HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59575 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59580 - "POST /mount/jog HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59598 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60057 - "GET /indi/devices HTTP/1.1" 404 Not Found
