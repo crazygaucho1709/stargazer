@@ -1024,3 +1024,35 @@ Log stream proxy error: TypeError: terminated
     code: 'UND_ERR_BODY_TIMEOUT'
   }
 }
+Log stream proxy error: ResponseAborted
+    at ServerResponse.<anonymous> (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/web/spec-extension/adapters/next-request.js:52:26)
+    at Object.onceWrapper (node:events:622:28)
+    at ServerResponse.emit (node:events:520:35)
+    at emitCloseNT (node:_http_server:1073:10)
+    at Socket.onServerResponseClose (node:_http_server:287:5)
+    at Socket.emit (node:events:520:35)
+    at TCP.<anonymous> (node:net:346:12)
+TypeError [ERR_INVALID_STATE]: Invalid state: WritableStream is closed
+    at writableStreamClose (node:internal/webstreams/writablestream:724:7)
+    at writableStreamDefaultWriterClose (node:internal/webstreams/writablestream:1101:10)
+    at WritableStreamDefaultWriter.close (node:internal/webstreams/writablestream:426:12)
+    at /Users/matt/dev/project/web/stargazer/.next/server/app/api/logs/stream/route.js:1:958
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+  code: 'ERR_INVALID_STATE'
+}
+Log stream proxy error: ResponseAborted
+    at ServerResponse.<anonymous> (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/web/spec-extension/adapters/next-request.js:52:26)
+    at Object.onceWrapper (node:events:622:28)
+    at ServerResponse.emit (node:events:520:35)
+    at emitCloseNT (node:_http_server:1073:10)
+    at Socket.onServerResponseClose (node:_http_server:287:5)
+    at Socket.emit (node:events:520:35)
+    at TCP.<anonymous> (node:net:346:12)
+TypeError [ERR_INVALID_STATE]: Invalid state: WritableStream is closed
+    at writableStreamClose (node:internal/webstreams/writablestream:724:7)
+    at writableStreamDefaultWriterClose (node:internal/webstreams/writablestream:1101:10)
+    at WritableStreamDefaultWriter.close (node:internal/webstreams/writablestream:426:12)
+    at /Users/matt/dev/project/web/stargazer/.next/server/app/api/logs/stream/route.js:1:958
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+  code: 'ERR_INVALID_STATE'
+}

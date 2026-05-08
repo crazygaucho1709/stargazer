@@ -88,7 +88,8 @@ def get_status() -> Dict[str, Any]:
         "echo MEM:$(free -m | awk 'NR==2{printf \"%s/%s\", $3, $2}'); "
         "echo UPTIME:$(uptime -p 2>/dev/null || uptime); "
         "echo INDI_PID:$(pgrep -x indiserver || echo 0); "
-        "echo INDI_DEVICES:$(ps aux | grep indiserver | grep -v grep | awk '{for(i=11;i<=NF;i++) printf $i\" \"; print \"\"}')"
+        "echo INDI_DEVICES:$(ps aux | grep indiserver | grep -v grep | awk '{for(i=11;i<=NF;i++) printf $i\" \"; print \"\"}'); "
+        "echo DMESG:$(dmesg | grep -i usb | tail -n 5)"
     )
     
     if not result["success"]:
@@ -120,6 +121,7 @@ def get_status() -> Dict[str, Any]:
         "indi_running": indi_pid > 0,
         "indi_pid": indi_pid,
         "indi_devices": data.get("indi_devices", "").strip(),
+        "last_usb_error": data.get("dmesg", "None"),
     }
 
 

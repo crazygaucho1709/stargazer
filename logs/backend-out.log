@@ -5036,3 +5036,2697 @@ INFO:     127.0.0.1:59979 - "GET /health HTTP/1.1" 200 OK
 INFO:     127.0.0.1:62657 - "GET /health HTTP/1.1" 200 OK
 INFO:     127.0.0.1:62655 - "GET /logs HTTP/1.1" 200 OK
 INFO:     127.0.0.1:62657 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:65061 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65065 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:65067 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51032 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51030 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51032 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:53397 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53402 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:53404 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55400 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55400 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55400 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55400 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55776 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55400 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55400 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:56204 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56204 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:56204 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56204 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:56204 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56423 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:56204 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56204 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56204 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:56204 - "POST /command HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56204 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:56204 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:56204 - "POST /command HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56204 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56204 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:56204 - "POST /mount/rate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56204 - "POST /mount/rate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56204 - "POST /mount/rate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56204 - "POST /mount/rate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56204 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:56204 - "POST /mount/jog HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56204 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:56204 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56204 - "POST /mount/jog HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56204 - "POST /mount/jog HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56204 - "POST /mount/jog HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56204 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:56204 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:56204 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:56204 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56204 - "POST /ccd/stream/start HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57559 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:56204 - "POST /ccd/stream/stop HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56204 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:56204 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57781 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56204 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:56204 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:56204 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57781 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56204 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:56204 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57781 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57781 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56204 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:56204 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:56204 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57781 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56204 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:56204 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57781 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57781 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56204 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57781 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56204 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:56204 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57781 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57781 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56204 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57781 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56204 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57781 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56204 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56204 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57781 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57781 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56204 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57781 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57781 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56204 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:56204 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57781 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56204 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57781 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57781 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56204 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57781 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56204 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:56204 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57781 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57781 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56204 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57781 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56204 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57781 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56204 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56204 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57781 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57781 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56204 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57781 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57781 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56204 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:56204 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57781 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56204 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57781 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57781 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56204 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57781 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56204 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:56204 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57781 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57781 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56204 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57781 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56204 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57781 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62394 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62392 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62394 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62392 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62394 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62394 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62392 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62392 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62394 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62392 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62394 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62392 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62394 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62394 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62392 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62392 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62394 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62392 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62392 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62394 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62394 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62392 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62394 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62392 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62392 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62394 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62392 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62394 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62394 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62392 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62392 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62394 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62392 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62394 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62392 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62394 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62394 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62392 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62392 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62394 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62392 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62392 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62394 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62394 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62392 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62394 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62392 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62392 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62394 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62392 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62394 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62394 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62392 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62392 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62394 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62392 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62394 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62392 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62394 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62392 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64945 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62392 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62394 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62392 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62392 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62394 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62394 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62392 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62394 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62392 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62392 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62394 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:49208 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49212 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:49214 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51737 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51742 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51743 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53924 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53926 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53926 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55882 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56288 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56297 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:56299 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56291 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56672 - "POST /restart_kstars HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58615 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58613 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58615 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:61163 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61168 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:61170 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50259 - "GET /logs/stream HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50262 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50497 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50501 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50505 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50879 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51303 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51686 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51682 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52132 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52136 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52140 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52511 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52924 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52920 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:53332 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53709 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53714 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:53705 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55257 - "GET /logs/stream HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:56255 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:56693 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56871 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57076 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57254 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57072 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57851 - "GET /logs/stream HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57861 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58241 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58246 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58251 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58684 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:59060 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:59503 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:59499 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:59882 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59886 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59889 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60304 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60731 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60727 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:61115 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61526 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61537 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:61532 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:61940 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:61936 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62484 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62676 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63082 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63087 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63098 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63105 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63505 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:64066 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:64269 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:64265 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:64679 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64684 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64688 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:65102 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:65481 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:65302 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:49295 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49730 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49737 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:49733 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50115 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50111 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50493 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51042 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51486 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51490 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51493 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51868 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52270 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52659 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52653 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:53062 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53074 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:53077 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53062 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:53442 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:53886 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:53882 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54444 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54817 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54824 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54820 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55414 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55387 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55821 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:56017 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:56397 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56403 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56407 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56437 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57023 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57395 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58008 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57830 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58211 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58215 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58218 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58587 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:59148 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:59142 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:59381 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59777 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59784 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:59780 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60157 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60153 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60548 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60785 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:61025 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61205 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61208 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:61593 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:61834 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62421 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62417 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62804 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62808 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62811 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63046 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63631 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63627 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63838 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64256 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64263 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:64259 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:64885 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:64860 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:65292 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:49415 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:49419 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49407 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:49612 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:49809 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49812 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49813 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49816 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50222 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50435 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51022 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51016 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51502 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51506 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51511 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51912 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52351 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52345 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52748 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53167 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53348 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:53344 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:53752 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:53747 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54215 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54431 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54838 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54866 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54869 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54872 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55442 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55865 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:56301 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:56296 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:56684 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56689 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56694 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57255 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57654 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57476 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57947 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58345 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58527 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58348 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58779 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58774 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:59198 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:59763 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60150 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60156 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60163 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60174 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60442 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60845 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:61236 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:61231 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:61646 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61651 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61657 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62075 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62479 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62733 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62467 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62737 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62940 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63332 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63516 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63512 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63949 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63943 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:64362 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:64792 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:65219 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65224 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65236 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65238 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:65228 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "POST /ccd/stream/start HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49249 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:49259 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:49252 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "POST /ccd/stream/stop HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:49638 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:49633 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50120 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50091 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50514 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50519 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50522 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50904 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51328 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51324 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51552 - "OPTIONS /ccd/capture HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51552 - "POST /ccd/capture HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51747 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52302 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52309 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52305 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52719 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52712 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:53128 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:53575 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54142 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54146 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54149 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54566 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54973 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55201 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55190 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55664 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55670 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55678 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:56093 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:56365 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:56361 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:56763 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57179 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57186 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57182 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57756 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:57751 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58228 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58795 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:59020 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59025 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59203 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59212 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:59644 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:59632 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60069 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60549 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60540 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:61032 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61037 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61046 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:61290 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:61680 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:61676 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62098 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62513 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62521 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62517 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62922 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62917 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63354 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63746 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63680 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:63682 - "GET /ccd/latest HTTP/1.1" 404 Not Found
