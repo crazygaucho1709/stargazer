@@ -1,6 +1,6 @@
 WARNING:stargazer-backend:External HDD not found, falling back to local storage
 INFO:stargazer-backend:Connected to INDI at 192.168.178.142:7624
-INFO:     Started server process [63590]
+INFO:     Started server process [65063]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 ERROR:    [Errno 48] error while attempting to bind on address ('0.0.0.0', 5005): [errno 48] address already in use

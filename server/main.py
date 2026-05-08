@@ -93,7 +93,7 @@ class SyncMasterRequest(BaseModel):
     lon: float
     alt: float
     az: float
-    device: str = "Celestron GPS"
+    device: str = "Celestron NexStar HC"
 
 class CoordsRequest(BaseModel):
     ra: float
@@ -551,8 +551,7 @@ async def slew_telescope(req: SlewRequest):
     logger.info(f"Slew request: RA={req.ra}, DEC={req.dec}")
     
     device = req.device
-    if device == "Celestron GPS":
-        device = "Celestron NexStar HC"
+    # Device name already corrected in models
         
     if not indi.connected:
         return {"success": False, "error": "INDI not connected"}

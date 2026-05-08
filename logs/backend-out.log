@@ -2547,3 +2547,5 @@ INFO:     127.0.0.1:58031 - "POST /mount/jog HTTP/1.1" 200 OK
 INFO:     127.0.0.1:58036 - "POST /mount/slew HTTP/1.1" 200 OK
 INFO:     127.0.0.1:58180 - "GET /health HTTP/1.1" 200 OK
 INFO:     127.0.0.1:58185 - "POST /mount/jog HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59244 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59250 - "POST /mount/jog HTTP/1.1" 200 OK
