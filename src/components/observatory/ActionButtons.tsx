@@ -58,7 +58,7 @@ export const ActionButtons = () => {
                         icon={ShieldAlert} 
                         colorScheme="red" 
                         variant="solid"
-                        onClick={() => execute('/api/mount/abort', 'ABORTING ALL', { body: { action: 'abort_all' } })}
+                        onClick={() => execute('/api/indi', 'ABORTING ALL', { body: { action: 'abort_all' } })}
                         isLoading={isPending}
                     />
                 </HStack>

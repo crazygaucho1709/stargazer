@@ -6,6 +6,7 @@ import socket
 import base64
 import re
 import json
+import asyncio
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -103,7 +104,9 @@ class CoordsRequest(BaseModel):
 
 # --- INDI CLIENT ---
 class INDIClient:
-    def __init__(self):
+    def __init__(self, host=None, port=None):
+        self.host = host or os.getenv("INDI_HOST", "192.168.178.142")
+        self.port = int(port or os.getenv("INDI_PORT", "7624"))
         self.connected = False
         self.mount_connected = False
         self.latest_frame = None
@@ -119,6 +122,8 @@ class INDIClient:
         self.mount_parked: bool = False
         self.mount_tracking: bool = False
         self.ccd_connected: bool = False
+        self.mount_slew_state: str = "Idle"
+        self.ccd_exposure_state: str = "Idle"
         self.thread = threading.Thread(target=self.run_loop)
         self.thread.daemon = True
         self.thread.start()
@@ -164,13 +169,13 @@ class INDIClient:
                 self.sock = None
 
     def _resolve_host(self):
-        """Try primary IP, fallback to mDNS hostname."""
-        candidates = [INDI_HOST, "localhost", "127.0.0.1", "astroberry.local", "astroberry"]
-        for host in candidates:
+        """Try primary host, fallback to localhost and mDNS if primary fails."""
+        candidates = [self.host, "localhost", "127.0.0.1", "astroberry.local", "astroberry"]
+        for candidate in candidates:
             try:
-                socket.getaddrinfo(host, INDI_PORT, socket.AF_INET, socket.SOCK_STREAM)
-                logger.debug(f"Resolved INDI host: {host}")
-                return host
+                socket.getaddrinfo(candidate, self.port, socket.AF_INET, socket.SOCK_STREAM)
+                logger.debug(f"Resolved INDI host: {candidate}")
+                return candidate
             except socket.gaierror:
                 continue
         return None
@@ -185,7 +190,7 @@ class INDIClient:
         # Pre-check: resolve host before attempting TCP connect
         host = self._resolve_host()
         if not host:
-            logger.error(f"Connection failed: cannot resolve INDI host (tried {INDI_HOST})")
+            logger.error(f"Connection failed: cannot resolve INDI host (tried {self.host})")
             return
 
         # Attempt TCP connection
@@ -199,21 +204,21 @@ class INDIClient:
                 sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPALIVE, 10)
             sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
             sock.settimeout(10)
-            sock.connect((host, INDI_PORT))
+            sock.connect((host, self.port))
             # Switch to short recv timeout for listener thread
             sock.settimeout(1.0)
             with self.socket_lock:
                 self.sock = sock
             self.connected = True
-            logger.info(f"Connected to INDI at {host}:{INDI_PORT}")
+            logger.info(f"Connected to INDI at {host}:{self.port}")
 
             # Initial handshake
             self.send('<getProperties version="1.7"/>')
             time.sleep(0.5)
             self.send(f'<enableBLOB device="{self.device_ccd}">Also</enableBLOB>')
             
-            # Safety: Ensure mirror is down on connection (prevent sensor heat/damage)
-            self.send(f'<newSwitchVector device="{self.device_ccd}" name="viewfinder"><oneSwitch name="viewfinder1">On</oneSwitch></newSwitchVector>')
+            # Handshake: Viewfinder auto-trigger removed to prevent unintended sensor heat.
+            # self.send(f'<newSwitchVector device="{self.device_ccd}" name="viewfinder"><oneSwitch name="viewfinder1">On</oneSwitch></newSwitchVector>')
 
             # Start listener in separate thread
             listener_thread = threading.Thread(target=self.listen, daemon=True)
@@ -229,7 +234,7 @@ class INDIClient:
             if self.sock and self.connected:
                 try:
                     self.sock.sendall((xml + "\r\n").encode())
-                    logger.debug(f"Sent: {xml[:50]}...")
+                    logger.info(f"INDI SEND: {xml}")
                     return True
                 except (socket.error, BrokenPipeError, ConnectionResetError) as e:
                     logger.error(f"Send failure (socket error): {e}")
@@ -246,8 +251,78 @@ class INDIClient:
                     logger.warning("Socket not available for send, attempting lazy reconnect...")
                 return False
 
+    def process_message(self, xml_str):
+        """Processes a single complete INDI XML message."""
+        try:
+            # We use fast string checks first to skip irrelevant messages
+            if not xml_str: return
+
+            # Connection states tracking
+            if 'name="CONNECTION"' in xml_str:
+                state_match = re.search(r'state="([^"]+)"', xml_str)
+                if state_match:
+                    state = state_match.group(1)
+                    # Use device check to ensure we update the right state
+                    if self.device_mount and self.device_mount in xml_str:
+                        is_connect = 'name="CONNECT">On' in xml_str
+                        is_disconnect = 'name="DISCONNECT">On' in xml_str
+                        if is_connect:
+                            self.mount_connected = (state != "Alert")
+                            if self.mount_connected: logger.info(f"✅ Mount Online: {self.device_mount}")
+                        elif is_disconnect:
+                            self.mount_connected = False
+                    
+                    if self.device_ccd and self.device_ccd in xml_str:
+                        is_connect = 'name="CONNECT">On' in xml_str
+                        if is_connect:
+                            self.ccd_connected = (state != "Alert")
+                            if self.ccd_connected: logger.info(f"✅ Camera Online: {self.device_ccd}")
+
+            # Mount Property Tracking (Coordinates & Slew State)
+            if self.device_mount and self.device_mount in xml_str:
+                if 'EQUATORIAL_EOD_COORD' in xml_str:
+                    ra_match = re.search(r'<oneNumber name="RA">([^<]+)</oneNumber>', xml_str)
+                    dec_match = re.search(r'<oneNumber name="DEC">([^<]+)</oneNumber>', xml_str)
+                    state_match = re.search(r'state="([^"]+)"', xml_str)
+                    if ra_match: 
+                        try: self.mount_ra = float(ra_match.group(1))
+                        except ValueError: pass
+                    if dec_match: 
+                        try: self.mount_dec = float(dec_match.group(1))
+                        except ValueError: pass
+                    if state_match: 
+                        self.mount_slew_state = state_match.group(1)
+
+                if 'TELESCOPE_PARK' in xml_str:
+                    if 'name="PARK">On' in xml_str: self.mount_parked = True
+                    elif 'name="UNPARK">On' in xml_str: self.mount_parked = False
+
+                if 'TELESCOPE_TRACK_STATE' in xml_str:
+                    if 'name="TRACK_ON">On' in xml_str: self.mount_tracking = True
+                    elif 'name="TRACK_OFF">On' in xml_str: self.mount_tracking = False
+
+            # CCD Property Tracking (Exposure State)
+            if self.device_ccd and self.device_ccd in xml_str:
+                if 'CCD_EXPOSURE' in xml_str:
+                    state_match = re.search(r'state="([^"]+)"', xml_str)
+                    if state_match:
+                        self.ccd_exposure_state = state_match.group(1)
+
+            # Generic Message Logging
+            if '<message' in xml_str:
+                msg_match = re.search(r'message="([^"]+)"', xml_str)
+                if msg_match:
+                    msg = msg_match.group(1)
+                    if "Alert" in xml_str or "error" in msg.lower():
+                        logger.error(f"INDI Hardware Alert: {msg}")
+                    else:
+                        logger.info(f"INDI: {msg}")
+
+        except Exception as e:
+            logger.error(f"INDI Processor Error: {e}")
+
     def listen(self):
-        """Dedicated listener thread - handles all INDI incoming messages"""
+        """Dedicated listener thread - handles all INDI incoming messages with robust buffering."""
         buffer = b""
         self.last_received = time.time()
         
@@ -256,12 +331,11 @@ class INDIClient:
                 if not self.sock:
                     break
                 
-                # Check for heartbeat/stale connection (no data for 45s)
-                if time.time() - self.last_received > 45:
-                    logger.warning("INDI connection heartbeat timeout (45s), sending active heartbeat...")
-                    # Instead of pinging, we send getProperties to trigger a response from the INDI server
+                # Check for heartbeat/stale connection (no data for 20s)
+                if time.time() - self.last_received > 20:
+                    logger.debug("INDI active heartbeat (20s idle)")
                     self.send('<getProperties version="1.7"/>')
-                    self.last_received = time.time()  # Reset timer to give it a chance to respond
+                    self.last_received = time.time()
 
                 try:
                     data = self.sock.recv(65536)
@@ -278,105 +352,61 @@ class INDIClient:
                 self.last_received = time.time()
                 buffer += data
                 
-                # Check for property updates (Switch/Number vectors)
-                try:
-                    chunk_str = data.decode('utf-8', errors='ignore')
-                except Exception:
-                    chunk_str = ""
-
-                # Robust property parsing for connection state tracking
-                if 'CONNECTION' in chunk_str:
-                    # 1. Mount connection check
-                    mount_pattern = rf'<(?:set|def|new)SwitchVector[^>]*device="{re.escape(self.device_mount)}"[^>]*name="CONNECTION"[^>]*state="([^"]+)"'
-                    mount_match = re.search(mount_pattern, chunk_str)
-                    if mount_match:
-                        state = mount_match.group(1)
-                        context = chunk_str[mount_match.start():mount_match.start()+1000]
-                        # Check for CONNECT switch state
-                        is_connect_on = re.search(r'<(?:one|def)Switch[^>]*name="CONNECT"[^>]*>\s*On\s*</', context) is not None
-                        is_disconnect_on = re.search(r'<(?:one|def)Switch[^>]*name="DISCONNECT"[^>]*>\s*On\s*</', context) is not None
-                        
-                        if is_connect_on:
-                            if state != "Alert":
-                                if not self.mount_connected:
-                                    self.mount_connected = True
-                                    logger.info(f"✅ Mount connected: {self.device_mount}")
-                            else:
-                                if self.mount_connected:
-                                    self.mount_connected = False
-                                    logger.warning(f"⚠️ Mount connection alert/failure: {self.device_mount}")
-                        elif is_disconnect_on:
-                            if self.mount_connected:
-                                self.mount_connected = False
-                                logger.info(f"❌ Mount disconnected: {self.device_mount}")
-                    
-                    # 2. CCD connection check
-                    ccd_pattern = rf'<(?:set|def|new)SwitchVector[^>]*device="{re.escape(self.device_ccd)}"[^>]*name="CONNECTION"[^>]*state="([^"]+)"'
-                    ccd_match = re.search(ccd_pattern, chunk_str)
-                    if ccd_match:
-                        state = ccd_match.group(1)
-                        context = chunk_str[ccd_match.start():ccd_match.start()+1000]
-                        # Check for CONNECT switch state
-                        is_connect_on = re.search(r'<(?:one|def)Switch[^>]*name="CONNECT"[^>]*>\s*On\s*</', context) is not None
-                        is_disconnect_on = re.search(r'<(?:one|def)Switch[^>]*name="DISCONNECT"[^>]*>\s*On\s*</', context) is not None
-                        
-                        if is_connect_on:
-                            if state != "Alert":
-                                if not self.ccd_connected:
-                                    self.ccd_connected = True
-                                    logger.info(f"✅ CCD connected: {self.device_ccd}")
-                            else:
-                                if self.ccd_connected:
-                                    self.ccd_connected = False
-                                    logger.warning(f"⚠️ CCD connection alert/failure: {self.device_ccd}")
-                        elif is_disconnect_on:
-                            if self.ccd_connected:
-                                self.ccd_connected = False
-                                logger.info(f"❌ CCD disconnected: {self.device_ccd}")
-
-                # 3. RA/DEC parsing
-                if 'EQUATORIAL_EOD_COORD' in chunk_str:
-                    ra_match = re.search(r'<oneNumber name="RA">([^<]+)</oneNumber>', chunk_str)
-                    dec_match = re.search(r'<oneNumber name="DEC">([^<]+)</oneNumber>', chunk_str)
-                    if ra_match:
-                        try:
-                            self.mount_ra = float(ra_match.group(1))
-                        except ValueError: pass
-                    if dec_match:
-                        try:
-                            self.mount_dec = float(dec_match.group(1))
-                        except ValueError: pass
-
-                # 4. Park state parsing
-                if 'TELESCOPE_PARK' in chunk_str:
-                    parked_on = re.search(r'<(?:one|def)Switch[^>]*name="PARK"[^>]*>\s*On\s*</', chunk_str) is not None
-                    unparked_on = re.search(r'<(?:one|def)Switch[^>]*name="UNPARK"[^>]*>\s*On\s*</', chunk_str) is not None
-                    if parked_on: self.mount_parked = True
-                    elif unparked_on: self.mount_parked = False
-
-                # 5. Tracking state parsing
-                if 'TELESCOPE_TRACK_STATE' in chunk_str:
-                    track_on = re.search(r'<(?:one|def)Switch[^>]*name="TRACK_ON"[^>]*>\s*On\s*</', chunk_str) is not None
-                    track_off = re.search(r'<(?:one|def)Switch[^>]*name="TRACK_OFF"[^>]*>\s*On\s*</', chunk_str) is not None
-                    if track_on: self.mount_tracking = True
-                    elif track_off: self.mount_tracking = False
-
-                # Check for BLOBs (images)
-                if b"<oneBLOB" in buffer:
-                    end_blob_idx = buffer.find(b"</oneBLOB>")
-                    if end_blob_idx != -1:
-                        self.process_blobs(buffer[:end_blob_idx + 10])
-                        buffer = buffer[end_blob_idx + 10:]
-                    elif len(buffer) > 50_000_000:
-                        logger.warning("Buffer overflow, clearing")
+                # Extract and process all complete XML tags
+                while True:
+                    start_idx = buffer.find(b"<")
+                    if start_idx == -1:
+                        # No more tags, clear whitespace/noise
                         buffer = b""
-                else:
-                    # Keep a small window for overlap if no BLOB is pending
-                    if len(buffer) > 20000:
-                        buffer = buffer[-5000:]
+                        break
+                    
+                    # Search for end of tag (simple /> or closing tag </tag>)
+                    # We look for the first closing sequence
+                    
+                    # Identify the tag name to find its specific closing tag
+                    name_match = re.match(rb'<([a-zA-Z0-9_]+)', buffer[start_idx:])
+                    if not name_match:
+                        # Corrupt tag start? Skip it
+                        buffer = buffer[start_idx+1:]
+                        continue
+                        
+                    tag_name = name_match.group(1)
+                    closing_tag = b"</" + tag_name + b">"
+                    
+                    # Check both self-closing and explicit closing
+                    end_simple = buffer.find(b"/>", start_idx)
+                    end_explicit = buffer.find(closing_tag, start_idx)
+                    
+                    target_end = -1
+                    if end_simple != -1 and (end_explicit == -1 or end_simple < end_explicit):
+                        # Self-closing is valid and comes first (or only one)
+                        # Ensure it's not inside a larger tag (very rare in INDI)
+                        first_gt = buffer.find(b">", start_idx)
+                        if first_gt != -1 and first_gt == end_simple + 1:
+                            target_end = end_simple + 2
+                    
+                    if target_end == -1 and end_explicit != -1:
+                        target_end = end_explicit + len(closing_tag)
+                        
+                    if target_end != -1:
+                        # We have a full tag!
+                        xml_tag = buffer[start_idx:target_end]
+                        buffer = buffer[target_end:]
+                        try:
+                            if tag_name == b"setBLOBVector" or tag_name == b"oneBLOB":
+                                self.process_blobs(xml_tag)
+                            else:
+                                self.process_message(xml_tag.decode('utf-8', errors='ignore'))
+                        except Exception as e:
+                            logger.error(f"Message Processing Error: {e}")
+                    else:
+                        # Incomplete tag, keep in buffer and wait for more data
+                        # but clean up prefix noise
+                        if start_idx > 0: buffer = buffer[start_idx:]
+                        break
                         
             except Exception as e:
-                logger.error(f"Listener error: {e}")
+                logger.error(f"Critical Listener Failure: {e}")
                 break
         
         logger.warning("INDI listener stopped")
@@ -498,68 +528,126 @@ async def mount_rate(req: RateRequest):
     indi.send(f'<newSwitchVector device="{device}" name="TELESCOPE_SLEW_RATE"><oneSwitch name="{rate_name}">On</oneSwitch></newSwitchVector>')
     return {"success": True}
 
+async def mount_slew_internal(device: str, ra: float, dec: float, sync: bool = False):
+    """
+    Unified slew/sync logic for INDI mounts (especially Celestron NexStar).
+    Expects RA and DEC in degrees from frontend.
+    """
+    if not device or device == "":
+        device = indi.device_mount
+
+    if not indi.connected:
+        logger.error("Slew failed: INDI not connected")
+        return {"success": False, "error": "Hardware offline"}
+
+    # Convert RA from degrees to hours (INDI requirement for most drivers)
+    # Frontend sends RA in degrees (0-360)
+    ra_hours = ra / 15.0
+    
+    logger.info(f"{'Syncing' if sync else 'Slewing'} {device} to RA={ra} deg ({ra_hours:.4f}h), DEC={dec} deg")
+
+    if indi.mount_parked and not sync:
+        logger.warning(f"Mount {device} is parked. Attempting to unpark before slew.")
+        indi.send(f'<newSwitchVector device="{device}" name="TELESCOPE_PARK"><oneSwitch name="UNPARK">On</oneSwitch></newSwitchVector>')
+        await asyncio.sleep(1.0) # More time for unparking mechanics
+
+    try:
+        # 1. Set ON_COORD_SET mode FIRST
+        mode = "SYNC" if sync else "TRACK" # Celestron uses TRACK for Goto
+        indi.send(f'<newSwitchVector device="{device}" name="ON_COORD_SET"><oneSwitch name="{mode}">On</oneSwitch></newSwitchVector>')
+        
+        # Small delay for the driver to acknowledge the mode change
+        await asyncio.sleep(0.15)
+
+        # 2. Send coordinates to BOTH common property names for maximum compatibility
+        # EQUATORIAL_EOD_COORD is standard for NexStar
+        indi.send(f'<newNumberVector device="{device}" name="EQUATORIAL_EOD_COORD"><oneNumber name="RA">{ra_hours}</oneNumber><oneNumber name="DEC">{dec}</oneNumber></newNumberVector>')
+        
+        # Fallback for older drivers or different coordinate frames
+        indi.send(f'<newNumberVector device="{device}" name="EQUATORIAL_COORD"><oneNumber name="RA">{ra_hours}</oneNumber><oneNumber name="DEC">{dec}</oneNumber></newNumberVector>')
+        
+        # 3. If it was a sync, return to Track mode after a short wait
+        if sync:
+            await asyncio.sleep(0.5)
+            indi.send(f'<newSwitchVector device="{device}" name="ON_COORD_SET"><oneSwitch name="TRACK">On</oneSwitch></newSwitchVector>')
+        else:
+            # For slews, update local state to reflect movement
+            indi.mount_slew_state = "Busy"
+
+        return {"success": True, "message": f"{'Sync' if sync else 'Slew'} initiated to {ra}, {dec}", "state": indi.mount_slew_state}
+    except Exception as e:
+        logger.error(f"Slew internal error: {e}")
+        return {"success": False, "error": str(e)}
+
 @app.post("/mount/slew")
 async def mount_slew(req: SlewRequest):
-    device = req.device
-    logger.info(f"Slewing {device} to RA={req.ra}, DEC={req.dec}")
-    indi.send(f'<newNumberVector device="{device}" name="EQUATORIAL_EOD_COORD"><oneNumber name="RA">{req.ra}</oneNumber><oneNumber name="DEC">{req.dec}</oneNumber></newNumberVector>')
-    indi.send(f'<newSwitchVector device="{device}" name="ON_COORD_SET"><oneSwitch name="SLEW">On</oneSwitch></newSwitchVector>')
-    return {"success": True}
+    return await mount_slew_internal(req.device, req.ra, req.dec)
 
 @app.post("/mount/goto")
 async def mount_goto(req: SlewRequest):
-    return await mount_slew(req)
+    return await mount_slew_internal(req.device, req.ra, req.dec)
 
 @app.post("/mount/sync")
 async def mount_sync(req: SlewRequest):
-    device = req.device
-    logger.info(f"Syncing {device} to RA={req.ra}, DEC={req.dec}")
-    indi.send(f'<newNumberVector device="{device}" name="EQUATORIAL_EOD_COORD"><oneNumber name="RA">{req.ra}</oneNumber><oneNumber name="DEC">{req.dec}</oneNumber></newNumberVector>')
-    time.sleep(0.2)
-    indi.send(f'<newSwitchVector device="{device}" name="ON_COORD_SET"><oneSwitch name="SYNC">On</oneSwitch></newSwitchVector>')
-    time.sleep(0.1)
-    # Revert to Track mode after sync
-    indi.send(f'<newSwitchVector device="{device}" name="ON_COORD_SET"><oneSwitch name="TRACK">On</oneSwitch></newSwitchVector>')
-
-    return {"success": True}
+    return await mount_slew_internal(req.device, req.ra, req.dec, sync=True)
 
 @app.post("/command")
 async def handle_generic_command(req: Request):
     """Handle generic INDI commands from the frontend."""
     try:
-        data = await req.json()
+        body = await req.body()
+        data = json.loads(body) if body else {}
         action = data.get("action")
         device = data.get("device")
         
+        # Robust action detection (case-insensitive and fallback to endpoint)
+        if action:
+            action = str(action).lower()
+        
+        if not action:
+            # Fallback for legacy calls
+            action = data.get("endpoint", "").split("/")[-1].lower()
+            if not action:
+                # Try to infer from body fields
+                if data.get("exposure") is not None: action = "capture"
+                elif data.get("direction") is not None: action = "focus"
+                elif data.get("ra") is not None and data.get("dec") is not None: action = "slew"
+                elif "abort" in str(req.url.path).lower(): action = "abort"
+
+        logger.info(f"GENERIC COMMAND -> Action: '{action}', Device: '{device}', Data: {data}")
+        
+        if not action:
+            logger.warning(f"Failed to identify action in body: {data}")
+            return {"success": False, "error": f"Unknown action: {action}. Please specify 'action' in body."}
+
         if not indi.connected:
             if not indi.connect():
-                return {"success": False, "error": "Hardware offline or unreachable"}
+                return {"success": False, "error": "Hardware offline"}
 
-        if action == "syncLocation":
-            lat = data.get("values", {}).get("LAT")
-            lon = data.get("values", {}).get("LONG")
-            elev = data.get("values", {}).get("ELEV", 0)
-            
+        if action == "synclocation":
+            vals = data.get("values", {})
+            lat, lon = vals.get("LAT"), vals.get("LONG")
+            elev = vals.get("ELEV", 0)
             if lat is None or lon is None:
-                return {"success": False, "error": "Missing LAT or LONG values"}
-
-            # Send to INDI
+                return {"success": False, "error": "Missing LAT/LONG"}
             indi.send(f'<newNumberVector device="{device}" name="GEOGRAPHIC_COORD"><oneNumber name="LAT">{lat}</oneNumber><oneNumber name="LONG">{lon}</oneNumber><oneNumber name="ELEV">{elev}</oneNumber></newNumberVector>')
-            
-            # Also sync time while we're at it
-            now_utc = datetime.utcnow()
-            indi.send(f'<newTextVector device="{device}" name="TIME_UTC"><oneText name="UTC">{now_utc.strftime("%Y-%m-%dT%H:%M:%S")}</oneText></newTextVector>')
-            
-            return {"success": True, "message": f"Location and Time synced to {device}"}
+            return {"success": True}
 
-        if action == "capture" or data.get("endpoint") == "ccd/capture":
-            exposure = data.get("exposure", 1.0)
-            return await ccd_capture(CaptureRequest(exposure=exposure, device=device or indi.device_ccd))
+        if action in ["capture", "ccd_capture"]:
+            return await ccd_capture_internal(device or indi.device_ccd, data.get("exposure", 1.0))
 
-        if action == "focus" or data.get("endpoint") == "ccd/focus":
-            return await ccd_focus(req)
+        if action in ["focus", "ccd_focus"]:
+            return await ccd_focus_internal(device or indi.device_ccd, data.get("direction", "IN"), data.get("steps", 50))
 
-        return {"success": False, "error": f"Unknown action: {action}"}
+        if action in ["slew", "goto"]:
+            return await mount_slew_internal(device or indi.device_mount, data.get("ra"), data.get("dec"))
+
+        if action in ["abort_all", "abort"]:
+            indi.send(f'<newSwitchVector device="{indi.device_mount}" name="ABORT_PROCESS"><oneSwitch name="ABORT">On</oneSwitch></newSwitchVector>')
+            indi.send(f'<newSwitchVector device="{indi.device_mount}" name="ABORT"><oneSwitch name="ABORT">On</oneSwitch></newSwitchVector>')
+            return {"success": True, "message": "Abort sent"}
+
+        return {"success": False, "error": f"Unsupported action: {action}"}
     except Exception as e:
         logger.error(f"Command error: {e}")
         return {"success": False, "error": str(e)}
@@ -586,32 +674,8 @@ async def mount_sync_master(req: SyncMasterRequest):
 
 @app.post("/slew")
 async def slew_telescope(req: SlewRequest):
-    # Log incoming request to verify format
-    logger.info(f"Slew request: RA={req.ra}, DEC={req.dec}")
-    
-    device = req.device
-    # Device name already corrected in models
-        
-    if not indi.connected:
-        return {"success": False, "error": "INDI not connected"}
-
-    # Calculate actual J2000 coordinates from AltAz/Local for safety
-    # But here we assume UI sends J2000 direct
-    eq = SkyCoord(ra=req.ra*u.deg, dec=req.dec*u.deg, frame='icrs')
-    
-    # 1. Sync TIME and LOCATION first (NexStar requires this for precise goto)
-    now_utc = datetime.utcnow()
-    # We send dummy lat/lon if not provided, or better, we should have a global state.
-    # We will let Ekos handle GPS, just send the Goto.
-    
-    # 2. Set ON_COORD_SET to TRACK (meaning GOTO)
-    indi.send(f'<newSwitchVector device="{device}" name="ON_COORD_SET"><oneSwitch name="TRACK">On</oneSwitch></newSwitchVector>')
-    time.sleep(0.1)
-    
-    # 3. Send RA/DEC GOTO
-    indi.send(f'<newNumberVector device="{device}" name="EQUATORIAL_EOD_COORD"><oneNumber name="RA">{eq.ra.hour}</oneNumber><oneNumber name="DEC">{eq.dec.deg}</oneNumber></newNumberVector>')
-    
-    return {"success": True, "message": "Slew initiated"}
+    """Legacy/Alternate slew endpoint."""
+    return await mount_slew_internal(req.device, req.ra, req.dec)
 
 @app.get("/logs")
 def get_logs():
@@ -729,17 +793,47 @@ def launch_ekos():
 
 
 
+async def ccd_capture_internal(device: str, exposure: float):
+    # Common mapping for Canon DSLR
+    if "Canon" in device: 
+        device = "Canon DSLR EOS 600D"
+    
+    if not indi.connected:
+        return {"success": False, "error": "Hardware offline"}
+
+    logger.info(f"EXEC CAPTURE -> {device} | Exp: {exposure}s")
+    
+    # 1. Ensure BLOBs are enabled for this specific device
+    indi.send(f'<enableBLOB device="{device}">Also</enableBLOB>')
+    
+    # 2. Set UPLOAD MODE to Both (Client + Local)
+    # This ensures the driver stores it locally AND sends it to us
+    indi.send(f'<newSwitchVector device="{device}" name="UPLOAD_MODE"><oneSwitch name="UPLOAD_BOTH">On</oneSwitch></newSwitchVector>')
+    
+    # 3. Ensure target is RAM for fast transfer on Astroberry
+    # Some drivers use CCD_CAPTURE_TARGET, others UPLOAD_SETTINGS
+    indi.send(f'<newSwitchVector device="{device}" name="CCD_CAPTURE_TARGET"><oneSwitch name="CCD_CAPTURE_RAM">On</oneSwitch></newSwitchVector>')
+    
+    # 4. Small wait to ensure settings are applied
+    await asyncio.sleep(0.3)
+    
+    # 5. Trigger exposure
+    indi.ccd_exposure_state = "Busy"
+    indi.send(f'<newNumberVector device="{device}" name="CCD_EXPOSURE"><oneNumber name="CCD_EXPOSURE_VALUE">{exposure}</oneNumber></newNumberVector>')
+    
+    return {"success": True, "message": f"Exposure of {exposure}s started on {device}", "state": "Busy"}
+
+async def ccd_focus_internal(device: str, direction: str, steps: int):
+    logger.info(f"Focusing {device}: {direction} {steps} steps")
+    # Mapping for Canon focusing
+    # Most INDI drivers use FOCUS_MOTION and FOCUS_TIMER or FOCUS_RELATIVE_STEPS
+    indi.send(f'<newSwitchVector device="{device}" name="FOCUS_MOTION"><oneSwitch name="FOCUS_{direction.upper()}">On</oneSwitch></newSwitchVector>')
+    indi.send(f'<newNumberVector device="{device}" name="FOCUS_TIMER"><oneNumber name="FOCUS_TIMER_VALUE">{steps/1000.0}</oneNumber></newNumberVector>')
+    return {"success": True}
+
 @app.post("/ccd/capture")
 async def ccd_capture(req: CaptureRequest):
-    device = req.device
-    # Common mapping for Canon DSLR
-    if "Canon" in device: device = "Canon DSLR EOS 600D"
-    
-    logger.info(f"Capturing on {device} with exposure {req.exposure}s")
-    # Force Upload Client to handle image on Mac
-    indi.send(f'<newSwitchVector device="{device}" name="UPLOAD_MODE"><oneSwitch name="UPLOAD_CLIENT">On</oneSwitch></newSwitchVector>')
-    indi.send(f'<newNumberVector device="{device}" name="CCD_EXPOSURE"><oneNumber name="CCD_EXPOSURE_VALUE">{req.exposure}</oneNumber></newNumberVector>')
-    return {"success": True}
+    return await ccd_capture_internal(req.device, req.exposure)
 
 @app.post("/ccd/focus")
 async def ccd_focus(req: Request):
@@ -747,14 +841,7 @@ async def ccd_focus(req: Request):
     device = data.get("device", indi.device_ccd)
     direction = data.get("direction", "IN")
     steps = data.get("steps", 50)
-    
-    logger.info(f"Focusing {device} {direction} by {steps} steps")
-    # Mapping for common focusers
-    if direction == "IN":
-        indi.send(f'<newNumberVector device="{device}" name="FOCUS_MOTION"><oneNumber name="FOCUS_INOUT">1</oneNumber></newNumberVector>')
-    else:
-        indi.send(f'<newNumberVector device="{device}" name="FOCUS_MOTION"><oneNumber name="FOCUS_INOUT">-1</oneNumber></newNumberVector>')
-    return {"success": True}
+    return await ccd_focus_internal(device, direction, steps)
 
 @app.get("/ccd/latest")
 async def ccd_latest():
@@ -778,7 +865,9 @@ async def get_status():
         "storage": STORAGE_PATH,
         "mount": indi.device_mount,
         "ccd": indi.device_ccd,
-        "mount_connected": indi.mount_connected
+        "mount_connected": indi.mount_connected,
+        "mount_slew_state": indi.mount_slew_state,
+        "ccd_exposure_state": indi.ccd_exposure_state
     }
 
 # --- STREAMING ---
@@ -955,6 +1044,8 @@ def mount_status():
         "dec": indi.mount_dec,
         "parked": indi.mount_parked,
         "tracking": indi.mount_tracking,
+        "slew_state": indi.mount_slew_state,
+        "ccd_state": indi.ccd_exposure_state
     }
 
 
