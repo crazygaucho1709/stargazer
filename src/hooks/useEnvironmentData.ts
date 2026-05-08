@@ -65,8 +65,16 @@ export function useEnvironmentData() {
             }
         };
 
-        const handleFallback = (errorMessage: string) => {
-            console.warn(`Geolocation issue: ${errorMessage}, using fallback`);
+        const handleFallback = (errorMessage: string, expected = false) => {
+            // The browser blocks navigator.geolocation on non-HTTPS origins
+            // (Secure Context required). On the local intranet (e.g. when the
+            // app is served over HTTP on http://macmini.local) this is the
+            // norm, not an error — silently use the configured fallback in
+            // that case to avoid console noise. Real errors (user denied,
+            // timeout) still log at info level so they can be diagnosed.
+            if (!expected) {
+                console.info(`Geolocation: ${errorMessage} — using configured fallback`);
+            }
             setData(prev => ({ ...prev, error: errorMessage }));
             // Fallback to a default location (Tahiti as per user's location)
             const defLat = -17.6797;
@@ -76,7 +84,8 @@ export function useEnvironmentData() {
         };
 
         if (!window.isSecureContext || !navigator.geolocation) {
-            handleFallback("Geolocation not supported (Secure Context required)");
+            // Expected on HTTP origins — fall back silently.
+            handleFallback("Geolocation not supported (Secure Context required)", true);
             return;
         }
 

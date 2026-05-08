@@ -10,6 +10,11 @@ export async function GET(request: Request) {
     if (endpoint === 'ccd/latest') {
         try {
             const res = await fetch('http://127.0.0.1:5005/ccd/latest', { cache: 'no-store' });
+            // Backend returns 204 when no frame is available yet — pass that
+            // through (rather than mapping to 404) so the polling client can
+            // distinguish "no frame yet" from "endpoint missing" and so the
+            // browser console doesn't log it as a failed resource load.
+            if (res.status === 204) return new Response(null, { status: 204 });
             if (!res.ok) return new Response(null, { status: res.status });
             const blob = await res.blob();
             return new Response(blob, {
