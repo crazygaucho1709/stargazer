@@ -13705,3 +13705,16 @@ INFO:     Uvicorn running on http://0.0.0.0:5005 (Press CTRL+C to quit)
 INFO:stargazer-backend:INDI listener thread started
 INFO:stargazer-backend:✅ CCD connected: Canon DSLR EOS 600D
 INFO:stargazer-backend:Jogging Celestron NexStar HC up -> start
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [63301]
+WARNING:stargazer-backend:External HDD not found, falling back to local storage
+INFO:stargazer-backend:Connected to INDI at 192.168.178.142:7624
+INFO:     Started server process [64784]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5005 (Press CTRL+C to quit)
+INFO:stargazer-backend:INDI listener thread started
+INFO:stargazer-backend:✅ CCD connected: Canon DSLR EOS 600D
+INFO:stargazer-backend:Jogging Celestron NexStar HC up -> start
