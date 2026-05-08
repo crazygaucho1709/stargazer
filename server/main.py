@@ -180,11 +180,62 @@ class INDIClient:
                 continue
         return None
 
-    def reconnect(self):
+    def reconnect(self, restart_remote: bool = True):
+        """Force a full reconnect of the INDI bridge.
+
+        Closes the local socket and, by default, also asks the Astroberry
+        Raspberry Pi to restart its ``indiserver`` process. This is required
+        when the local socket is in a stuck or half-open state and the
+        upstream INDI server has lost track of devices (e.g. after USB
+        broken-pipe errors). Pass ``restart_remote=False`` to skip the SSH
+        roundtrip when only a local socket reset is desired.
+        """
         logger.info("Manual reconnect triggered from UI")
         self._close_socket()
         self.connected = False
         self.mount_connected = False
+        self.ccd_connected = False
+
+        if restart_remote:
+            try:
+                logger.info("Triggering remote indiserver restart on Astroberry...")
+                result = raspi.restart_indi()
+                if result.get("success"):
+                    logger.info("Remote indiserver restart succeeded; bridge will reconnect on next loop tick")
+                else:
+                    logger.warning(
+                        f"Remote indiserver restart failed: {result.get('error') or result.get('output')}"
+                    )
+            except Exception as e:
+                logger.error(f"Remote indiserver restart raised: {e}")
+
+    def _safe_connect_device(self, device: str):
+        """Send the 'Safe Connect' sequence for a single INDI device.
+
+        Order matters here: subscribe to the device's properties, enable
+        BLOBs (so image payloads can stream over the same socket), set the
+        upload mode to ``UPLOAD_BOTH`` for cameras, and finally toggle the
+        ``CONNECTION`` switch to ``CONNECT``. Errors are logged but do not
+        abort the rest of the handshake.
+        """
+        try:
+            self.send(f'<getProperties version="1.7" device="{device}"/>')
+            self.send(f'<enableBLOB device="{device}">Also</enableBLOB>')
+            if device == self.device_ccd:
+                self.send(
+                    f'<newSwitchVector device="{device}" name="UPLOAD_MODE">'
+                    f'<oneSwitch name="UPLOAD_BOTH">On</oneSwitch>'
+                    f'</newSwitchVector>'
+                )
+            self.send(
+                f'<newSwitchVector device="{device}" name="CONNECTION">'
+                f'<oneSwitch name="CONNECT">On</oneSwitch>'
+                f'<oneSwitch name="DISCONNECT">Off</oneSwitch>'
+                f'</newSwitchVector>'
+            )
+            logger.info(f"Safe-connect sequence sent for device: {device}")
+        except Exception as e:
+            logger.error(f"Safe-connect failed for {device}: {e}")
 
     def connect(self):
         # Pre-check: resolve host before attempting TCP connect
@@ -212,22 +263,26 @@ class INDIClient:
             self.connected = True
             logger.info(f"Connected to INDI at {host}:{self.port}")
 
-            # Initial handshake
+            # Initial handshake: ask for the full property tree first so the
+            # listener can populate state, then run the per-device "Safe
+            # Connect" sequence (BLOBs + UPLOAD_MODE + CONNECT).
             self.send('<getProperties version="1.7"/>')
-            time.sleep(1.0) # More time for properties to load
-            
-            # Explicitly connect Mount and CCD since KStars is missing
-            logger.info("Auto-connecting hardware devices via INDI...")
-            self.send(f'<newSwitchVector device="{self.device_mount}" name="CONNECTION"><oneSwitch name="CONNECT">On</oneSwitch></newSwitchVector>')
-            self.send(f'<newSwitchVector device="{self.device_ccd}" name="CONNECTION"><oneSwitch name="CONNECT">On</oneSwitch></newSwitchVector>')
-            
-            time.sleep(0.5)
-            self.send(f'<enableBLOB device="{self.device_ccd}">Also</enableBLOB>')
-            
-            # Start listener in separate thread
+            time.sleep(1.0)  # Give the server time to enumerate properties
+
+            # Start listener in separate thread BEFORE issuing CONNECT so we
+            # don't miss the CONNECTION state response from the driver.
             listener_thread = threading.Thread(target=self.listen, daemon=True)
             listener_thread.start()
             logger.info("INDI listener thread started")
+
+            # Auto-connect both managed devices via the Safe Connect sequence
+            # (getProperties + enableBLOB + UPLOAD_MODE for cameras + CONNECT
+            # switch). KStars/Ekos is no longer required to bring devices
+            # online — the backend now drives the CONNECTION switch directly.
+            logger.info("Auto-connecting hardware devices via INDI...")
+            for device in (self.device_mount, self.device_ccd):
+                if device:
+                    self._safe_connect_device(device)
         except Exception as e:
             logger.error(f"Connection failed: {e}")
             self._close_socket()

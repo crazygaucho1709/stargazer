@@ -79,6 +79,25 @@ def ping_ssh() -> bool:
 
 
 
+def _get_dmesg_tail(lines: int = 15) -> str:
+    """Return the last ``lines`` of dmesg, focused on USB/Canon/Prolific activity.
+
+    Surfacing kernel messages lets the UI show "urb stopped: -32" and other
+    USB broken-pipe errors without requiring the operator to SSH in. Falls
+    back to a plain tail if the grep filter returns nothing or fails.
+    """
+    keyword_filter = "usb\\|urb\\|Canon\\|Prolific\\|disconnect\\|reset"
+    cmd = (
+        f"sudo dmesg -T 2>/dev/null | grep -i '{keyword_filter}' | tail -n {lines} "
+        f"|| sudo dmesg -T 2>/dev/null | tail -n {lines} "
+        f"|| dmesg 2>/dev/null | tail -n {lines}"
+    )
+    result = _run(cmd, timeout=8)
+    if result.get("success"):
+        return result.get("stdout", "").strip()
+    return ""
+
+
 def get_status() -> Dict[str, Any]:
     """Return system status: CPU, temp, memory, uptime, indiserver state."""
     # Attempt to fetch status via SSH
@@ -101,7 +120,8 @@ def get_status() -> Dict[str, Any]:
             "reachable": ssh_alive or ping_alive,
             "ssh_reachable": ssh_alive,
             "ping_reachable": ping_alive,
-            "error": result["stderr"] or "SSH connection failed"
+            "error": result["stderr"] or "SSH connection failed",
+            "dmesg_tail": "",
         }
 
     data = {}
@@ -111,6 +131,7 @@ def get_status() -> Dict[str, Any]:
             data[k.strip().lower()] = v.strip()
             
     indi_pid = int(data.get("indi_pid", "0"))
+    dmesg_tail = _get_dmesg_tail()
     return {
         "reachable": True,
         "ssh_reachable": True,
@@ -121,7 +142,12 @@ def get_status() -> Dict[str, Any]:
         "indi_running": indi_pid > 0,
         "indi_pid": indi_pid,
         "indi_devices": data.get("indi_devices", "").strip(),
+        # ``last_usb_error`` is the inline 5-line USB tail captured by the
+        # status one-liner above (kept for backward compatibility with the
+        # existing UI). ``dmesg_tail`` is the richer, sudo-elevated tail
+        # filtered on USB / Canon / Prolific keywords.
         "last_usb_error": data.get("dmesg", "None"),
+        "dmesg_tail": dmesg_tail,
     }
 
 
@@ -135,20 +161,41 @@ def get_indi_logs(lines: int = 50) -> str:
 
 
 def restart_indi() -> Dict[str, Any]:
-    """Stop and restart indiserver on Astroberry."""
-    logger.info("Restarting indiserver on Astroberry...")
-    # Try systemctl first, fallback to pkill + manual restart
+    """Stop and restart indiserver on Astroberry.
+
+    Uses ``sudo pkill`` to ensure stale ``indiserver`` instances launched by
+    other users (e.g. by KStars/Ekos) are also terminated, and relaunches
+    the drivers with verbose logging (``-vvv``) so kernel-level USB issues
+    are captured in the indiserver log.
+    """
+    logger.info("Restarting indiserver on Astroberry (sudo pkill + verbose relaunch)...")
+    log_path = "/tmp/indiserver.log"
+    drivers = "indi_celestron_gps indi_canon_ccd"
+    # systemctl is preferred when a service unit exists; otherwise we kill
+    # any running indiserver (with sudo, since it may be owned by another
+    # user) and relaunch with verbose output redirected to a known log.
+    fallback_cmd = (
+        f"sudo pkill -x indiserver; sleep 2; "
+        f"nohup indiserver -vvv {drivers} > {log_path} 2>&1 &"
+    )
     result = _run(
-        "sudo systemctl restart indiserver 2>/dev/null || "
-        "(pkill -x indiserver; sleep 2; "
-        "indiserver -v indi_celestron_gps indi_canon_ccd &)"
-    , timeout=15)
+        f"sudo systemctl restart indiserver 2>/dev/null || ({fallback_cmd})",
+        timeout=15,
+    )
     time.sleep(2)
     # Verify it's back up
     verify = _run("pgrep -x indiserver || echo DEAD")
     running = "DEAD" not in verify.get("stdout", "DEAD")
-    logger.info(f"indiserver restart result: running={running}")
-    return {"success": running, "output": result.get("stdout", ""), "error": result.get("stderr", "")}
+    logger.info(
+        f"indiserver restart result: running={running}, "
+        f"verbose log at {log_path} on Astroberry"
+    )
+    return {
+        "success": running,
+        "output": result.get("stdout", ""),
+        "error": result.get("stderr", ""),
+        "log_path": log_path,
+    }
 
 
 def reboot(confirm_token: str) -> Dict[str, Any]:
