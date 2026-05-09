@@ -9,6 +9,7 @@ import json
 import asyncio
 import random
 from pathlib import Path
+from typing import Optional
 from dotenv import load_dotenv
 
 # Load .env file (server/.env)
@@ -137,8 +138,18 @@ class INDIClient:
         self.latest_image_path = None
         self.sock = None
         self.socket_lock = threading.Lock()  # Lock for thread-safe socket access
-        self.device_mount = "Celestron GPS"
-        self.device_ccd = "Canon DSLR EOS 600D"
+        # INDI device names registered by the drivers on the Pi. Override via
+        # env vars when running with a non-default driver (e.g. ``GPhoto CCD``
+        # for ``indi_gphoto_ccd`` instead of ``Canon DSLR EOS 600D`` for
+        # ``indi_canon_ccd``).
+        self.device_mount = os.getenv("INDI_DEVICE_MOUNT", "Celestron GPS")
+        self.device_ccd = os.getenv("INDI_DEVICE_CCD", "Canon DSLR EOS 600D")
+        # Serial / device-file paths sent via the ``DEVICE_PORT`` text vector
+        # before the ``CONNECTION`` switch. Without this, freshly-launched
+        # drivers default to ``/dev/ttyACM0`` and fail with ``state="Alert"``
+        # when the actual hardware is on ``/dev/ttyUSB0`` (PL2303).
+        self.mount_port = os.getenv("INDI_MOUNT_PORT", "/dev/ttyUSB0")
+        self.ccd_port = os.getenv("INDI_CCD_PORT", "")
         self.frame_condition = threading.Condition()
         # Mount telemetry state
         self.mount_ra: float = 0.0
@@ -238,17 +249,39 @@ class INDIClient:
         """Send the 'Safe Connect' sequence for a single INDI device.
 
         Order matters here: subscribe to the device's properties, enable
-        BLOBs (so image payloads can stream over the same socket), set the
-        upload mode to ``UPLOAD_BOTH`` for cameras, and finally toggle the
-        ``CONNECTION`` switch to ``CONNECT``. Errors are logged but do not
-        abort the rest of the handshake.
+        BLOBs (so image payloads can stream over the same socket), pin the
+        device's serial port (otherwise the driver defaults to
+        ``/dev/ttyACM0`` and the CONNECT switch comes back as ``Alert``),
+        set the upload mode to ``UPLOAD_BOTH`` for cameras, and finally
+        toggle the ``CONNECTION`` switch to ``CONNECT``. Errors are logged
+        but do not abort the rest of the handshake.
         """
         try:
             self.send(f'<getProperties version="1.7" device="{device}"/>')
             self.send(f'<enableBLOB device="{device}">Also</enableBLOB>')
-            
-            # Optimized Upload Mode for DSLRs
-            if any(kw in device for kw in ["Canon", "Nikon", "DSLR"]):
+
+            # Pin the serial port BEFORE issuing CONNECT. Driver state for
+            # ``DEVICE_PORT`` is per-process, so a freshly-restarted
+            # ``indiserver`` defaults to ``/dev/ttyACM0`` and CONNECT comes
+            # back with state="Alert" when the actual hardware is on
+            # ``/dev/ttyUSB0`` (PL2303 adapter).
+            port = None
+            if device == self.device_mount and self.mount_port:
+                port = self.mount_port
+            elif device == self.device_ccd and self.ccd_port:
+                port = self.ccd_port
+            if port:
+                self.send(
+                    f'<newTextVector device="{device}" name="DEVICE_PORT">'
+                    f'<oneText name="PORT">{port}</oneText>'
+                    f'</newTextVector>'
+                )
+                logger.info(f"Set DEVICE_PORT={port} for {device}")
+
+            # Optimized Upload Mode for DSLRs (keyword-based so it covers
+            # both ``Canon DSLR EOS 600D`` from indi_canon_ccd and
+            # ``GPhoto CCD`` from indi_gphoto_ccd).
+            if any(kw in device for kw in ["Canon", "Nikon", "DSLR", "GPhoto"]):
                 self.send(
                     f'<newSwitchVector device="{device}" name="UPLOAD_MODE">'
                     f'<oneSwitch name="UPLOAD_CLIENT">On</oneSwitch>'
@@ -851,12 +884,6 @@ async def slew_telescope(req: SlewRequest):
 def get_logs():
     return {"logs": list(log_buffer)}
 
-@app.post("/reconnect")
-def reconnect_indi():
-    logger.info("Force reconnecting INDI bridge...")
-    indi.reconnect()
-    return {"success": True, "message": "Reconnection triggered"}
-
 EKOS_PROFILE = os.getenv("EKOS_PROFILE", "Nexstar4SE")
 
 @app.post("/restart_kstars")
@@ -1250,6 +1277,36 @@ async def astroberry_status():
 async def astroberry_indi_logs(lines: int = 50):
     logs = raspi.get_indi_logs(lines=lines)
     return {"logs": logs}
+
+
+@app.get("/astroberry/diag")
+async def astroberry_diag():
+    """Single-shot Pi + INDI diagnostic snapshot.
+
+    Returns SSH reachability, the running indiserver process line, ``lsusb``
+    output, the list of INDI device names actually registered by the
+    drivers, the installed Celestron/Canon/GPhoto driver binaries, and the
+    tail of ``/tmp/indiserver.log``. Lets the UI surface "device not
+    enumerated" or "wrong driver loaded" without an SSH roundtrip.
+    """
+    return raspi.get_diagnostics()
+
+
+class IndiRestartRequest(BaseModel):
+    drivers: Optional[str] = None
+
+
+@app.post("/astroberry/indi/restart")
+async def astroberry_indi_restart(req: Optional[IndiRestartRequest] = None):
+    """Force-relaunch indiserver on the Pi with an explicit driver list.
+
+    The default list comes from the ``INDI_DRIVERS`` env var on the
+    backend (currently ``indi_celestron_gps indi_canon_ccd``). Passing a
+    ``drivers`` field overrides it, e.g. ``"indi_celestron_gps
+    indi_gphoto_ccd"`` to fall back to the gphoto driver.
+    """
+    drivers = req.drivers if req else None
+    return raspi.restart_indi(drivers=drivers)
 
 
 @app.post("/reconnect")
