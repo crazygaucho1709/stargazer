@@ -1,0 +1,1928 @@
+Connected to 192.168.178.142:7624
+<defSwitchVector device="Canon DSLR EOS 600D" name="CONNECTION" label="Connection" group="Main Control" state="Ok" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="CONNECT" label="Connect">
+On
+    </defSwitch>
+    <defSwitch name="DISCONNECT" label="Disconnect">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Celestron GPS" name="CONNECTION" label="Connection" group="Main Control" state="Ok" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="CONNECT" label="Connect">
+On
+    </defSwitch>
+    <defSwitch name="DISCONNECT" label="Disconnect">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defTextVector device="Celestron GPS" name="DRIVER_INFO" label="Driver Info" group="Connection" state="Idle" perm="ro" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defText name="DRIVER_NAME" label="Name">
+Celestron GPS
+    </defText>
+    <defText name="DRIVER_EXEC" label="Exec">
+indi_celestron_gps
+    </defText>
+    <defText name="DRIVER_VERSION" label="Version">
+3.6
+    </defText>
+    <defText name="DRIVER_INTERFACE" label="Interface">
+5
+    </defText>
+</defTextVector>
+<defNumberVector device="Celestron GPS" name="POLLING_PERIOD" label="Polling" group="Options" state="Ok" perm="rw" timeout="0" timestamp="2026-05-09T18:05:07">
+    <defNumber name="PERIOD_MS" label="Period (ms)" format="%.f" min="10" max="600000" step="1000">
+1000
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="Celestron GPS" name="DEBUG" label="Debug" group="Options" state="Ok" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="ENABLE" label="Enable">
+Off
+    </defSwitch>
+    <defSwitch name="DISABLE" label="Disable">
+On
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Celestron GPS" name="SIMULATION" label="Simulation" group="Options" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="ENABLE" label="Enable">
+Off
+    </defSwitch>
+    <defSwitch name="DISABLE" label="Disable">
+On
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Celestron GPS" name="CONFIG_PROCESS" label="Configuration" group="Options" state="Idle" perm="rw" rule="AtMostOne" timeout="0" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="CONFIG_LOAD" label="Load">
+Off
+    </defSwitch>
+    <defSwitch name="CONFIG_SAVE" label="Save">
+Off
+    </defSwitch>
+    <defSwitch name="CONFIG_DEFAULT" label="Default">
+Off
+    </defSwitch>
+    <defSwitch name="CONFIG_PURGE" label="Purge">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Celestron GPS" name="CONNECTION_MODE" label="Connection Mode" group="Connection" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="CONNECTION_SERIAL" label="Serial">
+On
+    </defSwitch>
+    <defSwitch name="CONNECTION_TCP" label="Network">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defTextVector device="Canon DSLR EOS 600D" name="DRIVER_INFO" label="Driver Info" group="General Info" state="Idle" perm="ro" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defText name="DRIVER_NAME" label="Name">
+GPhoto CCD
+    </defText>
+    <defText name="DRIVER_EXEC" label="Exec">
+indi_canon_ccd
+    </defText>
+    <defText name="DRIVER_VERSION" label="Version">
+3.4
+    </defText>
+    <defText name="DRIVER_INTERFACE" label="Interface">
+10
+    </defText>
+</defTextVector>
+<defNumberVector device="Canon DSLR EOS 600D" name="POLLING_PERIOD" label="Polling" group="Options" state="Ok" perm="rw" timeout="0" timestamp="2026-05-09T18:05:07">
+    <defNumber name="PERIOD_MS" label="Period (ms)" format="%.f" min="10" max="600000" step="1000">
+1000
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="DEBUG" label="Debug" group="Options" state="Ok" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="ENABLE" label="Enable">
+Off
+    </defSwitch>
+    <defSwitch name="DISABLE" label="Disable">
+On
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="SIMULATION" label="Simulation" group="Options" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="ENABLE" label="Enable">
+Off
+    </defSwitch>
+    <defSwitch name="DISABLE" label="Disable">
+On
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="CONFIG_PROCESS" label="Configuration" group="Options" state="Idle" perm="rw" rule="AtMostOne" timeout="0" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="CONFIG_LOAD" label="Load">
+Off
+    </defSwitch>
+    <defSwitch name="CONFIG_SAVE" label="Save">
+Off
+    </defSwitch>
+    <defSwitch name="CONFIG_DEFAULT" label="Default">
+Off
+    </defSwitch>
+    <defSwitch name="CONFIG_PURGE" label="Purge">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defTextVector device="Canon DSLR EOS 600D" name="ACTIVE_DEVICES" label="Snoop devices" group="Options" state="Idle" perm="rw" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defText name="ACTIVE_TELESCOPE" label="Telescope">
+Celestron NexStar HC
+    </defText>
+    <defText name="ACTIVE_ROTATOR" label="Rotator"/>
+    <defText name="ACTIVE_FOCUSER" label="Focuser">
+Canon DSLR EOS 600D
+    </defText>
+    <defText name="ACTIVE_FILTER" label="Filter"/>
+    <defText name="ACTIVE_SKYQUALITY" label="Sky Quality">
+SQM
+    </defText>
+</defTextVector>
+<defTextVector device="Canon DSLR EOS 600D" name="DEVICE_PORT" label="Shutter Release" group="Main Control" state="Idle" perm="rw" timeout="0" timestamp="2026-05-09T18:05:07">
+    <defText name="PORT" label="Port">
+usb:001,006
+    </defText>
+</defTextVector>
+<defNumberVector device="Canon DSLR EOS 600D" name="CCD_EXPOSURE" label="Expose" group="Main Control" state="Idle" perm="rw" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defNumber name="CCD_EXPOSURE_VALUE" label="Duration (s)" format="%5.2f" min="0.0002500000000000000052" max="3600" step="1">
+1
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="CCD_ABORT_EXPOSURE" label="Abort" group="Main Control" state="Idle" perm="rw" rule="AtMostOne" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="ABORT" label="Abort">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="Canon DSLR EOS 600D" name="CCD_FRAME" label="Frame" group="Image Settings" state="Idle" perm="rw" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defNumber name="X" label="Left " format="%4.0f" min="0" max="0" step="0">
+0
+    </defNumber>
+    <defNumber name="Y" label="Top" format="%4.0f" min="0" max="0" step="0">
+0
+    </defNumber>
+    <defNumber name="WIDTH" label="Width" format="%4.0f" min="0" max="0" step="0">
+0
+    </defNumber>
+    <defNumber name="HEIGHT" label="Height" format="%4.0f" min="0" max="0" step="0">
+0
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="CCD_FRAME_RESET" label="Frame Values" group="Image Settings" state="Idle" perm="wo" rule="OneOfMany" timeout="0" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="RESET" label="Reset">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="Canon DSLR EOS 600D" name="CCD_BINNING" label="Binning" group="Image Settings" state="Idle" perm="rw" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defNumber name="HOR_BIN" label="X" format="%2.0f" min="1" max="4" step="1">
+1
+    </defNumber>
+    <defNumber name="VER_BIN" label="Y" format="%2.0f" min="1" max="4" step="1">
+1
+    </defNumber>
+</defNumberVector>
+<defTextVector device="Canon DSLR EOS 600D" name="FITS_HEADER" label="FITS Header" group="General Info" state="Idle" perm="wo" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defText name="KEYWORD_NAME" label="Name"/>
+    <defText name="KEYWORD_VALUE" label="Value"/>
+    <defText name="KEYWORD_COMMENT" label="Comment"/>
+</defTextVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="CCD_CAPTURE_FORMAT" label="Format" group="Image Settings" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="FORMAT_1" label="Large Fine JPEG">
+Off
+    </defSwitch>
+    <defSwitch name="FORMAT_2" label="Large Normal JPEG">
+Off
+    </defSwitch>
+    <defSwitch name="FORMAT_3" label="Medium Fine JPEG">
+Off
+    </defSwitch>
+    <defSwitch name="FORMAT_4" label="Medium Normal JPEG">
+Off
+    </defSwitch>
+    <defSwitch name="FORMAT_5" label="Small Fine JPEG">
+Off
+    </defSwitch>
+    <defSwitch name="FORMAT_6" label="Small Normal JPEG">
+Off
+    </defSwitch>
+    <defSwitch name="FORMAT_7" label="Smaller JPEG">
+Off
+    </defSwitch>
+    <defSwitch name="FORMAT_8" label="Tiny JPEG">
+Off
+    </defSwitch>
+    <defSwitch name="FORMAT_9" label="RAW">
+On
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="CCD_TRANSFER_FORMAT" label="Encode" group="Image Settings" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="FORMAT_FITS" label="FITS">
+On
+    </defSwitch>
+    <defSwitch name="FORMAT_NATIVE" label="Native">
+Off
+    </defSwitch>
+    <defSwitch name="FORMAT_XISF" label="XISF">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="Canon DSLR EOS 600D" name="CCD_INFO" label="CCD Information" group="Image Info" state="Idle" perm="rw" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defNumber name="CCD_MAX_X" label="Max. Width" format="%.f" min="1" max="16000" step="0">
+0
+    </defNumber>
+    <defNumber name="CCD_MAX_Y" label="Max. Height" format="%.f" min="1" max="16000" step="0">
+0
+    </defNumber>
+    <defNumber name="CCD_PIXEL_SIZE" label="Pixel size (um)" format="%.2f" min="1" max="40" step="0">
+4.3000001907348632812
+    </defNumber>
+    <defNumber name="CCD_PIXEL_SIZE_X" label="Pixel size X" format="%.2f" min="1" max="40" step="0">
+4.3000001907348632812
+    </defNumber>
+    <defNumber name="CCD_PIXEL_SIZE_Y" label="Pixel size Y" format="%.2f" min="1" max="40" step="0">
+4.3000001907348632812
+    </defNumber>
+    <defNumber name="CCD_BITSPERPIXEL" label="Bits per pixel" format="%.f" min="8" max="64" step="0">
+0
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="CCD_COMPRESSION" label="Compression" group="Image Settings" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="INDI_ENABLED" label="Enabled">
+Off
+    </defSwitch>
+    <defSwitch name="INDI_DISABLED" label="Disabled">
+On
+    </defSwitch>
+</defSwitchVector>
+<defBLOBVector device="Canon DSLR EOS 600D" name="CCD1" label="Image Data" group="Image Info" state="Idle" perm="ro" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defBLOB name="CCD1" label="Image"/>
+</defBLOBVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="CCD_FRAME_TYPE" label="Type" group="Image Settings" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="FRAME_LIGHT" label="Light">
+On
+    </defSwitch>
+    <defSwitch name="FRAME_BIAS" label="Bias">
+Off
+    </defSwitch>
+    <defSwitch name="FRAME_DARK" label="Dark">
+Off
+    </defSwitch>
+    <defSwitch name="FRAME_FLAT" label="Flat">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defTextVector device="Canon DSLR EOS 600D" name="CCD_CFA" label="Bayer Info" group="Image Info" state="Idle" perm="rw" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defText name="CFA_OFFSET_X" label="X Offset">
+0
+    </defText>
+    <defText name="CFA_OFFSET_Y" label="Y Offset">
+0
+    </defText>
+    <defText name="CFA_TYPE" label="Filter">
+RGGB
+    </defText>
+</defTextVector>
+<defNumberVector device="Canon DSLR EOS 600D" name="SCOPE_INFO" label="Scope" group="Options" state="Idle" perm="rw" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defNumber name="FOCAL_LENGTH" label="Focal Length (mm)" format="%g" min="0" max="10000" step="1">
+0
+    </defNumber>
+    <defNumber name="APERTURE" label="Aperture (mm)" format="%g" min="0" max="3000" step="1">
+0
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="WCS_CONTROL" label="WCS" group="WCS" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="WCS_ENABLE" label="Enable">
+Off
+    </defSwitch>
+    <defSwitch name="WCS_DISABLE" label="Disable">
+On
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="UPLOAD_MODE" label="Upload" group="Options" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="UPLOAD_CLIENT" label="Client">
+On
+    </defSwitch>
+    <defSwitch name="UPLOAD_LOCAL" label="Local">
+Off
+    </defSwitch>
+    <defSwitch name="UPLOAD_BOTH" label="Both">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defTextVector device="Canon DSLR EOS 600D" name="UPLOAD_SETTINGS" label="Upload Settings" group="Options" state="Idle" perm="rw" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defText name="UPLOAD_DIR" label="Dir">
+/home/astroberry
+    </defText>
+    <defText name="UPLOAD_PREFIX" label="Prefix">
+IMAGE_XXX
+    </defText>
+</defTextVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="CCD_FAST_TOGGLE" label="Fast Exposure" group="Options" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="INDI_ENABLED" label="Enabled">
+Off
+    </defSwitch>
+    <defSwitch name="INDI_DISABLED" label="Disabled">
+On
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="Canon DSLR EOS 600D" name="CCD_FAST_COUNT" label="Fast Count" group="Options" state="Idle" perm="rw" timeout="0" timestamp="2026-05-09T18:05:07">
+    <defNumber name="FRAMES" label="Frames" format="%.f" min="0" max="100000" step="1">
+1
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="CCD_VIDEO_STREAM" label="Video Stream" group="Streaming" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="STREAM_ON" label="Stream On">
+Off
+    </defSwitch>
+    <defSwitch name="STREAM_OFF" label="Stream Off">
+On
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="Canon DSLR EOS 600D" name="STREAM_DELAY" label="Video Stream Delay" group="Streaming" state="Idle" perm="ro" timeout="0" timestamp="2026-05-09T18:05:07">
+    <defNumber name="STREAM_DELAY_TIME" label="Delay (s)" format="%.3f" min="0" max="60" step="0.0010000000000000000208">
+0
+    </defNumber>
+</defNumberVector>
+<defNumberVector device="Canon DSLR EOS 600D" name="FPS" label="FPS" group="Streaming" state="Idle" perm="ro" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defNumber name="EST_FPS" label="Instant." format="%.2f" min="0" max="999" step="0">
+30
+    </defNumber>
+    <defNumber name="AVG_FPS" label="Average (1 sec.)" format="%.2f" min="0" max="999" step="0">
+30
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="RECORD_STREAM" label="Video Record" group="Streaming" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="RECORD_ON" label="Record On">
+Off
+    </defSwitch>
+    <defSwitch name="RECORD_DURATION_ON" label="Record (Duration)">
+Off
+    </defSwitch>
+    <defSwitch name="RECORD_FRAME_ON" label="Record (Frames)">
+Off
+    </defSwitch>
+    <defSwitch name="RECORD_OFF" label="Record Off">
+On
+    </defSwitch>
+</defSwitchVector>
+<defTextVector device="Canon DSLR EOS 600D" name="RECORD_FILE" label="Record File" group="Streaming" state="Idle" perm="rw" timeout="0" timestamp="2026-05-09T18:05:07">
+    <defText name="RECORD_FILE_DIR" label="Dir.">
+/home/astroberry/Videos/indi__D_
+    </defText>
+    <defText name="RECORD_FILE_NAME" label="Name">
+indi_record__T_
+    </defText>
+</defTextVector>
+<defNumberVector device="Canon DSLR EOS 600D" name="RECORD_OPTIONS" label="Record Options" group="Streaming" state="Idle" perm="rw" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defNumber name="RECORD_DURATION" label="Duration (sec)" format="%.3f" min="0.0010000000000000000208" max="999999" step="0">
+1
+    </defNumber>
+    <defNumber name="RECORD_FRAME_TOTAL" label="Frames" format="%.f" min="1" max="999999999" step="1">
+30
+    </defNumber>
+</defNumberVector>
+<defNumberVector device="Canon DSLR EOS 600D" name="CCD_STREAM_FRAME" label="Frame" group="Streaming" state="Idle" perm="rw" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defNumber name="X" label="Left" format="%.f" min="0" max="0" step="0">
+0
+    </defNumber>
+    <defNumber name="Y" label="Top" format="%.f" min="0" max="0" step="0">
+0
+    </defNumber>
+    <defNumber name="WIDTH" label="Width" format="%.f" min="0" max="0" step="0">
+0
+    </defNumber>
+    <defNumber name="HEIGHT" label="Height" format="%.f" min="0" max="0" step="0">
+0
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="CCD_STREAM_ENCODER" label="Encoder" group="Streaming" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="RAW" label="RAW">
+On
+    </defSwitch>
+    <defSwitch name="MJPEG" label="MJPEG">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="CCD_STREAM_RECORDER" label="Recorder" group="Streaming" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="SER" label="SER">
+On
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="Canon DSLR EOS 600D" name="LIMITS" label="Limits" group="Streaming" state="Idle" perm="rw" timeout="0" timestamp="2026-05-09T18:05:07">
+    <defNumber name="LIMITS_BUFFER_MAX" label="Maximum Buffer Size (MB)" format="%.0f" min="1" max="65536" step="1">
+512
+    </defNumber>
+    <defNumber name="LIMITS_PREVIEW_FPS" label="Maximum Preview FPS" format="%.0f" min="1" max="120" step="1">
+10
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="CCD_EXPOSURE_PRESETS" label="Presets" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="EXPOSURE_PRESET0" label="bulb">
+On
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET1" label="30">
+Off
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET2" label="25">
+Off
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET3" label="20">
+Off
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET4" label="15">
+Off
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET5" label="13">
+Off
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET6" label="10.3">
+Off
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET7" label="8">
+Off
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET8" label="6.3">
+Off
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET9" label="5">
+Off
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET10" label="4">
+Off
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET11" label="3.2">
+Off
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET12" label="2.5">
+Off
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET13" label="2">
+Off
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET14" label="1.6">
+Off
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET15" label="1.3">
+Off
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET16" label="1">
+Off
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET17" label="0.8">
+Off
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET18" label="0.6">
+Off
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET19" label="0.5">
+Off
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET20" label="0.4">
+Off
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET21" label="0.3">
+Off
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET22" label="1/4">
+Off
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET23" label="1/5">
+Off
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET24" label="1/6">
+Off
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET25" label="1/8">
+Off
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET26" label="1/10">
+Off
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET27" label="1/13">
+Off
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET28" label="1/15">
+Off
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET29" label="1/20">
+Off
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET30" label="1/25">
+Off
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET31" label="1/30">
+Off
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET32" label="1/40">
+Off
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET33" label="1/50">
+Off
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET34" label="1/60">
+Off
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET35" label="1/80">
+Off
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET36" label="1/100">
+Off
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET37" label="1/125">
+Off
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET38" label="1/160">
+Off
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET39" label="1/200">
+Off
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET40" label="1/250">
+Off
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET41" label="1/320">
+Off
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET42" label="1/400">
+Off
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET43" label="1/500">
+Off
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET44" label="1/640">
+Off
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET45" label="1/800">
+Off
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET46" label="1/1000">
+Off
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET47" label="1/1250">
+Off
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET48" label="1/1600">
+Off
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET49" label="1/2000">
+Off
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET50" label="1/2500">
+Off
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET51" label="1/3200">
+Off
+    </defSwitch>
+    <defSwitch name="EXPOSURE_PRESET52" label="1/4000">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="CCD_ISO" label="ISO" group="Image Settings" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="ISO0" label="Auto">
+Off
+    </defSwitch>
+    <defSwitch name="ISO1" label="100">
+Off
+    </defSwitch>
+    <defSwitch name="ISO2" label="200">
+On
+    </defSwitch>
+    <defSwitch name="ISO3" label="400">
+Off
+    </defSwitch>
+    <defSwitch name="ISO4" label="800">
+Off
+    </defSwitch>
+    <defSwitch name="ISO5" label="1600">
+Off
+    </defSwitch>
+    <defSwitch name="ISO6" label="3200">
+Off
+    </defSwitch>
+    <defSwitch name="ISO7" label="6400">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="Auto Focus" label="Auto Focus" group="Focus" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="Set" label="Set">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="FOCUS_MOTION" label="Direction" group="Focus" state="Ok" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="FOCUS_INWARD" label="Focus In">
+On
+    </defSwitch>
+    <defSwitch name="FOCUS_OUTWARD" label="Focus Out">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Celestron GPS" name="SYSTEM_PORTS" label="System Ports" group="Connection" state="Idle" perm="rw" rule="AtMostOne" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="Prolific_Technology_Inc._USB" label="Prolific_Technology_Inc._USB">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defTextVector device="Celestron GPS" name="DEVICE_PORT" label="Ports" group="Connection" state="Idle" perm="rw" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defText name="PORT" label="Port">
+/dev/serial/by-id/usb-Prolific_Technology_Inc._USB-Serial_Controller_D-if00-port0
+    </defText>
+</defTextVector>
+<defSwitchVector device="Celestron GPS" name="DEVICE_BAUD_RATE" label="Baud Rate" group="Connection" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="9600" label="9600">
+On
+    </defSwitch>
+    <defSwitch name="19200" label="19200">
+Off
+    </defSwitch>
+    <defSwitch name="38400" label="38400">
+Off
+    </defSwitch>
+    <defSwitch name="57600" label="57600">
+Off
+    </defSwitch>
+    <defSwitch name="115200" label="115200">
+Off
+    </defSwitch>
+    <defSwitch name="230400" label="230400">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Celestron GPS" name="DEVICE_AUTO_SEARCH" label="Auto Search" group="Connection" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="INDI_ENABLED" label="Enabled">
+On
+    </defSwitch>
+    <defSwitch name="INDI_DISABLED" label="Disabled">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Celestron GPS" name="DEVICE_PORT_SCAN" label="Refresh" group="Connection" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="Scan Ports" label="Scan Ports">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defTextVector device="Celestron GPS" name="ACTIVE_DEVICES" label="Snoop devices" group="Options" state="Idle" perm="rw" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defText name="ACTIVE_GPS" label="GPS"/>
+    <defText name="ACTIVE_DOME" label="DOME">
+None
+    </defText>
+</defTextVector>
+<defSwitchVector device="Celestron GPS" name="DOME_POLICY" label="Dome Policy" group="Options" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="DOME_IGNORED" label="Dome ignored">
+On
+    </defSwitch>
+    <defSwitch name="DOME_LOCKS" label="Dome locks">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Celestron GPS" name="Hibernate" label="Hibernate" group="Options" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="Enable" label="Enable">
+Off
+    </defSwitch>
+    <defSwitch name="Disable" label="Disable">
+On
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Celestron GPS" name="CELESTRON_TRACK_MODE" label="Track Mode" group="Mount Info" state="Idle" perm="ro" rule="OneOfMany" timeout="0" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="MODE_ALTAZ" label="Alt Az">
+Off
+    </defSwitch>
+    <defSwitch name="MODE_EQ_N" label="EQ N">
+On
+    </defSwitch>
+    <defSwitch name="MODE_EQ_S" label="EQ S">
+Off
+    </defSwitch>
+    <defSwitch name="MODE_RA_DEC" label="Ra and Dec">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Celestron GPS" name="ON_COORD_SET" label="On Set" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="TRACK" label="Track">
+On
+    </defSwitch>
+    <defSwitch name="SLEW" label="Slew">
+Off
+    </defSwitch>
+    <defSwitch name="SYNC" label="Sync">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="Celestron GPS" name="EQUATORIAL_EOD_COORD" label="Eq. Coordinates" group="Main Control" state="Idle" perm="rw" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defNumber name="RA" label="RA (hh:mm:ss)" format="%010.6m" min="0" max="24" step="0">
+12
+    </defNumber>
+    <defNumber name="DEC" label="DEC (dd:mm:ss)" format="%010.6m" min="-90" max="90" step="0">
+0
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="Celestron GPS" name="TELESCOPE_ABORT_MOTION" label="Abort Motion" group="Main Control" state="Idle" perm="rw" rule="AtMostOne" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="ABORT" label="Abort">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Celestron GPS" name="TELESCOPE_TRACK_STATE" label="Tracking" group="Main Control" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="TRACK_ON" label="On">
+Off
+    </defSwitch>
+    <defSwitch name="TRACK_OFF" label="Off">
+On
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Celestron GPS" name="TELESCOPE_MOTION_NS" label="Motion N/S" group="Motion Control" state="Idle" perm="rw" rule="AtMostOne" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="MOTION_NORTH" label="North">
+Off
+    </defSwitch>
+    <defSwitch name="MOTION_SOUTH" label="South">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Celestron GPS" name="TELESCOPE_MOTION_WE" label="Motion W/E" group="Motion Control" state="Idle" perm="rw" rule="AtMostOne" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="MOTION_WEST" label="West">
+Off
+    </defSwitch>
+    <defSwitch name="MOTION_EAST" label="East">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Celestron GPS" name="TELESCOPE_REVERSE_MOTION" label="Reverse" group="Motion Control" state="Idle" perm="rw" rule="AnyOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="REVERSE_NS" label="North/South">
+Off
+    </defSwitch>
+    <defSwitch name="REVERSE_WE" label="West/East">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Celestron GPS" name="TELESCOPE_SLEW_RATE" label="Slew Rate" group="Motion Control" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="1x" label="1x">
+Off
+    </defSwitch>
+    <defSwitch name="2x" label="2x">
+Off
+    </defSwitch>
+    <defSwitch name="3x" label="3x">
+Off
+    </defSwitch>
+    <defSwitch name="4x" label="4x">
+Off
+    </defSwitch>
+    <defSwitch name="5x" label="5x">
+On
+    </defSwitch>
+    <defSwitch name="6x" label="6x">
+Off
+    </defSwitch>
+    <defSwitch name="7x" label="7x">
+Off
+    </defSwitch>
+    <defSwitch name="8x" label="8x">
+Off
+    </defSwitch>
+    <defSwitch name="9x" label="9x">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="Celestron GPS" name="TARGET_EOD_COORD" label="Slew Target" group="Motion Control" state="Idle" perm="ro" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defNumber name="RA" label="RA (hh:mm:ss)" format="%010.6m" min="0" max="24" step="0">
+0
+    </defNumber>
+    <defNumber name="DEC" label="DEC (dd:mm:ss)" format="%010.6m" min="-90" max="90" step="0">
+0
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="Celestron GPS" name="TELESCOPE_MOUNT_TYPE" label="Mount Type" group="Motion Control" state="Idle" perm="ro" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="ALTAZ" label="ALTAZ">
+Off
+    </defSwitch>
+    <defSwitch name="EQ_FORK" label="Fork (Eq)">
+On
+    </defSwitch>
+    <defSwitch name="EQ_GEM" label="GEM">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defTextVector device="Celestron GPS" name="TIME_UTC" label="UTC" group="Site Management" state="Ok" perm="rw" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defText name="UTC" label="UTC Time">
+2026-05-08T02:02:01
+    </defText>
+    <defText name="OFFSET" label="UTC Offset">
+-10.00
+    </defText>
+</defTextVector>
+<defNumberVector device="Celestron GPS" name="GEOGRAPHIC_COORD" label="Scope Location" group="Site Management" state="Ok" perm="rw" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defNumber name="LAT" label="Lat (dd:mm:ss.s)" format="%012.8m" min="-90" max="90" step="0">
+-17.566944444444445139
+    </defNumber>
+    <defNumber name="LONG" label="Lon (dd:mm:ss.s)" format="%012.8m" min="0" max="360" step="0">
+210.3830555555555577
+    </defNumber>
+    <defNumber name="ELEV" label="Elevation (m)" format="%g" min="-200" max="10000" step="0">
+0
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="Celestron GPS" name="TELESCOPE_PARK" label="Parking" group="Main Control" state="Ok" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="PARK" label="Park(ed)">
+Off
+    </defSwitch>
+    <defSwitch name="UNPARK" label="UnPark(ed)">
+On
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="Celestron GPS" name="TELESCOPE_PARK_POSITION" label="Park Position" group="Site Management" state="Idle" perm="rw" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defNumber name="PARK_AZ" label="AZ D:M:S" format="%10.6m" min="0" max="360" step="0">
+0
+    </defNumber>
+    <defNumber name="PARK_ALT" label="Alt  D:M:S" format="%10.6m" min="-90" max="90" step="0">
+0
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="Celestron GPS" name="TELESCOPE_PARK_OPTION" label="Park Options" group="Site Management" state="Idle" perm="rw" rule="AtMostOne" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="PARK_CURRENT" label="Current">
+Off
+    </defSwitch>
+    <defSwitch name="PARK_DEFAULT" label="Default">
+Off
+    </defSwitch>
+    <defSwitch name="PARK_WRITE_DATA" label="Write Data">
+Off
+    </defSwitch>
+    <defSwitch name="PARK_PURGE_DATA" label="Purge Data">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Celestron GPS" name="USEJOYSTICK" label="Joystick" group="Options" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="ENABLE" label="Enable">
+Off
+    </defSwitch>
+    <defSwitch name="DISABLE" label="Disable">
+On
+    </defSwitch>
+</defSwitchVector>
+<defTextVector device="Celestron GPS" name="SNOOP_JOYSTICK" label="Snoop Joystick" group="Options" state="Idle" perm="rw" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defText name="SNOOP_JOYSTICK_DEVICE" label="Device">
+Joystick
+    </defText>
+</defTextVector>
+<defTextVector device="Celestron GPS" name="Firmware Info" label="Firmware Info" group="Mount Info" state="Idle" perm="ro" timeout="0" timestamp="2026-05-09T18:05:07">
+    <defText name="Model" label="Model">
+4/5 SE
+    </defText>
+    <defText name="HC Version" label="HC Version">
+4.22
+    </defText>
+    <defText name="Ra Version" label="Ra Version">
+5.14
+    </defText>
+    <defText name="Dec Version" label="Dec Version">
+5.14
+    </defText>
+    <defText name="Mount Type" label="Mount Type">
+Fork
+    </defText>
+    <defText name="Guide Method" label="Guide Method">
+Time Guide
+    </defText>
+    <defText name="Has Focuser" label="Has Focuser">
+False
+    </defText>
+</defTextVector>
+<defNumberVector device="Celestron GPS" name="GUIDE_RATE" label="Guide Rate x sidereal" group="Guide" state="Idle" perm="rw" timeout="0" timestamp="2026-05-09T18:05:07">
+    <defNumber name="GUIDE_RATE_WE" label="W/E Rate" format="%0.2f" min="0" max="1" step="0.10000000000000000555">
+0.0039215686274509803377
+    </defNumber>
+    <defNumber name="GUIDE_RATE_NS" label="N/S Rate" format="%0.2f" min="0" max="1" step="0.10000000000000000555">
+0.0039215686274509803377
+    </defNumber>
+</defNumberVector>
+<defNumberVector device="Celestron GPS" name="TELESCOPE_TIMED_GUIDE_NS" label="Guide N/S" group="Guide" state="Idle" perm="rw" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defNumber name="TIMED_GUIDE_N" label="North (ms)" format="%.f" min="0" max="60000" step="100">
+0
+    </defNumber>
+    <defNumber name="TIMED_GUIDE_S" label="South (ms)" format="%.f" min="0" max="60000" step="100">
+0
+    </defNumber>
+</defNumberVector>
+<defNumberVector device="Celestron GPS" name="TELESCOPE_TIMED_GUIDE_WE" label="Guide E/W" group="Guide" state="Idle" perm="rw" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defNumber name="TIMED_GUIDE_W" label="West (ms)" format="%.f" min="0" max="60000" step="100">
+0
+    </defNumber>
+    <defNumber name="TIMED_GUIDE_E" label="East (ms)" format="%.f" min="0" max="60000" step="100">
+0
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="Celestron GPS" name="DST_STATE" label="DST" group="Site Management" state="Idle" perm="rw" rule="AnyOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="DST_ENABLED" label="Enabled">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defTextVector device="Celestron GPS" name="ACTIVE_DEVICES" label="Snoop devices" group="Options" state="Idle" perm="rw" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defText name="ACTIVE_GPS" label="GPS"/>
+    <defText name="ACTIVE_DOME" label="DOME">
+None
+    </defText>
+</defTextVector>
+<defSwitchVector device="Celestron GPS" name="DOME_POLICY" label="Dome Policy" group="Options" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="DOME_IGNORED" label="Dome ignored">
+On
+    </defSwitch>
+    <defSwitch name="DOME_LOCKS" label="Dome locks">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Celestron GPS" name="USEJOYSTICK" label="Joystick" group="Options" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="ENABLE" label="Enable">
+Off
+    </defSwitch>
+    <defSwitch name="DISABLE" label="Disable">
+On
+    </defSwitch>
+</defSwitchVector>
+<defTextVector device="Celestron GPS" name="SNOOP_JOYSTICK" label="Snoop Joystick" group="Options" state="Idle" perm="rw" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defText name="SNOOP_JOYSTICK_DEVICE" label="Device">
+Joystick
+    </defText>
+</defTextVector>
+<defSwitchVector device="Celestron GPS" name="Hibernate" label="Hibernate" group="Options" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="Enable" label="Enable">
+Off
+    </defSwitch>
+    <defSwitch name="Disable" label="Disable">
+On
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Celestron GPS" name="CELESTRON_TRACK_MODE" label="Track Mode" group="Mount Info" state="Idle" perm="ro" rule="OneOfMany" timeout="0" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="MODE_ALTAZ" label="Alt Az">
+Off
+    </defSwitch>
+    <defSwitch name="MODE_EQ_N" label="EQ N">
+On
+    </defSwitch>
+    <defSwitch name="MODE_EQ_S" label="EQ S">
+Off
+    </defSwitch>
+    <defSwitch name="MODE_RA_DEC" label="Ra and Dec">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="Canon DSLR EOS 600D" name="REL_FOCUS_POSITION" label="Relative Position" group="Focus" state="Ok" perm="rw" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defNumber name="FOCUS_RELATIVE_POSITION" label="Steps" format="%.f" min="0" max="100000" step="1000">
+0
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="CCD_CAPTURE_TARGET" label="Capture Target" group="Image Settings" state="Ok" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="RAM" label="RAM">
+On
+    </defSwitch>
+    <defSwitch name="SD Card" label="SD Card">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="CCD_SD_CARD_ACTION" label="SD Image" group="Image Settings" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="Save" label="Save">
+On
+    </defSwitch>
+    <defSwitch name="Delete" label="Delete">
+Off
+    </defSwitch>
+    <defSwitch name="Ignore" label="Ignore">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="syncdatetime" label="syncdatetime" group="actions" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="syncdatetime0" label="On">
+Off
+    </defSwitch>
+    <defSwitch name="syncdatetime1" label="Off">
+On
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="uilock" label="uilock" group="actions" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="uilock0" label="On">
+On
+    </defSwitch>
+    <defSwitch name="uilock1" label="Off">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="popupflash" label="popupflash" group="actions" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="popupflash0" label="On">
+On
+    </defSwitch>
+    <defSwitch name="popupflash1" label="Off">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="autofocusdrive" label="autofocusdrive" group="actions" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="autofocusdrive0" label="On">
+Off
+    </defSwitch>
+    <defSwitch name="autofocusdrive1" label="Off">
+On
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="manualfocusdrive" label="manualfocusdrive" group="actions" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="manualfocusdrive0" label="Near 1">
+Off
+    </defSwitch>
+    <defSwitch name="manualfocusdrive1" label="Near 2">
+Off
+    </defSwitch>
+    <defSwitch name="manualfocusdrive2" label="Near 3">
+Off
+    </defSwitch>
+    <defSwitch name="manualfocusdrive3" label="None">
+On
+    </defSwitch>
+    <defSwitch name="manualfocusdrive4" label="Far 1">
+Off
+    </defSwitch>
+    <defSwitch name="manualfocusdrive5" label="Far 2">
+Off
+    </defSwitch>
+    <defSwitch name="manualfocusdrive6" label="Far 3">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="cancelautofocus" label="cancelautofocus" group="actions" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="cancelautofocus0" label="On">
+Off
+    </defSwitch>
+    <defSwitch name="cancelautofocus1" label="Off">
+On
+    </defSwitch>
+</defSwitchVector>
+<defTextVector device="Canon DSLR EOS 600D" name="eoszoom" label="eoszoom" group="actions" state="Idle" perm="rw" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defText name="eoszoom" label="eoszoom">
+0
+    </defText>
+</defTextVector>
+<defTextVector device="Canon DSLR EOS 600D" name="eoszoomposition" label="eoszoomposition" group="actions" state="Idle" perm="rw" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defText name="eoszoomposition" label="eoszoomposition">
+0,0
+    </defText>
+</defTextVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="viewfinder" label="viewfinder" group="actions" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="viewfinder0" label="On">
+Off
+    </defSwitch>
+    <defSwitch name="viewfinder1" label="Off">
+On
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="eosmoviemode" label="eosmoviemode" group="actions" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="eosmoviemode0" label="On">
+On
+    </defSwitch>
+    <defSwitch name="eosmoviemode1" label="Off">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defTextVector device="Canon DSLR EOS 600D" name="opcode" label="opcode" group="actions" state="Idle" perm="rw" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defText name="opcode" label="opcode">
+0x1001,0xparam1,0xparam2
+    </defText>
+</defTextVector>
+<defTextVector device="Canon DSLR EOS 600D" name="datetime" label="datetime" group="settings" state="Idle" perm="rw" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defText name="datetime" label="datetime">
+2026-05-10T05:46:41Z
+    </defText>
+</defTextVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="reviewtime" label="reviewtime" group="settings" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="reviewtime0" label="None">
+Off
+    </defSwitch>
+    <defSwitch name="reviewtime1" label="2 seconds">
+On
+    </defSwitch>
+    <defSwitch name="reviewtime2" label="4 seconds">
+Off
+    </defSwitch>
+    <defSwitch name="reviewtime3" label="8 seconds">
+Off
+    </defSwitch>
+    <defSwitch name="reviewtime4" label="Hold">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="output" label="output" group="settings" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="output0" label="TFT">
+On
+    </defSwitch>
+    <defSwitch name="output1" label="PC">
+Off
+    </defSwitch>
+    <defSwitch name="output2" label="TFT + PC">
+Off
+    </defSwitch>
+    <defSwitch name="output3" label="MOBILE">
+Off
+    </defSwitch>
+    <defSwitch name="output4" label="TFT + MOBILE">
+Off
+    </defSwitch>
+    <defSwitch name="output5" label="PC + MOBILE">
+Off
+    </defSwitch>
+    <defSwitch name="output6" label="TFT + PC + MOBILE">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="movierecordtarget" label="movierecordtarget" group="settings" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="movierecordtarget0" label="Card">
+Off
+    </defSwitch>
+    <defSwitch name="movierecordtarget1" label="None">
+Off
+    </defSwitch>
+    <defSwitch name="movierecordtarget2" label="SDRAM">
+On
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="evfmode" label="evfmode" group="settings" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="evfmode0" label="0">
+Off
+    </defSwitch>
+    <defSwitch name="evfmode1" label="1">
+On
+    </defSwitch>
+</defSwitchVector>
+<defTextVector device="Canon DSLR EOS 600D" name="ownername" label="ownername" group="settings" state="Idle" perm="rw" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defText name="ownername" label="ownername"/>
+</defTextVector>
+<defTextVector device="Canon DSLR EOS 600D" name="artist" label="artist" group="settings" state="Idle" perm="rw" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defText name="artist" label="artist"/>
+</defTextVector>
+<defTextVector device="Canon DSLR EOS 600D" name="copyright" label="copyright" group="settings" state="Idle" perm="rw" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defText name="copyright" label="copyright"/>
+</defTextVector>
+<defTextVector device="Canon DSLR EOS 600D" name="customfuncex" label="customfuncex" group="settings" state="Idle" perm="rw" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defText name="customfuncex" label="customfuncex">
+c8,4,1,2c,3,101,1,0,103,1,0,10f,1,0,2,2c,3,201,1,0,202,1,0,203,1,0,3,20,2,50e,1,0,60f,1,0,4,38,4,701,1,0,704,1,0,811,1,0,80f,1,0,
+    </defText>
+</defTextVector>
+<defTextVector device="Canon DSLR EOS 600D" name="focusinfo" label="focusinfo" group="settings" state="Idle" perm="ro" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defText name="focusinfo" label="focusinfo">
+eosversion=0,size=5184x3456,size2=5184x3456,points={{-1477,0,186,139},{-886,418,186,139},{-886,-418,186,139},{0,787,127,196},{0,0,231,238},{0,-787,127,196},{886,418,186,139},{886,-418,186,139},{1477,0,186,139}},select={},unknown={ff010000ffff}
+    </defText>
+</defTextVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="strobofiring" label="strobofiring" group="settings" state="Idle" perm="ro" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="strobofiring0" label="0">
+On
+    </defSwitch>
+    <defSwitch name="strobofiring1" label="1">
+Off
+    </defSwitch>
+    <defSwitch name="strobofiring2" label="2">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defTextVector device="Canon DSLR EOS 600D" name="flashcharged" label="flashcharged" group="settings" state="Idle" perm="ro" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defText name="flashcharged" label="flashcharged">
+0
+    </defText>
+</defTextVector>
+<defTextVector device="Canon DSLR EOS 600D" name="autopoweroff" label="autopoweroff" group="settings" state="Idle" perm="rw" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defText name="autopoweroff" label="autopoweroff">
+0
+    </defText>
+</defTextVector>
+<defTextVector device="Canon DSLR EOS 600D" name="depthoffield" label="depthoffield" group="settings" state="Idle" perm="rw" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defText name="depthoffield" label="depthoffield">
+0
+    </defText>
+</defTextVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="capturetarget" label="capturetarget" group="settings" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="capturetarget0" label="Internal RAM">
+On
+    </defSwitch>
+    <defSwitch name="capturetarget1" label="Memory card">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="capture" label="capture" group="settings" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="capture0" label="On">
+On
+    </defSwitch>
+    <defSwitch name="capture1" label="Off">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defTextVector device="Canon DSLR EOS 600D" name="remotemode" label="remotemode" group="settings" state="Idle" perm="rw" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defText name="remotemode" label="remotemode">
+1
+    </defText>
+</defTextVector>
+<defTextVector device="Canon DSLR EOS 600D" name="eventmode" label="eventmode" group="settings" state="Idle" perm="rw" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defText name="eventmode" label="eventmode">
+0
+    </defText>
+</defTextVector>
+<defTextVector device="Canon DSLR EOS 600D" name="serialnumber" label="serialnumber" group="status" state="Idle" perm="ro" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defText name="serialnumber" label="serialnumber">
+c8c6fd9462b408d
+    </defText>
+</defTextVector>
+<defTextVector device="Canon DSLR EOS 600D" name="manufacturer" label="manufacturer" group="status" state="Idle" perm="ro" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defText name="manufacturer" label="manufacturer">
+Canon Inc.
+    </defText>
+</defTextVector>
+<defTextVector device="Canon DSLR EOS 600D" name="cameramodel" label="cameramodel" group="status" state="Idle" perm="ro" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defText name="cameramodel" label="cameramodel">
+Canon EOS 600D
+    </defText>
+</defTextVector>
+<defTextVector device="Canon DSLR EOS 600D" name="deviceversion" label="deviceversion" group="status" state="Idle" perm="ro" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defText name="deviceversion" label="deviceversion">
+3-1.0.1
+    </defText>
+</defTextVector>
+<defTextVector device="Canon DSLR EOS 600D" name="vendorextension" label="vendorextension" group="status" state="Idle" perm="ro" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defText name="vendorextension" label="vendorextension"/>
+</defTextVector>
+<defTextVector device="Canon DSLR EOS 600D" name="model" label="model" group="status" state="Idle" perm="ro" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defText name="model" label="model">
+2147484294
+    </defText>
+</defTextVector>
+<defTextVector device="Canon DSLR EOS 600D" name="ptpversion" label="ptpversion" group="status" state="Idle" perm="ro" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defText name="ptpversion" label="ptpversion">
+256
+    </defText>
+</defTextVector>
+<defTextVector device="Canon DSLR EOS 600D" name="batterylevel" label="batterylevel" group="status" state="Idle" perm="ro" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defText name="batterylevel" label="batterylevel">
+100%
+    </defText>
+</defTextVector>
+<defTextVector device="Canon DSLR EOS 600D" name="mirrorlockstatus" label="mirrorlockstatus" group="status" state="Idle" perm="ro" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defText name="mirrorlockstatus" label="mirrorlockstatus">
+0
+    </defText>
+</defTextVector>
+<defTextVector device="Canon DSLR EOS 600D" name="mirrordownstatus" label="mirrordownstatus" group="status" state="Idle" perm="ro" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defText name="mirrordownstatus" label="mirrordownstatus">
+0
+    </defText>
+</defTextVector>
+<defTextVector device="Canon DSLR EOS 600D" name="lensname" label="lensname" group="status" state="Idle" perm="ro" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defText name="lensname" label="lensname"/>
+</defTextVector>
+<defTextVector device="Canon DSLR EOS 600D" name="eosserialnumber" label="eosserialnumber" group="status" state="Idle" perm="ro" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defText name="eosserialnumber" label="eosserialnumber">
+133063043015
+    </defText>
+</defTextVector>
+<defTextVector device="Canon DSLR EOS 600D" name="shuttercounter" label="shuttercounter" group="status" state="Idle" perm="ro" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defText name="shuttercounter" label="shuttercounter">
+9868
+    </defText>
+</defTextVector>
+<defTextVector device="Canon DSLR EOS 600D" name="availableshots" label="availableshots" group="status" state="Idle" perm="ro" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defText name="availableshots" label="availableshots">
+40968
+    </defText>
+</defTextVector>
+<defTextVector device="Canon DSLR EOS 600D" name="eosmovieswitch" label="eosmovieswitch" group="status" state="Idle" perm="ro" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defText name="eosmovieswitch" label="eosmovieswitch">
+0
+    </defText>
+</defTextVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="imageformatsd" label="imageformatsd" group="imgsettings" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="imageformatsd0" label="Large Fine JPEG">
+Off
+    </defSwitch>
+    <defSwitch name="imageformatsd1" label="Large Normal JPEG">
+Off
+    </defSwitch>
+    <defSwitch name="imageformatsd2" label="Medium Fine JPEG">
+Off
+    </defSwitch>
+    <defSwitch name="imageformatsd3" label="Medium Normal JPEG">
+Off
+    </defSwitch>
+    <defSwitch name="imageformatsd4" label="Small Fine JPEG">
+Off
+    </defSwitch>
+    <defSwitch name="imageformatsd5" label="Small Normal JPEG">
+Off
+    </defSwitch>
+    <defSwitch name="imageformatsd6" label="Smaller JPEG">
+Off
+    </defSwitch>
+    <defSwitch name="imageformatsd7" label="Tiny JPEG">
+Off
+    </defSwitch>
+    <defSwitch name="imageformatsd8" label="RAW + Large Fine JPEG">
+Off
+    </defSwitch>
+    <defSwitch name="imageformatsd9" label="RAW">
+On
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="whitebalance" label="whitebalance" group="imgsettings" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="whitebalance0" label="Auto">
+On
+    </defSwitch>
+    <defSwitch name="whitebalance1" label="Daylight">
+Off
+    </defSwitch>
+    <defSwitch name="whitebalance2" label="Shadow">
+Off
+    </defSwitch>
+    <defSwitch name="whitebalance3" label="Cloudy">
+Off
+    </defSwitch>
+    <defSwitch name="whitebalance4" label="Tungsten">
+Off
+    </defSwitch>
+    <defSwitch name="whitebalance5" label="Fluorescent">
+Off
+    </defSwitch>
+    <defSwitch name="whitebalance6" label="Flash">
+Off
+    </defSwitch>
+    <defSwitch name="whitebalance7" label="Manual">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="whitebalanceadjusta" label="whitebalanceadjusta" group="imgsettings" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="whitebalanceadjusta0" label="-9">
+Off
+    </defSwitch>
+    <defSwitch name="whitebalanceadjusta1" label="-8">
+Off
+    </defSwitch>
+    <defSwitch name="whitebalanceadjusta2" label="-7">
+Off
+    </defSwitch>
+    <defSwitch name="whitebalanceadjusta3" label="-6">
+Off
+    </defSwitch>
+    <defSwitch name="whitebalanceadjusta4" label="-5">
+Off
+    </defSwitch>
+    <defSwitch name="whitebalanceadjusta5" label="-4">
+Off
+    </defSwitch>
+    <defSwitch name="whitebalanceadjusta6" label="-3">
+Off
+    </defSwitch>
+    <defSwitch name="whitebalanceadjusta7" label="-2">
+Off
+    </defSwitch>
+    <defSwitch name="whitebalanceadjusta8" label="-1">
+Off
+    </defSwitch>
+    <defSwitch name="whitebalanceadjusta9" label="0">
+On
+    </defSwitch>
+    <defSwitch name="whitebalanceadjusta10" label="1">
+Off
+    </defSwitch>
+    <defSwitch name="whitebalanceadjusta11" label="2">
+Off
+    </defSwitch>
+    <defSwitch name="whitebalanceadjusta12" label="3">
+Off
+    </defSwitch>
+    <defSwitch name="whitebalanceadjusta13" label="4">
+Off
+    </defSwitch>
+    <defSwitch name="whitebalanceadjusta14" label="5">
+Off
+    </defSwitch>
+    <defSwitch name="whitebalanceadjusta15" label="6">
+Off
+    </defSwitch>
+    <defSwitch name="whitebalanceadjusta16" label="7">
+Off
+    </defSwitch>
+    <defSwitch name="whitebalanceadjusta17" label="8">
+Off
+    </defSwitch>
+    <defSwitch name="whitebalanceadjusta18" label="9">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="whitebalanceadjustb" label="whitebalanceadjustb" group="imgsettings" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="whitebalanceadjustb0" label="-9">
+Off
+    </defSwitch>
+    <defSwitch name="whitebalanceadjustb1" label="-8">
+Off
+    </defSwitch>
+    <defSwitch name="whitebalanceadjustb2" label="-7">
+Off
+    </defSwitch>
+    <defSwitch name="whitebalanceadjustb3" label="-6">
+Off
+    </defSwitch>
+    <defSwitch name="whitebalanceadjustb4" label="-5">
+Off
+    </defSwitch>
+    <defSwitch name="whitebalanceadjustb5" label="-4">
+Off
+    </defSwitch>
+    <defSwitch name="whitebalanceadjustb6" label="-3">
+Off
+    </defSwitch>
+    <defSwitch name="whitebalanceadjustb7" label="-2">
+Off
+    </defSwitch>
+    <defSwitch name="whitebalanceadjustb8" label="-1">
+Off
+    </defSwitch>
+    <defSwitch name="whitebalanceadjustb9" label="0">
+On
+    </defSwitch>
+    <defSwitch name="whitebalanceadjustb10" label="1">
+Off
+    </defSwitch>
+    <defSwitch name="whitebalanceadjustb11" label="2">
+Off
+    </defSwitch>
+    <defSwitch name="whitebalanceadjustb12" label="3">
+Off
+    </defSwitch>
+    <defSwitch name="whitebalanceadjustb13" label="4">
+Off
+    </defSwitch>
+    <defSwitch name="whitebalanceadjustb14" label="5">
+Off
+    </defSwitch>
+    <defSwitch name="whitebalanceadjustb15" label="6">
+Off
+    </defSwitch>
+    <defSwitch name="whitebalanceadjustb16" label="7">
+Off
+    </defSwitch>
+    <defSwitch name="whitebalanceadjustb17" label="8">
+Off
+    </defSwitch>
+    <defSwitch name="whitebalanceadjustb18" label="9">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="whitebalancexa" label="whitebalancexa" group="imgsettings" state="Idle" perm="ro" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="whitebalancexa0" label="0">
+On
+    </defSwitch>
+    <defSwitch name="whitebalancexa1" label="1">
+Off
+    </defSwitch>
+    <defSwitch name="whitebalancexa2" label="2">
+Off
+    </defSwitch>
+    <defSwitch name="whitebalancexa3" label="3">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="whitebalancexb" label="whitebalancexb" group="imgsettings" state="Idle" perm="ro" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="whitebalancexb0" label="0">
+On
+    </defSwitch>
+    <defSwitch name="whitebalancexb1" label="1">
+Off
+    </defSwitch>
+    <defSwitch name="whitebalancexb2" label="2">
+Off
+    </defSwitch>
+    <defSwitch name="whitebalancexb3" label="3">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="colorspace" label="colorspace" group="imgsettings" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="colorspace0" label="sRGB">
+On
+    </defSwitch>
+    <defSwitch name="colorspace1" label="AdobeRGB">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="exposurecompensation" label="exposurecompensation" group="capturesettings" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="exposurecompensation0" label="0">
+On
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="focusmode" label="focusmode" group="capturesettings" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="focusmode0" label="Manual">
+On
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="aspectratio" label="aspectratio" group="capturesettings" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="aspectratio0" label="3:2">
+Off
+    </defSwitch>
+    <defSwitch name="aspectratio1" label="4:3">
+On
+    </defSwitch>
+    <defSwitch name="aspectratio2" label="16:9">
+Off
+    </defSwitch>
+    <defSwitch name="aspectratio3" label="1:1">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="afmethod" label="afmethod" group="capturesettings" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="afmethod0" label="Live">
+On
+    </defSwitch>
+    <defSwitch name="afmethod1" label="LiveFace">
+Off
+    </defSwitch>
+    <defSwitch name="afmethod2" label="Quick">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defTextVector device="Canon DSLR EOS 600D" name="storageid" label="storageid" group="capturesettings" state="Idle" perm="rw" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defText name="storageid" label="storageid">
+00020001
+    </defText>
+</defTextVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="autoexposuremode" label="autoexposuremode" group="capturesettings" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="autoexposuremode0" label="P">
+Off
+    </defSwitch>
+    <defSwitch name="autoexposuremode1" label="TV">
+Off
+    </defSwitch>
+    <defSwitch name="autoexposuremode2" label="AV">
+Off
+    </defSwitch>
+    <defSwitch name="autoexposuremode3" label="Manual">
+On
+    </defSwitch>
+    <defSwitch name="autoexposuremode4" label="Bulb">
+Off
+    </defSwitch>
+    <defSwitch name="autoexposuremode5" label="A_DEP">
+Off
+    </defSwitch>
+    <defSwitch name="autoexposuremode6" label="DEP">
+Off
+    </defSwitch>
+    <defSwitch name="autoexposuremode7" label="Custom">
+Off
+    </defSwitch>
+    <defSwitch name="autoexposuremode8" label="Lock">
+Off
+    </defSwitch>
+    <defSwitch name="autoexposuremode9" label="Green">
+Off
+    </defSwitch>
+    <defSwitch name="autoexposuremode10" label="Night Portrait">
+Off
+    </defSwitch>
+    <defSwitch name="autoexposuremode11" label="Sports">
+Off
+    </defSwitch>
+    <defSwitch name="autoexposuremode12" label="Portrait">
+Off
+    </defSwitch>
+    <defSwitch name="autoexposuremode13" label="Landscape">
+Off
+    </defSwitch>
+    <defSwitch name="autoexposuremode14" label="Closeup">
+Off
+    </defSwitch>
+    <defSwitch name="autoexposuremode15" label="Flash Off">
+Off
+    </defSwitch>
+    <defSwitch name="autoexposuremode16" label="C2">
+Off
+    </defSwitch>
+    <defSwitch name="autoexposuremode17" label="C3">
+Off
+    </defSwitch>
+    <defSwitch name="autoexposuremode18" label="Creative Auto">
+Off
+    </defSwitch>
+    <defSwitch name="autoexposuremode19" label="Movie">
+Off
+    </defSwitch>
+    <defSwitch name="autoexposuremode20" label="Auto">
+Off
+    </defSwitch>
+    <defSwitch name="autoexposuremode21" label="Handheld Night Scene">
+Off
+    </defSwitch>
+    <defSwitch name="autoexposuremode22" label="HDR Backlight Control">
+Off
+    </defSwitch>
+    <defSwitch name="autoexposuremode23" label="SCN">
+Off
+    </defSwitch>
+    <defSwitch name="autoexposuremode24" label="Food">
+Off
+    </defSwitch>
+    <defSwitch name="autoexposuremode25" label="Grainy B/W">
+Off
+    </defSwitch>
+    <defSwitch name="autoexposuremode26" label="Soft focus">
+Off
+    </defSwitch>
+    <defSwitch name="autoexposuremode27" label="Toy camera effect">
+Off
+    </defSwitch>
+    <defSwitch name="autoexposuremode28" label="Fish-eye effect">
+Off
+    </defSwitch>
+    <defSwitch name="autoexposuremode29" label="Water painting effect">
+Off
+    </defSwitch>
+    <defSwitch name="autoexposuremode30" label="Miniature effect">
+Off
+    </defSwitch>
+    <defSwitch name="autoexposuremode31" label="HDR art standard">
+Off
+    </defSwitch>
+    <defSwitch name="autoexposuremode32" label="HDR art vivid">
+Off
+    </defSwitch>
+    <defSwitch name="autoexposuremode33" label="HDR art bold">
+Off
+    </defSwitch>
+    <defSwitch name="autoexposuremode34" label="HDR art embossed">
+Off
+    </defSwitch>
+    <defSwitch name="autoexposuremode35" label="Panning">
+Off
+    </defSwitch>
+    <defSwitch name="autoexposuremode36" label="HDR">
+Off
+    </defSwitch>
+    <defSwitch name="autoexposuremode37" label="Self Portrait">
+Off
+    </defSwitch>
+    <defSwitch name="autoexposuremode38" label="Hybrid Auto">
+Off
+    </defSwitch>
+    <defSwitch name="autoexposuremode39" label="Smooth skin">
+Off
+    </defSwitch>
+    <defSwitch name="autoexposuremode40" label="Fv">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="drivemode" label="drivemode" group="capturesettings" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="drivemode0" label="Single">
+On
+    </defSwitch>
+    <defSwitch name="drivemode1" label="Continuous">
+Off
+    </defSwitch>
+    <defSwitch name="drivemode2" label="Timer 10 sec">
+Off
+    </defSwitch>
+    <defSwitch name="drivemode3" label="Timer 2 sec">
+Off
+    </defSwitch>
+    <defSwitch name="drivemode4" label="Continuous timer">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="picturestyle" label="picturestyle" group="capturesettings" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="picturestyle0" label="Standard">
+Off
+    </defSwitch>
+    <defSwitch name="picturestyle1" label="Portrait">
+Off
+    </defSwitch>
+    <defSwitch name="picturestyle2" label="Landscape">
+On
+    </defSwitch>
+    <defSwitch name="picturestyle3" label="Neutral">
+Off
+    </defSwitch>
+    <defSwitch name="picturestyle4" label="Faithful">
+Off
+    </defSwitch>
+    <defSwitch name="picturestyle5" label="Monochrome">
+Off
+    </defSwitch>
+    <defSwitch name="picturestyle6" label="Auto">
+Off
+    </defSwitch>
+    <defSwitch name="picturestyle7" label="User defined 1">
+Off
+    </defSwitch>
+    <defSwitch name="picturestyle8" label="User defined 2">
+Off
+    </defSwitch>
+    <defSwitch name="picturestyle9" label="User defined 3">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="aperture" label="aperture" group="capturesettings" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="aperture0" label="implicit auto">
+On
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="meteringmode" label="meteringmode" group="capturesettings" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="meteringmode0" label="Evaluative">
+On
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="liveviewsize" label="liveviewsize" group="capturesettings" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="liveviewsize0" label="Large">
+On
+    </defSwitch>
+    <defSwitch name="liveviewsize1" label="Medium">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="bracketmode" label="bracketmode" group="capturesettings" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="bracketmode0" label="Unknown value 0000">
+On
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="aeb" label="aeb" group="capturesettings" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="aeb0" label="off">
+On
+    </defSwitch>
+    <defSwitch name="aeb1" label="+/- 1/3">
+Off
+    </defSwitch>
+    <defSwitch name="aeb2" label="+/- 2/3">
+Off
+    </defSwitch>
+    <defSwitch name="aeb3" label="+/- 1">
+Off
+    </defSwitch>
+    <defSwitch name="aeb4" label="+/- 1 1/3">
+Off
+    </defSwitch>
+    <defSwitch name="aeb5" label="+/- 1 2/3">
+Off
+    </defSwitch>
+    <defSwitch name="aeb6" label="+/- 2">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="alomode" label="alomode" group="capturesettings" state="Idle" perm="rw" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="alomode0" label="Standard (disabled in manual exposure)">
+Off
+    </defSwitch>
+    <defSwitch name="alomode1" label="x1">
+Off
+    </defSwitch>
+    <defSwitch name="alomode2" label="x2">
+On
+    </defSwitch>
+    <defSwitch name="alomode3" label="x3">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defTextVector device="Canon DSLR EOS 600D" name="d402" label="d402" group="other" state="Idle" perm="ro" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defText name="d402" label="d402">
+Canon EOS 600D
+    </defText>
+</defTextVector>
+<defTextVector device="Canon DSLR EOS 600D" name="d407" label="d407" group="other" state="Idle" perm="ro" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defText name="d407" label="d407">
+1
+    </defText>
+</defTextVector>
+<defTextVector device="Canon DSLR EOS 600D" name="d406" label="d406" group="other" state="Idle" perm="rw" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defText name="d406" label="d406">
+Unknown Initiator
+    </defText>
+</defTextVector>
+<defTextVector device="Canon DSLR EOS 600D" name="d303" label="d303" group="other" state="Idle" perm="ro" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defText name="d303" label="d303">
+1
+    </defText>
+</defTextVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="5001" label="5001" group="other" state="Idle" perm="ro" rule="OneOfMany" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="50010" label="100">
+On
+    </defSwitch>
+    <defSwitch name="50011" label="0">
+Off
+    </defSwitch>
+    <defSwitch name="50012" label="75">
+Off
+    </defSwitch>
+    <defSwitch name="50013" label="0">
+Off
+    </defSwitch>
+    <defSwitch name="50014" label="50">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="Canon DSLR EOS 600D" name="MIRROR_LOCK" label="Mirror Lock" group="Main Control" state="Idle" perm="rw" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defNumber name="MIRROR_LOCK_SECONDS" label="Seconds" format="%1.0f" min="0" max="10" step="1">
+0
+    </defNumber>
+</defNumberVector>
+<defNumberVector device="Canon DSLR EOS 600D" name="CCD_TEMPERATURE" label="Temperature" group="Main Control" state="Idle" perm="ro" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defNumber name="CCD_TEMPERATURE_VALUE" label="Temperature (C)" format="%5.2f" min="-50" max="50" step="0">
+0
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="CCD_FORCE_BLOB" label="Force BULB" group="Options" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="On" label="On">
+On
+    </defSwitch>
+    <defSwitch name="Off" label="Off">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="Canon DSLR EOS 600D" name="CCD_DOWNLOAD_TIMEOUT" label="Download Timeout" group="Options" state="Idle" perm="rw" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defNumber name="VALUE" label="Seconds" format="%.f" min="0" max="300" step="30">
+60
+    </defNumber>
+</defNumberVector>
+<defTextVector device="Canon DSLR EOS 600D" name="ACTIVE_DEVICES" label="Snoop devices" group="Options" state="Idle" perm="rw" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defText name="ACTIVE_TELESCOPE" label="Telescope">
+Celestron NexStar HC
+    </defText>
+    <defText name="ACTIVE_ROTATOR" label="Rotator"/>
+    <defText name="ACTIVE_FOCUSER" label="Focuser">
+Canon DSLR EOS 600D
+    </defText>
+    <defText name="ACTIVE_FILTER" label="Filter"/>
+    <defText name="ACTIVE_SKYQUALITY" label="Sky Quality">
+SQM
+    </defText>
+</defTextVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="CCD_VIDEO_STREAM" label="Video Stream" group="Streaming" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="STREAM_ON" label="Stream On">
+Off
+    </defSwitch>
+    <defSwitch name="STREAM_OFF" label="Stream Off">
+On
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="Canon DSLR EOS 600D" name="FPS" label="FPS" group="Streaming" state="Idle" perm="ro" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defNumber name="EST_FPS" label="Instant." format="%.2f" min="0" max="999" step="0">
+30
+    </defNumber>
+    <defNumber name="AVG_FPS" label="Average (1 sec.)" format="%.2f" min="0" max="999" step="0">
+30
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="RECORD_STREAM" label="Video Record" group="Streaming" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="RECORD_ON" label="Record On">
+Off
+    </defSwitch>
+    <defSwitch name="RECORD_DURATION_ON" label="Record (Duration)">
+Off
+    </defSwitch>
+    <defSwitch name="RECORD_FRAME_ON" label="Record (Frames)">
+Off
+    </defSwitch>
+    <defSwitch name="RECORD_OFF" label="Record Off">
+On
+    </defSwitch>
+</defSwitchVector>
+<defTextVector device="Canon DSLR EOS 600D" name="RECORD_FILE" label="Record File" group="Streaming" state="Idle" perm="rw" timeout="0" timestamp="2026-05-09T18:05:07">
+    <defText name="RECORD_FILE_DIR" label="Dir.">
+/home/astroberry/Videos/indi__D_
+    </defText>
+    <defText name="RECORD_FILE_NAME" label="Name">
+indi_record__T_
+    </defText>
+</defTextVector>
+<defNumberVector device="Canon DSLR EOS 600D" name="RECORD_OPTIONS" label="Record Options" group="Streaming" state="Idle" perm="rw" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defNumber name="RECORD_DURATION" label="Duration (sec)" format="%.3f" min="0.0010000000000000000208" max="999999" step="0">
+1
+    </defNumber>
+    <defNumber name="RECORD_FRAME_TOTAL" label="Frames" format="%.f" min="1" max="999999999" step="1">
+30
+    </defNumber>
+</defNumberVector>
+<defNumberVector device="Canon DSLR EOS 600D" name="CCD_STREAM_FRAME" label="Frame" group="Streaming" state="Idle" perm="rw" timeout="60" timestamp="2026-05-09T18:05:07">
+    <defNumber name="X" label="Left" format="%.f" min="0" max="0" step="0">
+0
+    </defNumber>
+    <defNumber name="Y" label="Top" format="%.f" min="0" max="0" step="0">
+0
+    </defNumber>
+    <defNumber name="WIDTH" label="Width" format="%.f" min="0" max="0" step="0">
+0
+    </defNumber>
+    <defNumber name="HEIGHT" label="Height" format="%.f" min="0" max="0" step="0">
+0
+    </defNumber>
+</defNumberVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="CCD_STREAM_ENCODER" label="Encoder" group="Streaming" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="RAW" label="RAW">
+On
+    </defSwitch>
+    <defSwitch name="MJPEG" label="MJPEG">
+Off
+    </defSwitch>
+</defSwitchVector>
+<defSwitchVector device="Canon DSLR EOS 600D" name="CCD_STREAM_RECORDER" label="Recorder" group="Streaming" state="Idle" perm="rw" rule="OneOfMany" timeout="0" timestamp="2026-05-09T18:05:07">
+    <defSwitch name="SER" label="SER">
+On
+    </defSwitch>
+</defSwitchVector>
+<defNumberVector device="Canon DSLR EOS 600D" name="LIMITS" label="Limits" group="Streaming" state="Idle" perm="rw" timeout="0" timestamp="2026-05-09T18:05:07">
+    <defNumber name="LIMITS_BUFFER_MAX" label="Maximum Buffer Size (MB)" format="%.0f" min="1" max="65536" step="1">
+512
+    </defNumber>
+    <defNumber name="LIMITS_PREVIEW_FPS" label="Maximum Preview FPS" format="%.0f" min="1" max="120" step="1">
+10
+    </defNumber>
+</defNumberVector>
+<defTextVector device="Canon DSLR EOS 600D" name="DEVICE_PORT" label="Shutter Release" group="Main Control" state="Idle" perm="rw" timeout="0" timestamp="2026-05-09T18:05:07">
+    <defText name="PORT" label="Port">
+usb:001,006
+    </defText>
+</defTextVector>

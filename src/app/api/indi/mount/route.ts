@@ -102,8 +102,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing action' }, { status: 400 });
     }
     
-    const raHours = ra !== undefined ? parseRaToHours(ra) : undefined;
-    const decDegrees = dec !== undefined ? parseDecToDegrees(dec) : undefined;
+    const raHours = ra !== undefined ? (typeof ra === 'number' ? ra : parseRaToHours(ra)) : undefined;
+    const decDegrees = dec !== undefined ? (typeof dec === 'number' ? dec : parseDecToDegrees(dec)) : undefined;
     
     let response: string;
     
