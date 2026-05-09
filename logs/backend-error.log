@@ -2091,3 +2091,5 @@ INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
 INFO:stargazer-backend:✅ Mount Online: Celestron GPS
 INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
 INFO:stargazer-backend:✅ Mount Online: Celestron GPS
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+INFO:stargazer-backend:✅ Mount Online: Celestron GPS
