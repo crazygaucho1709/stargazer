@@ -3,6 +3,7 @@ astroberry.py — SSH client for Raspberry Pi / Astroberry control.
 All credentials come from environment variables.
 """
 import os
+import re
 import logging
 import threading
 import time
@@ -14,6 +15,41 @@ ASTROBERRY_HOST = os.getenv("ASTROBERRY_HOST", "192.168.178.142")
 ASTROBERRY_USER = os.getenv("ASTROBERRY_USER", "astroberry")
 ASTROBERRY_PASS = os.getenv("ASTROBERRY_PASS", "astroberry")
 ASTROBERRY_PORT = int(os.getenv("ASTROBERRY_PORT", "22"))
+
+# Default driver list relaunched by ``restart_indi`` when the systemd unit
+# is not present (or has been disabled). ``indi_canon_ccd`` is preferred over
+# ``indi_gphoto_ccd`` because it registers a model-specific device name
+# ("Canon DSLR EOS 600D") that the bridge already keys off of. Override via
+# ``INDI_DRIVERS`` if your camera is incompatible (e.g. set to
+# "indi_celestron_gps indi_gphoto_ccd" to fall back to gphoto).
+INDI_DEFAULT_DRIVERS = os.getenv(
+    "INDI_DRIVERS", "indi_celestron_gps indi_gphoto_ccd"
+)
+
+# Strict whitelist for driver tokens passed to ``indiserver``. INDI driver
+# binaries always match ``indi_<lowercase_alnum_underscore>`` (e.g.
+# ``indi_celestron_gps``, ``indi_gphoto_ccd``). Anything outside this
+# pattern is rejected to prevent shell injection through
+# ``POST /astroberry/indi/restart`` which interpolates tokens into a
+# command run over SSH.
+_INDI_DRIVER_RE = re.compile(r"^indi_[a-z0-9_]{1,64}$")
+
+
+def _sanitize_drivers(drivers: str) -> str:
+    """Validate a space-separated INDI driver token list.
+
+    Splits on whitespace, requires every token to match
+    ``^indi_[a-z0-9_]{1,64}$``, and re-joins with single spaces. Raises
+    ``ValueError`` on any invalid token. Empty input is rejected so we
+    never end up running ``indiserver`` with no drivers.
+    """
+    tokens = [t for t in drivers.split() if t]
+    if not tokens:
+        raise ValueError("driver list is empty")
+    for tok in tokens:
+        if not _INDI_DRIVER_RE.match(tok):
+            raise ValueError(f"invalid INDI driver token: {tok!r}")
+    return " ".join(tokens)
 
 
 def _get_client():
@@ -163,39 +199,159 @@ def get_indi_logs(lines: int = 50) -> str:
     return result.get("stdout", result.get("stderr", "No logs available"))
 
 
-def restart_indi() -> Dict[str, Any]:
-    """Stop and restart indiserver on Astroberry.
+def restart_indi(drivers: Optional[str] = None) -> Dict[str, Any]:
+    """Stop and restart indiserver on Astroberry with an explicit driver list.
 
-    Uses ``sudo pkill`` to ensure stale ``indiserver`` instances launched by
-    other users (e.g. by KStars/Ekos) are also terminated, and relaunches
-    the drivers with verbose logging (``-vvv``) so kernel-level USB issues
-    are captured in the indiserver log.
+    The systemd unit (when present) is unreliable here because it caches the
+    last driver set chosen by KStars/Ekos, which may differ from what the
+    bridge expects (notably ``indi_gphoto_ccd`` vs ``indi_canon_ccd``). We
+    therefore always go through the ``pkill`` + ``nohup`` fallback to
+    guarantee the requested drivers are the ones actually running.
     """
-    logger.info("Restarting indiserver on Astroberry (sudo pkill + verbose relaunch)...")
+    raw_drivers = drivers or INDI_DEFAULT_DRIVERS
+    try:
+        drivers = _sanitize_drivers(raw_drivers)
+    except ValueError as e:
+        logger.error(f"Refusing to restart indiserver: {e}")
+        return {
+            "success": False,
+            "error": f"invalid drivers: {e}",
+            "drivers_requested": raw_drivers,
+            "drivers_running": "",
+        }
     log_path = "/tmp/indiserver.log"
-    # Modern Canon DSLRs use indi_gphoto_ccd. indi_canon_ccd is for ancient models.
-    drivers = "indi_celestron_gps indi_gphoto_ccd"
-    # systemctl is preferred when a service unit exists; otherwise we kill
-    # any running indiserver (with sudo, since it may be owned by another
-    # user) and relaunch with verbose output redirected to a known log.
-    fallback_cmd = (
-        "pkill -9 indiserver; sleep 1; "
-        "nohup indiserver -vvv indi_celestron_gps indi_gphoto_ccd > /tmp/indiserver.log 2>&1 &"
+    cmd = (
+        f"pkill -9 indiserver 2>/dev/null; sleep 1; "
+        f"nohup indiserver -vvv {drivers} > {log_path} 2>&1 &"
     )
-    result = _run(fallback_cmd, timeout=15)
-    time.sleep(2)
-    # Verify it's back up
-    verify = _run("pgrep -x indiserver || echo DEAD")
-    running = "DEAD" not in verify.get("stdout", "DEAD")
     logger.info(
-        f"indiserver restart result: running={running}, "
-        f"verbose log at {log_path} on Astroberry"
+        f"Restarting indiserver with explicit drivers: {drivers} "
+        f"(verbose log at {log_path} on Astroberry)"
+    )
+    result = _run(cmd, timeout=15)
+    time.sleep(2)
+    verify = _run(
+        "ps -o args= -C indiserver 2>/dev/null | head -n 1 || echo DEAD"
+    )
+    args_line = verify.get("stdout", "DEAD").strip()
+    running = args_line and "DEAD" not in args_line
+    logger.info(
+        f"indiserver restart result: running={bool(running)}, args={args_line!r}"
     )
     return {
-        "success": running,
+        "success": bool(running),
         "output": result.get("stdout", ""),
         "error": result.get("stderr", ""),
+        "drivers_requested": drivers,
+        "drivers_running": args_line if running else "",
         "log_path": log_path,
+    }
+
+
+def get_indi_devices() -> Dict[str, Any]:
+    """Query the running indiserver for the device names it knows about.
+
+    Sends a single ``getProperties`` over the local TCP socket on the Pi and
+    extracts unique ``device="..."`` attributes from the reply. Returns the
+    sorted device list and the raw indiserver process line so the UI can
+    show "driver X is loaded but registered no device" situations.
+    """
+    cmd = (
+        "DEVICES=$( (echo '<getProperties version=\"1.7\"/>'; sleep 1) "
+        "| nc -q 1 localhost 7624 2>/dev/null "
+        "| grep -oE 'device=\"[^\"]+\"' "
+        "| sort -u "
+        "| sed -E 's/device=\"([^\"]+)\"/\\1/'); "
+        "PS=$(ps -o args= -C indiserver 2>/dev/null | head -n 1); "
+        "printf 'DEVICES_BLOCK_BEGIN\\n%s\\nDEVICES_BLOCK_END\\nPS:%s\\n' \"$DEVICES\" \"$PS\""
+    )
+    result = _run(cmd, timeout=8)
+    if not result.get("success"):
+        return {
+            "reachable": False,
+            "devices": [],
+            "indiserver_args": "",
+            "error": result.get("stderr", "SSH/INDI query failed"),
+        }
+    out = result.get("stdout", "")
+    devices: list = []
+    in_block = False
+    indiserver_args = ""
+    for line in out.splitlines():
+        if line == "DEVICES_BLOCK_BEGIN":
+            in_block = True
+            continue
+        if line == "DEVICES_BLOCK_END":
+            in_block = False
+            continue
+        if in_block and line.strip():
+            devices.append(line.strip())
+        elif line.startswith("PS:"):
+            indiserver_args = line[3:].strip()
+    return {
+        "reachable": True,
+        "devices": devices,
+        "indiserver_args": indiserver_args,
+    }
+
+
+def get_diagnostics() -> Dict[str, Any]:
+    """One-shot diagnostic dump of the Pi's hardware + INDI state.
+
+    Combines SSH reachability, ``ps`` of indiserver, ``lsusb``, registered
+    INDI device names, and the last 30 lines of the indiserver verbose log.
+    Designed to be hit from the UI (``GET /astroberry/diag``) so the user
+    never has to ssh into the Pi to figure out what is broken.
+    """
+    ssh_alive = ping_ssh()
+    if not ssh_alive:
+        return {
+            "ssh_reachable": False,
+            "ping_reachable": ping(),
+        }
+
+    cmd = (
+        "echo PS_BEGIN; ps -o args= -C indiserver 2>/dev/null | head -n 1; echo PS_END; "
+        "echo LSUSB_BEGIN; lsusb 2>/dev/null; echo LSUSB_END; "
+        "echo DRIVERS_BEGIN; ls /usr/bin/indi_celestron* /usr/bin/indi_canon* /usr/bin/indi_gphoto* 2>/dev/null; echo DRIVERS_END; "
+        "echo LOG_BEGIN; tail -n 30 /tmp/indiserver.log 2>/dev/null; echo LOG_END"
+    )
+    raw = _run(cmd, timeout=10)
+    sections: Dict[str, list] = {}
+    current = None
+    for line in raw.get("stdout", "").splitlines():
+        if line.endswith("_BEGIN"):
+            current = line[: -len("_BEGIN")]
+            sections[current] = []
+        elif line.endswith("_END"):
+            current = None
+        elif current is not None:
+            sections[current].append(line)
+
+    indiserver_args = "\n".join(sections.get("PS", [])).strip()
+    lsusb_lines = sections.get("LSUSB", [])
+    drivers_installed = [
+        os.path.basename(p) for p in sections.get("DRIVERS", []) if p.strip()
+    ]
+    log_tail = "\n".join(sections.get("LOG", [])).strip()
+
+    canon_in_lsusb = any("canon" in l.lower() for l in lsusb_lines)
+    prolific_in_lsusb = any(
+        "prolific" in l.lower() or "067b:2303" in l for l in lsusb_lines
+    )
+
+    devices_info = get_indi_devices()
+    return {
+        "ssh_reachable": True,
+        "ping_reachable": True,
+        "indiserver_running": bool(indiserver_args),
+        "indiserver_args": indiserver_args,
+        "indi_devices": devices_info.get("devices", []),
+        "lsusb": lsusb_lines,
+        "canon_in_lsusb": canon_in_lsusb,
+        "prolific_in_lsusb": prolific_in_lsusb,
+        "drivers_installed": drivers_installed,
+        "indiserver_log_tail": log_tail,
     }
 
 
