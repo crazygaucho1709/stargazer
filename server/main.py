@@ -148,6 +148,7 @@ class INDIClient:
         self.ccd_connected: bool = False
         self.mount_slew_state: str = "Idle"
         self.ccd_exposure_state: str = "Idle"
+        self.devices = {} # {device_name: {prop_name: [elements]}}
         self.thread = threading.Thread(target=self.run_loop)
         self.thread.daemon = True
         self.thread.start()
@@ -245,12 +246,21 @@ class INDIClient:
         try:
             self.send(f'<getProperties version="1.7" device="{device}"/>')
             self.send(f'<enableBLOB device="{device}">Also</enableBLOB>')
-            if device == self.device_ccd:
+            
+            # Optimized Upload Mode for DSLRs
+            if any(kw in device for kw in ["Canon", "Nikon", "DSLR"]):
                 self.send(
                     f'<newSwitchVector device="{device}" name="UPLOAD_MODE">'
-                    f'<oneSwitch name="UPLOAD_BOTH">On</oneSwitch>'
+                    f'<oneSwitch name="UPLOAD_CLIENT">On</oneSwitch>'
                     f'</newSwitchVector>'
                 )
+            
+            # Slow down mount polling to avoid serial read timeouts (common with Prolific adapters)
+            if any(kw in device for kw in ["Celestron", "GPS", "NexStar", "Mount"]):
+                 self.send(f'<newNumberVector device="{device}" name="POLLING_PERIOD"><oneNumber name="PERIOD">2.0</oneNumber></newNumberVector>')
+                 # Abort any pending motion to clear serial buffers
+                 self.send(f'<newSwitchVector device="{device}" name="TELESCOPE_ABORT_MOTION"><oneSwitch name="ABORT">On</oneSwitch></newSwitchVector>')
+
             self.send(
                 f'<newSwitchVector device="{device}" name="CONNECTION">'
                 f'<oneSwitch name="CONNECT">On</oneSwitch>'
@@ -341,6 +351,22 @@ class INDIClient:
             xml_str = message
             state_match = re.search(r'state="([^"]+)"', xml_str)
             state = state_match.group(1) if state_match else "Unknown"
+            dev_match = re.search(r'device="([^"]+)"', xml_str)
+            prop_match = re.search(r'name="([^"]+)"', xml_str)
+            
+            if dev_match and prop_match:
+                dev_name = dev_match.group(1)
+                prop_name = prop_match.group(1)
+                if dev_name not in self.devices:
+                    self.devices[dev_name] = {}
+                # Extract elements if any
+                elements = re.findall(r'name="([^"]+)"[^>]*>([^<]+)<', xml_str)
+                if elements:
+                    self.devices[dev_name][prop_name] = elements
+                else:
+                    # Just mark property existence
+                    if prop_name not in self.devices[dev_name]:
+                        self.devices[dev_name][prop_name] = []
 
             # 1. Connection updates
             if 'name="CONNECTION"' in xml_str:
@@ -503,44 +529,53 @@ class INDIClient:
         self._close_socket()
 
     def process_blobs(self, data, prop_name="unknown"):
+        """
+        Extract image data from INDI <defBLOB> or <setBLOB> elements.
+        data: bytes containing a setBLOBVector or oneBLOB
+        """
         try:
-            # logger.debug(f"Processing BLOB for property: {prop_name}")
-            start_idx = data.find(b'<oneBLOB')
-            if start_idx == -1: return
-            end_idx = data.find(b'</oneBLOB>', start_idx)
-            if end_idx == -1: return
+            # 1. Find the start of the base64 content
+            blob_start = data.find(b'<oneBLOB')
+            if blob_start == -1: return
+            content_start_idx = data.find(b'>', blob_start) + 1
+            content_end_idx = data.find(b'</oneBLOB>', content_start_idx)
             
-            blob_tag = data[start_idx:end_idx]
-            
-            # Find format
+            if content_start_idx == 0 or content_end_idx == -1:
+                return
+
+            blob_content = data[content_start_idx:content_end_idx]
+            if not blob_content or len(blob_content) < 100:
+                return
+
+            # 2. Extract metadata from the tag
+            blob_tag = data[blob_start:content_start_idx]
             fmt = "jpg"
-            fmt_start = blob_tag.find(b'format="')
-            if fmt_start != -1:
-                fmt_end = blob_tag.find(b'"', fmt_start + 8)
-                if fmt_end != -1:
-                    fmt = blob_tag[fmt_start+8:fmt_end].decode('utf-8', errors='ignore').strip('.')
+            fmt_match = re.search(rb'format="([^"]+)"', blob_tag)
+            if fmt_match:
+                fmt = fmt_match.group(1).decode('utf-8', errors='ignore').strip('.')
             
-            # Find content
-            content_start = blob_tag.find(b'>')
-            if content_start != -1:
-                blob_content = blob_tag[content_start+1:]
-                # Memory efficient cleanup of base64 whitespace
-                blob_content = blob_content.replace(b'\n', b'').replace(b'\r', b'')
-                raw_bytes = base64.b64decode(blob_content)
+            # content_start_idx was calculated above as the byte after the '>' of the opening tag
+            # content_end_idx was calculated above as the start of '</oneBLOB>'
+            # So blob_content already contains the base64 data.
+            
+            # Memory efficient cleanup of base64 whitespace
+            clean_content = blob_content.replace(b'\n', b'').replace(b'\r', b'')
+            try:
+                raw_bytes = base64.b64decode(clean_content)
                 
                 # Update latest frame first for real-time display
                 with self.frame_condition:
                     self.latest_frame = raw_bytes
                     self.frame_condition.notify_all()
+                
+                logger.debug(f"Frame received: {len(raw_bytes)} bytes (Format: {fmt}, Prop: {prop_name})")
 
                 # Robust check for stream frames
-                # We check the property name, the format, AND the data size as a fallback
-                # viewfinder frames are typically smaller or tagged specifically
                 is_viewfinder = (
                     "viewfinder" in prop_name.lower() or 
                     "stream" in prop_name.lower() or 
                     "stream" in fmt.lower() or
-                    prop_name == "unknown" # Fallback for my current bug where prop_name isn't passed correctly
+                    prop_name == "unknown"
                 )
                 
                 if not is_viewfinder:
@@ -557,6 +592,8 @@ class INDIClient:
                     # Log stream frame reception occasionally
                     if random.random() < 0.01: # Reduce log spam even more
                         logger.debug(f"Live frame received: {len(raw_bytes)} bytes (Prop: {prop_name}, Fmt: {fmt})")
+            except Exception as e:
+                logger.error(f"Inner BLOB Error: {e}")
                         
         except Exception as e:
             logger.error(f"Blob error: {e}")
@@ -615,6 +652,13 @@ async def debug_indi():
         "latest_frame_size": len(indi.latest_frame) if indi.latest_frame else 0,
         "host": [indi.host, indi.port],
         "candidates": [os.getenv("ASTROBERRY_HOST"), os.getenv("INDI_HOST"), "localhost", "127.0.0.1", "192.168.178.142"]
+    }
+
+@app.get("/debug/properties")
+async def debug_properties():
+    return {
+        "devices": list(indi.devices.keys()) if hasattr(indi, "devices") else [],
+        "properties": indi.devices if hasattr(indi, "devices") else {}
     }
 
 @app.post("/mount/jog")
@@ -1118,6 +1162,24 @@ async def health_full():
         "astroberry": pi_status,
     }
 
+
+@app.post("/indi/reconnect")
+async def indi_reconnect():
+    """Force a full disconnect and reconnect of the INDI bridge."""
+    logger.warning("User requested INDI reconnection")
+    indi.connected = False
+    if indi.sock:
+        try:
+            indi.sock.close()
+        except:
+            pass
+    
+    # Wait for listener to stop
+    await asyncio.sleep(1.0)
+    
+    # Reconnect
+    success = indi.connect()
+    return {"success": success, "message": "INDI reconnection " + ("successful" if success else "failed")}
 
 @app.post("/mount/park")
 def mount_park():
