@@ -1,0 +1,64 @@
+Error: Could not find a production build in the '.next' directory. Try building your app with 'next build' before starting the production server. https://nextjs.org/docs/messages/production-start-no-build-id
+    at setupFsCheck (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/router-utils/filesystem.js:151:19)
+    at async initialize (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/router-server.js:61:23)
+    at async Server.<anonymous> (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js:249:36)
+Error: Could not find a production build in the '.next' directory. Try building your app with 'next build' before starting the production server. https://nextjs.org/docs/messages/production-start-no-build-id
+    at setupFsCheck (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/router-utils/filesystem.js:151:19)
+    at async initialize (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/router-server.js:61:23)
+    at async Server.<anonymous> (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js:249:36)
+Error: Could not find a production build in the '.next' directory. Try building your app with 'next build' before starting the production server. https://nextjs.org/docs/messages/production-start-no-build-id
+    at setupFsCheck (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/router-utils/filesystem.js:151:19)
+    at async initialize (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/router-server.js:61:23)
+    at async Server.<anonymous> (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js:249:36)
+Error: Could not find a production build in the '.next' directory. Try building your app with 'next build' before starting the production server. https://nextjs.org/docs/messages/production-start-no-build-id
+    at setupFsCheck (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/router-utils/filesystem.js:151:19)
+    at async initialize (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/router-server.js:61:23)
+    at async Server.<anonymous> (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js:249:36)
+Error: Could not find a production build in the '.next' directory. Try building your app with 'next build' before starting the production server. https://nextjs.org/docs/messages/production-start-no-build-id
+    at setupFsCheck (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/router-utils/filesystem.js:151:19)
+    at async initialize (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/router-server.js:61:23)
+    at async Server.<anonymous> (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js:249:36)
+Error: Could not find a production build in the '.next' directory. Try building your app with 'next build' before starting the production server. https://nextjs.org/docs/messages/production-start-no-build-id
+    at setupFsCheck (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/router-utils/filesystem.js:151:19)
+    at async initialize (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/router-server.js:61:23)
+    at async Server.<anonymous> (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js:249:36)
+Error: Could not find a production build in the '.next' directory. Try building your app with 'next build' before starting the production server. https://nextjs.org/docs/messages/production-start-no-build-id
+    at setupFsCheck (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/router-utils/filesystem.js:151:19)
+    at async initialize (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/router-server.js:61:23)
+    at async Server.<anonymous> (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js:249:36)
+Error: Could not find a production build in the '.next' directory. Try building your app with 'next build' before starting the production server. https://nextjs.org/docs/messages/production-start-no-build-id
+    at setupFsCheck (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/router-utils/filesystem.js:151:19)
+    at async initialize (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/router-server.js:61:23)
+    at async Server.<anonymous> (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js:249:36)
+Error: Could not find a production build in the '.next' directory. Try building your app with 'next build' before starting the production server. https://nextjs.org/docs/messages/production-start-no-build-id
+    at setupFsCheck (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/router-utils/filesystem.js:151:19)
+    at async initialize (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/router-server.js:61:23)
+    at async Server.<anonymous> (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js:249:36)
+Error: Could not find a production build in the '.next' directory. Try building your app with 'next build' before starting the production server. https://nextjs.org/docs/messages/production-start-no-build-id
+    at setupFsCheck (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/router-utils/filesystem.js:151:19)
+    at async initialize (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/router-server.js:61:23)
+    at async Server.<anonymous> (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js:249:36)
+Error: Could not find a production build in the '.next' directory. Try building your app with 'next build' before starting the production server. https://nextjs.org/docs/messages/production-start-no-build-id
+    at setupFsCheck (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/router-utils/filesystem.js:151:19)
+    at async initialize (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/router-server.js:61:23)
+    at async Server.<anonymous> (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js:249:36)
+Error: Could not find a production build in the '.next' directory. Try building your app with 'next build' before starting the production server. https://nextjs.org/docs/messages/production-start-no-build-id
+    at setupFsCheck (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/router-utils/filesystem.js:151:19)
+    at async initialize (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/router-server.js:61:23)
+    at async Server.<anonymous> (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js:249:36)
+Error: Could not find a production build in the '.next' directory. Try building your app with 'next build' before starting the production server. https://nextjs.org/docs/messages/production-start-no-build-id
+    at setupFsCheck (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/router-utils/filesystem.js:151:19)
+    at async initialize (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/router-server.js:61:23)
+    at async Server.<anonymous> (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js:249:36)
+Error: Could not find a production build in the '.next' directory. Try building your app with 'next build' before starting the production server. https://nextjs.org/docs/messages/production-start-no-build-id
+    at setupFsCheck (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/router-utils/filesystem.js:151:19)
+    at async initialize (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/router-server.js:61:23)
+    at async Server.<anonymous> (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js:249:36)
+Error: Could not find a production build in the '.next' directory. Try building your app with 'next build' before starting the production server. https://nextjs.org/docs/messages/production-start-no-build-id
+    at setupFsCheck (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/router-utils/filesystem.js:151:19)
+    at async initialize (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/router-server.js:61:23)
+    at async Server.<anonymous> (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js:249:36)
+Error: Could not find a production build in the '.next' directory. Try building your app with 'next build' before starting the production server. https://nextjs.org/docs/messages/production-start-no-build-id
+    at setupFsCheck (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/router-utils/filesystem.js:151:19)
+    at async initialize (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/router-server.js:61:23)
+    at async Server.<anonymous> (/Users/matt/dev/project/web/stargazer/node_modules/next/dist/server/lib/start-server.js:249:36)
