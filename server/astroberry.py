@@ -108,6 +108,10 @@ def get_status() -> Dict[str, Any]:
         "echo UPTIME:$(uptime -p 2>/dev/null || uptime); "
         "echo INDI_PID:$(pgrep -x indiserver || echo 0); "
         "echo INDI_DEVICES:$(ps aux | grep indiserver | grep -v grep | awk '{for(i=11;i<=NF;i++) printf $i\" \"; print \"\"}'); "
+        "echo AVAILABLE_DRIVERS:$(ls /usr/bin/indi_* | xargs -n1 basename | grep -E 'canon|gphoto' | tr '\\n' ' '); "
+        "echo GPHOTO_DETECT:$(gphoto2 --auto-detect 2>/dev/null | tail -n +3 | head -n 1 || echo None); "
+        "echo LSUSB:$(lsusb | tr '\\n' ' | '); "
+        "echo DMESG_CANON:$(dmesg | grep -i canon | tail -n 5); "
         "echo DMESG:$(dmesg | grep -i usb | tail -n 5)"
     )
     
@@ -125,7 +129,9 @@ def get_status() -> Dict[str, Any]:
         }
 
     data = {}
-    for line in result["stdout"].splitlines():
+    stdout = result["stdout"]
+    logger.debug(f"Astroberry raw status: {stdout}")
+    for line in stdout.splitlines():
         if ":" in line:
             k, _, v = line.partition(":")
             data[k.strip().lower()] = v.strip()
@@ -142,21 +148,18 @@ def get_status() -> Dict[str, Any]:
         "indi_running": indi_pid > 0,
         "indi_pid": indi_pid,
         "indi_devices": data.get("indi_devices", "").strip(),
-        # ``last_usb_error`` is the inline 5-line USB tail captured by the
-        # status one-liner above (kept for backward compatibility with the
-        # existing UI). ``dmesg_tail`` is the richer, sudo-elevated tail
-        # filtered on USB / Canon / Prolific keywords.
+        "available_drivers": data.get("available_drivers", ""),
+        "gphoto_detect": data.get("gphoto_detect", ""),
+        "lsusb": data.get("lsusb", ""),
+        "dmesg_canon": data.get("dmesg_canon", ""),
         "last_usb_error": data.get("dmesg", "None"),
         "dmesg_tail": dmesg_tail,
     }
 
 
 def get_indi_logs(lines: int = 50) -> str:
-    """Fetch indiserver logs from Astroberry (journalctl or process output)."""
-    result = _run(
-        f"sudo journalctl -u indiserver -n {lines} --no-pager --output=short-iso 2>/dev/null "
-        f"|| ps aux | grep indiserver | grep -v grep"
-    )
+    """Fetch indiserver logs from /tmp/indiserver.log on Astroberry."""
+    result = _run(f"tail -n {lines} /tmp/indiserver.log 2>/dev/null || journalctl -u indiserver -n {lines} --no-pager")
     return result.get("stdout", result.get("stderr", "No logs available"))
 
 
@@ -170,18 +173,16 @@ def restart_indi() -> Dict[str, Any]:
     """
     logger.info("Restarting indiserver on Astroberry (sudo pkill + verbose relaunch)...")
     log_path = "/tmp/indiserver.log"
-    drivers = "indi_celestron_gps indi_canon_ccd"
+    # Modern Canon DSLRs use indi_gphoto_ccd. indi_canon_ccd is for ancient models.
+    drivers = "indi_celestron_gps indi_gphoto_ccd"
     # systemctl is preferred when a service unit exists; otherwise we kill
     # any running indiserver (with sudo, since it may be owned by another
     # user) and relaunch with verbose output redirected to a known log.
     fallback_cmd = (
-        f"sudo pkill -x indiserver; sleep 2; "
-        f"nohup indiserver -vvv {drivers} > {log_path} 2>&1 &"
+        "pkill -9 indiserver; sleep 1; "
+        "nohup indiserver -vvv indi_celestron_gps indi_gphoto_ccd > /tmp/indiserver.log 2>&1 &"
     )
-    result = _run(
-        f"sudo systemctl restart indiserver 2>/dev/null || ({fallback_cmd})",
-        timeout=15,
-    )
+    result = _run(fallback_cmd, timeout=15)
     time.sleep(2)
     # Verify it's back up
     verify = _run("pgrep -x indiserver || echo DEAD")
