@@ -631,10 +631,43 @@ indi = INDIClient()
 
 # --- ROUTES ---
 
+def _extract_prop_value(device_name: str, vector_name: str, element_name: str) -> str:
+    """Pull a single element value from the parsed INDI devices cache."""
+    try:
+        for vec, elements in indi.devices.get(device_name, {}).items():
+            if vec == vector_name:
+                for el in elements:
+                    if len(el) >= 2 and el[0] == element_name:
+                        return el[1].strip()
+    except Exception:
+        pass
+    return ""
+
+
+def _device_summary() -> dict:
+    """Build a concise per-device summary (connection + port) for diagnostics."""
+    summary = {}
+    for dev, props in indi.devices.items():
+        connect = "unknown"
+        port = ""
+        for vec, elements in props.items():
+            if vec == "CONNECTION":
+                for el in elements:
+                    if len(el) >= 2 and el[0] == "CONNECT":
+                        connect = "On" if "On" in el[1] else "Off"
+            if vec == "DEVICE_PORT":
+                for el in elements:
+                    if len(el) >= 2 and el[0] == "PORT":
+                        port = el[1].strip()
+        summary[dev] = {"connected": connect, "port": port}
+    return summary
+
+
 @app.get("/health")
 async def health():
+    ccd_port = _extract_prop_value(indi.device_ccd, "DEVICE_PORT", "PORT")
     return {
-        "status": "ok", 
+        "status": "ok",
         "indi_connected": indi.connected,
         "mount_connected": indi.mount_connected,
         "ccd_connected": indi.ccd_connected,
@@ -644,17 +677,20 @@ async def health():
         "dec_raw": indi.mount_dec,
         "device_mount": indi.device_mount,
         "device_ccd": indi.device_ccd,
+        "ccd_port": ccd_port,
         "latest_frame_size": len(indi.latest_frame) if indi.latest_frame else 0
     }
 
 @app.get("/debug/indi")
 async def debug_indi():
+    ccd_port = _extract_prop_value(indi.device_ccd, "DEVICE_PORT", "PORT")
     return {
         "connected": indi.connected,
         "mount_connected": indi.mount_connected,
         "device_mount": indi.device_mount,
         "device_ccd": indi.device_ccd,
         "ccd_connected": indi.ccd_connected,
+        "ccd_port": ccd_port,
         "mount_parked": indi.mount_parked,
         "mount_tracking": indi.mount_tracking,
         "mount_ra": format_ra(indi.mount_ra), # RA for UI display (HMS)
@@ -663,7 +699,8 @@ async def debug_indi():
         "mount_dec_raw": indi.mount_dec,
         "latest_frame_size": len(indi.latest_frame) if indi.latest_frame else 0,
         "host": [indi.host, indi.port],
-        "candidates": [os.getenv("ASTROBERRY_HOST"), os.getenv("INDI_HOST"), "localhost", "127.0.0.1", "192.168.178.142"]
+        "candidates": [os.getenv("ASTROBERRY_HOST"), os.getenv("INDI_HOST"), "localhost", "127.0.0.1", "192.168.178.142"],
+        "devices_summary": _device_summary()
     }
 
 @app.get("/debug/properties")
