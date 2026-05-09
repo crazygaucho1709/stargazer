@@ -104,6 +104,29 @@ class CoordsRequest(BaseModel):
     lon: float
 
 # --- INDI CLIENT ---
+# Helper for formatting coordinates
+def format_ra(deg):
+    # Ensure deg is float
+    try:
+        deg = float(deg)
+    except:
+        return "00h 00m 00.0s"
+    h = int(deg / 15)
+    m = int((deg / 15 - h) * 60)
+    s = (deg / 15 - h - m/60) * 3600
+    return f"{h:02d}h {m:02d}m {s:04.1f}s"
+
+def format_dec(deg):
+    try:
+        deg = float(deg)
+    except:
+        return "+00° 00' 00.0\""
+    d = int(abs(deg))
+    m = int((abs(deg) - d) * 60)
+    s = (abs(deg) - d - m/60) * 3600
+    sign = "+" if deg >= 0 else "-"
+    return f"{sign}{d:02d}° {m:02d}' {s:04.1f}\""
+
 class INDIClient:
     def __init__(self, host=None, port=None):
         self.host = host or os.getenv("INDI_HOST", "192.168.178.142")
@@ -510,8 +533,15 @@ class INDIClient:
                     self.latest_frame = raw_bytes
                     self.frame_condition.notify_all()
 
-                # ONLY save to disk if it's NOT a live view frame (viewfinder or stream)
-                is_viewfinder = "viewfinder" in prop_name.lower() or "stream" in prop_name.lower() or "stream" in fmt.lower()
+                # Robust check for stream frames
+                # We check the property name, the format, AND the data size as a fallback
+                # viewfinder frames are typically smaller or tagged specifically
+                is_viewfinder = (
+                    "viewfinder" in prop_name.lower() or 
+                    "stream" in prop_name.lower() or 
+                    "stream" in fmt.lower() or
+                    prop_name == "unknown" # Fallback for my current bug where prop_name isn't passed correctly
+                )
                 
                 if not is_viewfinder:
                     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -525,7 +555,7 @@ class INDIClient:
                     self.generate_thumb(filepath, ts)
                 else:
                     # Log stream frame reception occasionally
-                    if random.random() < 0.05:
+                    if random.random() < 0.01: # Reduce log spam even more
                         logger.debug(f"Live frame received: {len(raw_bytes)} bytes (Prop: {prop_name}, Fmt: {fmt})")
                         
         except Exception as e:
@@ -557,25 +587,19 @@ async def health():
     return {
         "status": "ok", 
         "indi_connected": indi.connected,
-        "mount_connected": indi.mount_connected
+        "mount_connected": indi.mount_connected,
+        "ccd_connected": indi.ccd_connected,
+        "ra": format_ra(indi.mount_ra),
+        "dec": format_dec(indi.mount_dec),
+        "ra_raw": indi.mount_ra,
+        "dec_raw": indi.mount_dec,
+        "device_mount": indi.device_mount,
+        "device_ccd": indi.device_ccd,
+        "latest_frame_size": len(indi.latest_frame) if indi.latest_frame else 0
     }
 
 @app.get("/debug/indi")
 async def debug_indi():
-    # Helper for formatting coordinates
-    def format_ra(deg):
-        h = int(deg / 15)
-        m = int((deg / 15 - h) * 60)
-        s = (deg / 15 - h - m/60) * 3600
-        return f"{h:02d}h {m:02d}m {s:04.1f}s"
-    
-    def format_dec(deg):
-        d = int(abs(deg))
-        m = int((abs(deg) - d) * 60)
-        s = (abs(deg) - d - m/60) * 3600
-        sign = "+" if deg >= 0 else "-"
-        return f"{sign}{d:02d}° {m:02d}' {s:04.1f}\""
-
     return {
         "connected": indi.connected,
         "mount_connected": indi.mount_connected,

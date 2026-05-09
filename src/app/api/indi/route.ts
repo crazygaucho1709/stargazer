@@ -43,10 +43,10 @@ export async function GET(request: Request) {
         }
         
         // Return structured status for the ping logic
+        // We pass through all fields (RA, DEC, connection states)
         return NextResponse.json([{
+            ...data,
             status: data.status === "ok" ? "True" : "False",
-            mount_connected: data.mount_connected || false,
-            indi_connected: data.indi_connected || false,
             message: data.status || "error"
         }]);
     } catch (error) {
