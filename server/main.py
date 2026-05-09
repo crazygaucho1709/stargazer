@@ -35,7 +35,7 @@ STORAGE_PATH = os.getenv("STORAGE_PATH", "/Volumes/Data2/captures")
 THUMBNAIL_PATH = os.path.join(STORAGE_PATH, "thumbnails")
 
 # Logger setup part
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("stargazer-backend")
 
 # Setup memory log buffer for UI
@@ -367,6 +367,10 @@ class INDIClient:
                     # Just mark property existence
                     if prop_name not in self.devices[dev_name]:
                         self.devices[dev_name][prop_name] = []
+                
+                # Log all properties for debugging
+                if "CONNECTION" not in prop_name and "COORD" not in prop_name:
+                    logger.debug(f"INDI Vector: {dev_name}.{prop_name} (elements={len(elements)})")
 
             # 1. Connection updates
             if 'name="CONNECTION"' in xml_str:
@@ -375,6 +379,7 @@ class INDIClient:
                 
                 if dev_match:
                     dev_name = dev_match.group(1)
+                    logger.debug(f"INDI Connection Update: {dev_name} (Connected={is_connected})")
                     if any(kw in dev_name for kw in ["GPS", "Mount", "NexStar", "Telescope"]):
                         self.device_mount = dev_name
                         self.mount_connected = is_connected
@@ -536,15 +541,22 @@ class INDIClient:
         try:
             # 1. Find the start of the base64 content
             blob_start = data.find(b'<oneBLOB')
-            if blob_start == -1: return
+            if blob_start == -1: 
+                logger.debug(f"BLOB skip: no <oneBLOB tag found in {len(data)} bytes")
+                return
+            
             content_start_idx = data.find(b'>', blob_start) + 1
             content_end_idx = data.find(b'</oneBLOB>', content_start_idx)
             
             if content_start_idx == 0 or content_end_idx == -1:
+                logger.debug(f"BLOB skip: malformed tags (start={content_start_idx}, end={content_end_idx})")
                 return
 
             blob_content = data[content_start_idx:content_end_idx]
+            logger.debug(f"BLOB extracting: {len(blob_content)} bytes of base64 data for property {prop_name}")
+            
             if not blob_content or len(blob_content) < 100:
+                logger.debug(f"BLOB skip: content too small ({len(blob_content)} bytes)")
                 return
 
             # 2. Extract metadata from the tag
