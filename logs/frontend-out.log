@@ -153,3 +153,4 @@
  ✓ Starting...
  ✓ Ready in 304ms
 [PROXY] GET /health
+[PROXY] GET /health
