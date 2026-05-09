@@ -3,6 +3,7 @@ astroberry.py — SSH client for Raspberry Pi / Astroberry control.
 All credentials come from environment variables.
 """
 import os
+import re
 import logging
 import threading
 import time
@@ -24,6 +25,31 @@ ASTROBERRY_PORT = int(os.getenv("ASTROBERRY_PORT", "22"))
 INDI_DEFAULT_DRIVERS = os.getenv(
     "INDI_DRIVERS", "indi_celestron_gps indi_gphoto_ccd"
 )
+
+# Strict whitelist for driver tokens passed to ``indiserver``. INDI driver
+# binaries always match ``indi_<lowercase_alnum_underscore>`` (e.g.
+# ``indi_celestron_gps``, ``indi_gphoto_ccd``). Anything outside this
+# pattern is rejected to prevent shell injection through
+# ``POST /astroberry/indi/restart`` which interpolates tokens into a
+# command run over SSH.
+_INDI_DRIVER_RE = re.compile(r"^indi_[a-z0-9_]{1,64}$")
+
+
+def _sanitize_drivers(drivers: str) -> str:
+    """Validate a space-separated INDI driver token list.
+
+    Splits on whitespace, requires every token to match
+    ``^indi_[a-z0-9_]{1,64}$``, and re-joins with single spaces. Raises
+    ``ValueError`` on any invalid token. Empty input is rejected so we
+    never end up running ``indiserver`` with no drivers.
+    """
+    tokens = [t for t in drivers.split() if t]
+    if not tokens:
+        raise ValueError("driver list is empty")
+    for tok in tokens:
+        if not _INDI_DRIVER_RE.match(tok):
+            raise ValueError(f"invalid INDI driver token: {tok!r}")
+    return " ".join(tokens)
 
 
 def _get_client():
@@ -182,7 +208,17 @@ def restart_indi(drivers: Optional[str] = None) -> Dict[str, Any]:
     therefore always go through the ``pkill`` + ``nohup`` fallback to
     guarantee the requested drivers are the ones actually running.
     """
-    drivers = drivers or INDI_DEFAULT_DRIVERS
+    raw_drivers = drivers or INDI_DEFAULT_DRIVERS
+    try:
+        drivers = _sanitize_drivers(raw_drivers)
+    except ValueError as e:
+        logger.error(f"Refusing to restart indiserver: {e}")
+        return {
+            "success": False,
+            "error": f"invalid drivers: {e}",
+            "drivers_requested": raw_drivers,
+            "drivers_running": "",
+        }
     log_path = "/tmp/indiserver.log"
     cmd = (
         f"pkill -9 indiserver 2>/dev/null; sleep 1; "
