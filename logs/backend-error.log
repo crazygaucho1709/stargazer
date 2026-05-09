@@ -613,3 +613,7 @@ ERROR:stargazer-backend:INDI Hardware Alert: [ERROR] Serial read error: Timeout 
 ERROR:stargazer-backend:INDI Hardware Alert: [ERROR] Failed to read RA/DEC values.
 ERROR:stargazer-backend:INDI Hardware Alert: [ERROR] Serial read error: Timeout error
 ERROR:stargazer-backend:INDI Hardware Alert: [ERROR] Failed to read RA/DEC values.
+ERROR:stargazer-backend:INDI Hardware Alert: [ERROR] Serial read error: Timeout error
+ERROR:stargazer-backend:INDI Hardware Alert: [ERROR] Failed to read RA/DEC values.
+ERROR:stargazer-backend:INDI Hardware Alert: [ERROR] Serial read error: Timeout error
+ERROR:stargazer-backend:INDI Hardware Alert: [ERROR] Failed to read RA/DEC values.
