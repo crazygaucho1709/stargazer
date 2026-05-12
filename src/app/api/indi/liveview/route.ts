@@ -14,7 +14,22 @@ export async function POST(request: Request) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
-      return NextResponse.json({ success: res.ok });
+      let data: { success?: boolean; error?: string } = {};
+      try {
+        data = await res.json();
+      } catch {
+        return NextResponse.json(
+          { success: res.ok, error: res.ok ? undefined : 'Invalid JSON from bridge' },
+          { status: res.ok ? 200 : 502 }
+        );
+      }
+      if (!res.ok || data.success === false) {
+        return NextResponse.json(
+          { success: false, error: data.error || `Bridge returned ${res.status}` },
+          { status: 503 }
+        );
+      }
+      return NextResponse.json({ success: true });
     }
     return NextResponse.json({ success: false, error: 'Invalid action' }, { status: 400 });
   } catch (error: any) {

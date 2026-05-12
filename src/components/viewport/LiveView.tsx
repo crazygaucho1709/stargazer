@@ -3,6 +3,7 @@
 
 import { Box, Flex, Text, Icon, VStack, HStack, Button, Heading } from "@chakra-ui/react";
 import { useStargazerStore } from "@/store/useStargazerStore";
+import { clientApiUrl } from "@/lib/clientApi";
 import { t } from "@/i18n/translations";
 import { Crosshair, Target, Scan, ShieldCheck, Camera, Globe, ZoomIn, ZoomOut, Play, Square, AlertTriangle } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -15,14 +16,6 @@ export const LiveView = () => {
     const [ccdError, setCcdError] = useState(false);
     const [isLiveStreaming, setIsLiveStreaming] = useState(false);
     const [streamStatus, setStreamStatus] = useState<string>("");
-
-    const [bridgeIp, setBridgeIp] = useState("localhost");
-
-    useEffect(() => {
-        if (typeof window !== 'undefined') {
-            setBridgeIp(window.location.hostname);
-        }
-    }, []);
 
     // Canon DSLR live view: switching to CANON mode by itself MUST NOT open
     // the shutter or fetch frames from the camera. The shutter only opens
@@ -43,12 +36,21 @@ export const LiveView = () => {
     const startLiveView = async () => {
         try {
             setStreamStatus("Starting...");
-            await fetch('/api/indi/liveview', {
+            const res = await fetch(clientApiUrl('/api/indi/liveview'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'start' })
             });
-            setCcdImage(`/api/indi/stream?t=${Date.now()}`);
+            if (!res.ok) {
+                let msg = `HTTP ${res.status}`;
+                try {
+                    const j = await res.json();
+                    if (j.error) msg = j.error;
+                } catch { /* ignore */ }
+                setStreamStatus(msg);
+                return;
+            }
+            setCcdImage(clientApiUrl(`/api/indi/stream?t=${Date.now()}`));
             setIsLiveStreaming(true);
             setStreamStatus("LIVE");
         } catch (e) {
@@ -58,7 +60,7 @@ export const LiveView = () => {
 
     const stopLiveView = async () => {
         try {
-            await fetch('/api/indi/liveview', {
+            await fetch(clientApiUrl('/api/indi/liveview'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'stop' })

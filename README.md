@@ -141,6 +141,7 @@ L'interface affiche ainsi séparément l'état du pont (bridge) et l'état réel
 
 | Problème | Cause Probable | Solution |
 | :--- | :--- | :--- |
+| `ERR_ADDRESS_UNREACHABLE` sur `http://macmini.local:3000` | Le **navigateur** n'a aucune route TCP vers le **Mac mini** (port 3000). Ekos sur l'Astroberry peut être OK sans que Next.js tourne ou soit joignable sur le LAN. | Sur le Mac mini : `pm2 list`, `curl -sI http://127.0.0.1:3000`. Pare-feu macOS : autoriser **Node** / le port **3000** entrant. Depuis le client : tester `http://<IPv4-LAN-du-Mac>:3000` (ex. `http://192.168.178.x:3000`) au lieu de `.local` si mDNS/IPv6 posent problème. Vérifier Wi‑Fi / VLAN (même sous-réseau que le Mac). |
 | `Unexpected end of JSON` | Crash du backend ou corps vide | Vérifier `pm2 logs stargazer-backend` |
 | `INDI Bridge DOWN` | Socket TCP fermé | Cliquer sur "RECONNECT" dans l'interface |
 | `SSH Unreachable` | RPi éteint ou changement d'IP | Vérifier `ASTROBERRY_HOST` dans `server/.env` |

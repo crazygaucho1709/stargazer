@@ -67,7 +67,7 @@ export const TelescopeControls = ({ variant }: TelescopeControlsProps) => {
         
         // Send rate to backend using hook
         await execute('/api/indi/mount', `SET RATE ${value}x`, {
-            body: { action: 'rate', rate: value, ip: config.astroberryUrl },
+            body: { action: 'rate', rate: value, device: config.driverInstance, ip: config.astroberryUrl },
             showGlobalLoader: false // No need for full screen loader for rate change
         });
         
@@ -87,6 +87,8 @@ export const TelescopeControls = ({ variant }: TelescopeControlsProps) => {
                 action: 'jog',
                 direction: direction,
                 state: 'start',
+                duration: 0.5,
+                device: config.driverInstance,
                 ip: config.astroberryUrl
             },
             showGlobalLoader: false
@@ -95,15 +97,16 @@ export const TelescopeControls = ({ variant }: TelescopeControlsProps) => {
     };
 
     const handleMoveStop = async () => {
-        if (!activeDirectionRef.current) return;
-        
+        const dir = activeDirectionRef.current;
+        if (!dir) return;
+
         activeDirectionRef.current = null;
-        
+
         await execute('/api/indi/mount', "HALT", {
-            body: { action: 'jog', direction: 'up', state: 'stop', ip: config.astroberryUrl },
+            body: { action: 'jog', direction: dir, state: 'stop', device: config.driverInstance, ip: config.astroberryUrl },
             showGlobalLoader: false
         });
-        
+
         setSlewing(false);
     };
 

@@ -717,7 +717,13 @@ async def debug_properties():
 @app.post("/mount/jog")
 async def mount_jog(req: JogRequest):
     device = req.device
-    
+    if device == "Celestron GPS" and indi.device_mount and indi.device_mount != "Celestron GPS":
+        device = indi.device_mount
+
+    if not indi.connected:
+        logger.error("mount_jog: INDI not connected")
+        return {"success": False, "error": "INDI bridge not connected (vérifiez INDI_HOST / réseau vers l'Astroberry)"}
+
     if req.direction in ["up", "down"]:
         prop = "TELESCOPE_MOTION_NS"
         val_on = "MOTION_NORTH" if req.direction == "up" else "MOTION_SOUTH"
@@ -727,21 +733,32 @@ async def mount_jog(req: JogRequest):
     
     if req.state == "stop":
         logger.info(f"Jogging {device} {req.direction} -> STOP")
-        indi.send(f'<newSwitchVector device="{device}" name="{prop}"><oneSwitch name="{val_on}">Off</oneSwitch></newSwitchVector>')
+        ok = indi.send(f'<newSwitchVector device="{device}" name="{prop}"><oneSwitch name="{val_on}">Off</oneSwitch></newSwitchVector>')
+        if not ok:
+            return {"success": False, "error": "INDI send failed (socket fermé ou monture introuvable)"}
         return {"success": True}
 
     xml = f'<newSwitchVector device="{device}" name="{prop}"><oneSwitch name="{val_on}">On</oneSwitch></newSwitchVector>'
     logger.info(f"Jogging {device} {req.direction} -> start")
-    indi.send(xml)
+    ok = indi.send(xml)
+    if not ok:
+        return {"success": False, "error": "INDI send failed (bridge déconnecté ou mauvais nom de périphérique monture)"}
     return {"success": True}
 
 @app.post("/mount/rate")
 async def mount_rate(req: RateRequest):
     device = req.device
+    if device == "Celestron GPS" and indi.device_mount and indi.device_mount != "Celestron GPS":
+        device = indi.device_mount
+    if not indi.connected:
+        return {"success": False, "error": "INDI bridge not connected"}
+
     rate_val = max(1, min(9, req.rate))
     rate_name = f"{rate_val}x"
     logger.info(f"Setting slew rate on {device} to {rate_name}")
-    indi.send(f'<newSwitchVector device="{device}" name="TELESCOPE_SLEW_RATE"><oneSwitch name="{rate_name}">On</oneSwitch></newSwitchVector>')
+    ok = indi.send(f'<newSwitchVector device="{device}" name="TELESCOPE_SLEW_RATE"><oneSwitch name="{rate_name}">On</oneSwitch></newSwitchVector>')
+    if not ok:
+        return {"success": False, "error": "INDI send failed"}
     return {"success": True}
 
 async def mount_slew_internal(device: str, ra: float, dec: float, sync: bool = False):
@@ -1110,26 +1127,34 @@ async def video_feed():
     return StreamingResponse(mjpeg_generator(), media_type="multipart/x-mixed-replace; boundary=frame")
 
 @app.post("/ccd/stream/start")
-async def ccd_stream_start(device: str = "Canon DSLR EOS 600D"):
+async def ccd_stream_start():
+    dev = (indi.device_ccd or "Canon DSLR EOS 600D").strip()
+    if not indi.connected:
+        return {"success": False, "error": "INDI bridge not connected"}
     # Ensure it's connected first just in case
-    indi.send(f'<newSwitchVector device="{device}" name="CONNECTION"><oneSwitch name="CONNECT">On</oneSwitch></newSwitchVector>')
+    ok = indi.send(f'<newSwitchVector device="{dev}" name="CONNECTION"><oneSwitch name="CONNECT">On</oneSwitch></newSwitchVector>')
+    if not ok:
+        return {"success": False, "error": "INDI send failed"}
     # Give it a tiny bit of time to connect if it wasn't
     time.sleep(0.5)
     # Enable live view (mirror up) - viewfinder0 is "On" (Live View)
-    indi.send(f'<newSwitchVector device="{device}" name="viewfinder"><oneSwitch name="viewfinder0">On</oneSwitch></newSwitchVector>')
+    indi.send(f'<newSwitchVector device="{dev}" name="viewfinder"><oneSwitch name="viewfinder0">On</oneSwitch></newSwitchVector>')
     time.sleep(1)
     # Set MJPEG encoder which is often required for live view stream on DSLR
-    indi.send(f'<newSwitchVector device="{device}" name="CCD_STREAM_ENCODER"><oneSwitch name="MJPEG">On</oneSwitch></newSwitchVector>')
+    indi.send(f'<newSwitchVector device="{dev}" name="CCD_STREAM_ENCODER"><oneSwitch name="MJPEG">On</oneSwitch></newSwitchVector>')
     # Turn on live stream
-    indi.send(f'<newSwitchVector device="{device}" name="CCD_VIDEO_STREAM"><oneSwitch name="STREAM_ON">On</oneSwitch></newSwitchVector>')
+    indi.send(f'<newSwitchVector device="{dev}" name="CCD_VIDEO_STREAM"><oneSwitch name="STREAM_ON">On</oneSwitch></newSwitchVector>')
     return {"success": True}
 
 @app.post("/ccd/stream/stop")
-async def ccd_stream_stop(device: str = "Canon DSLR EOS 600D"):
+async def ccd_stream_stop():
+    dev = (indi.device_ccd or "Canon DSLR EOS 600D").strip()
+    if not indi.connected:
+        return {"success": False, "error": "INDI bridge not connected"}
     # Turn off live stream first
-    indi.send(f'<newSwitchVector device="{device}" name="CCD_VIDEO_STREAM"><oneSwitch name="STREAM_OFF">On</oneSwitch></newSwitchVector>')
+    indi.send(f'<newSwitchVector device="{dev}" name="CCD_VIDEO_STREAM"><oneSwitch name="STREAM_OFF">On</oneSwitch></newSwitchVector>')
     # Disable live view (mirror down) - viewfinder1 is "Off" (Viewfinder)
-    indi.send(f'<newSwitchVector device="{device}" name="viewfinder"><oneSwitch name="viewfinder1">On</oneSwitch></newSwitchVector>')
+    indi.send(f'<newSwitchVector device="{dev}" name="viewfinder"><oneSwitch name="viewfinder1">On</oneSwitch></newSwitchVector>')
     return {"success": True}
 
 # ── NEW ENDPOINTS ────────────────────────────────────────────────────────────
