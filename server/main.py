@@ -194,15 +194,19 @@ class INDIClient:
                 self.sock = None
 
     def _resolve_host(self):
-        """Try primary host, fallback to localhost and mDNS if primary fails."""
-        candidates = [self.host, "localhost", "127.0.0.1", "astroberry.local", "astroberry"]
+        """Probe candidates with a short TCP connect, not just DNS resolution."""
+        candidates = [self.host, "astroberry.local", "astroberry", "localhost", "127.0.0.1"]
         for candidate in candidates:
-            try:
-                socket.getaddrinfo(candidate, self.port, socket.AF_INET, socket.SOCK_STREAM)
-                logger.debug(f"Resolved INDI host: {candidate}")
-                return candidate
-            except socket.gaierror:
+            if not candidate:
                 continue
+            try:
+                # Quick TCP probe (1s timeout) — proves the host is actually reachable
+                with socket.create_connection((candidate, self.port), timeout=1):
+                    logger.info(f"INDI host reachable: {candidate}:{self.port}")
+                    return candidate
+            except (socket.gaierror, OSError, socket.timeout):
+                continue
+        logger.error("No reachable INDI host found among candidates")
         return None
 
     def reconnect(self, restart_remote: bool = True):
