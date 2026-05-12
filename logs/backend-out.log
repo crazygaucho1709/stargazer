@@ -111,3 +111,12 @@ INFO:     192.168.178.40:61743 - "GET /astroberry/indi/logs HTTP/1.1" 200 OK
 INFO:     192.168.178.34:60600 - "POST /reconnect HTTP/1.1" 200 OK
 INFO:     192.168.178.34:61438 - "POST /reconnect HTTP/1.1" 200 OK
 INFO:     192.168.178.34:61464 - "GET /health HTTP/1.1" 200 OK
+INFO:     192.168.178.34:62035 - "GET /health HTTP/1.1" 200 OK
+INFO:     192.168.178.34:62061 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63575 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63575 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63575 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63575 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63575 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63575 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63575 - "GET /health HTTP/1.1" 200 OK
