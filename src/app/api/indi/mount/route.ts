@@ -44,6 +44,18 @@ async function sendToBridge(bridgeIp: string, endpoint: string, data: any): Prom
   throw new Error('Unexpected error');
 }
 
+function bridgeCommandFailed(response: unknown): string | null {
+  if (
+    response &&
+    typeof response === 'object' &&
+    'success' in response &&
+    (response as { success: unknown }).success === false
+  ) {
+    return (response as { error?: string }).error || 'Bridge command failed';
+  }
+  return null;
+}
+
 function parseRaToHours(coord: string | number): number {
   if (typeof coord === 'number') {
     return coord / 15.0; // Assume numeric input is in degrees
@@ -105,7 +117,7 @@ export async function POST(request: Request) {
     const raHours = ra !== undefined ? (typeof ra === 'number' ? ra : parseRaToHours(ra)) : undefined;
     const decDegrees = dec !== undefined ? (typeof dec === 'number' ? dec : parseDecToDegrees(dec)) : undefined;
     
-    let response: string;
+    let response: unknown;
     
     switch (action) {
       case 'goto':
@@ -155,7 +167,12 @@ export async function POST(request: Request) {
       default:
         return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
     }
-    
+
+    const bridgeErr = bridgeCommandFailed(response);
+    if (bridgeErr) {
+      return NextResponse.json({ success: false, error: bridgeErr }, { status: 503 });
+    }
+
     return NextResponse.json({ success: true, response });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

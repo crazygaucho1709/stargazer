@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import { toaster } from "@/components/ui/toaster";
 import { useStargazerStore } from "@/store/useStargazerStore";
+import { clientApiUrl } from "@/lib/clientApi";
 
 interface ActionOptions {
     method?: string;
@@ -43,7 +44,11 @@ export const useAstroAction = () => {
             if (typeof endpointOrAction === "function") {
                 data = await endpointOrAction();
             } else {
-                const res = await fetch(endpointOrAction, {
+                const url =
+                    typeof endpointOrAction === "string" && endpointOrAction.startsWith("/api")
+                        ? clientApiUrl(endpointOrAction)
+                        : endpointOrAction;
+                const res = await fetch(url, {
                     method,
                     headers: { "Content-Type": "application/json" },
                     body: method !== "GET" ? JSON.stringify(body) : undefined
