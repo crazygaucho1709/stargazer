@@ -10,6 +10,7 @@ import {
   BrainCircuit, Aperture, Info, Thermometer, ShieldCheck
 } from "lucide-react";
 import { useStargazerStore } from "@/store/useStargazerStore";
+import { clientApiUrl } from "@/lib/clientApi";
 import { useAstroAction } from "@/hooks/useAstroAction";
 import { Tooltip } from "@/components/ui/tooltip";
 
@@ -35,7 +36,6 @@ interface StackingResult {
 
 export const CaptureAndStack = () => {
   const { language, config } = useStargazerStore();
-  const bridgeIp = config.astroberryUrl.includes('http') ? new URL(config.astroberryUrl).hostname : config.astroberryUrl.split(':')[0];
   
   const { execute: performAction, isPending, error: actionError } = useAstroAction();
   
@@ -103,10 +103,14 @@ export const CaptureAndStack = () => {
       setCurrentFrame(i);
       
       try {
-        await fetch(`http://${bridgeIp}:5005/ccd/capture`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ exposure: exposure, device: "Canon DSLR EOS 600D" })
+        const capParams = new URLSearchParams({
+          exposure: String(exposure),
+          device: "Canon DSLR EOS 600D",
+        });
+        await fetch(clientApiUrl(`/api/indi/ccd?${capParams.toString()}`), {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' },
+            cache: 'no-store',
         });
       } catch (e) {
         console.error('Capture error:', e);
@@ -129,7 +133,7 @@ export const CaptureAndStack = () => {
     }
     
     setIsCapturing(false);
-  }, [exposure, gain, numFrames, isAutoFocus, performAutoFocus, focusHFR, bridgeIp, isCapturing]);
+  }, [exposure, gain, numFrames, isAutoFocus, performAutoFocus, focusHFR, isCapturing]);
 
   const startStacking = useCallback(async () => {
     setIsStacking(true);

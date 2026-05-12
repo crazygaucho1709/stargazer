@@ -1,10 +1,22 @@
 // src/services/mockApi.ts
 import { useStargazerStore } from '@/store/useStargazerStore';
+import { clientApiUrl } from '@/lib/clientApi';
 
 let isHardwareConnected = false;
 
-const getBridgeIp = () => {
-    return useStargazerStore.getState().config.astroberryUrl.includes('http') ? new URL(useStargazerStore.getState().config.astroberryUrl).hostname : useStargazerStore.getState().config.astroberryUrl.split(':')[0];
+/** Hostname for INDI / bridge config; never throws on malformed URLs. */
+const getBridgeIp = (): string => {
+    const raw = (useStargazerStore.getState().config?.astroberryUrl || '').trim();
+    if (!raw) return 'localhost';
+    if (raw.includes('://')) {
+        try {
+            return new URL(raw).hostname || 'localhost';
+        } catch {
+            const part = raw.split(':')[0]?.trim() || '';
+            return part.replace(/^\/+/, '') || 'localhost';
+        }
+    }
+    return (raw.split(':')[0] || '').trim() || 'localhost';
 };
 
 // Helper to parse "06h 23m" into decimal hours
@@ -34,9 +46,10 @@ export const mockApi = {
             const controller = new AbortController();
             const id = setTimeout(() => controller.abort(), 20000); 
             
-            const apiUrl = `/api/indi?ip=${getBridgeIp()}`;
-            
-            const res = await fetch(apiUrl, { 
+            const params = new URLSearchParams({ endpoint: 'health' });
+            const host = getBridgeIp();
+            if (host) params.set('ip', host);
+            const res = await fetch(clientApiUrl(`/api/indi?${params.toString()}`), {
                 method: 'GET',
                 signal: controller.signal,
                 headers: { 'Content-Type': 'application/json' },
@@ -59,6 +72,16 @@ export const mockApi = {
             }
         } catch (err: any) {
             isHardwareConnected = false;
+            if (err?.name === 'AbortError') {
+                return { success: false, error: 'Request timed out (bridge did not respond in time).' };
+            }
+            if (err?.message === 'Failed to fetch') {
+                return {
+                    success: false,
+                    error:
+                        'Impossible de contacter le serveur Next.js (/api/indi). Vérifiez que le front écoute sur toutes les interfaces (ex. next start -H 0.0.0.0 ou npm start), le pare-feu du Mac (port 3000), et que vous utilisez la même origine que la page (ex. http://macmini.local:3000).',
+                };
+            }
             return { success: false, error: err.message || "Connection refused" };
         }
     },
@@ -74,7 +97,7 @@ export const mockApi = {
     slew: async (ra: string, dec: string, device: string = 'Celestron GPS'): Promise<{ success: boolean, error?: string }> => {
         if (!isHardwareConnected) return { success: false, error: "Hardware offline." };
         try {
-            const res = await fetch('/api/indi/mount', {
+            const res = await fetch(clientApiUrl('/api/indi/mount'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -95,7 +118,7 @@ export const mockApi = {
     sync: async (ra: string, dec: string, device: string = 'Celestron GPS'): Promise<{ success: boolean, error?: string }> => {
         if (!isHardwareConnected) return { success: false, error: "Hardware offline." };
         try {
-            const res = await fetch('/api/indi/mount', {
+            const res = await fetch(clientApiUrl('/api/indi/mount'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -116,7 +139,7 @@ export const mockApi = {
     syncMaster: async (data: { lat: number, lon: number, elev?: number, alt: number, az: number }): Promise<{ success: boolean, error?: string }> => {
         if (!isHardwareConnected) return { success: false, error: "Hardware offline." };
         try {
-            const res = await fetch('/api/indi/mount', {
+            const res = await fetch(clientApiUrl('/api/indi/mount'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -135,7 +158,7 @@ export const mockApi = {
     startMotion: async (direction: 'up' | 'down' | 'left' | 'right', device: string = 'Celestron GPS'): Promise<{ success: boolean, error?: string }> => {
         if (!isHardwareConnected) return { success: false, error: "Hardware offline." };
         try {
-            const res = await fetch('/api/indi/mount', {
+            const res = await fetch(clientApiUrl('/api/indi/mount'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'jog', device, direction, duration: 999, ip: getBridgeIp() })
@@ -150,7 +173,7 @@ export const mockApi = {
     stopMotion: async (direction: 'up' | 'down' | 'left' | 'right', device: string = 'Celestron GPS'): Promise<{ success: boolean, error?: string }> => {
         if (!isHardwareConnected) return { success: false, error: "Hardware offline." };
         try {
-            const res = await fetch('/api/indi/mount', {
+            const res = await fetch(clientApiUrl('/api/indi/mount'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'abort', device, direction, ip: getBridgeIp() })
@@ -165,7 +188,7 @@ export const mockApi = {
     jog: async (direction: 'up' | 'down' | 'left' | 'right', device: string = 'Celestron GPS'): Promise<{ success: boolean, error?: string }> => {
         if (!isHardwareConnected) return { success: false, error: "Hardware offline." };
         try {
-            const res = await fetch('/api/indi/mount', {
+            const res = await fetch(clientApiUrl('/api/indi/mount'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'jog', device, direction, duration: 0.5, ip: getBridgeIp() })
@@ -181,7 +204,7 @@ export const mockApi = {
         const clampedRate = Math.max(1, Math.min(9, Math.round(rate)));
         if (!isHardwareConnected) return { success: false, error: "Hardware offline.", rate: clampedRate };
         try {
-            const res = await fetch('/api/indi/mount', {
+            const res = await fetch(clientApiUrl('/api/indi/mount'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'rate', device, rate: clampedRate, ip: getBridgeIp() })
@@ -195,7 +218,8 @@ export const mockApi = {
 
     getConfig: async (): Promise<any> => {
         try {
-            const res = await fetch(`/api/indi/config?ip=${getBridgeIp()}`);
+            const cfgParams = new URLSearchParams({ ip: getBridgeIp() });
+            const res = await fetch(clientApiUrl(`/api/indi/config?${cfgParams.toString()}`));
             if (res.ok) return await res.json();
         } catch (e) { console.error("Config load error", e); }
         return {};
@@ -203,7 +227,7 @@ export const mockApi = {
 
     saveConfig: async (config: any): Promise<boolean> => {
         try {
-            const res = await fetch(`/api/indi/config`, {
+            const res = await fetch(clientApiUrl('/api/indi/config'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ ...config, ip: getBridgeIp() })
@@ -237,7 +261,7 @@ export const mockApi = {
         if (!isHardwareConnected) return { success: false, error: "Hardware offline." };
         try {
             // Trigger CCD capture via backend bridge
-            const captureRes = await fetch('/api/indi', {
+            const captureRes = await fetch(clientApiUrl('/api/indi'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -253,7 +277,7 @@ export const mockApi = {
             // Wait for exposure to complete (+500ms buffer)
             await new Promise(r => setTimeout(r, (exposure * 1000) + 500));
             // Return latest image URL via proxy (cache-busted)
-            return { success: true, data: `/api/indi?endpoint=ccd/latest&t=${Date.now()}` };
+            return { success: true, data: clientApiUrl(`/api/indi?endpoint=ccd/latest&t=${Date.now()}`) };
         } catch (err: any) {
             return { success: false, error: err.message };
         }
@@ -267,7 +291,7 @@ export const mockApi = {
     getStarPosition: async (ra: string, dec: string): Promise<{ success: boolean, alt?: number, az?: number, error?: string }> => {
         try {
             const { config } = useStargazerStore.getState();
-            const res = await fetch('/api/indi/astro/coords', {
+            const res = await fetch(clientApiUrl('/api/indi/astro/coords'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -299,7 +323,7 @@ export const mockApi = {
             // Normalize longitude to 0-360 for INDI if needed, but usually -180 to 180 is fine
             // Some drivers prefer 0-360, others -180 to 180. We'll stick to what was there but add safety.
             
-            const res = await fetch('/api/indi', {
+            const res = await fetch(clientApiUrl('/api/indi'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

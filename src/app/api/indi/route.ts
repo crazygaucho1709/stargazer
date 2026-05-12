@@ -3,7 +3,15 @@ import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
-    const { searchParams } = new URL(request.url);
+    let searchParams: URLSearchParams;
+    try {
+        searchParams = new URL(request.url).searchParams;
+    } catch {
+        return NextResponse.json(
+            [{ status: "False", message: "Invalid request URL" }],
+            { status: 400 }
+        );
+    }
     const endpoint = searchParams.get('endpoint') || 'health';
     
     // Proxy for CCD image or other GET endpoints
@@ -58,7 +66,12 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-    const { searchParams } = new URL(request.url);
+    let searchParams: URLSearchParams;
+    try {
+        searchParams = new URL(request.url).searchParams;
+    } catch {
+        return NextResponse.json({ error: "Invalid request URL" }, { status: 400 });
+    }
     // Default to 'command' if no specific endpoint is provided in query params
     const endpoint = searchParams.get('endpoint') || 'command';
     
