@@ -131753,3 +131753,283 @@ DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
 INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
 DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
 INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
+DEBUG:stargazer-backend:Sending active heartbeat (getProperties)
+INFO:stargazer-backend:INDI SEND: <getProperties version="1.7"/>
+DEBUG:stargazer-backend:INDI Connection Update: Celestron NexStar (Connected=True)
+INFO:stargazer-backend:✅ Mount Online: Celestron NexStar
