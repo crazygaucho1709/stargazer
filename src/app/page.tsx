@@ -13,6 +13,7 @@ import { useStargazerStore } from "@/store/useStargazerStore";
 import { t } from "@/i18n/translations";
 import { useEffect, useState } from "react";
 import { mockApi } from "@/services/mockApi";
+import { clientApiUrl } from "@/lib/clientApi";
 import { useEnvironmentData } from "@/hooks/useEnvironmentData";
 import {
     Activity, Zap, Orbit, Clock, MapPin, Compass, Thermometer, Power, Telescope
@@ -38,7 +39,7 @@ export default function Home() {
             const storeState = useStargazerStore.getState();
             try {
                 // We use the same endpoint as ping but more frequently for telemetry
-                const res = await fetch(`/api/indi?endpoint=health`, { 
+                const res = await fetch(clientApiUrl(`/api/indi?endpoint=health`), { 
                     cache: 'no-store',
                     headers: { 'Content-Type': 'application/json' }
                 });

@@ -20,7 +20,9 @@ module.exports = {
     {
       name: 'stargazer-frontend',
       script: 'node_modules/next/dist/bin/next',
-      args: 'start',
+      // Align with package.json "start": must listen on all interfaces so
+      // http://macmini.local:3000 (LAN / Bonjour) reaches the same server as localhost.
+      args: 'start -H 0.0.0.0',
       cwd: './',
       error_file: 'logs/frontend-error.log',
       out_file: 'logs/frontend-out.log',

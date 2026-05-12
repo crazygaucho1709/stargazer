@@ -16,6 +16,7 @@ import { CalibrationWizard } from "@/components/telescope/CalibrationWizard";
 import { AutoAlignWizard } from "@/components/telescope/AutoAlignWizard";
 import { ObjectFinder } from "@/components/telescope/ObjectFinder";
 import { CaptureAndStack } from "@/components/camera/CaptureAndStack";
+import { clientApiUrl } from "@/lib/clientApi";
 import ObservatoryPanel from "@/components/observatory/ObservatoryPanel";
 
 
@@ -541,7 +542,8 @@ const BridgeTab = ({ config, language }: any) => {
 
     const fetchLogs = useCallback(async () => {
         try {
-            const res = await fetch(`/api/indi/logs?ip=${config.astroberryUrl}`);
+            const logParams = new URLSearchParams({ ip: config.astroberryUrl || "" });
+            const res = await fetch(clientApiUrl(`/api/indi/logs?${logParams.toString()}`));
             const data = await res.json();
             if (data.logs) {
                 setLogs(data.logs);
@@ -561,7 +563,7 @@ const BridgeTab = ({ config, language }: any) => {
     const handleAction = async (action: 'reconnect' | 'restart_kstars') => {
         setStatus({ type: 'loading', msg: '' });
         try {
-            const res = await fetch('/api/indi/reconnect', {
+            const res = await fetch(clientApiUrl('/api/indi/reconnect'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action, ip: config.astroberryUrl })
