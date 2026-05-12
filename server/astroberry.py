@@ -6,11 +6,12 @@ import os
 import logging
 import threading
 import time
+import platform
 from typing import Optional, Dict, Any
 
 logger = logging.getLogger("stargazer-backend")
 
-ASTROBERRY_HOST = os.getenv("ASTROBERRY_HOST", "192.168.178.142")
+ASTROBERRY_HOST = os.getenv("ASTROBERRY_HOST", "astroberry.local")
 ASTROBERRY_USER = os.getenv("ASTROBERRY_USER", "astroberry")
 ASTROBERRY_PASS = os.getenv("ASTROBERRY_PASS", "astroberry")
 ASTROBERRY_PORT = int(os.getenv("ASTROBERRY_PORT", "22"))
@@ -56,11 +57,15 @@ def ping() -> bool:
     """Return True if Astroberry is reachable via ICMP (ping)."""
     import subprocess
     try:
-        # -c 2: two packets for better reliability, -W 1: 1s timeout per packet
+        # Linux iputils: -W is seconds per reply. macOS: -W is milliseconds — do not use -W 1 on Darwin.
+        if platform.system() == "Darwin":
+            cmd = ["ping", "-c", "2", "-o", ASTROBERRY_HOST]
+        else:
+            cmd = ["ping", "-c", "2", "-W", "2", ASTROBERRY_HOST]
         result = subprocess.run(
-            ["ping", "-c", "2", "-W", "1", ASTROBERRY_HOST],
+            cmd,
             stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
+            stderr=subprocess.DEVNULL,
         )
         return result.returncode == 0
     except Exception:
@@ -183,10 +188,30 @@ def restart_indi() -> Dict[str, Any]:
         "nohup indiserver -vvv indi_celestron_gps indi_gphoto_ccd > /tmp/indiserver.log 2>&1 &"
     )
     result = _run(fallback_cmd, timeout=15)
+    if result.get("exit_code") == -1:
+        err = result.get("stderr") or "SSH connection to Astroberry failed"
+        logger.error("restart_indi: cannot run remote shell — %s", err)
+        return {
+            "success": False,
+            "output": "",
+            "error": err,
+            "log_path": log_path,
+        }
+
     time.sleep(2)
-    # Verify it's back up
     verify = _run("pgrep -x indiserver || echo DEAD")
-    running = "DEAD" not in verify.get("stdout", "DEAD")
+    if verify.get("exit_code") == -1:
+        logger.error("restart_indi: verify step SSH failed — %s", verify.get("stderr"))
+        return {
+            "success": False,
+            "output": result.get("stdout", ""),
+            "error": verify.get("stderr") or "SSH failed during indiserver verify",
+            "log_path": log_path,
+        }
+
+    out = (verify.get("stdout") or "").strip()
+    # Do not treat empty stdout as "running" (old bug: "DEAD" not in "" was True)
+    running = bool(out) and "DEAD" not in out
     logger.info(
         f"indiserver restart result: running={running}, "
         f"verbose log at {log_path} on Astroberry"

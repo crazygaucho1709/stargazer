@@ -10,8 +10,9 @@ module.exports = {
       env: {
         STORAGE_PATH: '/Volumes/Data2/captures',
         PYTHONPATH: '.',
-        ASTROBERRY_HOST: '192.168.178.142',
-        INDI_HOST: '192.168.178.142'
+        // Bonjour name survives DHCP changes; override with a fixed IP if mDNS is unreliable.
+        ASTROBERRY_HOST: 'astroberry.local',
+        INDI_HOST: 'astroberry.local'
       },
       autorestart: true,
       watch: false,

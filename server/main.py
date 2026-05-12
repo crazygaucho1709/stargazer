@@ -29,7 +29,7 @@ import astroberry as raspi
 import psutil
 
 # Configuration
-INDI_HOST = os.getenv("ASTROBERRY_HOST", os.getenv("INDI_HOST", "192.168.178.142"))
+INDI_HOST = os.getenv("ASTROBERRY_HOST", os.getenv("INDI_HOST", "astroberry.local"))
 INDI_PORT = int(os.getenv("INDI_PORT", "7624"))
 STORAGE_PATH = os.getenv("STORAGE_PATH", "/Volumes/Data2/captures")
 THUMBNAIL_PATH = os.path.join(STORAGE_PATH, "thumbnails")
@@ -129,7 +129,7 @@ def format_dec(deg):
 
 class INDIClient:
     def __init__(self, host=None, port=None):
-        self.host = host or os.getenv("INDI_HOST", "192.168.178.142")
+        self.host = host or os.getenv("INDI_HOST", "astroberry.local")
         self.port = int(port or os.getenv("INDI_PORT", "7624"))
         self.connected = False
         self.mount_connected = False
@@ -194,19 +194,29 @@ class INDIClient:
                 self.sock = None
 
     def _resolve_host(self):
-        """Probe candidates with a short TCP connect, not just DNS resolution."""
-        candidates = [self.host, "astroberry.local", "astroberry", "localhost", "127.0.0.1"]
+        """Probe candidates with a short TCP connect (DNS + route + port 7624 open)."""
+        raw = [self.host, "astroberry.local", "astroberry", "localhost", "127.0.0.1"]
+        candidates: list[str] = []
+        for c in raw:
+            if c and c not in candidates:
+                candidates.append(c)
+        last_exc: BaseException | None = None
         for candidate in candidates:
-            if not candidate:
-                continue
             try:
-                # Quick TCP probe (1s timeout) — proves the host is actually reachable
-                with socket.create_connection((candidate, self.port), timeout=1):
+                with socket.create_connection((candidate, self.port), timeout=2):
                     logger.info(f"INDI host reachable: {candidate}:{self.port}")
                     return candidate
-            except (socket.gaierror, OSError, socket.timeout):
+            except Exception as e:
+                last_exc = e
+                logger.warning(f"INDI TCP probe failed {candidate}:{self.port} — {e!r}")
                 continue
-        logger.error("No reachable INDI host found among candidates")
+        logger.error(
+            "No INDI server reachable on port %s (tried %s). Last error: %s — "
+            "set INDI_HOST / ASTROBERRY_HOST to the Pi’s current IP or astroberry.local",
+            self.port,
+            candidates,
+            repr(last_exc) if last_exc else "unknown",
+        )
         return None
 
     def reconnect(self, restart_remote: bool = True):
@@ -279,7 +289,12 @@ class INDIClient:
         # Pre-check: resolve host before attempting TCP connect
         host = self._resolve_host()
         if not host:
-            logger.error(f"Connection failed: cannot resolve INDI host (tried {self.host})")
+            logger.error(
+                "INDI connect aborted: no candidate answered on port %s (configured host=%r). "
+                "Ekos on the Pi does not fix this: the Mac bridge must reach indiserver (7624) on the LAN.",
+                self.port,
+                self.host,
+            )
             return
 
         # Attempt TCP connection
@@ -703,7 +718,7 @@ async def debug_indi():
         "mount_dec_raw": indi.mount_dec,
         "latest_frame_size": len(indi.latest_frame) if indi.latest_frame else 0,
         "host": [indi.host, indi.port],
-        "candidates": [os.getenv("ASTROBERRY_HOST"), os.getenv("INDI_HOST"), "localhost", "127.0.0.1", "192.168.178.142"],
+        "candidates": [os.getenv("ASTROBERRY_HOST"), os.getenv("INDI_HOST"), "astroberry.local", "localhost", "127.0.0.1"],
         "devices_summary": _device_summary()
     }
 
