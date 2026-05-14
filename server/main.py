@@ -27,6 +27,12 @@ from starlette.responses import StreamingResponse
 import collections
 import astroberry as raspi
 import psutil
+from concurrent.futures import ThreadPoolExecutor
+
+# --- CACHE ---
+cached_astroberry_status = {"reachable": False, "error": "Initializing..."}
+status_lock = threading.Lock()
+executor = ThreadPoolExecutor(max_workers=2)
 
 # Configuration
 INDI_HOST = os.getenv("ASTROBERRY_HOST", os.getenv("INDI_HOST", "astroberry.local"))
@@ -60,12 +66,26 @@ Path(THUMBNAIL_PATH).mkdir(parents=True, exist_ok=True)
 
 app = FastAPI(title="Stargazer Backend")
 
+# UNIQUE VERSION FOR DEBUGGING: 2026-05-14-V1
+@app.middleware("http")
+async def add_debug_header(request: Request, call_next):
+    logger.info(f"INCOMING REQUEST: {request.method} {request.url.path}")
+    response = await call_next(request)
+    response.headers["X-Backend-Version"] = "2026-05-14-V1"
+    return response
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"GLOBAL ERROR: {str(exc)}", exc_info=True)
+    return Response(content=f"Global Error: {str(exc)}", status_code=500)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"]
 )
 
 # Serve thumbnails
@@ -79,12 +99,13 @@ class SlewRequest(BaseModel):
 
 class CaptureRequest(BaseModel):
     exposure: float
-    device: str = "Canon DSLR EOS 600D"
+    device: str = None # Default to currently discovered device
 
 class JogRequest(BaseModel):
     direction: str
     state: str = "start"
     device: str = "Celestron GPS"
+    duration: float = 0.5
 
 class RateRequest(BaseModel):
     rate: int
@@ -149,9 +170,38 @@ class INDIClient:
         self.mount_slew_state: str = "Idle"
         self.ccd_exposure_state: str = "Idle"
         self.devices = {} # {device_name: {prop_name: [elements]}}
+        self.discovery_time = {} # {device_name: first_seen_timestamp}
         self.thread = threading.Thread(target=self.run_loop)
         self.thread.daemon = True
         self.thread.start()
+        
+        # Start background status loop if not already running
+        self._start_status_loop()
+
+    def _start_status_loop(self):
+        """Start the background Astroberry status poller."""
+        def run_status_loop():
+            global cached_astroberry_status
+            logger.info("Starting background Astroberry status poller")
+            while True:
+                try:
+                    # Perform blocking status fetch in background
+                    status = raspi.get_status()
+                    status["last_update"] = datetime.now().isoformat()
+                    with status_lock:
+                        cached_astroberry_status = status
+                    logger.debug("Astroberry status cache updated")
+                except Exception as e:
+                    logger.error(f"Status loop error: {e}")
+                
+                # Poll every 30 seconds
+                time.sleep(30)
+
+        # Only start one thread
+        if not hasattr(self, '_status_thread_started'):
+            self._status_thread_started = True
+            t = threading.Thread(target=run_status_loop, daemon=True)
+            t.start()
 
     def run_loop(self):
         """Main reconnection loop with exponential backoff."""
@@ -167,11 +217,25 @@ class INDIClient:
                         time.sleep(retry_delay)
                         retry_delay = min(retry_delay * 2, max_delay)
                 else:
-                    # Active heartbeat: if no message for 10s, send getProperties to keep connection alive
-                    if time.time() - self.last_received > 10:
+                    # Active heartbeat: if no message for 30s, send getProperties to keep connection alive
+                    now = time.time()
+                    if now - self.last_received > 30:
                         logger.debug("Sending active heartbeat (getProperties)")
                         self.send('<getProperties version="1.7"/>')
-                    time.sleep(5)
+                    
+                    # Periodic Auto-Recovery: Every 30s, if mount or camera is offline, try re-connecting it
+                    # This handles cases where hardware was power-cycled but INDI server stayed up
+                    if not hasattr(self, '_last_recovery_check'): self._last_recovery_check = 0
+                    if now - self._last_recovery_check > 30:
+                        self._last_recovery_check = now
+                        if not self.mount_connected and self.device_mount:
+                            logger.info(f"Auto-Recovery: Re-triggering connect for Mount ({self.device_mount})")
+                            self._safe_connect_device(self.device_mount)
+                        if not self.ccd_connected and self.device_ccd:
+                            logger.info(f"Auto-Recovery: Re-triggering connect for Camera ({self.device_ccd})")
+                            self._safe_connect_device(self.device_ccd)
+                            
+                    time.sleep(10)
             except Exception as e:
                 logger.error(f"INDI Loop error: {e}")
                 self._close_socket()
@@ -271,7 +335,8 @@ class INDIClient:
             
             # Slow down mount polling to avoid serial read timeouts (common with Prolific adapters)
             if any(kw in device for kw in ["Celestron", "GPS", "NexStar", "Mount"]):
-                 self.send(f'<newNumberVector device="{device}" name="POLLING_PERIOD"><oneNumber name="PERIOD">2.0</oneNumber></newNumberVector>')
+                 # Aggressive slowdown: 10s polling for RA/DEC to keep serial buffer clear
+                 self.send(f'<newNumberVector device="{device}" name="POLLING_PERIOD"><oneNumber name="PERIOD">10.0</oneNumber></newNumberVector>')
                  # Abort any pending motion to clear serial buffers
                  self.send(f'<newSwitchVector device="{device}" name="TELESCOPE_ABORT_MOTION"><oneSwitch name="ABORT">On</oneSwitch></newSwitchVector>')
 
@@ -394,7 +459,8 @@ class INDIClient:
             # 1. Connection updates
             if 'name="CONNECTION"' in xml_str:
                 dev_match = re.search(r'device="([^"]+)"', xml_str)
-                is_connected = 'name="CONNECT">On' in xml_str or 'state="Ok"' in xml_str
+                # Robustly check for On/Off values which may have newlines/whitespace
+                is_connected = re.search(r'name="CONNECT"[^>]*>\s*On\s*<', xml_str) is not None or 'state="Ok"' in xml_str
                 
                 if dev_match:
                     dev_name = dev_match.group(1)
@@ -404,9 +470,19 @@ class INDIClient:
                         self.mount_connected = is_connected
                         if is_connected: logger.info(f"✅ Mount Online: {dev_name}")
                     elif any(kw in dev_name for kw in ["CCD", "Camera", "DSLR", "EOS"]):
-                        self.device_ccd = dev_name
+                        if self.device_ccd != dev_name:
+                            logger.info(f"Detected new CCD device name: {dev_name}")
+                            self.device_ccd = dev_name
+                            # Autoconnect discovered camera once
+                            if not is_connected:
+                                self._safe_connect_device(dev_name)
+                        
                         self.ccd_connected = is_connected
                         if is_connected: logger.info(f"✅ Camera Online: {dev_name}")
+                        elif not is_connected and dev_name not in self.discovery_time:
+                            # Also try connecting if we just saw it for the first time
+                            self.discovery_time[dev_name] = time.time()
+                            self._safe_connect_device(dev_name)
 
             # 2. Coordinate updates (RA/DEC)
             if 'EQUATORIAL_EOD_COORD' in xml_str or 'EQUATORIAL_COORD' in xml_str:
@@ -447,6 +523,9 @@ class INDIClient:
                     msg = msg_match.group(1)
                     if "Alert" in xml_str or "error" in msg.lower():
                         logger.error(f"INDI Hardware Alert: {msg}")
+                        # If mount reports not aligned, update state
+                        if "not aligned" in msg.lower():
+                            self.mount_slew_state = "Not Aligned"
                     else:
                         logger.info(f"INDI: {msg}")
 
@@ -606,6 +685,7 @@ class INDIClient:
                     "viewfinder" in prop_name.lower() or 
                     "stream" in prop_name.lower() or 
                     "stream" in fmt.lower() or
+                    "ccd_force_blob" in prop_name.lower() or
                     prop_name == "unknown"
                 )
                 
@@ -731,34 +811,34 @@ async def debug_properties():
 
 @app.post("/mount/jog")
 async def mount_jog(req: JogRequest):
-    device = req.device
-    if device == "Celestron GPS" and indi.device_mount and indi.device_mount != "Celestron GPS":
-        device = indi.device_mount
+    global indi
+    try:
+        device = indi.device_mount if (indi and indi.device_mount) else "Celestron GPS"
+        if not indi or not indi.connected:
+            return {"success": False, "error": "Matériel déconnecté"}
 
-    if not indi.connected:
-        logger.error("mount_jog: INDI not connected")
-        return {"success": False, "error": "INDI bridge not connected (vérifiez INDI_HOST / réseau vers l'Astroberry)"}
+        # Logic: FOV control (stars move in the direction of the arrow)
+        if req.direction == "up":
+            prop, val = "TELESCOPE_MOTION_NS", "MOTION_SOUTH"
+        elif req.direction == "down":
+            prop, val = "TELESCOPE_MOTION_NS", "MOTION_NORTH"
+        elif req.direction == "left":
+            prop, val = "TELESCOPE_MOTION_WE", "MOTION_EAST"
+        else:
+            prop, val = "TELESCOPE_MOTION_WE", "MOTION_WEST"
 
-    if req.direction in ["up", "down"]:
-        prop = "TELESCOPE_MOTION_NS"
-        val_on = "MOTION_NORTH" if req.direction == "up" else "MOTION_SOUTH"
-    else:
-        prop = "TELESCOPE_MOTION_WE"
-        val_on = "MOTION_WEST" if req.direction == "left" else "MOTION_EAST"
-    
-    if req.state == "stop":
-        logger.info(f"Jogging {device} {req.direction} -> STOP")
-        ok = indi.send(f'<newSwitchVector device="{device}" name="{prop}"><oneSwitch name="{val_on}">Off</oneSwitch></newSwitchVector>')
+        state_val = "On" if req.state == "start" else "Off"
+        xml = f'<newSwitchVector device="{device}" name="{prop}"><oneSwitch name="{val}">{state_val}</oneSwitch></newSwitchVector>'
+        
+        # Use standard send method which is safer and handles connection checks
+        ok = indi.send(xml)
         if not ok:
-            return {"success": False, "error": "INDI send failed (socket fermé ou monture introuvable)"}
+            return {"success": False, "error": "INDI send failed"}
+            
         return {"success": True}
-
-    xml = f'<newSwitchVector device="{device}" name="{prop}"><oneSwitch name="{val_on}">On</oneSwitch></newSwitchVector>'
-    logger.info(f"Jogging {device} {req.direction} -> start")
-    ok = indi.send(xml)
-    if not ok:
-        return {"success": False, "error": "INDI send failed (bridge déconnecté ou mauvais nom de périphérique monture)"}
-    return {"success": True}
+    except Exception as e:
+        logger.error(f"Jog error: {e}")
+        return {"success": False, "error": str(e)}
 
 @app.post("/mount/rate")
 async def mount_rate(req: RateRequest):
@@ -788,10 +868,11 @@ async def mount_slew_internal(device: str, ra: float, dec: float, sync: bool = F
         logger.error("Slew failed: INDI not connected")
         return {"success": False, "error": "Hardware offline"}
 
-    # Coordinates from frontend are already in decimal hours for RA and degrees for DEC
-    ra_hours = ra
+    # Correct RA conversion: Frontend sends degrees, INDI expects decimal hours
+    # ra_deg / 15.0 = decimal hours
+    ra_hours = ra / 15.0 if ra > 24 else ra # Safety check: if already < 24, assume it might be hours (but usually it's deg)
     
-    logger.info(f"{'Syncing' if sync else 'Slewing'} {device} to RA={ra} hours, DEC={dec} deg")
+    logger.info(f"{'Syncing' if sync else 'Slewing'} {device} to RA={ra} deg ({ra_hours:.4f}h), DEC={dec} deg")
 
     if indi.mount_parked and not sync:
         logger.warning(f"Mount {device} is parked. Attempting to unpark before slew.")
@@ -809,10 +890,10 @@ async def mount_slew_internal(device: str, ra: float, dec: float, sync: bool = F
 
         # 2. Send RA and DEC to BOTH common property names for maximum compatibility
         # Standard property
-        indi.send(f'<newNumberVector device="{device}" name="EQUATORIAL_EOD_COORD"><oneNumber name="RA">{ra}</oneNumber><oneNumber name="DEC">{dec}</oneNumber></newNumberVector>')
+        indi.send(f'<newNumberVector device="{device}" name="EQUATORIAL_EOD_COORD"><oneNumber name="RA">{ra_hours}</oneNumber><oneNumber name="DEC">{dec}</oneNumber></newNumberVector>')
         
         # Fallback property
-        indi.send(f'<newNumberVector device="{device}" name="EQUATORIAL_COORD"><oneNumber name="RA">{ra}</oneNumber><oneNumber name="DEC">{dec}</oneNumber></newNumberVector>')
+        indi.send(f'<newNumberVector device="{device}" name="EQUATORIAL_COORD"><oneNumber name="RA">{ra_hours}</oneNumber><oneNumber name="DEC">{dec}</oneNumber></newNumberVector>')
         
         if not sync:
             indi.mount_slew_state = "Busy"
@@ -1037,9 +1118,9 @@ def launch_ekos():
 
 
 async def ccd_capture_internal(device: str, exposure: float):
-    # Common mapping for Canon DSLR
-    if "Canon" in device: 
-        device = "Canon DSLR EOS 600D"
+    # Use detected device if provided one is generic or empty
+    if not device or device == "Canon" or device == "Canon DSLR EOS 600D": 
+        device = indi.device_ccd or "Canon DSLR EOS 600D"
     
     if not indi.connected:
         return {"success": False, "error": "Hardware offline"}
@@ -1102,6 +1183,34 @@ async def get_astro_coords(req: CoordsRequest):
     altaz = target.transform_to(AltAz(obstime=time, location=obs))
     return {"success": True, "alt": altaz.alt.deg, "az": altaz.az.deg}
 
+@app.post("/hardware/connect")
+async def hardware_connect():
+    """Manually trigger connection for all known hardware devices."""
+    if not indi.connected:
+        return {"success": False, "error": "INDI bridge not connected to server"}
+    
+    indi._safe_connect_device(indi.device_mount)
+    indi._safe_connect_device(indi.device_ccd)
+    return {"success": True, "message": "Connection commands sent"}
+
+@app.post("/mount/sync_current")
+async def mount_sync_current():
+    """Sync the mount to its current reported position. Often clears 'Not Aligned' state."""
+    if not indi.mount_connected:
+        return {"success": False, "error": "Mount offline"}
+    
+    # Send SYNC command for current RA/DEC
+    # First ensure ON_COORD_SET is SYNC
+    indi.send(f'<newSwitchVector device="{indi.device_mount}" name="ON_COORD_SET"><oneSwitch name="SYNC">On</oneSwitch></newSwitchVector>')
+    
+    # Then send the current coords back as a Sync target
+    ra_h = indi.mount_ra / 15.0
+    dec_d = indi.mount_dec
+    indi.send(f'<newNumberVector device="{indi.device_mount}" name="EQUATORIAL_EOD_COORD"><oneNumber name="RA">{ra_h}</oneNumber><oneNumber name="DEC">{dec_d}</oneNumber></newNumberVector>')
+    
+    logger.info(f"Mount SYNC sent for RA={ra_h:.4f}h DEC={dec_d:.4f}d")
+    return {"success": True, "message": "Mount sync triggered"}
+
 @app.get("/status")
 async def get_status():
     return {
@@ -1143,7 +1252,7 @@ async def video_feed():
 
 @app.post("/ccd/stream/start")
 async def ccd_stream_start():
-    dev = (indi.device_ccd or "Canon DSLR EOS 600D").strip()
+    dev = (indi.device_ccd or "GPhoto CCD").strip()
     if not indi.connected:
         return {"success": False, "error": "INDI bridge not connected"}
     # Ensure it's connected first just in case
@@ -1215,8 +1324,9 @@ async def health_full():
         p.name() == "KStars" for p in psutil.process_iter(['name'])
     )
 
-    # --- Astroberry (SSH) ---
-    pi_status = raspi.get_status()
+    # --- Astroberry (SSH - CACHED) ---
+    with status_lock:
+        pi_status = cached_astroberry_status.copy()
 
     return {
         "mac_mini": {
@@ -1324,29 +1434,34 @@ def mount_status():
 
 @app.get("/astroberry/status")
 async def astroberry_status():
-    return raspi.get_status()
+    with status_lock:
+        return cached_astroberry_status
 
 
 @app.get("/astroberry/indi/logs")
 async def astroberry_indi_logs(lines: int = 50):
-    logs = raspi.get_indi_logs(lines=lines)
+    loop = asyncio.get_event_loop()
+    logs = await loop.run_in_executor(executor, raspi.get_indi_logs, lines)
     return {"logs": logs}
 
 
 @app.post("/reconnect")
 async def reconnect_indi():
     logger.info("Force reconnecting INDI bridge and remote server...")
-    # 1. Restart remote indiserver
-    raspi.restart_indi()
-    time.sleep(3)
-    # 2. Reconnect local client
-    indi.reconnect()
+    # 1. Restart remote indiserver in background
+    loop = asyncio.get_event_loop()
+    await loop.run_in_executor(executor, raspi.restart_indi)
+    
+    # 2. Reconnect local client (also uses SSH if restart_remote=True, so run in executor)
+    await asyncio.sleep(3)
+    await loop.run_in_executor(executor, indi.reconnect)
     return {"success": True, "message": "Full hardware stack reconnection triggered"}
 
 
 @app.post("/astroberry/reboot")
 async def astroberry_reboot(req: MountActionRequest):
-    return raspi.reboot(req.confirm)
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(executor, raspi.reboot, req.confirm)
 
 
 # --- Log stream (SSE) ---

@@ -52,10 +52,11 @@ export async function GET(request: Request) {
         
         // Return structured status for the ping logic
         // We pass through all fields (RA, DEC, connection states)
+        const isOk = data.status === "True" || data.status === "ok";
         return NextResponse.json([{
             ...data,
-            status: data.status === "ok" ? "True" : "False",
-            message: data.status || "error"
+            status: isOk ? "True" : "False",
+            message: data.status || (res.ok ? "ok" : "error")
         }]);
     } catch (error) {
         return NextResponse.json([{

@@ -6,42 +6,26 @@ const BRIDGE_URL = 'http://127.0.0.1:5005';
 
 // Proxy commands to Python bridge
 async function sendToBridge(bridgeIp: string, endpoint: string, data: any): Promise<any> {
-  // The Python bridge always runs on localhost alongside the Next.js app on port 5005
-  const BRIDGE_URL = `http://127.0.0.1:5005`;
-
-  // Retry logic with increasing timeout
-  const maxRetries = 2;
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    const controller = new AbortController();
-    // 30s timeout for hardware operations (slew can take time)
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
+  const url = `http://127.0.0.1:5005${endpoint}`;
+  
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data || {}),
+      next: { revalidate: 0 }
+    });
     
+    const resText = await res.text();
     try {
-      const res = await fetch(`${BRIDGE_URL}${endpoint}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data || {}),
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
-      
-      const resText = await res.text();
-      try {
-        return JSON.parse(resText);
-      } catch (e) {
-        if (res.ok) return { success: true, message: resText || 'Action successful' };
-        throw new Error(`HTTP ${res.status}: ${resText || 'Backend returned invalid JSON'}`);
-      }
-    } catch (error: any) {
-      clearTimeout(timeoutId);
-      if (attempt === maxRetries - 1) {
-        throw new Error(`Bridge error after ${maxRetries} attempts: ${error.message}`);
-      }
-      // Wait before retry
-      await new Promise(r => setTimeout(r, 1000));
+      return JSON.parse(resText);
+    } catch (e) {
+      if (res.ok) return { success: true, message: resText || 'Action successful' };
+      throw new Error(`HTTP ${res.status}: ${resText}`);
     }
+  } catch (error: any) {
+    throw new Error(`Bridge connection failed: ${error.message}`);
   }
-  throw new Error('Unexpected error');
 }
 
 function bridgeCommandFailed(response: unknown): string | null {
@@ -102,9 +86,11 @@ function parseDecToDegrees(coord: string | number): number {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    console.log('[MOUNT API] Request body:', JSON.stringify(body));
     let { action, device = 'Celestron GPS', ra, dec, direction, state = 'start', duration = 0.5, ip } = body;
-    // Use 'Celestron GPS' as default if not specified
-    if (!device) {
+    
+    // Ensure we have a valid device name
+    if (!device || device === 'undefined' || device === 'null') {
       device = 'Celestron GPS';
     }
     // Use provided IP (which might include port) or default to local Python bridge

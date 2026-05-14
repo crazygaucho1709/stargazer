@@ -236,18 +236,31 @@ export const mockApi = {
         } catch (e) { console.error("Config save error", e); return false; }
     },
 
-    getWeather: async (lat: number = 48.8566, lon: number = 2.3522): Promise<any> => {
+    getWeather: async (lat: number = -17.6333, lon: number = -149.6000): Promise<any> => {
         try {
-            const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,cloud_cover&daily=sunrise,sunset&timezone=auto`);
+            // Priority to Tahiti coordinates
+            const targetLat = lat === 48.8566 ? -17.6333 : lat;
+            const targetLon = lon === 2.3522 ? -149.6000 : lon;
+
+            // Using Open-Meteo with more precise astronomical parameters
+            const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${targetLat}&longitude=${targetLon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,cloud_cover,weather_code&daily=sunrise,sunset&timezone=auto`);
             const data = await res.json();
             if (data.current) {
-                const seeing = Math.max(0.1, Math.min(2.0, 2.0 - (data.current.cloud_cover / 100) - (data.current.wind_speed_10m / 20)));
+                // Heuristic for "Seeing" in Tahiti (high humidity but often stable laminar flow)
+                let seeing = 1.0;
+                if (data.current.cloud_cover < 20) {
+                    seeing = data.current.wind_speed_10m < 10 ? 0.8 : 1.2;
+                } else {
+                    seeing = 1.5;
+                }
+                
                 return {
                     success: true,
                     temperature: data.current.temperature_2m,
                     windSpeed: data.current.wind_speed_10m,
                     humidity: data.current.relative_humidity_2m,
                     cloudCover: data.current.cloud_cover,
+                    description: data.current.cloud_cover < 20 ? "Grand Beau" : "Passages nuageux",
                     seeing: parseFloat(seeing.toFixed(2)),
                     sunrise: data.daily?.sunrise?.[0]?.split('T')[1],
                     sunset: data.daily?.sunset?.[0]?.split('T')[1]

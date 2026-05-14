@@ -49,7 +49,7 @@ const PadButton = ({ icon: DirIcon, glowColor = "var(--astro-teal)", onClick, on
 );
 
 export const TelescopeControls = ({ variant }: TelescopeControlsProps) => {
-    const { isSlewing, setSlewing, setPosition, config } = useStargazerStore();
+    const { isSlewing, setSlewing, setPosition, config, detectedMount } = useStargazerStore();
     const { execute } = useAstroAction();
     const activeDirectionRef = React.useRef<'up' | 'down' | 'left' | 'right' | null>(null);
     const [slewRate, setSlewRate] = React.useState(5);
@@ -67,7 +67,7 @@ export const TelescopeControls = ({ variant }: TelescopeControlsProps) => {
         
         // Send rate to backend using hook
         await execute('/api/indi/mount', `SET RATE ${value}x`, {
-            body: { action: 'rate', rate: value, device: config.driverInstance, ip: config.astroberryUrl },
+            body: { action: 'rate', rate: value, device: detectedMount, ip: config.astroberryUrl },
             showGlobalLoader: false // No need for full screen loader for rate change
         });
         
@@ -88,10 +88,11 @@ export const TelescopeControls = ({ variant }: TelescopeControlsProps) => {
                 direction: direction,
                 state: 'start',
                 duration: 0.5,
-                device: config.driverInstance,
+                device: detectedMount,
                 ip: config.astroberryUrl
             },
-            showGlobalLoader: false
+            showGlobalLoader: false,
+            silent: true // No toast for movements
         });
         if (!result.success) setSlewing(false);
     };
@@ -103,11 +104,29 @@ export const TelescopeControls = ({ variant }: TelescopeControlsProps) => {
         activeDirectionRef.current = null;
 
         await execute('/api/indi/mount', "HALT", {
-            body: { action: 'jog', direction: dir, state: 'stop', device: config.driverInstance, ip: config.astroberryUrl },
-            showGlobalLoader: false
+            body: { action: 'jog', direction: dir, state: 'stop', device: detectedMount, ip: config.astroberryUrl },
+            showGlobalLoader: false,
+            silent: true // No toast for stops
         });
 
         setSlewing(false);
+    };
+
+    const handleAbort = async () => {
+        activeDirectionRef.current = null;
+        await execute('/api/indi/mount', "EMERGENCY ABORT", {
+            body: { action: 'abort_all', device: detectedMount },
+            showGlobalLoader: false,
+            successMessage: "ALL MOTION STOPPED"
+        });
+        setSlewing(false);
+    };
+
+    const handleSync = async () => {
+        await execute('/api/mount/sync_current', "SYNCING MOUNT", {
+            method: 'POST',
+            showGlobalLoader: true
+        });
     };
 
     if (variant === "pad") {
@@ -162,6 +181,15 @@ export const TelescopeControls = ({ variant }: TelescopeControlsProps) => {
                         onMouseLeave={handleMoveStop}
                         onTouchStart={() => handleMoveStart('right')}
                         onTouchEnd={handleMoveStop}
+                    />
+                </Box>
+                
+                {/* Sync Button */}
+                <Box position="absolute" bottom="20px" left="20px">
+                    <PadButton 
+                        icon={RotateCcw} 
+                        glowColor="var(--astro-gold)"
+                        onClick={handleSync}
                     />
                 </Box>
 

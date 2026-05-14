@@ -1,6 +1,14 @@
 module.exports = {
   apps: [
     {
+      name: 'stargazer-tunnel',
+      script: '/usr/bin/ssh',
+      args: '-N -L 7624:127.0.0.1:7624 -L 2222:127.0.0.1:22 -o StrictHostKeyChecking=no astroberry@192.168.178.142',
+      autorestart: true,
+      error_file: 'logs/tunnel-error.log',
+      out_file: 'logs/tunnel-out.log',
+    },
+    {
       name: 'stargazer-backend',
       script: 'server/main.py',
       interpreter: 'server/venv/bin/python3',
@@ -10,9 +18,10 @@ module.exports = {
       env: {
         STORAGE_PATH: '/Volumes/Data2/captures',
         PYTHONPATH: '.',
-        // Bonjour name survives DHCP changes; override with a fixed IP if mDNS is unreliable.
-        ASTROBERRY_HOST: 'astroberry.local',
-        INDI_HOST: 'astroberry.local'
+        // Tunneled through SSH to bypass macOS Local Network Privacy blocks
+        ASTROBERRY_HOST: '127.0.0.1',
+        INDI_HOST: '127.0.0.1',
+        ASTROBERRY_PORT: '2222'
       },
       autorestart: true,
       watch: false,

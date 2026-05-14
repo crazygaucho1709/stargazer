@@ -12,6 +12,7 @@ interface ActionOptions {
     errorMessage?: string;
     loadingMessage?: string;
     showGlobalLoader?: boolean;
+    silent?: boolean;
 }
 
 export const useAstroAction = () => {
@@ -30,7 +31,8 @@ export const useAstroAction = () => {
             successMessage,
             errorMessage,
             loadingMessage,
-            showGlobalLoader = true
+            showGlobalLoader = true,
+            silent = false
         } = options;
 
         setIsPending(true);
@@ -72,11 +74,13 @@ export const useAstroAction = () => {
             }
 
             if (data.success || (typeof data.success === 'undefined' && data)) {
-                toaster.create({
-                    title: `${label} SUCCESS`,
-                    description: successMessage || data.message || "Command executed successfully.",
-                    type: "success"
-                });
+                if (!silent) {
+                    toaster.create({
+                        title: `${label} SUCCESS`,
+                        description: successMessage || data.message || "Command executed successfully.",
+                        type: "success"
+                    });
+                }
                 return { success: true, data };
             } else {
                 throw new Error(data.message || data.error || errorMessage || "Action failed");

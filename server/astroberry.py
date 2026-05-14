@@ -178,13 +178,14 @@ def restart_indi() -> Dict[str, Any]:
     """
     logger.info("Restarting indiserver on Astroberry (sudo pkill + verbose relaunch)...")
     log_path = "/tmp/indiserver.log"
-    # Modern Canon DSLRs use indi_gphoto_ccd. indi_canon_ccd is for ancient models.
+    # Modern Canon DSLRs use indi_gphoto_ccd.
     drivers = "indi_celestron_gps indi_gphoto_ccd"
     # systemctl is preferred when a service unit exists; otherwise we kill
     # any running indiserver (with sudo, since it may be owned by another
     # user) and relaunch with verbose output redirected to a known log.
+    # We also kill gvfs-gphoto2 to ensure the OS doesn't lock the camera.
     fallback_cmd = (
-        "pkill -9 indiserver; sleep 1; "
+        "pkill -9 indiserver; pkill -9 gvfs-gphoto2-volume-monitor; sleep 1; "
         "nohup indiserver -vvv indi_celestron_gps indi_gphoto_ccd > /tmp/indiserver.log 2>&1 &"
     )
     result = _run(fallback_cmd, timeout=15)

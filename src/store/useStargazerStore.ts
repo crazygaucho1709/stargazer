@@ -62,6 +62,8 @@ interface StargazerState {
     hfr: number | null;
     isGlobalLoading: boolean;
     globalLoadingMessage: string;
+    detectedCcd: string;
+    detectedMount: string;
 
     setLanguage: (lang: "en" | "fr") => void;
     setConnected: (status: boolean) => void;
@@ -78,6 +80,7 @@ interface StargazerState {
     setLiveViewMode: (mode: "NASA" | "CANON") => void;
     updateConfig: (config: Partial<Config>) => void;
     setMountLimits: (limits: Partial<MountLimits>) => void;
+    setDetectedDevices: (ccd: string, mount: string) => void;
 }
 
 export const useStargazerStore = create<StargazerState>()(
@@ -95,7 +98,7 @@ export const useStargazerStore = create<StargazerState>()(
             liveViewMode: "NASA",
             config: {
                 aiKey: "",
-                astroberryUrl: "http://localhost:5005",
+                astroberryUrl: "http://macmini.local:5005",
                 driverInstance: "Celestron GPS",
                 baudRate: "9600",
                 wifiSsid: "Stargazer_Net",
@@ -114,8 +117,8 @@ export const useStargazerStore = create<StargazerState>()(
                 aiColorization: true,
                 autoSave: true,
                 unitSystem: "METRIC",
-                latitude: "-17.6008",
-                longitude: "-149.6091",
+                latitude: "-17.6333",
+                longitude: "-149.6000",
             },
             mountLimits: {
                 maxAlt: 85,
@@ -129,6 +132,8 @@ export const useStargazerStore = create<StargazerState>()(
             hfr: null,
             isGlobalLoading: false,
             globalLoadingMessage: "",
+            detectedCcd: "Canon DSLR EOS 600D", // Default
+            detectedMount: "Celestron GPS", // Default
             targets: [
                 { id: "1", name: "M42 - Orion Nebula", type: "Nebula", ra: "05h 35m", dec: "-05° 23'" },
                 { id: "2", name: "M31 - Andromeda Galaxy", type: "Galaxy", ra: "00h 42m", dec: "+41° 16'" },
@@ -156,6 +161,7 @@ export const useStargazerStore = create<StargazerState>()(
             setLiveViewMode: (mode) => set({ liveViewMode: mode }),
             updateConfig: (newConfig) => set((state) => ({ config: { ...state.config, ...newConfig } })),
             setMountLimits: (limits) => set((state) => ({ mountLimits: { ...state.mountLimits, ...limits } })),
+            setDetectedDevices: (detectedCcd, detectedMount) => set({ detectedCcd, detectedMount }),
         }),
         {
             name: 'stargazer-storage',
