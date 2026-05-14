@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { 
-    Grid, Box, Text, VStack, HStack, Icon, Badge, Spinner
+    Grid, Box, Text, VStack, HStack, Icon, Badge, Spinner, Button
 } from "@chakra-ui/react";
 import { 
-    Cpu, HardDrive, Activity, ShieldCheck, Terminal
+    Cpu, HardDrive, Activity, ShieldCheck, Terminal, RefreshCw
 } from "lucide-react";
+import { useStargazerStore } from "@/store/useStargazerStore";
 import React from "react";
 
 interface StatusCardProps {
@@ -86,6 +87,10 @@ export const InfrastructureStatus = () => {
                 return;
             }
             setData(json);
+            if (json.camera?.device && json.mount?.device) {
+                // Sync with store for other components to use
+                useStargazerStore.getState().setDetectedDevices(json.camera.device, json.mount.device);
+            }
             setError(false);
         } catch (e) {
             console.error(e);
@@ -106,7 +111,7 @@ export const InfrastructureStatus = () => {
             <Spinner size="sm" color="cyan.400" />
             <Text fontSize="12px" color="whiteAlpha.600">Loading infrastructure data...</Text>
         </HStack>
-    );
+    )
 
     const mac = data?.mac_mini || {};
     const astro = data?.astroberry || {};
@@ -114,7 +119,24 @@ export const InfrastructureStatus = () => {
     const mount = data?.mount || {};
 
     return (
-        <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={4} w="full">
+        <VStack align="stretch" w="full" gap={4}>
+            <HStack justify="space-between" w="full">
+                <Text fontSize="11px" color="whiteAlpha.500" letterSpacing="0.1em">STATUS OVERVIEW</Text>
+                <Button 
+                    size="xs" 
+                    variant="ghost" 
+                    colorPalette="cyan" 
+                    onClick={() => fetchData()} 
+                    fontSize="10px"
+                >
+                    <HStack gap={1}>
+                        <RefreshCw size={12} />
+                        <Text>REFRESH</Text>
+                    </HStack>
+                </Button>
+            </HStack>
+            
+            <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={4} w="full">
             <StatusCard 
                 title="Mac Mini M4"
                 icon={Cpu}
@@ -187,5 +209,6 @@ export const InfrastructureStatus = () => {
                 details={data?.kstars?.running ? "GUI Active on Mac Mini" : "Process not found"}
             />
         </Grid>
+        </VStack>
     );
 };

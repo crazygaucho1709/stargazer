@@ -161,3 +161,154 @@
 [PROXY] GET /health
 [PROXY] GET /health
 [PROXY] GET /health
+[PROXY] GET /health
+
+> stargazer@0.1.0 start
+> next start -H 0.0.0.0
+
+  ▲ Next.js 14.2.0
+  - Local:        http://localhost:3000
+  - Network:      http://0.0.0.0:3000
+
+ ✓ Starting...
+ ✓ Ready in 162ms
+
+> stargazer@0.1.0 start
+> next start -H 0.0.0.0
+
+  ▲ Next.js 14.2.0
+  - Local:        http://localhost:3000
+  - Network:      http://0.0.0.0:3000
+
+ ✓ Starting...
+ ✓ Ready in 161ms
+
+> stargazer@0.1.0 start
+> next start -H 0.0.0.0
+
+  ▲ Next.js 14.2.0
+  - Local:        http://localhost:3000
+  - Network:      http://0.0.0.0:3000
+
+ ✓ Starting...
+ ✓ Ready in 133ms
+
+> stargazer@0.1.0 start
+> next start -H 0.0.0.0
+
+  ▲ Next.js 14.2.0
+  - Local:        http://localhost:3000
+  - Network:      http://0.0.0.0:3000
+
+ ✓ Starting...
+ ✓ Ready in 108ms
+
+> stargazer@0.1.0 start
+> next start -H 0.0.0.0
+
+  ▲ Next.js 14.2.0
+  - Local:        http://localhost:3000
+  - Network:      http://0.0.0.0:3000
+
+ ✓ Starting...
+ ✓ Ready in 263ms
+
+> stargazer@0.1.0 start
+> next start -H 0.0.0.0
+
+  ▲ Next.js 14.2.0
+  - Local:        http://localhost:3000
+  - Network:      http://0.0.0.0:3000
+
+ ✓ Starting...
+ ✓ Ready in 121ms
+
+> stargazer@0.1.0 start
+> next start -H 0.0.0.0
+
+  ▲ Next.js 14.2.0
+  - Local:        http://localhost:3000
+  - Network:      http://0.0.0.0:3000
+
+ ✓ Starting...
+ ✓ Ready in 124ms
+
+> stargazer@0.1.0 start
+> next start -H 0.0.0.0
+
+  ▲ Next.js 14.2.0
+  - Local:        http://localhost:3000
+  - Network:      http://0.0.0.0:3000
+
+ ✓ Starting...
+ ✓ Ready in 160ms
+
+> stargazer@0.1.0 start
+> next start -H 0.0.0.0
+
+  ▲ Next.js 14.2.0
+  - Local:        http://localhost:3000
+  - Network:      http://0.0.0.0:3000
+
+ ✓ Starting...
+ ✓ Ready in 114ms
+
+> stargazer@0.1.0 start
+> next start -H 0.0.0.0
+
+  ▲ Next.js 14.2.0
+  - Local:        http://localhost:3000
+  - Network:      http://0.0.0.0:3000
+
+ ✓ Starting...
+ ✓ Ready in 116ms
+
+> stargazer@0.1.0 start
+> next start -H 0.0.0.0
+
+  ▲ Next.js 14.2.0
+  - Local:        http://localhost:3000
+  - Network:      http://0.0.0.0:3000
+
+ ✓ Starting...
+ ✓ Ready in 113ms
+
+> stargazer@0.1.0 start
+> next start -H 0.0.0.0
+
+  ▲ Next.js 14.2.0
+  - Local:        http://localhost:3000
+  - Network:      http://0.0.0.0:3000
+
+ ✓ Starting...
+ ✓ Ready in 126ms
+
+> stargazer@0.1.0 start
+> next start -H 0.0.0.0
+
+  ▲ Next.js 14.2.0
+  - Local:        http://localhost:3000
+  - Network:      http://0.0.0.0:3000
+
+ ✓ Starting...
+ ✓ Ready in 114ms
+
+> stargazer@0.1.0 start
+> next start -H 0.0.0.0
+
+  ▲ Next.js 14.2.0
+  - Local:        http://localhost:3000
+  - Network:      http://0.0.0.0:3000
+
+ ✓ Starting...
+ ✓ Ready in 111ms
+
+> stargazer@0.1.0 start
+> next start -H 0.0.0.0
+
+  ▲ Next.js 14.2.0
+  - Local:        http://localhost:3000
+  - Network:      http://0.0.0.0:3000
+
+ ✓ Starting...
+ ✓ Ready in 110ms

@@ -9,6 +9,7 @@ import { Crosshair, Target, Scan, ShieldCheck, Camera, Globe, ZoomIn, ZoomOut, P
 import { useState, useEffect } from "react";
 import { HfrOverlay } from "@/components/observatory/HfrOverlay";
 import { CaptureProgress } from "@/components/observatory/CaptureProgress";
+import { SkyMap } from "./SkyMap";
 
 export const LiveView = () => {
     const { isExposing, isSlewing, ra, dec, alt, az, liveViewMode, setLiveViewMode, zoom, setZoom, language, config } = useStargazerStore();
@@ -174,15 +175,7 @@ export const LiveView = () => {
                     justifyContent="center"
                 >
                     {liveViewMode === "NASA" ? (
-                        <Box w="full" h="full" bg="black" pointerEvents="none" opacity={isExposing ? 0.8 : 1}>
-                            <iframe 
-                                src={aladinUrl} 
-                                width="100%" 
-                                height="100%" 
-                                frameBorder="0" 
-                                style={{ filter: "hue-rotate(330deg) saturate(1.2) contrast(1.1)", pointerEvents: "none" }}
-                            />
-                        </Box>
+                        <SkyMap />
                     ) : ccdError ? (
                         <Box display="flex" alignItems="center" justifyContent="center" w="100%" h="100%" bg="#112233">
                             <Text color="var(--astro-gold)" fontSize="18px">{t("CANON_CONNECTION_ERROR", language)}</Text>

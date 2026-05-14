@@ -1,30 +1,42 @@
 import { NextResponse } from 'next/server';
+import http from 'http';
 
 export const dynamic = 'force-dynamic';
 
 const BRIDGE_URL = 'http://127.0.0.1:5005';
 
 export async function GET() {
-  try {
-    // 2. Fetch the actual MJPEG stream from the backend
-    const response = await fetch(`${BRIDGE_URL}/video_feed`);
-    
-    if (!response.ok) {
-      throw new Error(`Backend stream failed: ${response.statusText}`);
-    }
+  const url = `${BRIDGE_URL}/video_feed`;
 
-    // 3. Pipe the stream directly to the client
-    // We pass through the headers (especially multipart/x-mixed-replace)
-    return new Response(response.body, {
-      headers: {
-        'Content-Type': response.headers.get('Content-Type') || 'multipart/x-mixed-replace; boundary=frame',
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
-      },
-    });
-  } catch (error) {
-    console.error('Stream Proxy Error:', error);
-    return NextResponse.json({ success: false, error: String(error) }, { status: 500 });
-  }
+  // We use a ReadableStream to pipe the data from the backend to the client
+  // using the native 'http' module to avoid undici/fetch timeouts and buffering.
+  const stream = new ReadableStream({
+    start(controller) {
+      const request = http.get(url, (res) => {
+        res.on('data', (chunk) => {
+          controller.enqueue(chunk);
+        });
+        res.on('end', () => {
+          controller.close();
+        });
+        res.on('error', (err) => {
+          controller.error(err);
+        });
+      });
+
+      request.on('error', (err) => {
+        controller.error(err);
+      });
+    }
+  });
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'multipart/x-mixed-replace; boundary=frame',
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+      'Connection': 'keep-alive',
+    },
+  });
 }

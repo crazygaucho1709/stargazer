@@ -102,6 +102,17 @@ export const ActionButtons = () => {
                             isLoading={isPending}
                         />
                     </HStack>
+                    
+                    <HStack w="full" gap={3}>
+                        <ActionBtn 
+                            label="CONNECT HARDWARE" 
+                            icon={Power} 
+                            colorScheme="green"
+                            variant="solid"
+                            onClick={() => execute('/api/hardware/connect', 'CONNECTING DEVICES', { method: 'POST' })}
+                            isLoading={isPending}
+                        />
+                    </HStack>
                 </VStack>
             </Box>
         </VStack>

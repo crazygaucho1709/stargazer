@@ -24,10 +24,10 @@ echo "✅ Synchronisation terminée avec succès !"
 
 if [ "$1" == "fast" ]; then
   echo "⚡ Mode FAST : Redémarrage du backend uniquement (pas de build React)..."
-  ssh $DEST_USER@$DEST_HOST "zsh -ic 'cd $DEST_PATH && source venv/bin/activate && pip install -r requirements.txt && pm2 restart stargazer-backend'"
+  ssh $DEST_USER@$DEST_HOST "zsh -ic 'cd $DEST_PATH && source venv/bin/activate && pip install -r requirements.txt && pm2 restart stargazer-backend --update-env'"
 else
   echo "🔄 Recompilation et redémarrage complet des services sur le Mac Mini..."
-  ssh $DEST_USER@$DEST_HOST "zsh -ic 'cd $DEST_PATH && source venv/bin/activate && pip install -r requirements.txt && npm run build && pm2 restart all'"
+  ssh $DEST_USER@$DEST_HOST "zsh -ic 'cd $DEST_PATH && source venv/bin/activate && pip install -r requirements.txt && npm run build && pm2 restart ecosystem.config.js --update-env'"
 fi
 
 echo "🎉 Déploiement total terminé !"

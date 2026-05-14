@@ -44,7 +44,8 @@ export const CameraControls = ({ variant = "standard" }: CameraControlsProps) =>
         setCaptureProgress, 
         setStackingProgress, 
         setHfr, 
-        language 
+        language,
+        detectedCcd
     } = useStargazerStore();
     
     const { execute, isPending } = useAstroAction();
@@ -56,7 +57,7 @@ export const CameraControls = ({ variant = "standard" }: CameraControlsProps) =>
                 action: 'focus',
                 direction,
                 steps: 50,
-                device: "Canon DSLR EOS 600D"
+                device: detectedCcd
             },
             showGlobalLoader: false 
         });
@@ -86,7 +87,7 @@ export const CameraControls = ({ variant = "standard" }: CameraControlsProps) =>
             body: { 
                 action: 'capture',
                 exposure: config.exposureTime || 2.0, 
-                device: "Canon DSLR EOS 600D" 
+                device: detectedCcd 
             },
             showGlobalLoader: false
         });

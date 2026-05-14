@@ -120,3 +120,88 @@ INFO:     127.0.0.1:63575 - "GET /health HTTP/1.1" 200 OK
 INFO:     127.0.0.1:63575 - "GET /health HTTP/1.1" 200 OK
 INFO:     127.0.0.1:63575 - "GET /health HTTP/1.1" 200 OK
 INFO:     127.0.0.1:63575 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50250 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56538 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57707 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57752 - "POST /mount/slew HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58907 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59322 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49694 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51644 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52309 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52309 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50291 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     192.168.178.91:58723 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     192.168.178.91:58723 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:62281 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62165 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62544 - "GET /mount/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62976 - "POST /mount/slew HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62988 - "GET /mount/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63365 - "GET /mount/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55172 - "GET /debug/properties HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55731 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56174 - "POST /reconnect HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56769 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57132 - "GET /debug/properties HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57140 - "GET /debug/properties HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57319 - "GET /debug/properties HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57374 - "GET /debug/properties HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57762 - "GET /debug/properties HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57774 - "GET /debug/properties HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58146 - "GET /astroberry/indi/logs?lines=100 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58359 - "POST /command HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59099 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59099 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:59101 - "GET /logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62507 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52280 - "POST /reconnect HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53846 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54434 - "POST /ccd/capture HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54448 - "POST /mount/sync HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:55003 - "POST /mount/sync HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:56375 - "POST /mount/sync_current HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57192 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57194 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57788 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58781 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59157 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59556 - "GET /mount/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59971 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60154 - "GET /status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60154 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60154 - "GET /status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60353 - "GET /health/full HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50679 - "GET /video_feed HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51533 - "GET /video_feed HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56472 - "POST /ccd/stream/start HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56849 - "GET /video_feed HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54505 - "GET /video_feed HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56401 - "GET /video_feed HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60718 - "HEAD /health HTTP/1.1" 405 Method Not Allowed
+INFO:     127.0.0.1:61348 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61540 - "POST /mount/jog HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:62376 - "POST /mount/jog HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:49997 - "POST /mount/jog HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58945 - "POST /mount/jog HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58947 - "POST /mount/jog HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49721 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49740 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49931 - "POST /mount/jog HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50753 - "POST /mount/jog HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60744 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61381 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53931 - "POST /mount/jog HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59795 - "POST /mount/jog HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61038 - "POST /mount/abort HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61039 - "POST /mount/jog HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64688 - "POST /mount/jog HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57761 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59155 - "POST /mount/jog HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59156 - "POST /mount/jog HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64469 - "POST /mount/jog HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64649 - "POST /mount/jog HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53414 - "POST /mount/jog HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53415 - "POST /mount/jog HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55670 - "POST /mount/jog HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55672 - "POST /mount/jog HTTP/1.1" 200 OK
