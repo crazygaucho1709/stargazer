@@ -371,34 +371,43 @@ class INDIClient:
 
     def _safe_connect_device(self, device: str):
         """Send the 'Safe Connect' sequence for a single INDI device.
-
         Order matters here: subscribe to the device's properties, enable
         BLOBs (so image payloads can stream over the same socket), set the
-        upload mode to ``UPLOAD_BOTH`` for cameras, and finally toggle the
-        ``CONNECTION`` switch to ``CONNECT``. Errors are logged but do not
-        abort the rest of the handshake.
+        upload mode to ``UPLOAD_CLIENT`` for cameras, and finally toggle the
+        ``CONNECTION`` switch to ``CONNECT``.
         """
         try:
+            # 1. Handshake: Get properties to ensure device is reachable
             self.send(f'<getProperties version="1.7" device="{device}"/>')
+            time.sleep(0.5)
+            
+            # 2. Enable BLOBs (Critical for CCD/Camera image streaming)
             self.send(f'<enableBLOB device="{device}">Also</enableBLOB>')
             
-            # Optimized Upload Mode for DSLRs
-            if any(kw in device for kw in ["Canon", "Nikon", "DSLR"]):
+            # 3. Optimized Upload Mode for DSLRs (avoid memory issues on RPi)
+            if any(kw in device for kw in ["Canon", "Nikon", "DSLR", "EOS"]):
                 self.send(
                     f'<newSwitchVector device="{device}" name="UPLOAD_MODE">'
                     f'<oneSwitch name="UPLOAD_CLIENT">On</oneSwitch>'
                     f'</newSwitchVector>'
                 )
+                time.sleep(0.2)
             
-            # Slow down mount polling to avoid serial read timeouts (common with Prolific adapters)
+            # 4. Mount-specific optimizations (slow down polling to avoid serial timeouts)
             if any(kw in device for kw in ["Celestron", "GPS", "NexStar", "Mount"]):
-                 # Aggressive slowdown: 10s polling for RA/DEC to keep serial buffer clear
                  self.send(f'<newNumberVector device="{device}" name="POLLING_PERIOD"><oneNumber name="PERIOD">10.0</oneNumber></newNumberVector>')
-                 # Abort any pending motion to clear serial buffers
                  self.send(f'<newSwitchVector device="{device}" name="TELESCOPE_ABORT_MOTION"><oneSwitch name="ABORT">On</oneSwitch></newSwitchVector>')
-
+            
+            # 5. THE FINAL SWITCH: Trigger the actual connection
             self.send(
                 f'<newSwitchVector device="{device}" name="CONNECTION">'
+                f'<oneSwitch name="CONNECT">On</oneSwitch>'
+                f'<oneSwitch name="DISCONNECT">Off</oneSwitch>'
+                f'</newSwitchVector>'
+            )
+            logger.info(f"✅ Safe-connect sequence sent for device: {device}")
+        except Exception as e:
+            logger.error(f"❌ Safe-connect failed for {device}: {e}")
                 f'<oneSwitch name="CONNECT">On</oneSwitch>'
                 f'<oneSwitch name="DISCONNECT">Off</oneSwitch>'
                 f'</newSwitchVector>'
