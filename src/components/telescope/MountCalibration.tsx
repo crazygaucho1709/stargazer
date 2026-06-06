@@ -27,20 +27,22 @@ export const MountCalibration = () => {
             setMountLimits(finalLimits);
             setStep("idle");
             
-            // Pousse les nouvelles limites matérielles directement sur la monture
-            const bridgeIp = config.astroberryUrl.includes('http') ? new URL(config.astroberryUrl).hostname : config.astroberryUrl.split(':')[0];
-            fetch('/api/indi/mount', {
+            // Persiste les limites dans la configuration backend (config.json)
+            fetch('/api/indi/config', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    action: 'sync_limits',
-                    limits: finalLimits,
-                    ip: bridgeIp
+                    mountLimits: finalLimits
                 })
+            }).then(() => {
+                notification.success("Limites sauvegardées", {
+                    description: "Les nouvelles limites ont été enregistrées.",
+                    source: "Configuration"
+                });
             }).catch((err) => {
-                notification.error("Échec de la sauvegarde des limites", {
-                  description: err?.message || "Impossible de synchroniser les limites avec la monture",
-                  source: "Monture",
+                notification.error("Échec de la sauvegarde", {
+                  description: err?.message || "Impossible de sauvegarder la configuration",
+                  source: "Système",
                 });
             });
         }

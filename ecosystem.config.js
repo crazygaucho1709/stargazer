@@ -38,7 +38,7 @@ module.exports = {
       out_file: 'logs/frontend-out.log',
       env: {
         NODE_ENV: 'production',
-        PORT: 3000,
+        PORT: 3001,
         NEXT_PUBLIC_BACKEND_URL: 'http://macmini.local:5005'
       },
       autorestart: true,

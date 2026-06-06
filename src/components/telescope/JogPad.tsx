@@ -1,4 +1,4 @@
-import { Grid, Button, Icon } from "@chakra-ui/react";
+import { Grid, Button, Icon, Box } from "@chakra-ui/react";
 import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from "lucide-react";
 
 export const JogPad = ({ onJog }: { onJog: (dir: string) => void }) => {

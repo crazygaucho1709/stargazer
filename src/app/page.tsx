@@ -12,6 +12,7 @@ import { GlobalLoader } from "@/components/ui/GlobalLoader";
 import { useStargazerStore } from "@/store/useStargazerStore";
 import { t } from "@/i18n/translations";
 import { useEffect, useState } from "react";
+import { LiveView } from "@/components/viewport/LiveView";
 import { canObservatoryTransition, ObservatoryEvent } from "@/lib/observatoryMachine";
 import { useEnvironmentData } from "@/hooks/useEnvironmentData";
 import { notification } from "@/lib/notificationService";
@@ -41,7 +42,6 @@ export default function Home() {
                     const serverConfig = await res.json();
                     if (serverConfig && Object.keys(serverConfig).length > 0) {
                         useStargazerStore.getState().updateConfig(serverConfig, false);
-                        console.log("Loaded server configuration:", serverConfig);
                     }
                 }
             } catch (e) {

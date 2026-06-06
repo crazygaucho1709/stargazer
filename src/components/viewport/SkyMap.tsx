@@ -376,10 +376,8 @@ const AladinSkyMap = ({
         const initAladin = async () => {
             // Wait for container to be available
             if (!containerRef.current) {
-                console.log('Waiting for container...');
                 await new Promise(resolve => setTimeout(resolve, 500));
                 if (!containerRef.current) {
-                    console.log('Container still not ready');
                     return;
                 }
             }
@@ -401,7 +399,6 @@ const AladinSkyMap = ({
             }
 
             retryCount++;
-            console.log(`Loading Aladin (attempt ${retryCount})...`);
 
             // Load CSS from local file
             if (!document.getElementById('aladin-css')) {
@@ -431,14 +428,12 @@ const AladinSkyMap = ({
 
         const setupAladin = async () => {
             if (!containerRef.current || typeof window.A === 'undefined') {
-                console.log('Aladin skip: container or A not ready', { 
                     hasContainer: !!containerRef.current, 
                     hasA: typeof window.A !== 'undefined' 
                 });
                 return;
             }
 
-            console.log('Setting up Aladin, container size:', 
                 containerRef.current.clientWidth, 'x', containerRef.current.clientHeight);
 
             // Clear container
@@ -447,7 +442,6 @@ const AladinSkyMap = ({
             // Get coordinates
             const raVal = parseRaToDecimal(mountRa || '0');
             const decVal = parseDecToDecimal(mountDec || '0');
-            console.log('Aladin target:', raVal, decVal);
 
             // Create Aladin instance with user settings
             const settings = aladinSettings || {
@@ -561,7 +555,6 @@ const AladinSkyMap = ({
             });
 
             setAladinReady(true);
-            console.log('Aladin ready!');
         };
 
         initAladin();
@@ -629,7 +622,6 @@ const AladinSkyMap = ({
 
         try {
             if (needsReinit) {
-                console.log('Reinitializing Aladin (major settings change)');
                 const container = containerRef.current;
                 if (!container) return;
                 
@@ -703,11 +695,9 @@ const AladinSkyMap = ({
                         onViewChangeRef.current?.(ra, dec);
                     });
                     
-                    console.log('Aladin reinitialized with new settings');
                 }, 1000);
             } else {
                 // Non-destructive: update colors and sizes in-place
-                console.log('Updating colors/sizes (minor settings change)');
                 if (dsoCatalogRef.current) {
                     try {
                         dsoCatalogRef.current.setColor(aladinSettings.objectColor);
@@ -740,7 +730,6 @@ const AladinSkyMap = ({
         
         try {
             aladinRef.current.gotoRaDec(gotoTarget.ra, gotoTarget.dec);
-            console.log('Goto:', gotoTarget.ra, gotoTarget.dec);
         } catch (e) {
             console.warn('Goto error:', e);
         }

@@ -87,7 +87,6 @@ function parseDecToDegrees(coord: string | number): number {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    console.log('[MOUNT API] Request body:', JSON.stringify(body));
     let { action, device = 'Celestron GPS', ra, dec, direction, state = 'start', duration = 0.5, ip } = body;
     
     // Ensure we have a valid device name
