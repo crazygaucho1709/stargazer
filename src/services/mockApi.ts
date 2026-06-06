@@ -185,7 +185,7 @@ export const mockApi = {
         }
     },
 
-    jog: async (direction: 'up' | 'down' | 'left' | 'right', device: string = 'Celestron GPS'): Promise<{ success: boolean, error?: string }> => {
+    jog: async (direction: string, device: string = 'Celestron GPS'): Promise<{ success: boolean, error?: string }> => {
         if (!isHardwareConnected) return { success: false, error: "Hardware offline." };
         try {
             const res = await fetch(clientApiUrl('/api/indi/mount'), {

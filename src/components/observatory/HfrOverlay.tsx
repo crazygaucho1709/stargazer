@@ -6,7 +6,7 @@ import { Activity, Target, ShieldCheck, AlertCircle, CheckCircle2 } from "lucide
 import { useState, useEffect } from "react";
 import { useStargazerStore } from "@/store/useStargazerStore";
 
-const MotionBox = motion(Box);
+const MotionBox = motion.create(Box);
 
 export const HfrOverlay = () => {
     const { hfr, language } = useStargazerStore();

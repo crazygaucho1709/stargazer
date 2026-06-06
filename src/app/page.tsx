@@ -13,8 +13,11 @@ import { useStargazerStore } from "@/store/useStargazerStore";
 import { t } from "@/i18n/translations";
 import { useEffect, useState } from "react";
 import { mockApi } from "@/services/mockApi";
-import { clientApiUrl } from "@/lib/clientApi";
+import { canObservatoryTransition, ObservatoryEvent } from "@/lib/observatoryMachine";
 import { useEnvironmentData } from "@/hooks/useEnvironmentData";
+import { notification } from "@/lib/notificationService";
+import { NotificationCenter } from "@/components/ui/NotificationCenter";
+import { SessionIndicator } from "@/components/ui/SessionIndicator";
 import {
     Activity, Zap, Orbit, Clock, MapPin, Compass, Thermometer, Power, Telescope
 } from "lucide-react";
@@ -39,10 +42,7 @@ export default function Home() {
             const storeState = useStargazerStore.getState();
             try {
                 // We use the same endpoint as ping but more frequently for telemetry
-                const res = await fetch(clientApiUrl(`/api/indi?endpoint=health`), { 
-                    cache: 'no-store',
-                    headers: { 'Content-Type': 'application/json' }
-                });
+                const res = await fetch(`/api/indi?endpoint=health`, { cache: 'no-store' });
                 
                 if (res.ok) {
                     const data = await res.json();
@@ -56,8 +56,36 @@ export default function Home() {
                             setStatusText(t("SYSTEM_ONLINE", language));
                             setWasConnected(true);
                             
+                            // Sync observatory state with backend health data
+                            const store = useStargazerStore.getState();
+                            
+                            // Update subsystem health
+                            if (health.indi_connected) store.updateSubsystem("indi_bridge", { status: "nominal" });
+                            if (health.mount_connected) store.updateSubsystem("mount", { status: "nominal" });
+                            if (health.ccd_connected) store.updateSubsystem("ccd", { status: "nominal" });
+                            
+                            // Auto-advance state machine
+                            if (store.observatoryState === "OFFLINE") {
+                                store.sendObservatoryEvent("START");
+                            }
+                            
+                            const events: { check: boolean; event: ObservatoryEvent }[] = [
+                                { check: health.indi_connected, event: "INDI_READY" },
+                                { check: health.mount_connected, event: "MOUNT_CONNECTED" },
+                                { check: health.ccd_connected, event: "CCD_CONNECTED" },
+                                { check: !!(health.indi_connected && health.mount_connected && health.ccd_connected), event: "WEATHER_CONNECTED" },
+                            ];
+                            
+                            for (const { check, event } of events) {
+                                if (check) {
+                                    const s = useStargazerStore.getState();
+                                    if (canObservatoryTransition(s.observatoryState, event)) {
+                                        s.sendObservatoryEvent(event);
+                                    }
+                                }
+                            }
+                            
                             // If backend provided coordinates, update store
-                            // Note: We need the backend to return RA/Dec in /health
                             if (health.ra && health.dec) {
                                 useStargazerStore.getState().setPosition(health.ra, health.dec);
                             }
@@ -69,7 +97,11 @@ export default function Home() {
                 }
             } catch (err: any) {
                 setConnected(false);
-                setStatusText(`${t("LINK_OFFLINE", language)} - ${err.message}`);
+                setStatusText(`${t("LINK_OFFLINE", language)}`);
+                notification.warning(`${t("LINK_OFFLINE", language)}`, {
+                  description: err?.message || "Vérifie que le serveur backend est allumé",
+                  source: "Système",
+                });
                 setWasConnected(false);
             }
         };
@@ -178,6 +210,8 @@ export default function Home() {
                                     <Zap size={14} color={connected ? "var(--astro-teal)" : "var(--astro-gold)"} />
                                 </Box>
                             </HStack>
+                            <SessionIndicator />
+                            <NotificationCenter />
                             <ConfigurationMenu />
                         </VStack>
                     </HStack>

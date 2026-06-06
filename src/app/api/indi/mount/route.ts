@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
+import { BRIDGE_URL } from '@/lib/apiConfig';
 
 export const dynamic = 'force-dynamic';
 
-const BRIDGE_URL = 'http://127.0.0.1:5005';
-
 // Proxy commands to Python bridge
 async function sendToBridge(bridgeIp: string, endpoint: string, data: any): Promise<any> {
-  const url = `http://127.0.0.1:5005${endpoint}`;
+  const cleanBridgeIp = bridgeIp ? bridgeIp.replace(/^https?:\/\//, '') : '';
+  const baseUrl = cleanBridgeIp && cleanBridgeIp !== '127.0.0.1:5005' ? `http://${cleanBridgeIp}` : BRIDGE_URL;
+  const url = `${baseUrl}${endpoint}`;
   
   try {
     const res = await fetch(url, {
@@ -93,14 +94,14 @@ export async function POST(request: Request) {
     if (!device || device === 'undefined' || device === 'null') {
       device = 'Celestron GPS';
     }
-    // Use provided IP (which might include port) or default to local Python bridge
-    const bridgeIp = ip || '127.0.0.1:5005';
+    // Use provided IP (which might include port) or default to BRIDGE_URL
+    const bridgeIp = ip || BRIDGE_URL.replace(/^http:\/\//, '');
     
     if (!action) {
       return NextResponse.json({ error: 'Missing action' }, { status: 400 });
     }
     
-    const raHours = ra !== undefined ? (typeof ra === 'number' ? ra : parseRaToHours(ra)) : undefined;
+    const raHours = ra !== undefined ? (typeof ra === 'number' ? ra / 15.0 : parseRaToHours(ra)) : undefined;
     const decDegrees = dec !== undefined ? (typeof dec === 'number' ? dec : parseDecToDegrees(dec)) : undefined;
     
     let response: unknown;
@@ -149,18 +150,25 @@ export async function POST(request: Request) {
         const { rate } = body;
         response = await sendToBridge(bridgeIp, '/mount/rate', { device, rate });
         break;
-        
+
+      case 'track':
+        // Activer / désactiver le suivi sidéral
+        const enabled = body.enabled !== false; // default true = ON
+        response = await sendToBridge(bridgeIp, '/mount/track', { enabled });
+        break;
+
       default:
         return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
+
     }
 
     const bridgeErr = bridgeCommandFailed(response);
     if (bridgeErr) {
-      return NextResponse.json({ success: false, error: bridgeErr }, { status: 503 });
+      return NextResponse.json({ success: false, error: bridgeErr });
     }
 
     return NextResponse.json({ success: true, response });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: error.message });
   }
 }

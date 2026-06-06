@@ -18,6 +18,8 @@ import { ObjectFinder } from "@/components/telescope/ObjectFinder";
 import { CaptureAndStack } from "@/components/camera/CaptureAndStack";
 import { clientApiUrl } from "@/lib/clientApi";
 import ObservatoryPanel from "@/components/observatory/ObservatoryPanel";
+import { notification } from "@/lib/notificationService";
+import { validateUrl, validateRequired, validateLatitude, validateLongitude, validatePositiveInt, validateMinAlt, validateMaxAlt } from "@/lib/validation";
 
 
 export const ConfigurationMenu = () => {
@@ -211,8 +213,21 @@ const WizardStep = ({ step, title, status, desc, action, language }: any) => {
 
 const HardwareTab = ({ config, updateConfig, language }: any) => {
     const { execute, isPending } = useAstroAction();
+    const [errors, setErrors] = useState<Record<string, string | null>>({});
+
+    const setError = (field: string, msg: string | null) => {
+        setErrors((prev) => ({ ...prev, [field]: msg }));
+    };
 
     const handleTest = async () => {
+        const urlErr = validateUrl(config.astroberryUrl);
+        const drvErr = validateRequired(config.driverInstance);
+        setError("astroberryUrl", urlErr);
+        setError("driverInstance", drvErr);
+        if (urlErr || drvErr) {
+            notification.warning("Corrigez les erreurs avant de tester", { source: "Configuration" });
+            return;
+        }
         await execute(
             () => mockApi.testConnection(config.astroberryUrl, config.driverInstance),
             language === 'fr' ? "TEST DE CONNEXION" : "CONNECTION TEST",
@@ -229,12 +244,26 @@ const HardwareTab = ({ config, updateConfig, language }: any) => {
                 <VStack gap={4}>
                     <Box w="full">
                         <Text fontSize="10px" color="whiteAlpha.700" mb={2}>{t("HW_SERVER_URL", language)}</Text>
-                        <Input bg="rgba(0,0,0,0.3)" borderColor="whiteAlpha.200" value={config.astroberryUrl} onChange={(e) => updateConfig({ astroberryUrl: e.target.value })} />
+                        <Input
+                            bg="rgba(0,0,0,0.3)"
+                            borderColor={errors.astroberryUrl ? "red.400" : "whiteAlpha.200"}
+                            value={config.astroberryUrl}
+                            onChange={(e) => { updateConfig({ astroberryUrl: e.target.value }); setError("astroberryUrl", null); }}
+                            onBlur={() => setError("astroberryUrl", validateUrl(config.astroberryUrl))}
+                        />
+                        {errors.astroberryUrl && <Text fontSize="10px" color="red.400" mt={1}>{errors.astroberryUrl}</Text>}
                     </Box>
                     <HStack w="full" gap={4}>
                         <Box flex={1}>
                             <Text fontSize="10px" color="whiteAlpha.700" mb={2}>{t("HW_DRIVER", language)}</Text>
-                            <Input bg="rgba(0,0,0,0.3)" borderColor="whiteAlpha.200" value={config.driverInstance} onChange={(e) => updateConfig({ driverInstance: e.target.value })} />
+                            <Input
+                                bg="rgba(0,0,0,0.3)"
+                                borderColor={errors.driverInstance ? "red.400" : "whiteAlpha.200"}
+                                value={config.driverInstance}
+                                onChange={(e) => { updateConfig({ driverInstance: e.target.value }); setError("driverInstance", null); }}
+                                onBlur={() => setError("driverInstance", validateRequired(config.driverInstance))}
+                            />
+                            {errors.driverInstance && <Text fontSize="10px" color="red.400" mt={1}>{errors.driverInstance}</Text>}
                         </Box>
                         <Box flex={1}>
                             <Text fontSize="10px" color="whiteAlpha.700" mb={2}>{t("HW_BAUD", language)}</Text>
@@ -266,6 +295,12 @@ const HardwareTab = ({ config, updateConfig, language }: any) => {
 
 const MountTab = ({ config, updateConfig, language }: any) => {
     const { mountLimits, setMountLimits } = useStargazerStore();
+    const [errors, setErrors] = useState<Record<string, string | null>>({});
+
+    const setError = (field: string, msg: string | null) => {
+        setErrors((prev) => ({ ...prev, [field]: msg }));
+    };
+
     return (
         <VStack align="stretch" gap={8}>
             <Text fontSize="sm" color="whiteAlpha.600">{t("MNT_DESC", language)}</Text>
@@ -297,13 +332,36 @@ const MountTab = ({ config, updateConfig, language }: any) => {
                 <HStack gap={4}>
                     <Box flex={1} bg="rgba(0,0,0,0.3)" p={4} borderRadius="8px" border="1px solid rgba(255,255,255,0.05)">
                         <Text fontSize="10px" color="whiteAlpha.500" mb={2}>{t("MNT_MIN_ALT", language)}</Text>
-                        <Input type="number" bg="rgba(0,0,0,0.5)" borderColor="whiteAlpha.200" value={mountLimits.minAlt} onChange={(e) => setMountLimits({ minAlt: parseInt(e.target.value) })} />
+                        <Input
+                            type="number"
+                            bg="rgba(0,0,0,0.5)"
+                            borderColor={errors.minAlt ? "red.400" : "whiteAlpha.200"}
+                            value={mountLimits.minAlt}
+                            onChange={(e) => { setMountLimits({ minAlt: parseFloat(e.target.value) }); setError("minAlt", null); }}
+                            onBlur={() => setError("minAlt", validateMinAlt(mountLimits.minAlt))}
+                        />
+                        {errors.minAlt && <Text fontSize="10px" color="red.400" mt={1}>{errors.minAlt}</Text>}
                     </Box>
                     <Box flex={1} bg="rgba(0,0,0,0.3)" p={4} borderRadius="8px" border="1px solid rgba(255,255,255,0.05)">
                         <Text fontSize="10px" color="whiteAlpha.500" mb={2}>{t("MNT_MAX_ALT", language)}</Text>
-                        <Input type="number" bg="rgba(0,0,0,0.5)" borderColor="whiteAlpha.200" value={mountLimits.maxAlt} onChange={(e) => setMountLimits({ maxAlt: parseInt(e.target.value) })} />
+                        <Input
+                            type="number"
+                            bg="rgba(0,0,0,0.5)"
+                            borderColor={errors.maxAlt ? "red.400" : "whiteAlpha.200"}
+                            value={mountLimits.maxAlt}
+                            onChange={(e) => { setMountLimits({ maxAlt: parseFloat(e.target.value) }); setError("maxAlt", null); }}
+                            onBlur={() => setError("maxAlt", validateMaxAlt(mountLimits.maxAlt))}
+                        />
+                        {errors.maxAlt && <Text fontSize="10px" color="red.400" mt={1}>{errors.maxAlt}</Text>}
                     </Box>
                 </HStack>
+                {errors.minAlt || errors.maxAlt ? null : (
+                    mountLimits.minAlt >= mountLimits.maxAlt && (
+                        <Text fontSize="10px" color="var(--astro-gold)" mt={2}>
+                            {language === 'fr' ? "L'altitude minimum doit être inférieure à l'altitude maximum" : "Min altitude must be less than max altitude"}
+                        </Text>
+                    )
+                )}
             </Box>
         </VStack>
     );
@@ -402,7 +460,12 @@ const ObjectsTab = ({ language }: any) => (
     </VStack>
 );
 
-const CaptureTab = ({ config, updateConfig, language }: any) => (
+const CaptureTab = ({ config, updateConfig, language }: any) => {
+    const [errors, setErrors] = useState<Record<string, string | null>>({});
+    const setError = (field: string, msg: string | null) => {
+        setErrors((prev) => ({ ...prev, [field]: msg }));
+    };
+    return (
     <VStack align="stretch" gap={8}>
         <Text fontSize="sm" color="whiteAlpha.600">{t("CAP_DESC", language)}</Text>
 
@@ -412,7 +475,8 @@ const CaptureTab = ({ config, updateConfig, language }: any) => (
                 <HStack w="full" gap={4}>
                     <Box flex={1}>
                         <Text fontSize="10px" color="whiteAlpha.700" mb={2}>{t("CAP_EXP", language)}</Text>
-                        <Input type="number" bg="rgba(0,0,0,0.5)" borderColor="whiteAlpha.200" value={config.exposureTime} onChange={(e) => updateConfig({ exposureTime: parseInt(e.target.value) })} />
+                        <Input type="number" bg="rgba(0,0,0,0.5)" borderColor={errors.exposureTime ? "red.400" : "whiteAlpha.200"} value={config.exposureTime} onChange={(e) => { updateConfig({ exposureTime: parseInt(e.target.value) }); setError("exposureTime", null); }} onBlur={() => setError("exposureTime", validatePositiveInt(config.exposureTime))} />
+                        {errors.exposureTime && <Text fontSize="10px" color="red.400" mt={1}>{errors.exposureTime}</Text>}
                     </Box>
                     <Box flex={1}>
                         <Text fontSize="10px" color="whiteAlpha.700" mb={2}>{t("CAP_ISO", language)}</Text>
@@ -425,7 +489,8 @@ const CaptureTab = ({ config, updateConfig, language }: any) => (
                     </Box>
                     <Box flex={1}>
                         <Text fontSize="10px" color="whiteAlpha.700" mb={2}>{t("CAP_FRAMES", language)}</Text>
-                        <Input type="number" bg="rgba(0,0,0,0.5)" borderColor="whiteAlpha.200" value={config.frameCount} onChange={(e) => updateConfig({ frameCount: parseInt(e.target.value) })} />
+                        <Input type="number" bg="rgba(0,0,0,0.5)" borderColor={errors.frameCount ? "red.400" : "whiteAlpha.200"} value={config.frameCount} onChange={(e) => { updateConfig({ frameCount: parseInt(e.target.value) }); setError("frameCount", null); }} onBlur={() => setError("frameCount", validatePositiveInt(config.frameCount))} />
+                        {errors.frameCount && <Text fontSize="10px" color="red.400" mt={1}>{errors.frameCount}</Text>}
                     </Box>
                 </HStack>
                 <HStack w="full" gap={4} mt={2}>
@@ -458,26 +523,36 @@ const CaptureTab = ({ config, updateConfig, language }: any) => (
             </VStack>
         </Box>
     </VStack>
-);
+);};
 
 const SystemTab = ({ config, updateConfig, language, setLanguage }: any) => {
     const { execute, isPending } = useAstroAction();
     const envData = useEnvironmentData();
+    const [errors, setErrors] = useState<Record<string, string | null>>({});
+
+    const setError = (field: string, msg: string | null) => {
+        setErrors((prev) => ({ ...prev, [field]: msg }));
+    };
 
     const handleSyncLoc = async () => {
+        const latErr = validateLatitude(config.latitude);
+        const lngErr = validateLongitude(config.longitude);
+        setError("latitude", latErr);
+        setError("longitude", lngErr);
+
         let latStr = config.latitude?.toString().replace(',', '.').trim() || "";
         let lonStr = config.longitude?.toString().replace(',', '.').trim() || "";
         
         let lat = parseFloat(latStr);
         let lon = parseFloat(lonStr);
 
-        // If inputs are empty or invalid, try falling back to browser GPS
-        if (isNaN(lat) || isNaN(lon)) {
+        if (latErr || lngErr) {
             if (envData.latitude !== null && envData.longitude !== null) {
                 lat = envData.latitude;
                 lon = envData.longitude;
             } else {
-                throw new Error('Invalid coordinates and no GPS signal');
+                notification.warning("Coordonnées invalides et pas de signal GPS", { source: "Configuration" });
+                return;
             }
         }
 
@@ -519,11 +594,27 @@ const SystemTab = ({ config, updateConfig, language, setLanguage }: any) => {
                     <HStack w="full" gap={4}>
                         <Box flex={1}>
                             <Text fontSize="10px" color="whiteAlpha.700" mb={2}>{t("SYS_LAT", language)}</Text>
-                            <Input bg="rgba(0,0,0,0.5)" borderColor="whiteAlpha.200" placeholder="48.8566" value={config.latitude} onChange={(e) => updateConfig({ latitude: e.target.value })} />
+                            <Input
+                                bg="rgba(0,0,0,0.5)"
+                                borderColor={errors.latitude ? "red.400" : "whiteAlpha.200"}
+                                placeholder="48.8566"
+                                value={config.latitude}
+                                onChange={(e) => { updateConfig({ latitude: e.target.value }); setError("latitude", null); }}
+                                onBlur={() => setError("latitude", validateLatitude(config.latitude))}
+                            />
+                            {errors.latitude && <Text fontSize="10px" color="red.400" mt={1}>{errors.latitude}</Text>}
                         </Box>
                         <Box flex={1}>
                             <Text fontSize="10px" color="whiteAlpha.700" mb={2}>{t("SYS_LON", language)}</Text>
-                            <Input bg="rgba(0,0,0,0.5)" borderColor="whiteAlpha.200" placeholder="2.3522" value={config.longitude} onChange={(e) => updateConfig({ longitude: e.target.value })} />
+                            <Input
+                                bg="rgba(0,0,0,0.5)"
+                                borderColor={errors.longitude ? "red.400" : "whiteAlpha.200"}
+                                placeholder="2.3522"
+                                value={config.longitude}
+                                onChange={(e) => { updateConfig({ longitude: e.target.value }); setError("longitude", null); }}
+                                onBlur={() => setError("longitude", validateLongitude(config.longitude))}
+                            />
+                            {errors.longitude && <Text fontSize="10px" color="red.400" mt={1}>{errors.longitude}</Text>}
                         </Box>
                     </HStack>
                     <Button size="sm" w="full" variant="outline" colorScheme="cyan" onClick={handleSyncLoc} disabled={isPending}>
@@ -549,7 +640,10 @@ const BridgeTab = ({ config, language }: any) => {
                 setLogs(data.logs);
             }
         } catch (e) {
-            console.error(e);
+            notification.warning("Impossible de charger les logs", {
+              description: e instanceof Error ? e.message : "Erreur inconnue",
+              source: "Bridge",
+            });
         }
     }, [config.astroberryUrl]);
 

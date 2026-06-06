@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Camera, Layers, CheckCircle2, Loader2 } from "lucide-react";
 import { useStargazerStore } from "@/store/useStargazerStore";
 
-const MotionBox = motion(Box);
+const MotionBox = motion.create(Box);
 
 export const CaptureProgress = () => {
   const { captureProgress, stackingProgress, isExposing, language } = useStargazerStore();

@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useStargazerStore } from "@/store/useStargazerStore";
 import React from "react";
+import { notification } from "@/lib/notificationService";
 
 interface StatusCardProps {
     title: string;
@@ -82,7 +83,10 @@ export const InfrastructureStatus = () => {
             try {
                 json = JSON.parse(text);
             } catch (e) {
-                console.error("Failed to parse health JSON:", text);
+                notification.warning("Erreur de données santé", {
+                  description: "Impossible de décoder la réponse du serveur",
+                  source: "Infrastructure",
+                });
                 setError(true);
                 return;
             }
@@ -92,8 +96,11 @@ export const InfrastructureStatus = () => {
                 useStargazerStore.getState().setDetectedDevices(json.camera.device, json.mount.device);
             }
             setError(false);
-        } catch (e) {
-            console.error(e);
+        } catch (e: any) {
+            notification.error("Impossible de récupérer l'état", {
+              description: e?.message || "Le serveur est peut-être hors ligne",
+              source: "Infrastructure",
+            });
             setError(true);
         } finally {
             setLoading(false);

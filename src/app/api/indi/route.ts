@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { BRIDGE_URL } from '@/lib/apiConfig';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,11 +18,7 @@ export async function GET(request: Request) {
     // Proxy for CCD image or other GET endpoints
     if (endpoint === 'ccd/latest') {
         try {
-            const res = await fetch('http://127.0.0.1:5005/ccd/latest', { cache: 'no-store' });
-            // Backend returns 204 when no frame is available yet — pass that
-            // through (rather than mapping to 404) so the polling client can
-            // distinguish "no frame yet" from "endpoint missing" and so the
-            // browser console doesn't log it as a failed resource load.
+            const res = await fetch(`${BRIDGE_URL}/ccd/latest`, { cache: 'no-store' });
             if (res.status === 204) return new Response(null, { status: 204 });
             if (!res.ok) return new Response(null, { status: res.status });
             const blob = await res.blob();
@@ -34,10 +31,10 @@ export async function GET(request: Request) {
     }
 
     try {
-        console.log(`[PROXY] GET /${endpoint}`);
+        console.log(`[PROXY] GET /${endpoint} via ${BRIDGE_URL}`);
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
-        const res = await fetch(`http://127.0.0.1:5005/${endpoint}`, { 
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+        const res = await fetch(`${BRIDGE_URL}/${endpoint}`, { 
             cache: 'no-store',
             signal: controller.signal 
         });
@@ -50,8 +47,6 @@ export async function GET(request: Request) {
             data = { status: res.ok ? "ok" : "error", message: resText };
         }
         
-        // Return structured status for the ping logic
-        // We pass through all fields (RA, DEC, connection states)
         const isOk = data.status === "True" || data.status === "ok";
         return NextResponse.json([{
             ...data,
@@ -59,6 +54,7 @@ export async function GET(request: Request) {
             message: data.status || (res.ok ? "ok" : "error")
         }]);
     } catch (error) {
+        console.error(`[PROXY] Backend unreachable: ${BRIDGE_URL}`);
         return NextResponse.json([{
             status: "False",
             message: "Backend offline"
@@ -73,7 +69,6 @@ export async function POST(request: Request) {
     } catch {
         return NextResponse.json({ error: "Invalid request URL" }, { status: 400 });
     }
-    // Default to 'command' if no specific endpoint is provided in query params
     const endpoint = searchParams.get('endpoint') || 'command';
     
     try {
@@ -83,7 +78,7 @@ export async function POST(request: Request) {
             if (text) body = JSON.parse(text);
         } catch (e) {}
 
-        const res = await fetch(`http://127.0.0.1:5005/${endpoint}`, {
+        const res = await fetch(`${BRIDGE_URL}/${endpoint}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body)

@@ -19,20 +19,26 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import rawpy
 import imageio
-from datetime import datetime
+from datetime import datetime, timezone
 from astropy.coordinates import SkyCoord, EarthLocation, AltAz
 from astropy.time import Time
 import astropy.units as u
-from starlette.responses import StreamingResponse
+from starlette.responses import StreamingResponse, PlainTextResponse
 import collections
 import astroberry as raspi
 import psutil
 from concurrent.futures import ThreadPoolExecutor
 
+from log_config import setup_logging, JSONFormatter
+from metrics import metrics
+
 # --- CACHE ---
 cached_astroberry_status = {"reachable": False, "error": "Initializing..."}
 status_lock = threading.Lock()
 executor = ThreadPoolExecutor(max_workers=2)
+
+BACKEND_VERSION = "2026-05-17-V1"
+BACKEND_START_TIME = datetime.now(timezone.utc)
 
 # Configuration
 INDI_HOST = os.getenv("ASTROBERRY_HOST", os.getenv("INDI_HOST", "astroberry.local"))
@@ -40,11 +46,10 @@ INDI_PORT = int(os.getenv("INDI_PORT", "7624"))
 STORAGE_PATH = os.getenv("STORAGE_PATH", "/Volumes/Data2/captures")
 THUMBNAIL_PATH = os.path.join(STORAGE_PATH, "thumbnails")
 
-# Logger setup part
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger("stargazer-backend")
+# Structured JSON logger
+logger = setup_logging()
 
-# Setup memory log buffer for UI
+# Setup memory log buffer for UI (keeps plain text for compat)
 log_buffer = collections.deque(maxlen=200)
 class BufferHandler(logging.Handler):
     def emit(self, record):
@@ -66,17 +71,49 @@ Path(THUMBNAIL_PATH).mkdir(parents=True, exist_ok=True)
 
 app = FastAPI(title="Stargazer Backend")
 
-# UNIQUE VERSION FOR DEBUGGING: 2026-05-14-V1
+# Import and include framing WebSocket router
+try:
+    from framing import router as framing_router
+    app.include_router(framing_router)
+    logger.info("Framing WebSocket router loaded")
+except Exception as e:
+    logger.warning(f"Framing router not loaded: {e}")
+
 @app.middleware("http")
-async def add_debug_header(request: Request, call_next):
-    logger.info(f"INCOMING REQUEST: {request.method} {request.url.path}")
-    response = await call_next(request)
-    response.headers["X-Backend-Version"] = "2026-05-14-V1"
-    return response
+async def metrics_middleware(request: Request, call_next):
+    path = request.url.path
+    method = request.method
+
+    metrics.inc_active()
+    metrics.inc_request(method, path)
+    start = time.time()
+
+    try:
+        response = await call_next(request)
+        latency = time.time() - start
+        metrics.observe_latency(method, path, latency)
+
+        response.headers["X-Backend-Version"] = BACKEND_VERSION
+
+        extra = {"path": path, "method": method, "latency_ms": round(latency * 1000, 1), "status_code": response.status_code}
+        logger.info(f"{method} {path} {response.status_code} in {latency*1000:.0f}ms", extra=extra)
+        return response
+    except Exception as exc:
+        latency = time.time() - start
+        metrics.inc_error(method, path)
+        metrics.observe_latency(method, path, latency)
+
+        extra = {"path": path, "method": method, "latency_ms": round(latency * 1000, 1), "status_code": 500}
+        logger.error(f"{method} {path} ERROR: {exc}", extra=extra, exc_info=True)
+        return Response(content=f"Internal Server Error: {str(exc)}", status_code=500)
+    finally:
+        metrics.dec_active()
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    logger.error(f"GLOBAL ERROR: {str(exc)}", exc_info=True)
+    metrics.inc_error(request.method, request.url.path)
+    extra = {"path": request.url.path, "method": request.method}
+    logger.error(f"GLOBAL ERROR: {str(exc)}", extra=extra, exc_info=True)
     return Response(content=f"Global Error: {str(exc)}", status_code=500)
 
 app.add_middleware(
@@ -169,6 +206,8 @@ class INDIClient:
         self.ccd_connected: bool = False
         self.mount_slew_state: str = "Idle"
         self.ccd_exposure_state: str = "Idle"
+        self.lat: float = -17.6333 # Tahiti default
+        self.lon: float = -149.6000 # Tahiti default
         self.devices = {} # {device_name: {prop_name: [elements]}}
         self.discovery_time = {} # {device_name: first_seen_timestamp}
         self.thread = threading.Thread(target=self.run_loop)
@@ -503,6 +542,17 @@ class INDIClient:
                 elif state == "Ok": self.mount_slew_state = "Idle"
                 elif state == "Alert": self.mount_slew_state = "Error"
 
+            # 2.5 GPS / Geographic updates
+            if 'GEOGRAPHIC_COORD' in xml_str:
+                lat_match = re.search(r'name="LAT"[^>]*>([\d\.\-\s\n]+)<', xml_str)
+                lon_match = re.search(r'name="LONG"[^>]*>([\d\.\-\s\n]+)<', xml_str)
+                if lat_match:
+                    try: self.lat = float(lat_match.group(1).strip())
+                    except: pass
+                if lon_match:
+                    try: self.lon = float(lon_match.group(1).strip())
+                    except: pass
+
             # 3. Hardware state updates
             if 'name="TELESCOPE_PARK"' in xml_str:
                 self.mount_parked = ('name="PARK">On' in xml_str)
@@ -764,21 +814,37 @@ def _device_summary() -> dict:
 
 @app.get("/health")
 async def health():
-    ccd_port = _extract_prop_value(indi.device_ccd, "DEVICE_PORT", "PORT")
+    ccd_port = _extract_prop_value(indi.device_ccd, "DEVICE_PORT", "PORT") if hasattr(indi, "device_ccd") else ""
+    mem = psutil.virtual_memory()
+    uptime_seconds = (datetime.now(timezone.utc) - BACKEND_START_TIME).total_seconds()
     return {
         "status": "ok",
-        "indi_connected": indi.connected,
-        "mount_connected": indi.mount_connected,
-        "ccd_connected": indi.ccd_connected,
-        "ra": format_ra(indi.mount_ra),
-        "dec": format_dec(indi.mount_dec),
-        "ra_raw": indi.mount_ra,
-        "dec_raw": indi.mount_dec,
-        "device_mount": indi.device_mount,
-        "device_ccd": indi.device_ccd,
+        "version": BACKEND_VERSION,
+        "uptime_seconds": uptime_seconds,
+        "uptime_human": f"{int(uptime_seconds // 3600)}h{int((uptime_seconds % 3600) // 60)}m",
+        "indi_connected": indi.connected if hasattr(indi, "connected") else False,
+        "mount_connected": indi.mount_connected if hasattr(indi, "mount_connected") else False,
+        "ccd_connected": indi.ccd_connected if hasattr(indi, "ccd_connected") else False,
+        "ra": format_ra(indi.mount_ra) if hasattr(indi, "mount_ra") else "0h",
+        "dec": format_dec(indi.mount_dec) if hasattr(indi, "mount_dec") else "0°",
+        "lat": indi.lat if hasattr(indi, "lat") else 0.0,
+        "lon": indi.lon if hasattr(indi, "lon") else 0.0,
+        "device_mount": indi.device_mount if hasattr(indi, "device_mount") else "",
+        "device_ccd": indi.device_ccd if hasattr(indi, "device_ccd") else "",
         "ccd_port": ccd_port,
-        "latest_frame_size": len(indi.latest_frame) if indi.latest_frame else 0
+        "latest_frame_size": len(indi.latest_frame) if (hasattr(indi, "latest_frame") and indi.latest_frame) else 0,
+        "memory_percent": round(mem.percent, 1),
+        "memory_used_gb": round(mem.used / (1024**3), 1),
+        "cpu_percent": psutil.cpu_percent(interval=0.1),
+        "process_count": len(psutil.pids()),
+        "total_requests": sum(metrics._requests_total.values()),
+        "total_errors": sum(metrics._errors_total.values()),
+        "active_requests": metrics._active_requests,
     }
+
+@app.get("/metrics")
+async def prometheus_metrics():
+    return PlainTextResponse(metrics.generate_prometheus(), media_type="text/plain")
 
 @app.get("/debug/indi")
 async def debug_indi():
@@ -817,22 +883,37 @@ async def mount_jog(req: JogRequest):
         if not indi or not indi.connected:
             return {"success": False, "error": "Matériel déconnecté"}
 
-        # Logic: FOV control (stars move in the direction of the arrow)
-        if req.direction == "up":
-            prop, val = "TELESCOPE_MOTION_NS", "MOTION_SOUTH"
-        elif req.direction == "down":
-            prop, val = "TELESCOPE_MOTION_NS", "MOTION_NORTH"
-        elif req.direction == "left":
-            prop, val = "TELESCOPE_MOTION_WE", "MOTION_EAST"
-        else:
-            prop, val = "TELESCOPE_MOTION_WE", "MOTION_WEST"
-
         state_val = "On" if req.state == "start" else "Off"
-        xml = f'<newSwitchVector device="{device}" name="{prop}"><oneSwitch name="{val}">{state_val}</oneSwitch></newSwitchVector>'
+        xmls = []
         
-        # Use standard send method which is safer and handles connection checks
-        ok = indi.send(xml)
-        if not ok:
+        # Split direction to support diagonals (e.g. "up-left")
+        directions = req.direction.split("-")
+        for d in directions:
+            # Logic: FOV control (stars move in the direction of the arrow)
+            if d == "up":
+                prop, val = "TELESCOPE_MOTION_NS", "MOTION_SOUTH"
+            elif d == "down":
+                prop, val = "TELESCOPE_MOTION_NS", "MOTION_NORTH"
+            elif d == "left":
+                prop, val = "TELESCOPE_MOTION_WE", "MOTION_EAST"
+            elif d == "right":
+                prop, val = "TELESCOPE_MOTION_WE", "MOTION_WEST"
+            else:
+                continue
+                
+            xml = f'<newSwitchVector device="{device}" name="{prop}"><oneSwitch name="{val}">{state_val}</oneSwitch></newSwitchVector>'
+            xmls.append(xml)
+            
+        if not xmls:
+            return {"success": False, "error": f"Invalid direction: {req.direction}"}
+            
+        all_ok = True
+        for xml in xmls:
+            ok = indi.send(xml)
+            if not ok:
+                all_ok = False
+                
+        if not all_ok:
             return {"success": False, "error": "INDI send failed"}
             
         return {"success": True}
@@ -859,7 +940,10 @@ async def mount_rate(req: RateRequest):
 async def mount_slew_internal(device: str, ra: float, dec: float, sync: bool = False):
     """
     Unified slew/sync logic for INDI mounts (especially Celestron NexStar).
-    Expects RA and DEC in degrees from frontend.
+    RA in decimal hours, DEC in decimal degrees from the Next.js proxy.
+    
+    IMPORTANT: Notifies framing system to pause live view during slew
+    to avoid blocking the USB/INDI bus.
     """
     if not device or device == "":
         device = indi.device_mount
@@ -868,11 +952,20 @@ async def mount_slew_internal(device: str, ra: float, dec: float, sync: bool = F
         logger.error("Slew failed: INDI not connected")
         return {"success": False, "error": "Hardware offline"}
 
-    # Correct RA conversion: Frontend sends degrees, INDI expects decimal hours
-    # ra_deg / 15.0 = decimal hours
-    ra_hours = ra / 15.0 if ra > 24 else ra # Safety check: if already < 24, assume it might be hours (but usually it's deg)
+    # RA is now always in decimal hours from the Next.js proxy (/api/indi/mount converts deg→hours).
+    # This ensures we don't double-convert.
+    ra_hours = ra
     
     logger.info(f"{'Syncing' if sync else 'Slewing'} {device} to RA={ra} deg ({ra_hours:.4f}h), DEC={dec} deg")
+    
+    # === CRITICAL: Notify framing system that slew started ===
+    # This prevents live view from blocking the USB bus during movement
+    try:
+        from framing import framing_state
+        framing_state.set_slewing(True)
+        logger.info("Framing system notified: slew START")
+    except ImportError:
+        pass  # Framing module not loaded - that's OK
 
     if indi.mount_parked and not sync:
         logger.warning(f"Mount {device} is parked. Attempting to unpark before slew.")
@@ -897,10 +990,33 @@ async def mount_slew_internal(device: str, ra: float, dec: float, sync: bool = F
         
         if not sync:
             indi.mount_slew_state = "Busy"
+        else:
+            # CRITICAL: After SYNC, restore TRACK mode so the mount resumes
+            # sidereal tracking and the next GoTo works correctly.
+            await asyncio.sleep(0.3)
+            indi.send(f'<newSwitchVector device="{device}" name="ON_COORD_SET"><oneSwitch name="TRACK">On</oneSwitch></newSwitchVector>')
+            logger.info(f"Mount SYNC complete — ON_COORD_SET restored to TRACK")
+
+        # === CRITICAL: Notify framing system that slew is complete ===
+        # Live view can resume after 2 second settle time
+        try:
+            from framing import framing_state
+            framing_state.set_slewing(False)
+            logger.info("Framing system notified: slew END")
+        except ImportError:
+            pass
 
         return {"success": True, "message": f"{'Sync' if sync else 'Slew'} initiated to {ra}, {dec}", "state": "Busy"}
     except Exception as e:
         logger.error(f"Slew internal error: {e}")
+        
+        # Always clear slew state on error
+        try:
+            from framing import framing_state
+            framing_state.set_slewing(False)
+        except ImportError:
+            pass
+            
         return {"success": False, "error": str(e)}
 
 @app.post("/mount/slew")
@@ -1183,15 +1299,35 @@ async def get_astro_coords(req: CoordsRequest):
     altaz = target.transform_to(AltAz(obstime=time, location=obs))
     return {"success": True, "alt": altaz.alt.deg, "az": altaz.az.deg}
 
-@app.post("/hardware/connect")
-async def hardware_connect():
-    """Manually trigger connection for all known hardware devices."""
-    if not indi.connected:
-        return {"success": False, "error": "INDI bridge not connected to server"}
-    
-    indi._safe_connect_device(indi.device_mount)
-    indi._safe_connect_device(indi.device_ccd)
-    return {"success": True, "message": "Connection commands sent"}
+
+class AltAzToRaDecRequest(BaseModel):
+    alt: float   # altitude in degrees (above horizon)
+    az:  float   # azimuth in degrees (N=0, E=90)
+    lat: float   # observer latitude
+    lon: float   # observer longitude
+    height: float = 0.0  # altitude above sea level in metres
+
+
+@app.post("/astro/altaz_to_radec")
+async def altaz_to_radec(req: AltAzToRaDecRequest):
+    """Inverse of /astro/coords — convert local Alt/Az to equatorial RA/Dec.
+
+    Uses the observer's position and the current UTC time to determine the
+    Local Sidereal Time, then transforms into the ICRS frame.
+    Returns RA in decimal *hours* (0–24) and Dec in decimal *degrees*.
+    """
+    obs = EarthLocation(lat=req.lat*u.deg, lon=req.lon*u.deg, height=req.height*u.m)
+    time = Time(datetime.utcnow())
+    altaz_frame = AltAz(obstime=time, location=obs)
+    coord = SkyCoord(alt=req.alt*u.deg, az=req.az*u.deg, frame=altaz_frame)
+    icrs  = coord.transform_to('icrs')
+    logger.info(f"AltAz→RaDec: Alt={req.alt:.1f}° Az={req.az:.1f}° → RA={icrs.ra.hour:.4f}h Dec={icrs.dec.deg:.4f}°")
+    return {
+        "success": True,
+        "ra":  icrs.ra.hour,   # decimal hours
+        "dec": icrs.dec.deg,   # decimal degrees
+    }
+
 
 @app.post("/mount/sync_current")
 async def mount_sync_current():
@@ -1252,22 +1388,31 @@ async def video_feed():
 
 @app.post("/ccd/stream/start")
 async def ccd_stream_start():
-    dev = (indi.device_ccd or "GPhoto CCD").strip()
+    dev = (indi.device_ccd or "Canon DSLR EOS 600D").strip()
     if not indi.connected:
         return {"success": False, "error": "INDI bridge not connected"}
-    # Ensure it's connected first just in case
-    ok = indi.send(f'<newSwitchVector device="{dev}" name="CONNECTION"><oneSwitch name="CONNECT">On</oneSwitch></newSwitchVector>')
-    if not ok:
-        return {"success": False, "error": "INDI send failed"}
-    # Give it a tiny bit of time to connect if it wasn't
-    time.sleep(0.5)
-    # Enable live view (mirror up) - viewfinder0 is "On" (Live View)
-    indi.send(f'<newSwitchVector device="{dev}" name="viewfinder"><oneSwitch name="viewfinder0">On</oneSwitch></newSwitchVector>')
-    time.sleep(1)
-    # Set MJPEG encoder which is often required for live view stream on DSLR
+    
+    # 1. Force HIGH QUALITY and proper compression
+    indi.send(f'<newSwitchVector device="{dev}" name="CCD_COMPRESSION"><oneSwitch name="OFF">On</oneSwitch></newSwitchVector>')
+    
+    # 2. Set UPLOAD MODE to CLIENT (Crucial for streaming)
+    indi.send(f'<newSwitchVector device="{dev}" name="UPLOAD_MODE"><oneSwitch name="UPLOAD_CLIENT">On</oneSwitch></newSwitchVector>')
+
+    # 2.5 Force stream encoder to MJPEG format (required for browser rendering)
     indi.send(f'<newSwitchVector device="{dev}" name="CCD_STREAM_ENCODER"><oneSwitch name="MJPEG">On</oneSwitch></newSwitchVector>')
-    # Turn on live stream
+
+    # 2.7 Raise preview FPS limit to 30 FPS (default is 10 in the driver)
+    indi.send(f'<newNumberVector device="{dev}" name="LIMITS"><oneNumber name="LIMITS_PREVIEW_FPS">30</oneNumber></newNumberVector>')
+
+    # 3. Enable viewfinder (mirror up) - This is the DSLR specific live view trigger
+    # Using BOTH common ways to ensure compatibility
+    indi.send(f'<newSwitchVector device="{dev}" name="viewfinder"><oneSwitch name="viewfinder0">On</oneSwitch></newSwitchVector>')
     indi.send(f'<newSwitchVector device="{dev}" name="CCD_VIDEO_STREAM"><oneSwitch name="STREAM_ON">On</oneSwitch></newSwitchVector>')
+    
+    # 4. Request fast stream if available
+    indi.send(f'<newNumberVector device="{dev}" name="CCD_STREAM_FRAME"><oneNumber name="CCD_STREAM_FRAME_DIVIDER">1</oneNumber></newNumberVector>')
+    
+    logger.info(f"LIVE VIEW STARTED on {dev}")
     return {"success": True}
 
 @app.post("/ccd/stream/stop")
@@ -1291,6 +1436,27 @@ class MountActionRequest(BaseModel):
 class TrackRequest(BaseModel):
     enabled: bool
 
+def _get_pm2_bin() -> str:
+    """Find the absolute path of the pm2 binary, with fallback options."""
+    import shutil
+    pm2_bin = shutil.which("pm2")
+    if pm2_bin:
+        return pm2_bin
+    import glob
+    home = os.path.expanduser("~")
+    fallbacks = [
+        "/opt/homebrew/bin/pm2",
+        "/usr/local/bin/pm2",
+    ]
+    nvm_paths = glob.glob(os.path.join(home, ".nvm/versions/node/*/bin/pm2"))
+    if nvm_paths:
+        fallbacks.extend(nvm_paths)
+    for f in fallbacks:
+        if os.path.exists(f):
+            return f
+    return "pm2"
+
+
 @app.get("/api/indi/health-full")
 @app.get("/health/full")
 async def health_full():
@@ -1301,11 +1467,12 @@ async def health_full():
     cpu = psutil.cpu_percent(interval=0.5)
     mem = psutil.virtual_memory()
     disk = psutil.disk_usage('/')
-    pm2_result = subprocess.run(
-        ["pm2", "jlist"], capture_output=True, text=True
-    )
     pm2_apps = []
     try:
+        pm2_bin = _get_pm2_bin()
+        pm2_result = subprocess.run(
+            [pm2_bin, "jlist"], capture_output=True, text=True
+        )
         apps = json.loads(pm2_result.stdout)
         for a in apps:
             pm2_apps.append({
@@ -1316,8 +1483,8 @@ async def health_full():
                 "cpu": a.get("monit", {}).get("cpu"),
                 "memory": a.get("monit", {}).get("memory"),
             })
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning(f"Failed to query PM2 status: {e}")
 
     # --- KStars ---
     kstars_running = any(
@@ -1445,18 +1612,59 @@ async def astroberry_indi_logs(lines: int = 50):
     return {"logs": logs}
 
 
+@app.post("/launch_ekos")
+async def launch_ekos():
+    logger.info("Triggering Ekos/KStars launch on remote...")
+    loop = asyncio.get_event_loop()
+    # KStars usually needs a bit of time to start its INDI server
+    await loop.run_in_executor(executor, raspi.start_indi)
+    return {"success": True, "message": "Ekos launch sequence triggered"}
+
+@app.post("/restart_kstars")
+async def restart_kstars():
+    logger.info("Restarting KStars on remote...")
+    loop = asyncio.get_event_loop()
+    await loop.run_in_executor(executor, raspi.restart_indi)
+    return {"success": True, "message": "KStars restart triggered"}
+
 @app.post("/reconnect")
 async def reconnect_indi():
-    logger.info("Force reconnecting INDI bridge and remote server...")
-    # 1. Restart remote indiserver in background
+    logger.info("User requested full INDI/Hardware stack reconnection")
+    # 1. Close local socket
+    indi.connected = False
+    if indi.sock:
+        try: indi.sock.close()
+        except: pass
+    
+    # 2. Restart remote services
     loop = asyncio.get_event_loop()
     await loop.run_in_executor(executor, raspi.restart_indi)
     
-    # 2. Reconnect local client (also uses SSH if restart_remote=True, so run in executor)
-    await asyncio.sleep(3)
-    await loop.run_in_executor(executor, indi.reconnect)
-    return {"success": True, "message": "Full hardware stack reconnection triggered"}
+    # 3. Wait and reconnect local bridge
+    await asyncio.sleep(2.0)
+    success = await loop.run_in_executor(executor, indi.connect)
+    return {"success": success, "message": "Full stack reconnection " + ("successful" if success else "failed")}
 
+@app.post("/hardware/connect")
+async def hardware_connect():
+    """Manually trigger connection for all known hardware devices."""
+    if not indi.connected:
+        return {"success": False, "error": "INDI bridge not connected to server"}
+    
+    logger.info("Manual hardware connect triggered")
+    # Send a broad getProperties first to discover everything
+    indi.send('<getProperties version="1.7"/>')
+    await asyncio.sleep(0.5)
+    
+    indi._safe_connect_device(indi.device_mount)
+    indi._safe_connect_device(indi.device_ccd)
+    return {"success": True, "message": "Connection commands sent"}
+
+
+@app.post("/astroberry/indi/restart")
+async def astroberry_indi_restart():
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(executor, raspi.restart_indi)
 
 @app.post("/astroberry/reboot")
 async def astroberry_reboot(req: MountActionRequest):
@@ -1486,6 +1694,139 @@ async def logs_stream():
               headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
+# ── AUTO-ALIGN / PLATE SOLVE ────────────────────────────────────────────────
+
+class AutoAlignSolveRequest(BaseModel):
+    image_b64: str          # JPEG image encoded as base64
+    scale_low: float = 0.1  # field width lower bound in degrees
+    scale_high: float = 5.0 # field width upper bound in degrees
+
+@app.post("/autoalign/solve")
+async def autoalign_solve(req: AutoAlignSolveRequest):
+    """
+    Plate-solve a JPEG image using solve-field (astrometry.net CLI) on Astroberry.
+    Receives the image as a base64-encoded JPEG blob, copies it to Astroberry via
+    SSH, invokes solve-field, parses the WCS result, and returns RA/DEC in decimal.
+
+    Returns:
+        { success: True, ra: float (decimal hours), dec: float (decimal degrees) }
+        { success: False, error: str }
+    """
+    import subprocess, tempfile, struct
+
+    astroberry_host = INDI_HOST  # e.g. "astroberry.local"
+    ssh_user = os.getenv("ASTROBERRY_USER", "astroberry")
+    ssh_key  = os.getenv("ASTROBERRY_SSH_KEY", "")   # optional path to private key
+
+    try:
+        # --- 1. Decode the incoming JPEG ---
+        try:
+            img_bytes = base64.b64decode(req.image_b64)
+        except Exception as e:
+            return {"success": False, "error": f"base64 decode failed: {e}"}
+
+        if len(img_bytes) < 100:
+            return {"success": False, "error": "Image too small — capture may have failed"}
+
+        # --- 2. Write image to a local temp file ---
+        with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp:
+            tmp.write(img_bytes)
+            local_path = tmp.name
+
+        remote_dir  = "/tmp/stargazer_solve"
+        remote_img  = f"{remote_dir}/solve_input.jpg"
+        remote_wcs  = f"{remote_dir}/solve_input.wcs"
+        remote_base = f"{remote_dir}/solve_input"
+
+        ssh_base = ["ssh", "-o", "StrictHostKeyChecking=no",
+                    "-o", "ConnectTimeout=10"]
+        if ssh_key:
+            ssh_base += ["-i", ssh_key]
+        ssh_base.append(f"{ssh_user}@{astroberry_host}")
+
+        # --- 3. Ensure remote directory exists ---
+        subprocess.run(ssh_base + [f"mkdir -p {remote_dir}"], timeout=10, check=True)
+
+        # --- 4. Upload the image ---
+        scp_cmd = ["scp", "-o", "StrictHostKeyChecking=no",
+                   "-o", "ConnectTimeout=10"]
+        if ssh_key:
+            scp_cmd += ["-i", ssh_key]
+        scp_cmd += [local_path, f"{ssh_user}@{astroberry_host}:{remote_img}"]
+        subprocess.run(scp_cmd, timeout=15, check=True)
+
+        # --- 5. Check that solve-field is installed ---
+        check = subprocess.run(
+            ssh_base + ["which solve-field"],
+            capture_output=True, text=True, timeout=10
+        )
+        if check.returncode != 0:
+            logger.warning("solve-field not found on Astroberry — plate solve unavailable")
+            return {"success": False, "error": "solve-field not installed on Astroberry. Install astrometry.net: sudo apt-get install astrometry.net"}
+
+        # --- 6. Run solve-field ---
+        solve_cmd = (
+            f"solve-field --no-plots --overwrite "
+            f"--scale-units degwidth "
+            f"--scale-low {req.scale_low} --scale-high {req.scale_high} "
+            f"--dir {remote_dir} "
+            f"--out solve_input "
+            f"{remote_img} "
+            f"2>&1"
+        )
+        logger.info(f"Running solve-field on Astroberry: {solve_cmd}")
+        result = subprocess.run(
+            ssh_base + [solve_cmd],
+            capture_output=True, text=True, timeout=120
+        )
+        logger.info(f"solve-field stdout: {result.stdout[-2000:]}")
+
+        if "Field center: (RA H:M:S, Dec D:M:S)" not in result.stdout \
+                and "Field center: (RA,Dec) = " not in result.stdout:
+            logger.warning(f"solve-field failed or timed out. Output: {result.stdout[-500:]}")
+            return {"success": False, "error": "solve-field could not find a solution. Check star visibility and scale bounds."}
+
+        # --- 7. Parse RA/DEC from stdout ---
+        ra_deg, dec_deg = None, None
+
+        # Pattern: "Field center: (RA,Dec) = (123.456, -45.678) deg."
+        m = re.search(r"Field center.*?RA,Dec\).*?\(([+-]?\d+\.?\d*),\s*([+-]?\d+\.?\d*)\)", result.stdout)
+        if m:
+            ra_deg  = float(m.group(1))
+            dec_deg = float(m.group(2))
+
+        if ra_deg is None:
+            # Pattern: "Field center: (RA H:M:S, Dec D:M:S) = (06:23:45.67, -52:41:23.4)"
+            m2 = re.search(
+                r"Field center.*?RA H:M:S.*?=\s*\((\d+):(\d+):([\d.]+),\s*([+-]?\d+):(\d+):([\d.]+)\)",
+                result.stdout
+            )
+            if m2:
+                ra_deg = (float(m2.group(1)) + float(m2.group(2))/60 + float(m2.group(3))/3600) * 15
+                sign   = -1 if result.stdout[m2.start():m2.end()].find('-') >= 0 else 1
+                dec_deg = sign * (float(m2.group(4).lstrip('-')) + float(m2.group(5))/60 + float(m2.group(6))/3600)
+
+        if ra_deg is None:
+            return {"success": False, "error": "Solved but could not parse RA/DEC from solve-field output"}
+
+        ra_hours = ra_deg / 15.0
+        logger.info(f"Plate solve SUCCESS: RA={ra_hours:.5f}h DEC={dec_deg:.5f}°")
+        return {"success": True, "ra": ra_hours, "dec": dec_deg}
+
+    except subprocess.TimeoutExpired:
+        return {"success": False, "error": "solve-field timed out (>120s). Try shorter exposure or brighter field."}
+    except subprocess.CalledProcessError as e:
+        return {"success": False, "error": f"SSH/SCP command failed: {e}"}
+    except Exception as e:
+        logger.error(f"autoalign_solve error: {e}", exc_info=True)
+        return {"success": False, "error": str(e)}
+    finally:
+        try:
+            os.unlink(local_path)
+        except Exception:
+            pass
+
+
 # --- Backend self-restart ---
 
 @app.post("/backend/restart")
@@ -1495,7 +1836,11 @@ async def backend_restart():
     logger.warning("Backend self-restart requested via API")
     def _restart():
         time.sleep(1)
-        subprocess.run(["pm2", "restart", "stargazer-backend"], capture_output=True)
+        try:
+            pm2_bin = _get_pm2_bin()
+            subprocess.run([pm2_bin, "restart", "stargazer-backend"], capture_output=True)
+        except Exception as e:
+            logger.error(f"Failed to trigger self-restart: {e}")
     threading.Thread(target=_restart, daemon=True).start()
     return {"success": True, "message": "Backend restarting in 1s..."}
 

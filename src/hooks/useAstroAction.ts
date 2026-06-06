@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { toaster } from "@/components/ui/toaster";
 import { useStargazerStore } from "@/store/useStargazerStore";
-import { clientApiUrl } from "@/lib/clientApi";
+import { apiRequest } from "@/lib/apiClient";
+import { notification } from "@/lib/notificationService";
 
 interface ActionOptions {
     method?: string;
@@ -13,6 +13,8 @@ interface ActionOptions {
     loadingMessage?: string;
     showGlobalLoader?: boolean;
     silent?: boolean;
+    timeout?: number;
+    retries?: number;
 }
 
 export const useAstroAction = () => {
@@ -32,67 +34,52 @@ export const useAstroAction = () => {
             errorMessage,
             loadingMessage,
             showGlobalLoader = true,
-            silent = false
+            silent = false,
+            timeout,
+            retries,
         } = options;
 
         setIsPending(true);
         setError(null);
         if (showGlobalLoader) {
-            setGlobalLoading(true, loadingMessage || `EXECUTING: ${label}...`);
+            setGlobalLoading(true, loadingMessage || `EXÉCUTION: ${label}...`);
         }
 
         try {
-            let data;
+            let data: any;
+
             if (typeof endpointOrAction === "function") {
                 data = await endpointOrAction();
             } else {
-                const url =
-                    typeof endpointOrAction === "string" && endpointOrAction.startsWith("/api")
-                        ? clientApiUrl(endpointOrAction)
-                        : endpointOrAction;
-                const res = await fetch(url, {
-                    method,
-                    headers: { "Content-Type": "application/json" },
-                    body: method !== "GET" ? JSON.stringify(body) : undefined
+                const result = await apiRequest(endpointOrAction, {
+                    method: method as any,
+                    body: method !== "GET" ? body : undefined,
+                    silent: true,
+                    label,
+                    timeout,
+                    retries,
                 });
 
-                const text = await res.text();
-                try {
-                    data = JSON.parse(text);
-                } catch (e) {
-                    const cleanText = text.startsWith("<!DOCTYPE")
-                        ? (text.match(/<title>(.*?)<\/title>/)?.[1] || "Server Error (HTML)")
-                        : text.substring(0, 100);
-                    data = { 
-                        success: res.ok, 
-                        message: cleanText || (res.ok ? "Success" : "Invalid response from server") 
-                    };
+                if (!result.success) {
+                    throw new Error(result.error || errorMessage || "Action échouée");
                 }
-                if (!res.ok && !data.success) {
-                    throw new Error(data.message || data.error || errorMessage || `Server error: ${res.status}`);
-                }
+                data = result.data;
             }
 
-            if (data.success || (typeof data.success === 'undefined' && data)) {
-                if (!silent) {
-                    toaster.create({
-                        title: `${label} SUCCESS`,
-                        description: successMessage || data.message || "Command executed successfully.",
-                        type: "success"
-                    });
-                }
-                return { success: true, data };
-            } else {
-                throw new Error(data.message || data.error || errorMessage || "Action failed");
+            if (!silent) {
+                notification.success(`${label} réussi`, {
+                    description: successMessage || data?.message || "Commande exécutée avec succès",
+                });
             }
+            return { success: true, data };
         } catch (e: any) {
-            const msg = e.message || "An unexpected error occurred.";
+            const msg = e.message || "Une erreur inattendue est survenue.";
             setError(msg);
-            toaster.create({
-                title: `${label} FAILED`,
-                description: msg,
-                type: "error"
-            });
+            if (!silent) {
+                notification.error(`${label} a échoué`, {
+                    description: msg,
+                });
+            }
             return { success: false, error: msg };
         } finally {
             setIsPending(false);

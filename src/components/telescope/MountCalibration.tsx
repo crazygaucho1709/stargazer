@@ -5,6 +5,7 @@ import { MoveUpRight, Settings, AlertTriangle, ArrowUp, ArrowDown, ArrowLeft, Ar
 import { useState } from "react";
 import { useStargazerStore } from "@/store/useStargazerStore";
 import { t } from "@/i18n/translations";
+import { notification } from "@/lib/notificationService";
 
 export const MountCalibration = () => {
     const { mountLimits, setMountLimits, alt, az, language, setSlewing, config } = useStargazerStore();
@@ -36,7 +37,12 @@ export const MountCalibration = () => {
                     limits: finalLimits,
                     ip: bridgeIp
                 })
-            }).catch(console.error);
+            }).catch((err) => {
+                notification.error("Échec de la sauvegarde des limites", {
+                  description: err?.message || "Impossible de synchroniser les limites avec la monture",
+                  source: "Monture",
+                });
+            });
         }
     };
 
@@ -48,7 +54,12 @@ export const MountCalibration = () => {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'jog', direction, state: 'start', ip: bridgeIp })
-        }).catch(console.error);
+        }).catch((err) => {
+            notification.error("Échec du déplacement", {
+              description: err?.message || "Impossible de déplacer la monture",
+              source: "Monture",
+            });
+        });
     };
 
     const stopJog = async (direction: 'up' | 'down' | 'left' | 'right') => {
@@ -57,7 +68,12 @@ export const MountCalibration = () => {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'jog', direction, state: 'stop', ip: bridgeIp })
-        }).catch(console.error);
+        }).catch((err) => {
+            notification.warning("Échec de l'arrêt", {
+              description: err?.message || "Impossible d'arrêter le déplacement",
+              source: "Monture",
+            });
+        });
         setSlewing(false);
         setIsMoving(false);
     };
