@@ -654,16 +654,21 @@ const BridgeTab = ({ config, language }: any) => {
         return () => clearInterval(interval);
     }, [fetchLogs]);
 
-    const handleAction = async (action: 'reconnect' | 'restart_kstars') => {
+    const handleAction = async (action: 'reconnect' | 'restart_kstars' | 'autofix') => {
         setStatus({ type: 'loading', msg: '' });
         try {
-            const res = await fetch(clientApiUrl('/api/indi/reconnect'), {
+            const endpoint = action === 'autofix' ? '/api/indi/autofix' : '/api/indi/reconnect';
+            const res = await fetch(clientApiUrl(endpoint), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action, ip: config.astroberryUrl })
             });
             const data = await res.json();
-            setStatus({ type: data.success ? 'success' : 'error', msg: data.message || data.error });
+            if (action === 'autofix') {
+                setStatus({ type: data.success ? 'success' : 'error', msg: data.actions ? data.actions.join(' -> ') : (data.error || 'Erreur inconnue') });
+            } else {
+                setStatus({ type: data.success ? 'success' : 'error', msg: data.message || data.error });
+            }
         } catch (e: any) {
             setStatus({ type: 'error', msg: e.message });
         }
@@ -676,9 +681,9 @@ const BridgeTab = ({ config, language }: any) => {
             </Text>
 
             <HStack gap={4}>
-                <Button flex={1} bg="var(--astro-gold)" color="black" _hover={{ bg: "#e69c3a" }} onClick={() => handleAction('reconnect')} disabled={status.type === 'loading'}>
+                <Button flex={1} bg="var(--astro-gold)" color="black" _hover={{ bg: "#e69c3a" }} onClick={() => handleAction('autofix')} disabled={status.type === 'loading'}>
                     <Icon as={RefreshCw} mr={2} />
-                    {language === 'fr' ? "Reconnecter Bridge INDI" : "Reconnect INDI Bridge"}
+                    {language === 'fr' ? "Auto-Diagnostic & Fix" : "Auto-Diagnostic & Fix"}
                 </Button>
                 <Button flex={1} variant="outline" colorScheme="red" onClick={() => handleAction('restart_kstars')} disabled={status.type === 'loading'}>
                     <Icon as={Power} mr={2} />

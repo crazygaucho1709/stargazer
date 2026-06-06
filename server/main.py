@@ -1108,10 +1108,7 @@ async def mount_sync_master(req: SyncMasterRequest):
     
     indi.send(f'<newNumberVector device="{device}" name="EQUATORIAL_EOD_COORD"><oneNumber name="RA">{eq.ra.hour}</oneNumber><oneNumber name="DEC">{eq.dec.deg}</oneNumber></newNumberVector>')
     indi.send(f'<newSwitchVector device="{device}" name="ON_COORD_SET"><oneSwitch name="SYNC">On</oneSwitch></newSwitchVector>')
-    indi.send(f'<newSwitchVector device="{device}" name="ON_COORD_SET"><oneSwitch name="TRACK">On</oneSwitch></newSwitchVector>')
-    
     return {"success": True}
-
 @app.post("/slew")
 async def slew_telescope(req: SlewRequest):
     """Legacy/Alternate slew endpoint."""
@@ -1120,12 +1117,6 @@ async def slew_telescope(req: SlewRequest):
 @app.get("/logs")
 def get_logs():
     return {"logs": list(log_buffer)}
-
-@app.post("/reconnect")
-def reconnect_indi():
-    logger.info("Force reconnecting INDI bridge...")
-    indi.reconnect()
-    return {"success": True, "message": "Reconnection triggered"}
 
 EKOS_PROFILE = os.getenv("EKOS_PROFILE", "Nexstar4SE")
 
@@ -1361,26 +1352,26 @@ async def get_status():
     }
 
 # --- STREAMING ---
-def mjpeg_generator():
+async def mjpeg_generator():
     """Yield frames from the global INDI client latest_frame."""
-    last_frame_time = 0
+    last_frame_id = None
+    
     while True:
-        with indi.frame_condition:
-            # Wait for a new frame or timeout
-            if not indi.frame_condition.wait(timeout=2.0):
-                # If timeout, maybe send the last frame again or wait
-                if not indi.connected:
-                    break
-                continue
+        if not indi.connected:
+            break
             
-            frame = indi.latest_frame
-            
-        if frame:
+        frame = indi.latest_frame
+        
+        # We check if it's a new frame by identity, since bytes objects are newly allocated
+        if frame and id(frame) != last_frame_id:
+            last_frame_id = id(frame)
             yield (b'--frame\r\n'
                    b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
         
-        # Small sleep to prevent CPU hogging if frames come too fast
-        time.sleep(0.01)
+        # Async sleep allows the event loop to breathe and naturally drops frames 
+        # if the stream is generated faster than the network can send them.
+        # 0.033s is ~30fps max
+        await asyncio.sleep(0.033)
 
 @app.get("/video_feed")
 async def video_feed():

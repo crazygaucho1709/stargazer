@@ -1,6 +1,6 @@
 "use client";
 
-import { Box, Text, Progress, VStack, HStack, Icon, Badge } from "@chakra-ui/react";
+import { Box, Text, Progress, VStack, HStack, Icon, Badge, Portal } from "@chakra-ui/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Camera, Layers, CheckCircle2, Loader2 } from "lucide-react";
 import { useStargazerStore } from "@/store/useStargazerStore";
@@ -13,15 +13,16 @@ export const CaptureProgress = () => {
   if (!isExposing && captureProgress === 0 && stackingProgress === 0) return null;
 
   return (
-    <AnimatePresence>
-      <MotionBox
-        initial={{ opacity: 0, x: 50, scale: 0.95 }}
-        animate={{ opacity: 1, x: 0, scale: 1 }}
-        exit={{ opacity: 0, x: 50, scale: 0.95 }}
-        position="fixed"
-        bottom="100px"
-        right="40px"
-        zIndex="overlay"
+    <Portal>
+      <AnimatePresence>
+        <MotionBox
+          initial={{ opacity: 0, x: 50, scale: 0.95 }}
+          animate={{ opacity: 1, x: 0, scale: 1 }}
+          exit={{ opacity: 0, x: 50, scale: 0.95 }}
+          position="fixed"
+          bottom="100px"
+          right="40px"
+          zIndex="overlay"
         w="340px"
         bg="rgba(10, 15, 30, 0.9)"
         backdropFilter="blur(16px)"
@@ -149,6 +150,7 @@ export const CaptureProgress = () => {
           }
         `}</style>
       </MotionBox>
-    </AnimatePresence>
+      </AnimatePresence>
+    </Portal>
   );
 };
