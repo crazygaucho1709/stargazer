@@ -1660,6 +1660,40 @@ def mount_status():
     }
 
 
+import json
+import os
+
+CONFIG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
+
+@app.get("/config")
+def get_config():
+    if os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE, "r") as f:
+                return json.load(f)
+        except Exception as e:
+            logger.error(f"Error reading config: {e}")
+    return {}
+
+@app.post("/config")
+def save_config(config: dict):
+    try:
+        existing = {}
+        if os.path.exists(CONFIG_FILE):
+            try:
+                with open(CONFIG_FILE, "r") as f:
+                    existing = json.load(f)
+            except:
+                pass
+        existing.update(config)
+        with open(CONFIG_FILE, "w") as f:
+            json.dump(existing, f, indent=2)
+        return {"success": True}
+    except Exception as e:
+        logger.error(f"Error saving config: {e}")
+        return {"success": False, "error": str(e)}
+
+
 # --- Astroberry endpoints ---
 
 @app.get("/astroberry/status")
