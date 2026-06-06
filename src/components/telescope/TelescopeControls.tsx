@@ -52,10 +52,12 @@ export const TelescopeControls = ({ variant }: TelescopeControlsProps) => {
     const { isSlewing, setSlewing, setPosition, config, detectedMount } = useStargazerStore();
     const { execute } = useAstroAction();
     const activeDirectionRef = React.useRef<'up' | 'down' | 'left' | 'right' | 'up-left' | 'up-right' | 'down-left' | 'down-right' | null>(null);
+    const requestChainRef = React.useRef<Promise<any>>(Promise.resolve());
     const [slewRate, setSlewRate] = React.useState(5);
 
     const handleRateChange = async (value: number) => {
         const wasMoving = activeDirectionRef.current !== null;
+        const prevDir = activeDirectionRef.current;
         
         // Stop motion if currently moving
         if (wasMoving) {
@@ -72,44 +74,61 @@ export const TelescopeControls = ({ variant }: TelescopeControlsProps) => {
         });
         
         // Restart motion if it was moving
-        if (wasMoving && activeDirectionRef.current) {
-            await handleMoveStart(activeDirectionRef.current);
+        if (wasMoving && prevDir) {
+            await handleMoveStart(prevDir);
         }
     };
 
-    const handleMoveStart = async (direction: 'up' | 'down' | 'left' | 'right' | 'up-left' | 'up-right' | 'down-left' | 'down-right') => {
+    const handleMoveStart = (direction: 'up' | 'down' | 'left' | 'right' | 'up-left' | 'up-right' | 'down-left' | 'down-right') => {
         activeDirectionRef.current = direction;
         setSlewing(true);
         
-        // Execute movement via hook
-        const result = await execute('/api/indi/mount', `SLEW ${direction.toUpperCase()}`, {
-            body: {
-                action: 'jog',
-                direction: direction,
-                state: 'start',
-                duration: 0.5,
-                device: detectedMount,
-                ip: config.astroberryUrl
-            },
-            showGlobalLoader: false,
-            silent: true // No toast for movements
+        const promise = requestChainRef.current.then(async () => {
+            // Check if we are still supposed to start in this direction (prevent race condition if stopped before we start)
+            if (activeDirectionRef.current !== direction) return;
+            
+            const result = await execute('/api/indi/mount', `SLEW ${direction.toUpperCase()}`, {
+                body: {
+                    action: 'jog',
+                    direction: direction,
+                    state: 'start',
+                    duration: 0.5,
+                    device: detectedMount,
+                    ip: config.astroberryUrl
+                },
+                showGlobalLoader: false,
+                silent: true // No toast for movements
+            });
+            if (!result.success) setSlewing(false);
+        }).catch((err) => {
+            console.error("Move start failed:", err);
+            setSlewing(false);
         });
-        if (!result.success) setSlewing(false);
+        
+        requestChainRef.current = promise;
+        return promise;
     };
 
-    const handleMoveStop = async () => {
+    const handleMoveStop = () => {
         const dir = activeDirectionRef.current;
-        if (!dir) return;
+        if (!dir) return Promise.resolve();
 
         activeDirectionRef.current = null;
 
-        await execute('/api/indi/mount', "HALT", {
-            body: { action: 'jog', direction: dir, state: 'stop', device: detectedMount, ip: config.astroberryUrl },
-            showGlobalLoader: false,
-            silent: true // No toast for stops
+        const promise = requestChainRef.current.then(async () => {
+            await execute('/api/indi/mount', "HALT", {
+                body: { action: 'jog', direction: dir, state: 'stop', device: detectedMount, ip: config.astroberryUrl },
+                showGlobalLoader: false,
+                silent: true // No toast for stops
+            });
+            setSlewing(false);
+        }).catch((err) => {
+            console.error("Move stop failed:", err);
+            setSlewing(false);
         });
 
-        setSlewing(false);
+        requestChainRef.current = promise;
+        return promise;
     };
 
     const handleAbort = async () => {

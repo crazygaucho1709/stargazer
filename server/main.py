@@ -887,27 +887,37 @@ async def mount_jog(req: JogRequest):
         if not indi or not indi.connected:
             return {"success": False, "error": "Matériel déconnecté"}
 
-        state_val = "On" if req.state == "start" else "Off"
         xmls = []
-        
-        # Split direction to support diagonals (e.g. "up-left")
-        directions = req.direction.split("-")
-        for d in directions:
-            # Logic: FOV control (stars move in the direction of the arrow)
-            if d == "up":
-                prop, val = "TELESCOPE_MOTION_NS", "MOTION_SOUTH"
-            elif d == "down":
-                prop, val = "TELESCOPE_MOTION_NS", "MOTION_NORTH"
-            elif d == "left":
-                prop, val = "TELESCOPE_MOTION_WE", "MOTION_EAST"
-            elif d == "right":
-                prop, val = "TELESCOPE_MOTION_WE", "MOTION_WEST"
-            else:
-                continue
-                
-            xml = f'<newSwitchVector device="{device}" name="{prop}"><oneSwitch name="{val}">{state_val}</oneSwitch></newSwitchVector>'
-            xmls.append(xml)
-            
+        if req.state == "stop":
+            # Send stop vectors for both axes. Set all switches to Off to ensure it stops.
+            xmls.append(f'<newSwitchVector device="{device}" name="TELESCOPE_MOTION_NS"><oneSwitch name="MOTION_NORTH">Off</oneSwitch><oneSwitch name="MOTION_SOUTH">Off</oneSwitch></newSwitchVector>')
+            xmls.append(f'<newSwitchVector device="{device}" name="TELESCOPE_MOTION_WE"><oneSwitch name="MOTION_EAST">Off</oneSwitch><oneSwitch name="MOTION_WEST">Off</oneSwitch></newSwitchVector>')
+        else:
+            # Split direction to support diagonals (e.g. "up-left")
+            directions = req.direction.split("-")
+            for d in directions:
+                # Logic: FOV control (stars move in the direction of the arrow)
+                if d == "up":
+                    prop, val = "TELESCOPE_MOTION_NS", "MOTION_SOUTH"
+                elif d == "down":
+                    prop, val = "TELESCOPE_MOTION_NS", "MOTION_NORTH"
+                elif d == "left":
+                    prop, val = "TELESCOPE_MOTION_WE", "MOTION_EAST"
+                elif d == "right":
+                    prop, val = "TELESCOPE_MOTION_WE", "MOTION_WEST"
+                else:
+                    continue
+                    
+                # To be compliant with INDI rules, when starting, turn on the direction we want, and turn off the opposite direction switch
+                # This ensures the AtMostOne rule is explicitly handled.
+                if prop == "TELESCOPE_MOTION_NS":
+                    opposite_val = "MOTION_NORTH" if val == "MOTION_SOUTH" else "MOTION_SOUTH"
+                    xml = f'<newSwitchVector device="{device}" name="{prop}"><oneSwitch name="{val}">On</oneSwitch><oneSwitch name="{opposite_val}">Off</oneSwitch></newSwitchVector>'
+                else: # TELESCOPE_MOTION_WE
+                    opposite_val = "MOTION_EAST" if val == "MOTION_WEST" else "MOTION_WEST"
+                    xml = f'<newSwitchVector device="{device}" name="{prop}"><oneSwitch name="{val}">On</oneSwitch><oneSwitch name="{opposite_val}">Off</oneSwitch></newSwitchVector>'
+                xmls.append(xml)
+
         if not xmls:
             return {"success": False, "error": f"Invalid direction: {req.direction}"}
             
