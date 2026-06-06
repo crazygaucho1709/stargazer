@@ -4,7 +4,7 @@ import { Camera, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Aperture, Se
 import { useStargazerStore } from "@/store/useStargazerStore";
 import { useAstroAction } from "@/hooks/useAstroAction";
 import { Switch } from "@/components/ui/switch";
-import { mockApi } from "@/services/mockApi";
+import { AutofocusWizard } from "@/components/telescope/AutofocusWizard";
 import { useState } from "react";
 
 interface CameraControlsProps {
@@ -50,6 +50,7 @@ export const CameraControls = ({ variant = "standard" }: CameraControlsProps) =>
     
     const { execute, isPending } = useAstroAction();
     const [lastHfr, setLastHfr] = useState<number | null>(null);
+    const [showAutofocus, setShowAutofocus] = useState(false);
 
     const handleFocusAction = async (direction: string) => {
         await execute('/api/indi', `FOCUS ${direction}`, {
@@ -64,12 +65,7 @@ export const CameraControls = ({ variant = "standard" }: CameraControlsProps) =>
     };
 
     const handleCalibrateFocus = async () => {
-        const res = await execute(
-            () => mockApi.runAiFocus(),
-            language === 'fr' ? "CALIBRATION FOCUS" : "FOCUS CALIBRATION",
-            { loadingMessage: language === 'fr' ? "ANALYSE HFR EN COURS..." : "ANALYZING HFR..." }
-        ) as any;
-        if (res?.success) setLastHfr(res.hfr);
+        setShowAutofocus(true);
     };
 
     const handleShoot = async () => {
@@ -95,21 +91,9 @@ export const CameraControls = ({ variant = "standard" }: CameraControlsProps) =>
         clearInterval(interval);
         setCaptureProgress(100);
 
-        if (result?.success) {
-            let currentStack = 0;
-            const stackingInterval = setInterval(() => {
-                currentStack = Math.min(currentStack + 10, 100);
-                setStackingProgress(currentStack);
-            }, 150);
-            await new Promise(r => setTimeout(r, 1500));
-            clearInterval(stackingInterval);
-            setStackingProgress(100);
-        }
-        
         setExposing(false);
         setTimeout(() => {
             setCaptureProgress(0);
-            setStackingProgress(0);
         }, 3000);
     };
 
@@ -242,7 +226,10 @@ export const CameraControls = ({ variant = "standard" }: CameraControlsProps) =>
                             checked={config.showHfrOverlay}
                             onCheckedChange={(e) => {
                                 updateConfig({ showHfrOverlay: e.checked });
-                                if (e.checked) setHfr(3.24);
+                                if (e.checked) {
+                                    // Make real API call later when integrated
+                                    setHfr(3.24);
+                                }
                                 else setHfr(null);
                             }}
                         />

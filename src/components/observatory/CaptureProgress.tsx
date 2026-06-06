@@ -22,7 +22,7 @@ export const CaptureProgress = () => {
           position="fixed"
           bottom="100px"
           right="40px"
-          zIndex="overlay"
+          zIndex={10000}
         w="340px"
         bg="rgba(10, 15, 30, 0.9)"
         backdropFilter="blur(16px)"

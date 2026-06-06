@@ -36,6 +36,7 @@ export const TargetSelector: React.FC<TargetSelectorProps> = ({ onSelectTarget }
     const [exposureTime, setExposureTime] = useState(config.exposureTime || 10);
     const [stackCount, setStackCount] = useState(config.frameCount || 10);
     const [showSettings, setShowSettings] = useState(false);
+    const [isOptimizing, setIsOptimizing] = useState<string | null>(null);
 
     const lat = parseFloat(config.latitude) || 48.8566;
     const lon = parseFloat(config.longitude) || 2.3522;
@@ -106,6 +107,35 @@ export const TargetSelector: React.FC<TargetSelectorProps> = ({ onSelectTarget }
             exposureTime: Math.round(recExp),
             frameCount: recStack,
         });
+    };
+
+    const handleAIOptimize = async (obj: CelestialObject) => {
+        if (!config.aiKey) {
+            alert(language === "fr" ? "Clé API OpenAI manquante dans la configuration." : "OpenAI API key missing in config.");
+            return;
+        }
+        setIsOptimizing(obj.id);
+        try {
+            const res = await fetch('/api/ai/sequence', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ targetName: obj.name, aiKey: config.aiKey })
+            });
+            if (!res.ok) throw new Error("Erreur IA");
+            const data = await res.json();
+            
+            setExposureTime(data.exposureTime);
+            setStackCount(data.frameCount);
+            useStargazerStore.getState().updateConfig({
+                exposureTime: data.exposureTime,
+                isoGain: data.isoGain,
+                frameCount: data.frameCount,
+            });
+        } catch (e) {
+            console.error("AI Optimize Error:", e);
+        } finally {
+            setIsOptimizing(null);
+        }
     };
 
     const handleSelectObject = (obj: CelestialObject) => {
@@ -317,6 +347,13 @@ export const TargetSelector: React.FC<TargetSelectorProps> = ({ onSelectTarget }
                                         onClick={(e) => { e.stopPropagation(); handleAutoExpose(obj); }}>
                                         <Icon as={Zap} boxSize={3} mr={1} />
                                         AUTO
+                                    </Button>
+                                    <Button size="xs" flex={1} bg="var(--astro-gold)" color="black"
+                                        _hover={{ bg: "orange.300" }}
+                                        loading={isOptimizing === obj.id}
+                                        onClick={(e) => { e.stopPropagation(); handleAIOptimize(obj); }}>
+                                        <Icon as={Star} boxSize={3} mr={1} />
+                                        OPTI IA
                                     </Button>
                                     <Button size="xs" flex={1} bg="green.600" color="white"
                                         _hover={{ bg: "green.500" }}

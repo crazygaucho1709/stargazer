@@ -302,15 +302,11 @@ async def capture_framing_frame() -> Optional[str]:
     For now, returns a placeholder.
     """
     try:
-        # Import would be: from main import indi_client
-        # For now, simulate frame capture
-        
-        # In production, this would be actual INDI capture:
-        # frame = indi.capture(frame_time=1.5, iso=6400, resolution="small")
-        
-        # Simulate for development
-        # In real implementation, this connects to indi.py
-        return None  # Placeholder - integrate with actual INDI
+        import main
+        frame_bytes = main.indi.latest_frame
+        if frame_bytes:
+            return base64.b64encode(frame_bytes).decode('utf-8')
+        return None
         
     except Exception as e:
         logger.error(f"Frame capture failed: {e}")

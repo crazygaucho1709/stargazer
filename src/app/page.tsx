@@ -12,7 +12,6 @@ import { GlobalLoader } from "@/components/ui/GlobalLoader";
 import { useStargazerStore } from "@/store/useStargazerStore";
 import { t } from "@/i18n/translations";
 import { useEffect, useState } from "react";
-import { mockApi } from "@/services/mockApi";
 import { canObservatoryTransition, ObservatoryEvent } from "@/lib/observatoryMachine";
 import { useEnvironmentData } from "@/hooks/useEnvironmentData";
 import { notification } from "@/lib/notificationService";

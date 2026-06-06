@@ -4,7 +4,6 @@ import { Box, VStack, HStack, Text, Button, Icon } from "@chakra-ui/react";
 import { BrainCircuit, CloudRain, Star, Sparkles, Wind, Moon, Thermometer, Sun, CloudFog, Cloud } from "lucide-react";
 import { useStargazerStore } from "@/store/useStargazerStore";
 import { t } from "@/i18n/translations";
-import { mockApi } from "@/services/mockApi";
 import { useEnvironmentData } from "@/hooks/useEnvironmentData";
 import { useState, useEffect } from "react";
 
@@ -31,17 +30,22 @@ export const AIAssistant = () => {
             const coords = envData.latitude !== null 
                 ? { lat: envData.latitude, lon: envData.longitude! }
                 : { lat: -17.6797, lon: -149.4068 }; // Tahiti fallback
-            const data = await mockApi.getWeather(coords.lat, coords.lon);
-            if (data.success) {
-                setWeather({
-                    temperature: data.temperature,
-                    windSpeed: data.windSpeed,
-                    humidity: data.humidity,
-                    cloudCover: data.cloudCover,
-                    seeing: data.seeing,
-                    sunrise: data.sunrise,
-                    sunset: data.sunset
-                });
+            try {
+                const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,cloud_cover&daily=sunrise,sunset&timezone=auto`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setWeather({
+                        temperature: data.current?.temperature_2m,
+                        windSpeed: data.current?.wind_speed_10m,
+                        humidity: data.current?.relative_humidity_2m,
+                        cloudCover: data.current?.cloud_cover,
+                        seeing: 2.5, // Not provided by open-meteo easily, using placeholder
+                        sunrise: data.daily?.sunrise?.[0]?.split('T')?.[1],
+                        sunset: data.daily?.sunset?.[0]?.split('T')?.[1]
+                    });
+                }
+            } catch (err) {
+                console.error("Failed to fetch weather", err);
             }
             setLoading(false);
         };
