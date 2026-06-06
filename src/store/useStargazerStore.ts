@@ -83,7 +83,7 @@ interface StargazerState {
     setZoom: (zoom: number) => void;
     addTarget: (target: Target) => void;
     setLiveViewMode: (mode: "NASA" | "CANON") => void;
-    updateConfig: (config: Partial<Config>) => void;
+    updateConfig: (config: Partial<Config>, syncToServer?: boolean) => void;
     setMountLimits: (limits: Partial<MountLimits>) => void;
     setDetectedDevices: (ccd: string, mount: string) => void;
     setSelectedObjectId: (id: string | null) => void;
@@ -208,7 +208,19 @@ export const useStargazerStore = create<StargazerState>()(
             setZoom: (zoom) => set({ zoom }),
             addTarget: (target) => set((state) => ({ targets: [...state.targets, target] })),
             setLiveViewMode: (mode) => set({ liveViewMode: mode }),
-            updateConfig: (newConfig) => set((state) => ({ config: { ...state.config, ...newConfig } })),
+            updateConfig: (newConfig, syncToServer = true) => {
+                set((state) => {
+                    const merged = { ...state.config, ...newConfig };
+                    if (syncToServer && typeof window !== "undefined") {
+                        fetch('/api/indi/config', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(newConfig)
+                        }).catch(e => console.error("Failed to sync config to server", e));
+                    }
+                    return { config: merged };
+                });
+            },
             setMountLimits: (limits) => set((state) => ({ mountLimits: { ...state.mountLimits, ...limits } })),
             setDetectedDevices: (detectedCcd, detectedMount) => set({ detectedCcd, detectedMount }),
             setSelectedObjectId: (selectedObjectId) => set({ selectedObjectId }),

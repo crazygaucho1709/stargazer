@@ -269,6 +269,8 @@ export const AutoAlignWizard = () => {
   const [liveRa,  setLiveRa]  = useState<number | undefined>(); // hours
   const [liveDec, setLiveDec] = useState<number | undefined>(); // degrees
   const [recording, setRecording] = useState<LimitKey | null>(null);
+  const [isMountConnected, setIsMountConnected] = useState<boolean>(true);
+  const [isConnectingMount, setIsConnectingMount] = useState<boolean>(false);
 
   const abortRef  = useRef(false);
   const logEndRef = useRef<HTMLDivElement>(null);
@@ -287,8 +289,12 @@ export const AutoAlignWizard = () => {
     const poll = async () => {
       try {
         const res = await fetch('/api/indi/mount/status', { cache: 'no-store' });
-        if (!res.ok) return;
+        if (!res.ok) {
+          setIsMountConnected(false);
+          return;
+        }
         const data = await res.json();
+        setIsMountConnected(!!data.connected);
         if (!data.connected) return;
         // ra from INDI is in degrees, dec in degrees
         const raHours = (data.ra ?? 0) / 15;
@@ -316,6 +322,15 @@ export const AutoAlignWizard = () => {
     const interval = setInterval(() => { if (active) poll(); }, 2500);
     return () => { active = false; clearInterval(interval); };
   }, [phase, config.latitude, config.longitude]);
+
+  const connectHardware = async () => {
+    setIsConnectingMount(true);
+    try {
+      await fetch('/api/hardware/connect', { method: 'POST' });
+      await new Promise(r => setTimeout(r, 2000));
+    } catch {}
+    setIsConnectingMount(false);
+  };
 
   // ── Record current position as a limit ──
   const recordLimit = async (key: LimitKey) => {
@@ -638,7 +653,26 @@ export const AutoAlignWizard = () => {
               <Text fontSize="8px" color="whiteAlpha.400" letterSpacing="0.06em">
                 {L("POSITION ACTUELLE", "CURRENT POSITION")}
               </Text>
-              {liveAlt !== undefined ? (
+              {!isMountConnected ? (
+                <VStack align="start" gap={1}>
+                  <Text fontSize="8px" color="red.400" fontWeight="bold">
+                    {L("⚠️ TÉLESCOPE DÉCONNECTÉ", "⚠️ MOUNT DISCONNECTED")}
+                  </Text>
+                  <Button
+                    size="2xs"
+                    h="22px"
+                    bg="red.500"
+                    color="white"
+                    _hover={{ bg: "red.400" }}
+                    onClick={connectHardware}
+                    loading={isConnectingMount}
+                    fontSize="8px"
+                    fontWeight="bold"
+                  >
+                    {L("CONNECTER", "CONNECT MOUNT")}
+                  </Button>
+                </VStack>
+              ) : liveAlt !== undefined ? (
                 <>
                   <HStack gap={3}>
                     <VStack align="start" gap={0}>

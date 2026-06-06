@@ -32,6 +32,23 @@ export default function Home() {
     useEffect(() => {
         setMounted(true);
         setStatusText(t("ESTABLISHING_LINK", language));
+
+        // Load configuration from backend disk store
+        const loadServerConfig = async () => {
+            try {
+                const res = await fetch('/api/indi/config');
+                if (res.ok) {
+                    const serverConfig = await res.json();
+                    if (serverConfig && Object.keys(serverConfig).length > 0) {
+                        useStargazerStore.getState().updateConfig(serverConfig, false);
+                        console.log("Loaded server configuration:", serverConfig);
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to load server configuration:", e);
+            }
+        };
+        loadServerConfig();
     }, [language]);
 
     useEffect(() => {
