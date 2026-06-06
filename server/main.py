@@ -19,6 +19,8 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import rawpy
 import imageio
+import cv2
+import numpy as np
 from datetime import datetime, timezone
 from astropy.coordinates import SkyCoord, EarthLocation, AltAz
 from astropy.time import Time
@@ -192,6 +194,7 @@ class INDIClient:
         self.connected = False
         self.mount_connected = False
         self.latest_frame = None
+        self.frame_count = 0
         self.latest_image_path = None
         self.sock = None
         self.socket_lock = threading.Lock()  # Lock for thread-safe socket access
@@ -726,6 +729,7 @@ class INDIClient:
                 # Update latest frame first for real-time display
                 with self.frame_condition:
                     self.latest_frame = raw_bytes
+                    self.frame_count += 1
                     self.frame_condition.notify_all()
                 
                 logger.debug(f"Frame received: {len(raw_bytes)} bytes (Format: {fmt}, Prop: {prop_name})")
@@ -1282,6 +1286,23 @@ async def ccd_latest():
     # the polling LiveView doesn't spam the browser console with 404 errors.
     return Response(status_code=204)
 
+@app.get("/ccd/focus-metric")
+async def ccd_focus_metric():
+    if not indi.latest_frame:
+        return {"success": False, "metric": 0}
+    try:
+        nparr = np.frombuffer(indi.latest_frame, np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_GRAYSCALE)
+        if img is None:
+            return {"success": False, "metric": 0}
+        variance = cv2.Laplacian(img, cv2.CV_64F).var()
+        # Scale to match roughly what we expected (0-10 or so). FWHM is typically 1-10. 
+        # Laplace variance goes from ~100 out of focus to ~5000 in focus. Let's return raw variance.
+        return {"success": True, "metric": variance}
+    except Exception as e:
+        logger.error(f"Error computing focus metric: {e}")
+        return {"success": False, "metric": 0, "error": str(e)}
+
 @app.post("/astro/coords")
 async def get_astro_coords(req: CoordsRequest):
     obs = EarthLocation(lat=req.lat*u.deg, lon=req.lon*u.deg, height=0*u.m)
@@ -1354,7 +1375,7 @@ async def get_status():
 # --- STREAMING ---
 async def mjpeg_generator():
     """Yield frames from the global INDI client latest_frame."""
-    last_frame_id = None
+    last_frame_count = -1
     
     while True:
         if not indi.connected:
@@ -1362,16 +1383,17 @@ async def mjpeg_generator():
             
         frame = indi.latest_frame
         
-        # We check if it's a new frame by identity, since bytes objects are newly allocated
-        if frame and id(frame) != last_frame_id:
-            last_frame_id = id(frame)
+        # We check if it's a new frame by comparing the frame_count
+        if frame and indi.frame_count != last_frame_count:
+            last_frame_count = indi.frame_count
             yield (b'--frame\r\n'
                    b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
         
         # Async sleep allows the event loop to breathe and naturally drops frames 
         # if the stream is generated faster than the network can send them.
-        # 0.033s is ~30fps max
-        await asyncio.sleep(0.033)
+        # We limit the loop to 10 FPS (0.1s) to prevent the browser from queuing frames
+        # and causing massive latency on slow connections.
+        await asyncio.sleep(0.1)
 
 @app.get("/video_feed")
 async def video_feed():
@@ -1416,6 +1438,56 @@ async def ccd_stream_stop():
     # Disable live view (mirror down) - viewfinder1 is "Off" (Viewfinder)
     indi.send(f'<newSwitchVector device="{dev}" name="viewfinder"><oneSwitch name="viewfinder1">On</oneSwitch></newSwitchVector>')
     return {"success": True}
+
+class StackRequest(BaseModel):
+    folder: str
+    darks: str | None = None
+    flats: str | None = None
+    lights_prefix: str = "capture"
+
+@app.post("/ccd/stack")
+async def ccd_stack(req: StackRequest):
+    """Run Siril stacking pipeline on a folder of captures."""
+    import subprocess
+    
+    target_dir = os.path.abspath(os.path.join(STORAGE_PATH, req.folder))
+    if not os.path.exists(target_dir):
+        return {"success": False, "error": f"Directory not found: {req.folder}"}
+        
+    script_path = os.path.join(target_dir, "stack.ssf")
+    script_content = f"""requires 1.2.0
+cd "{target_dir}"
+convert "{req.lights_prefix}" -out=process
+cd process
+register {req.lights_prefix}
+stack r_{req.lights_prefix} rej 3 3 -nonorm -out=../result.fit
+close
+"""
+    
+    with open(script_path, "w") as f:
+        f.write(script_content)
+        
+    # Run siril-cli asynchronously to avoid blocking the backend
+    def run_siril():
+        try:
+            logger.info(f"Starting Siril stack in {target_dir}")
+            process = subprocess.Popen(
+                ["siril-cli", "-s", script_path],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
+            )
+            stdout, stderr = process.communicate(timeout=600)
+            if process.returncode == 0:
+                logger.info(f"Siril stacking completed successfully in {req.folder}")
+            else:
+                logger.error(f"Siril stacking failed in {req.folder}: {stderr}")
+        except Exception as e:
+            logger.error(f"Error running Siril: {e}")
+            
+    threading.Thread(target=run_siril, daemon=True).start()
+    
+    return {"success": True, "message": "Stacking job submitted"}
 
 # ── NEW ENDPOINTS ────────────────────────────────────────────────────────────
 

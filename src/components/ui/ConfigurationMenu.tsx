@@ -9,7 +9,6 @@ import {
 } from "lucide-react";
 import { useStargazerStore } from "@/store/useStargazerStore";
 import { t } from "@/i18n/translations";
-import { mockApi } from "@/services/mockApi";
 import { useEnvironmentData } from "@/hooks/useEnvironmentData";
 import { useAstroAction } from "@/hooks/useAstroAction";
 import { CalibrationWizard } from "@/components/telescope/CalibrationWizard";
@@ -17,6 +16,7 @@ import { AutoAlignWizard } from "@/components/telescope/AutoAlignWizard";
 import { ObjectFinder } from "@/components/telescope/ObjectFinder";
 import { CaptureAndStack } from "@/components/camera/CaptureAndStack";
 import { clientApiUrl } from "@/lib/clientApi";
+import { AutofocusWizard } from "@/components/telescope/AutofocusWizard";
 import ObservatoryPanel from "@/components/observatory/ObservatoryPanel";
 import { notification } from "@/lib/notificationService";
 import { validateUrl, validateRequired, validateLatitude, validateLongitude, validatePositiveInt, validateMinAlt, validateMaxAlt } from "@/lib/validation";
@@ -229,7 +229,10 @@ const HardwareTab = ({ config, updateConfig, language }: any) => {
             return;
         }
         await execute(
-            () => mockApi.testConnection(config.astroberryUrl, config.driverInstance),
+            async () => {
+                const res = await fetch('/api/indi/health-full');
+                return res.json();
+            },
             language === 'fr' ? "TEST DE CONNEXION" : "CONNECTION TEST",
             { loadingMessage: language === 'fr' ? "VÉRIFICATION DE LA LIAISON..." : "VERIFYING LINK..." }
         );
@@ -370,14 +373,10 @@ const MountTab = ({ config, updateConfig, language }: any) => {
 const CameraTab = ({ config, updateConfig, language }: any) => {
     const { execute, isPending } = useAstroAction();
     const [lastHfr, setLastHfr] = useState<number | null>(null);
+    const [showAutofocus, setShowAutofocus] = useState(false);
 
     const handleFocus = async () => {
-        const res = await execute(
-            () => mockApi.runAiFocus(),
-            language === 'fr' ? "CALIBRATION AUTO-FOCUS" : "AUTO-FOCUS CALIBRATION",
-            { loadingMessage: language === 'fr' ? "ANALYSE DU RAYON DE DEMI-FLUX (HFR)..." : "ANALYZING HALF-FLUX RADIUS (HFR)..." }
-        ) as any;
-        if (res?.success) setLastHfr(res.hfr);
+        setShowAutofocus(true);
     };
 
     return (
@@ -418,12 +417,14 @@ const CameraTab = ({ config, updateConfig, language }: any) => {
                         </VStack>
                         <input type="checkbox" checked={config.aiFocus} onChange={(e) => updateConfig({ aiFocus: e.target.checked })} style={{ accentColor: "var(--astro-gold)", width: "18px", height: "18px" }} />
                     </HStack>
-                    <Button size="sm" w="full" bg="var(--astro-gold)" color="black" _hover={{ bg: "#e69c3a" }} onClick={handleFocus} disabled={isPending}>
+                    <Button w="full" bg="var(--astro-gold)" color="black" _hover={{ bg: "#e69c3a" }} onClick={handleFocus} disabled={isPending}>
                         {isPending ? <Spinner size="sm" mr={2} /> : null}
                         {lastHfr !== null ? `HFR CALIBRATED: ${lastHfr.toFixed(2)}` : t("CAM_AI_FOCUS_BTN", language)}
                     </Button>
                 </VStack>
             </Box>
+            
+            {showAutofocus && <AutofocusWizard onClose={() => setShowAutofocus(false)} />}
         </VStack>
     );
 };
@@ -557,7 +558,19 @@ const SystemTab = ({ config, updateConfig, language, setLanguage }: any) => {
         }
 
         await execute(
-            () => mockApi.syncLocation(lat, lon, config.driverInstance || "Celestron GPS"),
+            async () => {
+                const res = await fetch('/api/indi', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        endpoint: 'mount/location', 
+                        lat, 
+                        lon,
+                        device: config.driverInstance || "Celestron GPS"
+                    })
+                });
+                return res.json();
+            },
             language === 'fr' ? "SYNCHRONISATION" : "SYNCING",
             {
                 loadingMessage: language === 'fr' ? "SYNCHRONISATION DE LA POSITION..." : "SYNCING LOCATION...",

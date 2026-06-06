@@ -6,7 +6,6 @@ import { Search, Target, Star, Telescope, MapPin, Clock, Compass, Filter, Chevro
 import { useStargazerStore } from "@/store/useStargazerStore";
 import { CELESTIAL_CATALOG, getVisibleObjects, CelestialObject } from "@/data/celestialCatalog";
 import { t } from "@/i18n/translations";
-import { mockApi } from "@/services/mockApi";
 
 interface ObjectFinderProps {
   onSlew?: (ra: number, dec: number) => void;
@@ -80,11 +79,20 @@ export const ObjectFinder = ({ onSlew }: ObjectFinderProps) => {
         // Update UI position
         setPosition(obj.ra, obj.dec, 45, 180); // Placeholder alt/az
         
-        // Simulate slew time based on distance
-        setTimeout(() => {
-          setSlewing(false);
-          setIsSlewingToTarget(false);
-        }, 3000);
+        // Wait for slew to finish by polling status
+        const pollInterval = setInterval(async () => {
+          try {
+            const statRes = await fetch('/api/indi?endpoint=mount/status');
+            const stat = await statRes.json();
+            if (stat.slew_state === 'IDLE' || stat.slew_state === 'TRACKING') {
+              clearInterval(pollInterval);
+              setSlewing(false);
+              setIsSlewingToTarget(false);
+            }
+          } catch(e) {
+            console.error("Polling error", e);
+          }
+        }, 1500);
       } else {
         throw new Error('Slew failed');
       }

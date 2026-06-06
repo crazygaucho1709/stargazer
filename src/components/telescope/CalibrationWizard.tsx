@@ -1,13 +1,12 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Box, VStack, HStack, Text, Button, Icon, Badge, Flex, Grid, Spinner } from "@chakra-ui/react";
+import { Box, VStack, HStack, Text, Button, Icon, Badge, Flex, Grid, Spinner, Select } from "@chakra-ui/react";
 import { 
   Telescope, Target, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, 
   Settings2, Activity, MapPin, CheckCircle2, AlertTriangle, RefreshCw, X
 } from "lucide-react";
 import { useStargazerStore } from "@/store/useStargazerStore";
-import { mockApi } from "@/services/mockApi";
 import { useAstroAction } from "@/hooks/useAstroAction";
 import { Tooltip } from "@/components/ui/tooltip";
 
@@ -76,10 +75,13 @@ export const CalibrationWizard = () => {
   useEffect(() => {
     if (step.step !== 'alignment') return;
     const updatePos = async () => {
-      const res = await mockApi.getStarPosition(selectedStar.ra, selectedStar.dec);
-      if (res.success && res.alt !== undefined && res.az !== undefined) {
-        setStarAltAz({ alt: res.alt, az: res.az });
-      }
+      try {
+        const res = await fetch(`/api/indi?endpoint=coords&ra=${selectedStar.ra}&dec=${selectedStar.dec}`);
+        const data = await res.json();
+        if (data.success && data.alt !== undefined && data.az !== undefined) {
+          setStarAltAz({ alt: data.alt, az: data.az });
+        }
+      } catch (e) {}
     };
     updatePos();
     const interval = setInterval(updatePos, 10000);
@@ -116,8 +118,9 @@ export const CalibrationWizard = () => {
             instruction: ''
         });
 
-        const ping = await mockApi.ping(config.astroberryUrl, config.driverInstance);
-        if (!ping.success) {
+        const res = await fetch('/api/indi/health-full');
+        const ping = await res.json();
+        if (!ping) {
             throw new Error(language === 'fr' ? 'Connexion échouée.' : 'Connection failed.');
         }
 
@@ -240,7 +243,6 @@ export const CalibrationWizard = () => {
   const saveMinAz = async () => {
     const currentAz = await getCurrentAz();
     setMountLimits({ ...mountLimits, minAz: currentAz });
-    mockApi.saveConfig({ mountLimits: { ...mountLimits, minAz: currentAz } });
     setStep({
       step: 'camera-test',
       isWaitingUser: true,
