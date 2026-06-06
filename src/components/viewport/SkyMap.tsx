@@ -428,13 +428,8 @@ const AladinSkyMap = ({
 
         const setupAladin = async () => {
             if (!containerRef.current || typeof window.A === 'undefined') {
-                    hasContainer: !!containerRef.current, 
-                    hasA: typeof window.A !== 'undefined' 
-                });
                 return;
             }
-
-                containerRef.current.clientWidth, 'x', containerRef.current.clientHeight);
 
             // Clear container
             containerRef.current.innerHTML = '';
