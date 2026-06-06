@@ -8,6 +8,7 @@ import re
 import json
 import asyncio
 import random
+import math
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -131,6 +132,20 @@ app.add_middleware(
 app.mount("/images", StaticFiles(directory=THUMBNAIL_PATH), name="images")
 
 # --- MODELS ---
+
+# --- CONFIG SERVICE IMPORT ---
+from services.config_service import ConfigService, AppConfig
+
+# Endpoint to get configuration
+@app.get("/api/config")
+async def get_config():
+    return ConfigService.load_config()
+
+# Endpoint to save configuration
+@app.post("/api/config")
+async def save_config(config: AppConfig):
+    ConfigService.save_config(config)
+    return {"status": "success", "message": "Session parameters saved"}
 class SlewRequest(BaseModel):
     ra: float
     dec: float
@@ -158,10 +173,10 @@ class SyncMasterRequest(BaseModel):
     device: str = "Celestron GPS"
 
 class CoordsRequest(BaseModel):
-    ra: float
-    dec: float
-    lat: float
-    lon: float
+    ra: float = 0.0
+    dec: float = 0.0
+    lat: float = -17.6333
+    lon: float = -149.6000
 
 # --- INDI CLIENT ---
 # Helper for formatting coordinates
@@ -1315,18 +1330,36 @@ async def ccd_focus_metric():
 
 @app.post("/astro/coords")
 async def get_astro_coords(req: CoordsRequest):
-    obs = EarthLocation(lat=req.lat*u.deg, lon=req.lon*u.deg, height=0*u.m)
-    time = Time(datetime.utcnow())
-    target = SkyCoord(ra=req.ra*u.hourangle, dec=req.dec*u.deg, frame='icrs')
-    altaz = target.transform_to(AltAz(obstime=time, location=obs))
-    return {"success": True, "alt": altaz.alt.deg, "az": altaz.az.deg}
+    try:
+        lat = req.lat
+        lon = req.lon
+        if math.isnan(lat) or math.isinf(lat):
+            lat = -17.6333
+        if math.isnan(lon) or math.isinf(lon):
+            lon = -149.6000
+        obs = EarthLocation(lat=lat*u.deg, lon=lon*u.deg, height=0*u.m)
+        time = Time(datetime.utcnow())
+        
+        ra = req.ra
+        dec = req.dec
+        if math.isnan(ra) or math.isinf(ra):
+            ra = 0.0
+        if math.isnan(dec) or math.isinf(dec):
+            dec = 0.0
+            
+        target = SkyCoord(ra=ra*u.hourangle, dec=dec*u.deg, frame='icrs')
+        altaz = target.transform_to(AltAz(obstime=time, location=obs))
+        return {"success": True, "alt": float(altaz.alt.deg), "az": float(altaz.az.deg)}
+    except Exception as e:
+        logger.error(f"Error in get_astro_coords: {e}")
+        return {"success": False, "error": str(e), "alt": 0.0, "az": 0.0}
 
 
 class AltAzToRaDecRequest(BaseModel):
-    alt: float   # altitude in degrees (above horizon)
-    az:  float   # azimuth in degrees (N=0, E=90)
-    lat: float   # observer latitude
-    lon: float   # observer longitude
+    alt: float = 0.0   # altitude in degrees (above horizon)
+    az:  float = 0.0   # azimuth in degrees (N=0, E=90)
+    lat: float = -17.6333   # observer latitude
+    lon: float = -149.6000   # observer longitude
     height: float = 0.0  # altitude above sea level in metres
 
 
@@ -1338,17 +1371,35 @@ async def altaz_to_radec(req: AltAzToRaDecRequest):
     Local Sidereal Time, then transforms into the ICRS frame.
     Returns RA in decimal *hours* (0–24) and Dec in decimal *degrees*.
     """
-    obs = EarthLocation(lat=req.lat*u.deg, lon=req.lon*u.deg, height=req.height*u.m)
-    time = Time(datetime.utcnow())
-    altaz_frame = AltAz(obstime=time, location=obs)
-    coord = SkyCoord(alt=req.alt*u.deg, az=req.az*u.deg, frame=altaz_frame)
-    icrs  = coord.transform_to('icrs')
-    logger.info(f"AltAz→RaDec: Alt={req.alt:.1f}° Az={req.az:.1f}° → RA={icrs.ra.hour:.4f}h Dec={icrs.dec.deg:.4f}°")
-    return {
-        "success": True,
-        "ra":  icrs.ra.hour,   # decimal hours
-        "dec": icrs.dec.deg,   # decimal degrees
-    }
+    try:
+        lat = req.lat
+        lon = req.lon
+        if math.isnan(lat) or math.isinf(lat):
+            lat = -17.6333
+        if math.isnan(lon) or math.isinf(lon):
+            lon = -149.6000
+        obs = EarthLocation(lat=lat*u.deg, lon=lon*u.deg, height=req.height*u.m)
+        time = Time(datetime.utcnow())
+        altaz_frame = AltAz(obstime=time, location=obs)
+        
+        alt = req.alt
+        az = req.az
+        if math.isnan(alt) or math.isinf(alt):
+            alt = 0.0
+        if math.isnan(az) or math.isinf(az):
+            az = 0.0
+            
+        coord = SkyCoord(alt=alt*u.deg, az=az*u.deg, frame=altaz_frame)
+        icrs  = coord.transform_to('icrs')
+        logger.info(f"AltAz→RaDec: Alt={alt:.1f}° Az={az:.1f}° → RA={icrs.ra.hour:.4f}h Dec={icrs.dec.deg:.4f}°")
+        return {
+            "success": True,
+            "ra":  float(icrs.ra.hour),   # decimal hours
+            "dec": float(icrs.dec.deg),   # decimal degrees
+        }
+    except Exception as e:
+        logger.error(f"Error in altaz_to_radec: {e}")
+        return {"success": False, "error": str(e), "ra": 0.0, "dec": 0.0}
 
 
 @app.post("/mount/sync_current")

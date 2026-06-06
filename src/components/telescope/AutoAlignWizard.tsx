@@ -18,7 +18,8 @@ import {
 } from "@chakra-ui/react";
 import {
   Satellite, Zap, Square, RotateCcw, CheckCircle2, AlertTriangle,
-  ArrowUp, ArrowDown, ArrowLeft, ArrowRight, MapPin, Navigation
+  ArrowUp, ArrowDown, ArrowLeft, ArrowRight, MapPin, Navigation,
+  Camera, Play, Crosshair
 } from "lucide-react";
 import { useStargazerStore } from "@/store/useStargazerStore";
 import { plateSolve, SolvedPosition } from "@/services/plateSolve";
@@ -272,6 +273,12 @@ export const AutoAlignWizard = () => {
   const [isMountConnected, setIsMountConnected] = useState<boolean>(true);
   const [isConnectingMount, setIsConnectingMount] = useState<boolean>(false);
 
+  // Camera live view stream state
+  const [isLiveStreaming, setIsLiveStreaming] = useState(false);
+  const [ccdImage, setCcdImage] = useState<string | null>(null);
+  const [ccdError, setCcdError] = useState(false);
+  const [streamStatus, setStreamStatus] = useState<string>("");
+
   const abortRef  = useRef(false);
   const logEndRef = useRef<HTMLDivElement>(null);
 
@@ -302,18 +309,31 @@ export const AutoAlignWizard = () => {
         setLiveRa(raHours);
         setLiveDec(decDeg);
 
+        const latVal = parseFloat(config.latitude);
+        const lonVal = parseFloat(config.longitude);
+        const safeLat = isNaN(latVal) ? -17.6333 : latVal;
+        const safeLon = isNaN(lonVal) ? -149.6000 : lonVal;
+
         // Convert to Alt/Az via backend
         const convRes = await fetch('/api/indi/astro/coords', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ra: raHours, dec: decDeg, lat: parseFloat(config.latitude), lon: parseFloat(config.longitude) })
+          body: JSON.stringify({ ra: raHours, dec: decDeg, lat: safeLat, lon: safeLon })
         });
         if (convRes.ok) {
           const conv = await convRes.json();
           if (conv.success) {
             setLiveAlt(conv.alt);
             setLiveAz(conv.az);
+          } else {
+            console.warn("Coords conversion returned success: false", conv.error);
+            setLiveAlt(0.0);
+            setLiveAz(0.0);
           }
+        } else {
+          console.warn("Coords API returned non-ok status:", convRes.status);
+          setLiveAlt(0.0);
+          setLiveAz(0.0);
         }
       } catch {}
     };
@@ -322,6 +342,60 @@ export const AutoAlignWizard = () => {
     const interval = setInterval(() => { if (active) poll(); }, 2500);
     return () => { active = false; clearInterval(interval); };
   }, [phase, config.latitude, config.longitude]);
+
+  // ── Camera live stream controls ──
+  const startLiveView = async () => {
+    try {
+      setStreamStatus(L("Démarrage...", "Starting..."));
+      const res = await fetch('/api/indi/liveview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'start' })
+      });
+      if (!res.ok) {
+        let msg = `HTTP ${res.status}`;
+        try {
+          const j = await res.json();
+          if (j.error) msg = j.error;
+        } catch {}
+        setStreamStatus(msg);
+        return;
+      }
+      const streamUrl = `/api/indi/stream?t=${Date.now()}`;
+      setCcdImage(streamUrl);
+      setIsLiveStreaming(true);
+      setStreamStatus("LIVE");
+      setCcdError(false);
+    } catch (e) {
+      setStreamStatus(L("Erreur", "Error"));
+    }
+  };
+
+  const stopLiveView = async () => {
+    try {
+      await fetch('/api/indi/liveview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'stop' })
+      });
+      setIsLiveStreaming(false);
+      setCcdImage(null);
+      setStreamStatus("");
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  // Cleanup live view on unmount
+  useEffect(() => {
+    return () => {
+      fetch('/api/indi/liveview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'stop' })
+      }).catch(() => {});
+    };
+  }, []);
 
   const connectHardware = async () => {
     setIsConnectingMount(true);
@@ -366,6 +440,8 @@ export const AutoAlignWizard = () => {
   const confirmZone = () => {
     const { low, high, left, right } = limits;
     if (!low || !high || !left || !right) return;
+    // Stop live view since we are leaving the limit setup
+    stopLiveView();
     // Build zone — ensure min < max
     const azMin = Math.min(left.az, right.az);
     const azMax = Math.max(left.az, right.az);
@@ -381,10 +457,14 @@ export const AutoAlignWizard = () => {
   // ── Fetch current position as Alt/Az directly ──
   const altazFromRaDec = async (ra: number, dec: number): Promise<{ alt: number; az: number } | null> => {
     try {
+      const latVal = parseFloat(config.latitude);
+      const lonVal = parseFloat(config.longitude);
+      const safeLat = isNaN(latVal) ? -17.6333 : latVal;
+      const safeLon = isNaN(lonVal) ? -149.6000 : lonVal;
       const res = await fetch('/api/indi/astro/coords', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ra, dec, lat: parseFloat(config.latitude), lon: parseFloat(config.longitude) })
+        body: JSON.stringify({ ra, dec, lat: safeLat, lon: safeLon })
       });
       if (!res.ok) return null;
       const data = await res.json();
@@ -394,10 +474,14 @@ export const AutoAlignWizard = () => {
 
   const altazToRaDec = async (alt: number, az: number): Promise<{ ra: number; dec: number } | null> => {
     try {
+      const latVal = parseFloat(config.latitude);
+      const lonVal = parseFloat(config.longitude);
+      const safeLat = isNaN(latVal) ? -17.6333 : latVal;
+      const safeLon = isNaN(lonVal) ? -149.6000 : lonVal;
       const res = await fetch('/api/indi/astro/altaz_to_radec', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ alt, az, lat: parseFloat(config.latitude), lon: parseFloat(config.longitude) })
+        body: JSON.stringify({ alt, az, lat: safeLat, lon: safeLon })
       });
       if (!res.ok) return null;
       const data = await res.json();
@@ -645,133 +729,265 @@ export const AutoAlignWizard = () => {
             </Text>
           </Box>
 
-          {/* Live position + jog pad */}
-          <HStack gap={3} align="center" justify="space-between"
-            bg="rgba(255,255,255,0.02)" borderRadius="8px" p={2.5}
-            border="1px solid rgba(255,255,255,0.06)">
-            <VStack align="start" gap={0.5}>
-              <Text fontSize="8px" color="whiteAlpha.400" letterSpacing="0.06em">
-                {L("POSITION ACTUELLE", "CURRENT POSITION")}
-              </Text>
-              {!isMountConnected ? (
-                <VStack align="start" gap={1}>
-                  <Text fontSize="8px" color="red.400" fontWeight="bold">
-                    {L("⚠️ TÉLESCOPE DÉCONNECTÉ", "⚠️ MOUNT DISCONNECTED")}
+          <Grid templateColumns={{ base: "1fr", md: "1.1fr 0.9fr" }} gap={4} alignItems="start">
+            
+            {/* Left Column: Controls and limits */}
+            <VStack align="stretch" gap={3}>
+              {/* Live position + jog pad */}
+              <HStack gap={3} align="center" justify="space-between"
+                bg="rgba(255,255,255,0.02)" borderRadius="8px" p={2.5}
+                border="1px solid rgba(255,255,255,0.06)">
+                <VStack align="start" gap={0.5}>
+                  <Text fontSize="8px" color="whiteAlpha.400" letterSpacing="0.06em">
+                    {L("POSITION ACTUELLE", "CURRENT POSITION")}
                   </Text>
+                  {!isMountConnected ? (
+                    <VStack align="start" gap={1}>
+                      <Text fontSize="8px" color="red.400" fontWeight="bold">
+                        {L("⚠️ TÉLESCOPE DÉCONNECTÉ", "⚠️ MOUNT DISCONNECTED")}
+                      </Text>
+                      <Button
+                        size="2xs"
+                        h="22px"
+                        bg="red.500"
+                        color="white"
+                        _hover={{ bg: "red.400" }}
+                        onClick={connectHardware}
+                        loading={isConnectingMount}
+                        fontSize="8px"
+                        fontWeight="bold"
+                      >
+                        {L("CONNECTER", "CONNECT MOUNT")}
+                      </Button>
+                    </VStack>
+                  ) : liveAlt !== undefined ? (
+                    <>
+                      <HStack gap={3}>
+                        <VStack align="start" gap={0}>
+                          <Text fontSize="7px" color="whiteAlpha.400">ALT</Text>
+                          <Text fontSize="13px" fontWeight="bold" color="white" fontFamily="monospace" lineHeight="1">{liveAlt.toFixed(1)}°</Text>
+                        </VStack>
+                        <VStack align="start" gap={0}>
+                          <Text fontSize="7px" color="whiteAlpha.400">AZ</Text>
+                          <Text fontSize="13px" fontWeight="bold" color="white" fontFamily="monospace" lineHeight="1">{liveAz!.toFixed(1)}°</Text>
+                        </VStack>
+                      </HStack>
+                      <Text fontSize="7px" color="whiteAlpha.300" fontFamily="monospace">
+                        RA {liveRa !== undefined ? fmtRA(liveRa) : '—'}
+                      </Text>
+                    </>
+                  ) : (
+                    <HStack gap={1}>
+                      <Spinner size="xs" color="whiteAlpha.400" />
+                      <Text fontSize="8px" color="whiteAlpha.400">{L("Lecture INDI...", "Reading INDI...")}</Text>
+                    </HStack>
+                  )}
+                </VStack>
+                <VStack align="center" gap={1}>
+                  <Text fontSize="7px" color="whiteAlpha.400" letterSpacing="0.06em">{L("DÉPLACEMENT FIN", "FINE JOG")}</Text>
+                  <JogPad onJog={jog} />
+                </VStack>
+              </HStack>
+
+              {/* 4 limit rows */}
+              <VStack align="stretch" gap={2}>
+                {LIMIT_KEYS.map(key => {
+                  const meta    = LIMIT_META[key];
+                  const defined = !!limits[key];
+                  const lp      = limits[key];
+                  const isRec   = recording === key;
+                  return (
+                    <Box key={key}
+                      bg={defined ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.2)'}
+                      border="1px solid"
+                      borderColor={defined ? `${meta.color}33` : 'rgba(255,255,255,0.05)'}
+                      borderRadius="8px" p={2.5}
+                    >
+                      <HStack justify="space-between" align="center">
+                        <VStack align="start" gap={0.5} flex={1}>
+                          <HStack gap={1.5}>
+                            <Box w="6px" h="6px" borderRadius="full" bg={meta.color} flexShrink={0} />
+                            <Text fontSize="9px" fontWeight="bold" color="whiteAlpha.700" letterSpacing="0.1em">
+                              {L(meta.fr, meta.en)}
+                            </Text>
+                            {defined && <Text fontSize="8px">✅</Text>}
+                          </HStack>
+                          {defined && lp ? (
+                            <Text fontSize="8px" color="white" fontFamily="monospace">
+                              Alt {lp.alt.toFixed(1)}° / Az {lp.az.toFixed(1)}°
+                            </Text>
+                          ) : (
+                            <Text fontSize="7px" color="whiteAlpha.400">{L(meta.frDesc, meta.enDesc)}</Text>
+                          )}
+                        </VStack>
+                        <Button
+                          size="xs" h="28px" px={3} ml={2} flexShrink={0}
+                          bg={defined ? 'rgba(255,255,255,0.06)' : `${meta.color}22`}
+                          color={defined ? 'whiteAlpha.600' : meta.color}
+                          border="1px solid"
+                          borderColor={defined ? 'rgba(255,255,255,0.1)' : `${meta.color}55`}
+                          fontWeight="bold" fontSize="9px" letterSpacing="0.06em"
+                          _hover={{ bg: `${meta.color}33` }}
+                          loading={isRec}
+                          onClick={() => recordLimit(key)}
+                          disabled={liveAlt === undefined}
+                        >
+                          {defined ? L('RÉENREGISTRER', 'RE-RECORD') : <><Icon as={MapPin} boxSize={3} mr={1} />{L('ENREGISTRER', 'RECORD')}</>}
+                        </Button>
+                      </HStack>
+                    </Box>
+                  );
+                })}
+              </VStack>
+
+              {/* Confirm button */}
+              <Button
+                disabled={!allLimitsDefined}
+                bg="rgba(0,255,209,0.1)" color="var(--astro-teal)"
+                border="1px solid rgba(0,255,209,0.3)"
+                fontWeight="bold" fontSize="11px" letterSpacing="0.1em"
+                _hover={{ bg: 'rgba(0,255,209,0.2)' }} _disabled={{ opacity: 0.3, cursor: 'not-allowed' }}
+                onClick={confirmZone}
+                w="full"
+              >
+                <Icon as={Navigation} boxSize={3} mr={1} />
+                {L("CONFIRMER LA ZONE ET LANCER", "CONFIRM ZONE AND START")}
+                {!allLimitsDefined && (
+                  <Text fontSize="8px" color="whiteAlpha.400" ml={2}>
+                    ({LIMIT_KEYS.filter(k => !limits[k]).length} {L("manquante(s)", "missing")})
+                  </Text>
+                )}
+              </Button>
+            </VStack>
+
+            {/* Right Column: Camera live stream + sky map */}
+            <VStack align="stretch" gap={3}>
+              {/* Camera Live View Panel */}
+              <Box
+                bg="rgba(0,0,0,0.3)"
+                border="1px solid rgba(255,255,255,0.08)"
+                borderRadius="8px"
+                overflow="hidden"
+                p={2.5}
+                position="relative"
+              >
+                <HStack justify="space-between" mb={2}>
+                  <HStack gap={1.5}>
+                    <Icon as={Camera} boxSize={3.5} color="var(--astro-gold)" />
+                    <Text fontSize="9px" fontWeight="bold" color="whiteAlpha.800" letterSpacing="0.08em">
+                      {L("RETOUR IMAGE EN DIRECT", "CAMERA LIVE FEED")}
+                    </Text>
+                  </HStack>
                   <Button
                     size="2xs"
-                    h="22px"
-                    bg="red.500"
-                    color="white"
-                    _hover={{ bg: "red.400" }}
-                    onClick={connectHardware}
-                    loading={isConnectingMount}
+                    h="20px"
+                    px={2.5}
                     fontSize="8px"
                     fontWeight="bold"
+                    borderRadius="4px"
+                    bg={isLiveStreaming ? "red.500" : "green.500"}
+                    color="white"
+                    _hover={{ bg: isLiveStreaming ? "red.400" : "green.400" }}
+                    onClick={isLiveStreaming ? stopLiveView : startLiveView}
                   >
-                    {L("CONNECTER", "CONNECT MOUNT")}
-                  </Button>
-                </VStack>
-              ) : liveAlt !== undefined ? (
-                <>
-                  <HStack gap={3}>
-                    <VStack align="start" gap={0}>
-                      <Text fontSize="7px" color="whiteAlpha.400">ALT</Text>
-                      <Text fontSize="13px" fontWeight="bold" color="white" fontFamily="monospace" lineHeight="1">{liveAlt.toFixed(1)}°</Text>
-                    </VStack>
-                    <VStack align="start" gap={0}>
-                      <Text fontSize="7px" color="whiteAlpha.400">AZ</Text>
-                      <Text fontSize="13px" fontWeight="bold" color="white" fontFamily="monospace" lineHeight="1">{liveAz!.toFixed(1)}°</Text>
-                    </VStack>
-                  </HStack>
-                  <Text fontSize="7px" color="whiteAlpha.300" fontFamily="monospace">
-                    RA {liveRa !== undefined ? fmtRA(liveRa) : '—'}
-                  </Text>
-                </>
-              ) : (
-                <HStack gap={1}>
-                  <Spinner size="xs" color="whiteAlpha.400" />
-                  <Text fontSize="8px" color="whiteAlpha.400">{L("Lecture INDI...", "Reading INDI...")}</Text>
-                </HStack>
-              )}
-            </VStack>
-            <VStack align="center" gap={1}>
-              <Text fontSize="7px" color="whiteAlpha.400" letterSpacing="0.06em">{L("DÉPLACEMENT FIN", "FINE JOG")}</Text>
-              <JogPad onJog={jog} />
-            </VStack>
-          </HStack>
-
-          {/* Sky dome live preview */}
-          <SkyDome zone={undefined} limits={limits} results={[null, null, null]} liveAlt={liveAlt} liveAz={liveAz} />
-
-          {/* 4 limit rows */}
-          <VStack align="stretch" gap={2}>
-            {LIMIT_KEYS.map(key => {
-              const meta    = LIMIT_META[key];
-              const defined = !!limits[key];
-              const lp      = limits[key];
-              const isRec   = recording === key;
-              return (
-                <Box key={key}
-                  bg={defined ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.2)'}
-                  border="1px solid"
-                  borderColor={defined ? `${meta.color}33` : 'rgba(255,255,255,0.05)'}
-                  borderRadius="8px" p={2.5}
-                >
-                  <HStack justify="space-between" align="center">
-                    <VStack align="start" gap={0.5} flex={1}>
-                      <HStack gap={1.5}>
-                        <Box w="6px" h="6px" borderRadius="full" bg={meta.color} flexShrink={0} />
-                        <Text fontSize="9px" fontWeight="bold" color="whiteAlpha.700" letterSpacing="0.1em">
-                          {L(meta.fr, meta.en)}
-                        </Text>
-                        {defined && <Text fontSize="8px">✅</Text>}
+                    {isLiveStreaming ? (
+                      <HStack gap={1}>
+                        <Box w="6px" h="6px" borderRadius="full" bg="white" style={{ animation: "pulse 1s infinite alternate" }} />
+                        <Text>STOP</Text>
                       </HStack>
-                      {defined && lp ? (
-                        <Text fontSize="8px" color="white" fontFamily="monospace">
-                          Alt {lp.alt.toFixed(1)}° / Az {lp.az.toFixed(1)}° — RA {fmtRA(lp.ra)}
-                        </Text>
-                      ) : (
-                        <Text fontSize="7px" color="whiteAlpha.400">{L(meta.frDesc, meta.enDesc)}</Text>
-                      )}
-                    </VStack>
-                    <Button
-                      size="xs" h="28px" px={3} ml={2} flexShrink={0}
-                      bg={defined ? 'rgba(255,255,255,0.06)' : `${meta.color}22`}
-                      color={defined ? 'whiteAlpha.600' : meta.color}
-                      border="1px solid"
-                      borderColor={defined ? 'rgba(255,255,255,0.1)' : `${meta.color}55`}
-                      fontWeight="bold" fontSize="9px" letterSpacing="0.06em"
-                      _hover={{ bg: `${meta.color}33` }}
-                      loading={isRec}
-                      onClick={() => recordLimit(key)}
-                      disabled={liveAlt === undefined}
-                    >
-                      {defined ? L('RÉENREGISTRER', 'RE-RECORD') : <><Icon as={MapPin} boxSize={3} mr={1} />{L('ENREGISTRER', 'RECORD')}</>}
-                    </Button>
-                  </HStack>
-                </Box>
-              );
-            })}
-          </VStack>
+                    ) : (
+                      <HStack gap={1}>
+                        <Icon as={Play} boxSize={2} fill="currentColor" />
+                        <Text>LIVE</Text>
+                      </HStack>
+                    )}
+                  </Button>
+                </HStack>
 
-          {/* Confirm button */}
-          <Button
-            disabled={!allLimitsDefined}
-            bg="rgba(0,255,209,0.1)" color="var(--astro-teal)"
-            border="1px solid rgba(0,255,209,0.3)"
-            fontWeight="bold" fontSize="11px" letterSpacing="0.1em"
-            _hover={{ bg: 'rgba(0,255,209,0.2)' }} _disabled={{ opacity: 0.3, cursor: 'not-allowed' }}
-            onClick={confirmZone}
-          >
-            <Icon as={Navigation} boxSize={3} mr={1} />
-            {L("CONFIRMER LA ZONE ET LANCER", "CONFIRM ZONE AND START")}
-            {!allLimitsDefined && (
-              <Text fontSize="8px" color="whiteAlpha.400" ml={2}>
-                ({LIMIT_KEYS.filter(k => !limits[k]).length} {L("manquante(s)", "missing")})
-              </Text>
-            )}
-          </Button>
+                <Box
+                  position="relative"
+                  w="full"
+                  h="160px"
+                  bg="black"
+                  borderRadius="6px"
+                  border="1px solid rgba(255,255,255,0.04)"
+                  overflow="hidden"
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="center"
+                >
+                  {isLiveStreaming ? (
+                    ccdError ? (
+                      <VStack gap={1} p={3} textAlign="center">
+                        <Icon as={AlertTriangle} boxSize={6} color="var(--astro-gold)" />
+                        <Text fontSize="9px" color="var(--astro-gold)" fontWeight="bold">
+                          {L("ERREUR DE FLUX", "STREAM ERROR")}
+                        </Text>
+                        <Text fontSize="7px" color="whiteAlpha.500">
+                          {L("Échec du chargement de l'image", "Failed to load camera frame")}
+                        </Text>
+                      </VStack>
+                    ) : ccdImage ? (
+                      <>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={ccdImage}
+                          alt="Live Feed"
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                            objectFit: "contain",
+                            background: "#000",
+                          }}
+                          onError={() => setCcdError(true)}
+                          onLoad={() => setCcdError(false)}
+                        />
+                        {/* Reticle / Crosshair overlay */}
+                        <Box
+                          position="absolute"
+                          top="50%"
+                          left="50%"
+                          transform="translate(-50%, -50%)"
+                          color="rgba(255, 179, 71, 0.4)"
+                          pointerEvents="none"
+                        >
+                          <Icon as={Crosshair} boxSize="80px" strokeWidth={1} />
+                        </Box>
+                        {/* LIVE Badge */}
+                        <Badge
+                          position="absolute"
+                          top={2}
+                          left={2}
+                          colorScheme="red"
+                          fontSize="7px"
+                          px={1.5}
+                          py={0.5}
+                          borderRadius="3px"
+                        >
+                          LIVE
+                        </Badge>
+                      </>
+                    ) : (
+                      <Spinner size="sm" color="var(--astro-teal)" />
+                    )
+                  ) : (
+                    <VStack gap={2} p={4} textAlign="center">
+                      <Icon as={Camera} boxSize={8} color="whiteAlpha.200" />
+                      <Text fontSize="9px" color="whiteAlpha.400">
+                        {L("FLUX VIDÉO EN VEILLE", "CAMERA FEED STANDBY")}
+                      </Text>
+                      <Text fontSize="7px" color="whiteAlpha.300">
+                        {L("Activez le LIVE pour voir le viseur", "Start LIVE to show camera view")}
+                      </Text>
+                    </VStack>
+                  )}
+                </Box>
+              </Box>
+
+              {/* Sky dome live preview */}
+              <SkyDome zone={undefined} limits={limits} results={[null, null, null]} liveAlt={liveAlt} liveAz={liveAz} />
+            </VStack>
+          </Grid>
         </VStack>
       )}
 
