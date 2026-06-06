@@ -3,7 +3,7 @@
 import { Box, VStack, HStack, Text, Icon, Flex, Grid, Circle } from "@chakra-ui/react";
 import { TelescopeControls } from "@/components/telescope/TelescopeControls";
 import { CameraControls } from "@/components/camera/CameraControls";
-import { LiveView } from "@/components/viewport/LiveView";
+import InteractiveSkyMap from "@/components/viewport/InteractiveSkyMap";
 import { AIAssistant } from "@/components/ai/AIAssistant";
 import { MountCalibration } from "@/components/telescope/MountCalibration";
 import { AstroPod } from "@/components/ui/AstroPod";
