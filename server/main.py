@@ -408,13 +408,6 @@ class INDIClient:
             logger.info(f"✅ Safe-connect sequence sent for device: {device}")
         except Exception as e:
             logger.error(f"❌ Safe-connect failed for {device}: {e}")
-                f'<oneSwitch name="CONNECT">On</oneSwitch>'
-                f'<oneSwitch name="DISCONNECT">Off</oneSwitch>'
-                f'</newSwitchVector>'
-            )
-            logger.info(f"Safe-connect sequence sent for device: {device}")
-        except Exception as e:
-            logger.error(f"Safe-connect failed for {device}: {e}")
 
     def connect(self):
         # Pre-check: resolve host before attempting TCP connect

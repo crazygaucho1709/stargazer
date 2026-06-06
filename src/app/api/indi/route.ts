@@ -31,7 +31,6 @@ export async function GET(request: Request) {
     }
 
     try {
-        console.log(`[PROXY] GET /${endpoint} via ${BRIDGE_URL}`);
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 15000);
         const res = await fetch(`${BRIDGE_URL}/${endpoint}`, { 

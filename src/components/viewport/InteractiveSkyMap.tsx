@@ -3,7 +3,7 @@
 // Intègre les catalogues Messier/Hipparcos, affiche la position du NexStar et permet le click→slew
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { Box, VStack, HStack, Text, Button, Icon, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalCloseButton, useDisclosure, Badge } from '@chakra-ui/react';
+import { Box, VStack, HStack, Text, Button, Icon, useDisclosure, Badge } from '@chakra-ui/react';
 import { Telescope, Camera, Zap, X } from 'lucide-react';
 import { useStargazerStore } from '@/store/useStargazerStore';
 
@@ -44,7 +44,7 @@ const InteractiveSkyMap: React.FC = () => {
   const [objects] = useState<SkyObject[]>(loadMessierCatalog());
   const [telescopePos, setTelescopePos] = useState<{ ra: number; dec: number } | null>(null);
   const [selectedObj, setSelectedObj] = useState<SkyObject | null>(null);
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  const { open, onOpen, onClose } = useDisclosure();
 
   // Polling de la position du télescope
   useEffect(() => {
@@ -90,16 +90,16 @@ const InteractiveSkyMap: React.FC = () => {
   const handleCapture = useCallback(async () => {
     if (!selectedObj) return;
     try {
-      await fetch('/api/indi/capture', {
+      await fetch('/api/indi', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ exposure: 30 }) // 30s capture
+        body: JSON.stringify({ action: 'capture', exposure: 30, endpoint: 'ccd/capture' }) // 30s capture
       });
       onClose();
     } catch (e) {
       console.error('Capture error:', e);
     }
-  }, [onClose]);
+  }, [selectedObj, onClose]);
 
   const objectMarkers = useMemo(() => {
     return objects.map((obj) => {
@@ -136,34 +136,31 @@ const InteractiveSkyMap: React.FC = () => {
           </g>
         )}
       </svg>
-      {/* Modal pour actions sur objet sélectionné */}
-      <Modal isOpen={isOpen} onClose={onClose}>
-        <ModalOverlay />
-        <ModalContent bg="gray.800" color="whiteAlpha.900">
-          <ModalHeader>{selectedObj?.name || 'Objet sélectionné'}</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody>
-            <VStack spacing={4} align="stretch">
-              <HStack justify="space-between">
-                <Badge colorScheme="purple">{selectedObj?.type}</Badge>
-                <Badge>{selectedObj?.constellation}</Badge>
-              </HStack>
-              <Text fontSize="sm">RA: {selectedObj?.ra.toFixed(3)}h / DEC: {selectedObj?.dec.toFixed(2)}°</Text>
-              <HStack>
-                <Button leftIcon={<Icon as={Telescope} />} colorScheme="teal" flex="1" onClick={handleSlew}>
-                  GoTo
-                </Button>
-                <Button leftIcon={<Icon as={Camera} />} colorScheme="orange" flex="1" onClick={handleCapture}>
-                  Capturer
-                </Button>
-                <Button leftIcon={<Icon as={Zap} />} colorScheme="green" flex="1">
-                  Stack
-                </Button>
-              </HStack>
-            </VStack>
-          </ModalBody>
-        </ModalContent>
-      </Modal>
+      {open && (
+        <Box position="absolute" top="50%" left="50%" transform="translate(-50%, -50%)" bg="gray.800" color="whiteAlpha.900" p={6} borderRadius="lg" zIndex={100} minW="300px" boxShadow="0 0 20px rgba(0,0,0,0.8)">
+          <HStack justify="space-between" mb={4}>
+            <Text fontSize="xl" fontWeight="bold">{selectedObj?.name || 'Objet sélectionné'}</Text>
+            <Button size="sm" variant="ghost" onClick={onClose}><X size={16} /></Button>
+          </HStack>
+          <VStack gap={4} align="stretch">
+            <HStack justify="space-between">
+              <Badge colorScheme="purple">{selectedObj?.type}</Badge>
+              <Badge>{selectedObj?.constellation}</Badge>
+            </HStack>
+            <Text fontSize="sm">RA: {selectedObj?.ra.toFixed(3)}h / DEC: {selectedObj?.dec.toFixed(2)}°</Text>
+            <HStack gap={2}>
+              <Button flex="1" bg="teal.600" color="white" onClick={handleSlew}>
+                <Telescope size={16} style={{ marginRight: '8px' }} />
+                GoTo
+              </Button>
+              <Button flex="1" bg="orange.500" color="white" onClick={handleCapture}>
+                <Camera size={16} style={{ marginRight: '8px' }} />
+                Capturer
+              </Button>
+            </HStack>
+          </VStack>
+        </Box>
+      )}
     </Box>
   );
 };

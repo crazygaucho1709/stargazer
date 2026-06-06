@@ -242,7 +242,16 @@ export const CalibrationWizard = () => {
 
   const saveMinAz = async () => {
     const currentAz = await getCurrentAz();
-    setMountLimits({ ...mountLimits, minAz: currentAz });
+    const finalLimits = { ...mountLimits, minAz: currentAz };
+    setMountLimits(finalLimits);
+    
+    // Persist limits to backend config.json
+    fetch('/api/indi/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mountLimits: finalLimits })
+    }).catch(console.error);
+
     setStep({
       step: 'camera-test',
       isWaitingUser: true,

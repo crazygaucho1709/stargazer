@@ -541,7 +541,7 @@ export const AutoAlignWizard = () => {
     }
 
     await new Promise(r => setTimeout(r, EXPOSURE * 1000 + 1500));
-    const imageUrl = `/api/indi?endpoint=ccd/latest&t=${Date.now()}`;
+    const imageUrl = `/api/indi/latest-image?t=${Date.now()}`;
     const checkRes = await fetch(imageUrl, { cache: 'no-store' });
     if (checkRes.status === 204 || !checkRes.ok) {
       log(L('  ❌ Aucune image (204). Caméra connectée?', '  ❌ No image (204). Camera connected?'), 'error');
