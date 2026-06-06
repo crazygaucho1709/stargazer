@@ -105,11 +105,11 @@ export const ActionButtons = () => {
                     
                     <HStack w="full" gap={3}>
                         <ActionBtn 
-                            label="CONNECT HARDWARE" 
+                            label="AUTO-DIAGNOSTIC & FIX" 
                             icon={Power} 
                             colorScheme="green"
                             variant="solid"
-                            onClick={() => execute('/api/hardware/connect', 'CONNECTING DEVICES', { method: 'POST' })}
+                            onClick={() => execute('/api/indi/autofix', 'AUTO-FIX DIAGNOSTIC', { method: 'POST', timeout: 15000, loadingMessage: "DIAGNOSTIC ET CORRECTION EN COURS..." })}
                             isLoading={isPending}
                         />
                     </HStack>

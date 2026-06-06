@@ -3,7 +3,7 @@ module.exports = {
     {
       name: 'stargazer-tunnel',
       script: '/usr/bin/ssh',
-      args: '-N -L 7624:127.0.0.1:7624 -L 2222:127.0.0.1:22 -o StrictHostKeyChecking=no astroberry@astroberry.local',
+      args: '-N -L 7624:127.0.0.1:7624 -L 2222:127.0.0.1:22 -o StrictHostKeyChecking=no astroberry@192.168.178.127',
       autorestart: true,
       error_file: 'logs/tunnel-error.log',
       out_file: 'logs/tunnel-out.log',
