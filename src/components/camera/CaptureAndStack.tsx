@@ -12,6 +12,7 @@ import {
 import { useStargazerStore } from "@/store/useStargazerStore";
 import { clientApiUrl } from "@/lib/clientApi";
 import { useAstroAction } from "@/hooks/useAstroAction";
+import { notification } from "@/lib/notificationService";
 import { Tooltip } from "@/components/ui/tooltip";
 
 interface CaptureFrame {
@@ -112,8 +113,11 @@ export const CaptureAndStack = () => {
             headers: { 'Accept': 'application/json' },
             cache: 'no-store',
         });
-      } catch (e) {
-        console.error('Capture error:', e);
+      } catch (e: any) {
+        notification.error("Échec de la capture", {
+          description: e?.message || "Erreur lors de la prise de vue",
+          source: "Caméra",
+        });
       }
       
       await new Promise(r => setTimeout(r, (exposure + 3) * 1000));

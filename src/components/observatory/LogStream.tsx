@@ -4,9 +4,10 @@ import { useState, useEffect, useRef } from "react";
 import { 
     Box, Text, VStack, HStack, Icon, IconButton
 } from "@chakra-ui/react";
-import { 
+import {
     Terminal, Trash2, Activity, Cpu, Radio, Globe
 } from "lucide-react";
+import { notification } from "@/lib/notificationService";
 import React from "react";
 
 interface LogEntry {
@@ -44,22 +45,24 @@ export const LogStream = () => {
                 setLogs(prev => [...prev.slice(-199), logEntry]);
                 retryCount = 0;
             } catch (e) {
-                console.error("Error parsing log event:", e);
+                notification.warning("Erreur de log", {
+                  description: "Impossible de décoder un événement du flux de logs",
+                  source: "Logs",
+                });
             }
         };
 
-        eventSource.onerror = (err) => {
-            console.error("SSE Connection Error:", err);
+        eventSource.onerror = (err: any) => {
+            notification.error("Connexion aux logs perdue", {
+              description: err?.message || "Tentative de reconnexion...",
+              source: "Logs",
+            });
             eventSource.close();
             
-            // Simple retry logic
             if (retryCount < 5) {
                 retryCount++;
                 setTimeout(() => {
-                    console.log(`Retrying log connection (attempt ${retryCount})...`);
-                    // Triggers effect cleanup and re-run if we were to depend on a state,
-                    // but since this is in mount, we just manually reconnect
-                    window.location.reload(); // Simple way to reset stateful SSE
+                    window.location.reload();
                 }, 5000);
             }
         };

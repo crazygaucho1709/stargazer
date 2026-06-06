@@ -6,7 +6,7 @@ import { useStargazerStore } from "@/store/useStargazerStore";
 import { clientApiUrl } from "@/lib/clientApi";
 import { t } from "@/i18n/translations";
 import { Crosshair, Target, Scan, ShieldCheck, Camera, Globe, ZoomIn, ZoomOut, Play, Square, AlertTriangle } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { HfrOverlay } from "@/components/observatory/HfrOverlay";
 import { CaptureProgress } from "@/components/observatory/CaptureProgress";
 import { SkyMap } from "./SkyMap";
@@ -17,6 +17,7 @@ export const LiveView = () => {
     const [ccdError, setCcdError] = useState(false);
     const [isLiveStreaming, setIsLiveStreaming] = useState(false);
     const [streamStatus, setStreamStatus] = useState<string>("");
+    const streamUrlRef = useRef<string>("");
 
     // Canon DSLR live view: switching to CANON mode by itself MUST NOT open
     // the shutter or fetch frames from the camera. The shutter only opens
@@ -27,10 +28,9 @@ export const LiveView = () => {
     useEffect(() => {
         if (liveViewMode !== "CANON") return;
         setCcdError(false);
-        // When isLiveStreaming flips off (user clicked STOP), make sure any
-        // previous stream/object URL is cleared so the placeholder reappears.
         if (!isLiveStreaming) {
             setCcdImage(null);
+            streamUrlRef.current = "";
         }
     }, [liveViewMode, isLiveStreaming]);
 
@@ -51,7 +51,10 @@ export const LiveView = () => {
                 setStreamStatus(msg);
                 return;
             }
-            setCcdImage(clientApiUrl(`/api/indi/stream?t=${Date.now()}`));
+            // Use stable URL without timestamp - critical for MJPEG streaming
+            const streamUrl = clientApiUrl('/api/indi/stream');
+            streamUrlRef.current = streamUrl;
+            setCcdImage(streamUrl);
             setIsLiveStreaming(true);
             setStreamStatus("LIVE");
         } catch (e) {
@@ -181,22 +184,33 @@ export const LiveView = () => {
                             <Text color="var(--astro-gold)" fontSize="18px">{t("CANON_CONNECTION_ERROR", language)}</Text>
                         </Box>
                     ) : ccdImage ? (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img
-                            src={ccdImage}
-                            alt="Canon Live View"
-                            onLoad={() => setCcdError(false)}
-                            style={{
-                                width: "100%",
-                                height: "100%",
-                                objectFit: "contain",
-                                opacity: isExposing ? 0.9 : 1,
-                        transform: `scale(${zoom})`,
-                                transformOrigin: "center center",
-                        transition: "transform 0.1s ease-out",
-                                background: "#000"
-                            }}
-                        />
+                        <Box
+                            position="absolute"
+                            top={0}
+                            left={0}
+                            w="full"
+                            h="full"
+                        >
+                            {/* Using native <img> because ccdImage is a dynamic MJPEG stream URL,
+                                not a static import – next/Image is not suitable here. */}
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                                src={ccdImage}
+                                alt="Canon Live View"
+                                crossOrigin="anonymous"
+                                style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    objectFit: 'contain',
+                                    transform: `scale(${zoom})`,
+                                    transformOrigin: 'center center',
+                                    background: '#000',
+                                }}
+                                onLoad={() => setCcdError(false)}
+                                onError={() => setCcdError(true)}
+                                referrerPolicy="no-referrer"
+                            />
+                        </Box>
                     ) : (
                         <Box display="flex" alignItems="center" justifyContent="center" w="100%" h="100%" bg="#000">
                             <VStack gap={3}>

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
+import { BRIDGE_URL } from '@/lib/apiConfig';
+
 export const dynamic = 'force-dynamic';
-const BRIDGE_URL = 'http://127.0.0.1:5005';
 
 async function proxy(endpoint: string, method = 'GET', body?: any) {
   try {

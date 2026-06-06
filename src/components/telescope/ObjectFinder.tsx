@@ -13,11 +13,10 @@ interface ObjectFinderProps {
 }
 
 export const ObjectFinder = ({ onSlew }: ObjectFinderProps) => {
-  const { language, setPosition, setSlewing, config, mountLimits } = useStargazerStore();
+  const { language, setPosition, setSlewing, config, mountLimits, selectedObjectId, setSelectedObjectId } = useStargazerStore();
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
   const [filterDifficulty, setFilterDifficulty] = useState<string>("all");
-  const [selectedObject, setSelectedObject] = useState<CelestialObject | null>(null);
   const [isSlewingToTarget, setIsSlewingToTarget] = useState(false);
   const [visibleObjects, setVisibleObjects] = useState<CelestialObject[]>([]);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -37,6 +36,12 @@ export const ObjectFinder = ({ onSlew }: ObjectFinderProps) => {
     setVisibleObjects(objects);
   }, [currentTime, config.latitude, config.longitude, mountLimits.minAlt]);
 
+  // Derive selected object from shared store ID
+  const selectedObject = useMemo(() => {
+    if (!selectedObjectId) return null;
+    return CELESTIAL_CATALOG.find(o => o.id === selectedObjectId) || null;
+  }, [selectedObjectId]);
+
   // Filter objects based on search and filters
   const filteredObjects = useMemo(() => {
     return visibleObjects.filter(obj => {
@@ -54,7 +59,7 @@ export const ObjectFinder = ({ onSlew }: ObjectFinderProps) => {
 
   const handleSlewToObject = async (obj: CelestialObject) => {
     setIsSlewingToTarget(true);
-    setSelectedObject(obj);
+    setSelectedObjectId(obj.id);
     setSlewing(true);
 
     // Call API to slew mount
@@ -208,7 +213,7 @@ export const ObjectFinder = ({ onSlew }: ObjectFinderProps) => {
             cursor="pointer"
             transition="all 0.2s"
             _hover={{ bg: "rgba(255,255,255,0.08)" }}
-            onClick={() => setSelectedObject(obj)}
+            onClick={() => setSelectedObjectId(obj.id)}
           >
             <HStack justify="space-between" mb={2}>
               <HStack gap={2}>

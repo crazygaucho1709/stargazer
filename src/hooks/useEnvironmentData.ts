@@ -41,11 +41,10 @@ export function useEnvironmentData() {
         return () => clearInterval(interval);
     }, []);
 
-    // Handle GPS & Weather
+    // Handle Hardware GPS & Weather
     useEffect(() => {
         const fetchWeather = async (lat: number, lon: number) => {
             try {
-                // Open-Meteo free API
                 const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code`);
                 const json = await res.json();
                 
@@ -65,41 +64,61 @@ export function useEnvironmentData() {
             }
         };
 
-        const handleFallback = (errorMessage: string, expected = false) => {
-            // The browser blocks navigator.geolocation on non-HTTPS origins
-            // (Secure Context required). On the local intranet (e.g. when the
-            // app is served over HTTP on http://macmini.local) this is the
-            // norm, not an error — silently use the configured fallback in
-            // that case to avoid console noise. Real errors (user denied,
-            // timeout) still log at info level so they can be diagnosed.
-            if (!expected) {
-                console.info(`Geolocation: ${errorMessage} — using configured fallback`);
+        const syncWithHardware = async () => {
+            try {
+                const res = await fetch('/api/indi');
+                if (!res.ok) throw new Error("Backend offline");
+                const status = await res.json();
+                
+                // If hardware has GPS (lat/lon not 0), use it
+                if (status.lat !== undefined && status.lon !== undefined && (status.lat !== 0 || status.lon !== 0)) {
+                    setData(prev => ({ ...prev, latitude: status.lat, longitude: status.lon, error: null }));
+                    fetchWeather(status.lat, status.lon);
+                    return true;
+                }
+            } catch (e) {
+                console.warn("Hardware GPS sync failed, falling back to browser/defaults", e);
             }
-            setData(prev => ({ ...prev, error: errorMessage }));
-            // Fallback to a default location (Tahiti as per user's location)
-            const defLat = -17.6797;
-            const defLon = -149.4068;
-            setData(prev => ({ ...prev, latitude: defLat, longitude: defLon }));
+            return false;
+        };
+
+        const startBrowserGeolocation = () => {
+            if (!window.isSecureContext || !navigator.geolocation) {
+                applyDefaultFallback();
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const { latitude, longitude } = position.coords;
+                    setData(prev => ({ ...prev, latitude, longitude, error: null }));
+                    fetchWeather(latitude, longitude);
+                },
+                () => applyDefaultFallback(),
+                { timeout: 5000, maximumAge: 60000 }
+            );
+        };
+
+        const applyDefaultFallback = () => {
+            // Default to Tahiti (Puna'auia) as per user's location
+            const defLat = -17.6333;
+            const defLon = -149.6000;
+            setData(prev => ({ ...prev, latitude: defLat, longitude: defLon, error: "Using default location" }));
             fetchWeather(defLat, defLon);
         };
 
-        if (!window.isSecureContext || !navigator.geolocation) {
-            // Expected on HTTP origins — fall back silently.
-            handleFallback("Geolocation not supported (Secure Context required)", true);
-            return;
-        }
+        const init = async () => {
+            const synced = await syncWithHardware();
+            if (!synced) {
+                startBrowserGeolocation();
+            }
+        };
 
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const { latitude, longitude } = position.coords;
-                setData(prev => ({ ...prev, latitude, longitude }));
-                fetchWeather(latitude, longitude);
-            },
-            (err) => {
-                handleFallback(err.message);
-            },
-            { timeout: 5000, maximumAge: 60000 }
-        );
+        init();
+        
+        // Re-sync with hardware every minute in case GPS fix is acquired later
+        const interval = setInterval(syncWithHardware, 60000);
+        return () => clearInterval(interval);
     }, []);
 
     return data;

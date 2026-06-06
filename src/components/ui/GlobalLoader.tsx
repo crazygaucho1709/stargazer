@@ -6,8 +6,8 @@ import { useStargazerStore } from "@/store/useStargazerStore";
 import { Orbit, Cpu, Shield, Globe, Activity, Terminal } from "lucide-react";
 import { useEffect, useState } from "react";
 
-const MotionBox = motion(Box);
-const MotionText = motion(Text);
+const MotionBox = motion.create(Box);
+const MotionText = motion.create(Text);
 
 const Particle = ({ i }: { i: number }) => {
     const randomX = Math.random() * 100;

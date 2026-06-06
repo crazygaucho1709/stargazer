@@ -2,7 +2,7 @@
 "use client";
 
 import { Box, Grid, Button, VStack, HStack, Circle, Icon, Flex, Text } from "@chakra-ui/react";
-import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Target, RotateCcw } from "lucide-react";
+import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Target, RotateCcw, ArrowUpLeft, ArrowUpRight, ArrowDownLeft, ArrowDownRight } from "lucide-react";
 import React from "react";
 import { useStargazerStore } from "@/store/useStargazerStore";
 import { useAstroAction } from "@/hooks/useAstroAction";
@@ -51,7 +51,7 @@ const PadButton = ({ icon: DirIcon, glowColor = "var(--astro-teal)", onClick, on
 export const TelescopeControls = ({ variant }: TelescopeControlsProps) => {
     const { isSlewing, setSlewing, setPosition, config, detectedMount } = useStargazerStore();
     const { execute } = useAstroAction();
-    const activeDirectionRef = React.useRef<'up' | 'down' | 'left' | 'right' | null>(null);
+    const activeDirectionRef = React.useRef<'up' | 'down' | 'left' | 'right' | 'up-left' | 'up-right' | 'down-left' | 'down-right' | null>(null);
     const [slewRate, setSlewRate] = React.useState(5);
 
     const handleRateChange = async (value: number) => {
@@ -77,7 +77,7 @@ export const TelescopeControls = ({ variant }: TelescopeControlsProps) => {
         }
     };
 
-    const handleMoveStart = async (direction: 'up' | 'down' | 'left' | 'right') => {
+    const handleMoveStart = async (direction: 'up' | 'down' | 'left' | 'right' | 'up-left' | 'up-right' | 'down-left' | 'down-right') => {
         activeDirectionRef.current = direction;
         setSlewing(true);
         
@@ -184,6 +184,48 @@ export const TelescopeControls = ({ variant }: TelescopeControlsProps) => {
                     />
                 </Box>
                 
+                {/* Diagonal Directional Pads */}
+                <Box position="absolute" top="25px" left="25px">
+                    <PadButton 
+                        icon={ArrowUpLeft}
+                        onMouseDown={() => handleMoveStart('up-left')}
+                        onMouseUp={handleMoveStop}
+                        onMouseLeave={handleMoveStop}
+                        onTouchStart={() => handleMoveStart('up-left')}
+                        onTouchEnd={handleMoveStop}
+                    />
+                </Box>
+                <Box position="absolute" top="25px" right="25px">
+                    <PadButton 
+                        icon={ArrowUpRight}
+                        onMouseDown={() => handleMoveStart('up-right')}
+                        onMouseUp={handleMoveStop}
+                        onMouseLeave={handleMoveStop}
+                        onTouchStart={() => handleMoveStart('up-right')}
+                        onTouchEnd={handleMoveStop}
+                    />
+                </Box>
+                <Box position="absolute" bottom="25px" left="25px">
+                    <PadButton 
+                        icon={ArrowDownLeft}
+                        onMouseDown={() => handleMoveStart('down-left')}
+                        onMouseUp={handleMoveStop}
+                        onMouseLeave={handleMoveStop}
+                        onTouchStart={() => handleMoveStart('down-left')}
+                        onTouchEnd={handleMoveStop}
+                    />
+                </Box>
+                <Box position="absolute" bottom="25px" right="25px">
+                    <PadButton 
+                        icon={ArrowDownRight}
+                        onMouseDown={() => handleMoveStart('down-right')}
+                        onMouseUp={handleMoveStop}
+                        onMouseLeave={handleMoveStop}
+                        onTouchStart={() => handleMoveStart('down-right')}
+                        onTouchEnd={handleMoveStop}
+                    />
+                </Box>
+
                 {/* Sync Button */}
                 <Box position="absolute" bottom="20px" left="20px">
                     <PadButton 

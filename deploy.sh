@@ -27,7 +27,7 @@ if [ "$1" == "fast" ]; then
   ssh $DEST_USER@$DEST_HOST "zsh -ic 'cd $DEST_PATH && source venv/bin/activate && pip install -r requirements.txt && pm2 restart stargazer-backend --update-env'"
 else
   echo "🔄 Recompilation et redémarrage complet des services sur le Mac Mini..."
-  ssh $DEST_USER@$DEST_HOST "zsh -ic 'cd $DEST_PATH && source venv/bin/activate && pip install -r requirements.txt && npm run build && pm2 restart ecosystem.config.js --update-env'"
+  ssh $DEST_USER@$DEST_HOST "zsh -ic 'cd $DEST_PATH && source venv/bin/activate && pip install -r requirements.txt && npm run build && NEXT_PUBLIC_BACKEND_URL=http://macmini.local:5005 pm2 restart ecosystem.config.js --update-env'"
 fi
 
 echo "🎉 Déploiement total terminé !"

@@ -3,7 +3,7 @@ module.exports = {
     {
       name: 'stargazer-tunnel',
       script: '/usr/bin/ssh',
-      args: '-N -L 7624:127.0.0.1:7624 -L 2222:127.0.0.1:22 -o StrictHostKeyChecking=no astroberry@192.168.178.142',
+      args: '-N -L 7624:127.0.0.1:7624 -L 2222:127.0.0.1:22 -o StrictHostKeyChecking=no astroberry@astroberry.local',
       autorestart: true,
       error_file: 'logs/tunnel-error.log',
       out_file: 'logs/tunnel-out.log',
@@ -38,7 +38,8 @@ module.exports = {
       out_file: 'logs/frontend-out.log',
       env: {
         NODE_ENV: 'production',
-        PORT: 3000
+        PORT: 3000,
+        NEXT_PUBLIC_BACKEND_URL: 'http://macmini.local:5005'
       },
       autorestart: true,
       watch: false,
