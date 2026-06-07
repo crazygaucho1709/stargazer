@@ -119,9 +119,14 @@ async def global_exception_handler(request: Request, exc: Exception):
     logger.error(f"GLOBAL ERROR: {str(exc)}", extra=extra, exc_info=True)
     return Response(content=f"Global Error: {str(exc)}", status_code=500)
 
+# NOTE: A wildcard `allow_origins=["*"]` is INVALID when combined with
+# `allow_credentials=True` — browsers reject `Access-Control-Allow-Origin: *`
+# on any credentialed request, which surfaces as "CORS error" in the console.
+# Using `allow_origin_regex` makes the middleware echo the caller's Origin back,
+# which is spec-compliant and works for any LAN host / tunnel origin.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origin_regex=".*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -1437,26 +1442,37 @@ async def get_status():
 
 # --- STREAMING ---
 async def mjpeg_generator():
-    """Yield frames from the global INDI client latest_frame."""
+    """Yield frames as fast as the camera delivers them using frame_condition."""
     last_frame_count = -1
-    
+    loop = asyncio.get_event_loop()
+
     while True:
         if not indi.connected:
             break
-            
-        frame = indi.latest_frame
-        
-        # We check if it's a new frame by comparing the frame_count
-        if frame and indi.frame_count != last_frame_count:
+
+        # Block in a thread until a new frame arrives (frame_condition.wait with 1s timeout).
+        # This wakes up immediately when process_blobs() notifies, giving near-zero latency.
+        def wait_for_frame():
+            with indi.frame_condition:
+                return indi.frame_condition.wait_for(
+                    lambda: indi.frame_count != last_frame_count or not indi.connected,
+                    timeout=1.0
+                )
+
+        got_new = await loop.run_in_executor(None, wait_for_frame)
+
+        if not indi.connected:
+            break
+
+        if got_new and indi.frame_count != last_frame_count:
+            frame = indi.latest_frame
             last_frame_count = indi.frame_count
-            yield (b'--frame\r\n'
-                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-        
-        # Async sleep allows the event loop to breathe and naturally drops frames 
-        # if the stream is generated faster than the network can send them.
-        # We limit the loop to 10 FPS (0.1s) to prevent the browser from queuing frames
-        # and causing massive latency on slow connections.
-        await asyncio.sleep(0.1)
+            if frame:
+                yield (b'--frame\r\n'
+                       b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+
+        # Yield control to the event loop so other coroutines can run.
+        await asyncio.sleep(0)
 
 @app.get("/video_feed")
 async def video_feed():

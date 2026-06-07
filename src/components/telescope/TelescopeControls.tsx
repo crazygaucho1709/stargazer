@@ -17,10 +17,10 @@ interface PadButtonProps {
     onClick?: () => void;
     onPointerDown?: (e: React.PointerEvent) => void;
     onPointerUp?: (e: React.PointerEvent) => void;
-    onPointerLeave?: (e: React.PointerEvent) => void;
+    onPointerCancel?: (e: React.PointerEvent) => void;
 }
 
-const PadButton = ({ icon: DirIcon, glowColor = "var(--astro-teal)", onClick, onPointerDown, onPointerUp, onPointerLeave }: PadButtonProps) => (
+const PadButton = ({ icon: DirIcon, glowColor = "var(--astro-teal)", onClick, onPointerDown, onPointerUp, onPointerCancel }: PadButtonProps) => (
     <Button
         variant="plain"
         w="40px"
@@ -38,7 +38,7 @@ const PadButton = ({ icon: DirIcon, glowColor = "var(--astro-teal)", onClick, on
         onClick={onClick}
         onPointerDown={onPointerDown}
         onPointerUp={onPointerUp}
-        onPointerLeave={onPointerLeave}
+        onPointerCancel={onPointerCancel}
     >
         <DirIcon size={20} />
     </Button>
@@ -47,92 +47,105 @@ const PadButton = ({ icon: DirIcon, glowColor = "var(--astro-teal)", onClick, on
 export const TelescopeControls = ({ variant }: TelescopeControlsProps) => {
     const { isSlewing, setSlewing, setPosition, config, detectedMount } = useStargazerStore();
     const { execute } = useAstroAction();
-    const activeDirectionRef = React.useRef<'up' | 'down' | 'left' | 'right' | 'up-left' | 'up-right' | 'down-left' | 'down-right' | null>(null);
-    const requestChainRef = React.useRef<Promise<any>>(Promise.resolve());
+    type Direction = 'up' | 'down' | 'left' | 'right' | 'up-left' | 'up-right' | 'down-left' | 'down-right';
+    const activeDirectionRef = React.useRef<Direction | null>(null);
+    // Lets us cancel an in-flight START so a STOP is never queued behind it.
+    const startAbortRef = React.useRef<AbortController | null>(null);
     const [slewRate, setSlewRate] = React.useState(5);
+
+    // Real-time motion commands must be fast and never retry: a stale jog keeps the
+    // mount moving. Short timeout + no retries + no global loader.
+    const JOG_TIMEOUT = 3000;
 
     const handleRateChange = async (value: number) => {
         const wasMoving = activeDirectionRef.current !== null;
         const prevDir = activeDirectionRef.current;
-        
+
         // Stop motion if currently moving
         if (wasMoving) {
-            await handleMoveStop();
+            handleMoveStop();
         }
-        
+
         // Change slew rate
         setSlewRate(value);
-        
+
         // Send rate to backend using hook
         await execute('/api/indi/mount', `SET RATE ${value}x`, {
             body: { action: 'rate', rate: value, device: detectedMount, ip: config.astroberryUrl },
-            showGlobalLoader: false // No need for full screen loader for rate change
+            showGlobalLoader: false, // No need for full screen loader for rate change
+            timeout: JOG_TIMEOUT,
+            retries: 0,
         });
-        
+
         // Restart motion if it was moving
         if (wasMoving && prevDir) {
-            await handleMoveStart(prevDir);
+            handleMoveStart(prevDir);
         }
     };
 
-    const handleMoveStart = (direction: 'up' | 'down' | 'left' | 'right' | 'up-left' | 'up-right' | 'down-left' | 'down-right') => {
+    const handleMoveStart = (direction: Direction) => {
+        // Cancel any START still in flight so commands can't stack up.
+        startAbortRef.current?.abort();
+        const controller = new AbortController();
+        startAbortRef.current = controller;
+
         activeDirectionRef.current = direction;
         setSlewing(true);
-        
-        const promise = requestChainRef.current.then(async () => {
-            // Check if we are still supposed to start in this direction (prevent race condition if stopped before we start)
-            if (activeDirectionRef.current !== direction) return;
-            
-            const result = await execute('/api/indi/mount', `SLEW ${direction.toUpperCase()}`, {
-                body: {
-                    action: 'jog',
-                    direction: direction,
-                    state: 'start',
-                    duration: 0.5,
-                    device: detectedMount,
-                    ip: config.astroberryUrl
-                },
-                showGlobalLoader: false,
-                silent: true // No toast for movements
-            });
-            if (!result.success) setSlewing(false);
-        }).catch((err) => {
-            console.error("Move start failed:", err);
-            setSlewing(false);
+
+        // Fire immediately — NOT chained behind previous requests.
+        return execute('/api/indi/mount', `SLEW ${direction.toUpperCase()}`, {
+            body: {
+                action: 'jog',
+                direction: direction,
+                state: 'start',
+                duration: 0.5,
+                device: detectedMount,
+                ip: config.astroberryUrl,
+            },
+            showGlobalLoader: false,
+            silent: true, // No toast for movements
+            timeout: JOG_TIMEOUT,
+            retries: 0,
+            signal: controller.signal,
+        }).then((result) => {
+            // Only clear the slewing indicator if this start failed AND we're still
+            // meant to be going this direction (i.e. it wasn't superseded/aborted).
+            if (!result.success && activeDirectionRef.current === direction) {
+                setSlewing(false);
+            }
         });
-        
-        requestChainRef.current = promise;
-        return promise;
     };
 
     const handleMoveStop = () => {
         const dir = activeDirectionRef.current;
-        if (!dir) return Promise.resolve();
-
         activeDirectionRef.current = null;
+        setSlewing(false);
 
-        const promise = requestChainRef.current.then(async () => {
-            await execute('/api/indi/mount', "HALT", {
-                body: { action: 'jog', direction: dir, state: 'stop', device: detectedMount, ip: config.astroberryUrl },
-                showGlobalLoader: false,
-                silent: true // No toast for stops
-            });
-            setSlewing(false);
-        }).catch((err) => {
-            console.error("Move stop failed:", err);
-            setSlewing(false);
+        // Abort any pending START so the STOP is sent right now, never queued behind it.
+        startAbortRef.current?.abort();
+        startAbortRef.current = null;
+
+        // Always send an explicit (idempotent) stop for both axes so the mount halts
+        // the instant the button is released.
+        return execute('/api/indi/mount', "HALT", {
+            body: { action: 'jog', direction: dir ?? 'up', state: 'stop', device: detectedMount, ip: config.astroberryUrl },
+            showGlobalLoader: false,
+            silent: true, // No toast for stops
+            timeout: JOG_TIMEOUT,
+            retries: 0,
         });
-
-        requestChainRef.current = promise;
-        return promise;
     };
 
     const handleAbort = async () => {
         activeDirectionRef.current = null;
+        startAbortRef.current?.abort();
+        startAbortRef.current = null;
         await execute('/api/indi/mount', "EMERGENCY ABORT", {
             body: { action: 'abort_all', device: detectedMount },
             showGlobalLoader: false,
-            successMessage: "ALL MOTION STOPPED"
+            successMessage: "ALL MOTION STOPPED",
+            timeout: JOG_TIMEOUT,
+            retries: 0,
         });
         setSlewing(false);
     };
@@ -159,69 +172,69 @@ export const TelescopeControls = ({ variant }: TelescopeControlsProps) => {
 
                 {/* Directional Pads positioned in a circle */}
                 <Box position="absolute" top="15px">
-                    <PadButton 
-                        icon={ChevronUp} 
-                        onPointerDown={(e) => { e.preventDefault(); handleMoveStart('up'); }}
+                    <PadButton
+                        icon={ChevronUp}
+                        onPointerDown={(e) => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); handleMoveStart('up'); }}
                         onPointerUp={(e) => { e.preventDefault(); handleMoveStop(); }}
-                        onPointerLeave={(e) => { e.preventDefault(); handleMoveStop(); }}
+                        onPointerCancel={(e) => { e.preventDefault(); handleMoveStop(); }}
                     />
                 </Box>
                 <Box position="absolute" bottom="15px">
-                    <PadButton 
+                    <PadButton
                         icon={ChevronDown}
-                        onPointerDown={(e) => { e.preventDefault(); handleMoveStart('down'); }}
+                        onPointerDown={(e) => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); handleMoveStart('down'); }}
                         onPointerUp={(e) => { e.preventDefault(); handleMoveStop(); }}
-                        onPointerLeave={(e) => { e.preventDefault(); handleMoveStop(); }}
+                        onPointerCancel={(e) => { e.preventDefault(); handleMoveStop(); }}
                     />
                 </Box>
                 <Box position="absolute" left="15px">
-                    <PadButton 
+                    <PadButton
                         icon={ChevronLeft}
-                        onPointerDown={(e) => { e.preventDefault(); handleMoveStart('left'); }}
+                        onPointerDown={(e) => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); handleMoveStart('left'); }}
                         onPointerUp={(e) => { e.preventDefault(); handleMoveStop(); }}
-                        onPointerLeave={(e) => { e.preventDefault(); handleMoveStop(); }}
+                        onPointerCancel={(e) => { e.preventDefault(); handleMoveStop(); }}
                     />
                 </Box>
                 <Box position="absolute" right="15px">
-                    <PadButton 
+                    <PadButton
                         icon={ChevronRight}
-                        onPointerDown={(e) => { e.preventDefault(); handleMoveStart('right'); }}
+                        onPointerDown={(e) => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); handleMoveStart('right'); }}
                         onPointerUp={(e) => { e.preventDefault(); handleMoveStop(); }}
-                        onPointerLeave={(e) => { e.preventDefault(); handleMoveStop(); }}
+                        onPointerCancel={(e) => { e.preventDefault(); handleMoveStop(); }}
                     />
                 </Box>
-                
+
                 {/* Diagonal Directional Pads */}
                 <Box position="absolute" top="25px" left="25px">
-                    <PadButton 
+                    <PadButton
                         icon={ArrowUpLeft}
-                        onPointerDown={(e) => { e.preventDefault(); handleMoveStart('up-left'); }}
+                        onPointerDown={(e) => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); handleMoveStart('up-left'); }}
                         onPointerUp={(e) => { e.preventDefault(); handleMoveStop(); }}
-                        onPointerLeave={(e) => { e.preventDefault(); handleMoveStop(); }}
+                        onPointerCancel={(e) => { e.preventDefault(); handleMoveStop(); }}
                     />
                 </Box>
                 <Box position="absolute" top="25px" right="25px">
-                    <PadButton 
+                    <PadButton
                         icon={ArrowUpRight}
-                        onPointerDown={(e) => { e.preventDefault(); handleMoveStart('up-right'); }}
+                        onPointerDown={(e) => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); handleMoveStart('up-right'); }}
                         onPointerUp={(e) => { e.preventDefault(); handleMoveStop(); }}
-                        onPointerLeave={(e) => { e.preventDefault(); handleMoveStop(); }}
+                        onPointerCancel={(e) => { e.preventDefault(); handleMoveStop(); }}
                     />
                 </Box>
                 <Box position="absolute" bottom="25px" left="25px">
-                    <PadButton 
+                    <PadButton
                         icon={ArrowDownLeft}
-                        onPointerDown={(e) => { e.preventDefault(); handleMoveStart('down-left'); }}
+                        onPointerDown={(e) => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); handleMoveStart('down-left'); }}
                         onPointerUp={(e) => { e.preventDefault(); handleMoveStop(); }}
-                        onPointerLeave={(e) => { e.preventDefault(); handleMoveStop(); }}
+                        onPointerCancel={(e) => { e.preventDefault(); handleMoveStop(); }}
                     />
                 </Box>
                 <Box position="absolute" bottom="25px" right="25px">
-                    <PadButton 
+                    <PadButton
                         icon={ArrowDownRight}
-                        onPointerDown={(e) => { e.preventDefault(); handleMoveStart('down-right'); }}
+                        onPointerDown={(e) => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); handleMoveStart('down-right'); }}
                         onPointerUp={(e) => { e.preventDefault(); handleMoveStop(); }}
-                        onPointerLeave={(e) => { e.preventDefault(); handleMoveStop(); }}
+                        onPointerCancel={(e) => { e.preventDefault(); handleMoveStop(); }}
                     />
                 </Box>
 

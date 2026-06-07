@@ -1,7 +1,7 @@
 "use client";
 
 import { Box, VStack, HStack, Text, Button, Icon } from "@chakra-ui/react";
-import { BrainCircuit, CloudRain, Star, Sparkles, Wind, Moon, Thermometer, Sun, CloudFog, Cloud } from "lucide-react";
+import { BrainCircuit, Star, Wind, Moon, Thermometer, Sun, CloudFog, Cloud } from "lucide-react";
 import { useStargazerStore } from "@/store/useStargazerStore";
 import { t } from "@/i18n/translations";
 import { useEnvironmentData } from "@/hooks/useEnvironmentData";
@@ -267,17 +267,6 @@ export const AIAssistant = () => {
                             {getAdviceDescription()}{" "}
                             {t("AI_HORIZON_LIMITS", language)} <Text as="span" color="var(--astro-teal)" fontWeight="bold">3h45 {t("AI_CONTINUOUS_TRACKING", language)}</Text> {t("AI_ON_ORION", language)}
                         </Text>
-                        <HStack w="full" mt={1}>
-                            <Button 
-                                size="sm" w="full" bg="rgba(255, 179, 71, 0.1)" 
-                                border="1px solid var(--astro-gold)" color="var(--astro-gold)"
-                                _hover={{ bg: "var(--astro-gold)", color: "black", boxShadow: "0 0 15px rgba(255, 179, 71, 0.4)" }}
-                                fontSize="10px" h="32px"
-                            >
-                                <Sparkles size={14} style={{ marginRight: '6px' }} />
-                                {t("AI_START_SEQUENCE", language)}
-                            </Button>
-                        </HStack>
                     </VStack>
                 </Box>
             </VStack>
