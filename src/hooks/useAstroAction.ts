@@ -15,6 +15,7 @@ interface ActionOptions {
     silent?: boolean;
     timeout?: number;
     retries?: number;
+    signal?: AbortSignal;
 }
 
 export const useAstroAction = () => {
@@ -37,6 +38,7 @@ export const useAstroAction = () => {
             silent = false,
             timeout,
             retries,
+            signal,
         } = options;
 
         setIsPending(true);
@@ -58,6 +60,7 @@ export const useAstroAction = () => {
                     label,
                     timeout,
                     retries,
+                    signal,
                 });
 
                 if (!result.success) {

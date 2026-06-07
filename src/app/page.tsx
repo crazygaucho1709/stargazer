@@ -3,7 +3,7 @@
 import { Box, VStack, HStack, Text, Icon, Flex, Grid, Circle } from "@chakra-ui/react";
 import { TelescopeControls } from "@/components/telescope/TelescopeControls";
 import { CameraControls } from "@/components/camera/CameraControls";
-import InteractiveSkyMap from "@/components/viewport/InteractiveSkyMap";
+import { SkyMap } from "@/components/viewport/SkyMap";
 import { AIAssistant } from "@/components/ai/AIAssistant";
 import { MountCalibration } from "@/components/telescope/MountCalibration";
 import { AstroPod } from "@/components/ui/AstroPod";
@@ -34,13 +34,19 @@ export default function Home() {
         setMounted(true);
         setStatusText(t("ESTABLISHING_LINK", language));
 
-        // Load configuration from backend disk store
+        // Load configuration from backend disk store.
+        // We never overwrite a locally-stored aiKey with an empty server value.
         const loadServerConfig = async () => {
             try {
                 const res = await fetch('/api/indi/config');
                 if (res.ok) {
                     const serverConfig = await res.json();
                     if (serverConfig && Object.keys(serverConfig).length > 0) {
+                        const localKey = useStargazerStore.getState().config.aiKey;
+                        // Preserve local aiKey if the server doesn't have one
+                        if (localKey && !serverConfig.aiKey) {
+                            serverConfig.aiKey = localKey;
+                        }
                         useStargazerStore.getState().updateConfig(serverConfig, false);
                     }
                 }
@@ -254,7 +260,10 @@ export default function Home() {
                         </AstroPod>
                     </VStack>
 
-                    <Box flex={1} pointerEvents="none" />
+                    {/* Centre : Sky Map interactive */}
+                    <Box flex={1} pointerEvents="auto" position="relative" borderRadius="lg" overflow="hidden" mx={2}>
+                        <SkyMap />
+                    </Box>
 
                     {/* RIGHT COLUMN: Sensor & Oracle Only */}
                     <VStack

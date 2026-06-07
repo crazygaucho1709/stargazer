@@ -990,8 +990,8 @@ export const SkyMap = () => {
     return (
         <Box ref={mapContainerRef} w="full" h="full" bg="black" position="relative" overflow="hidden">
             {/* Search Bar with Dropdown Results */}
-            <Box 
-                position="absolute" top="150px" left="50%" transform="translateX(-50%)" 
+            <Box
+                position="absolute" top="12px" left="50%" transform="translateX(-50%)"
                 zIndex={20} w="420px" pointerEvents="auto"
             >
                 <form onSubmit={handleSearch}>
@@ -1070,8 +1070,8 @@ export const SkyMap = () => {
             </Box>
 
             {/* Floating Controls - Right side */}
-            <VStack 
-                position="absolute" top="150px" right="20px" zIndex={20} 
+            <VStack
+                position="absolute" top="60px" right="10px" zIndex={20}
                 gap={2} pointerEvents="auto"
                 align="flex-end"
             >
