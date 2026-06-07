@@ -85,7 +85,8 @@ export async function apiRequest<T = any>(
         data = { text };
       }
 
-      if (!response.ok) {
+      const hasFailedField = data && typeof data === "object" && data.success === false;
+      if (!response.ok || hasFailedField) {
         const errorMsg = data?.error || data?.message || `HTTP ${status}`;
         if (!opts.silent) {
           notification.error(`${label} a échoué`, {
