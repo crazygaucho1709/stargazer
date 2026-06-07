@@ -79,7 +79,7 @@ export const CameraControls = ({ variant = "standard" }: CameraControlsProps) =>
             setCaptureProgress(currentCap);
         }, 100);
 
-        const result = await execute(`/api/indi`, "IMAGE CAPTURE", {
+        const result = await execute(`/api/indi?endpoint=ccd/capture`, "IMAGE CAPTURE", {
             body: { 
                 action: 'capture',
                 exposure: config.exposureTime || 2.0, 

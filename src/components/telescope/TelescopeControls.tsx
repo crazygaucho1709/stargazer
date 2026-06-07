@@ -15,14 +15,12 @@ interface PadButtonProps {
     icon: any;
     glowColor?: string;
     onClick?: () => void;
-    onMouseDown?: () => void;
-    onMouseUp?: () => void;
-    onMouseLeave?: () => void;
-    onTouchStart?: () => void;
-    onTouchEnd?: () => void;
+    onPointerDown?: (e: React.PointerEvent) => void;
+    onPointerUp?: (e: React.PointerEvent) => void;
+    onPointerLeave?: (e: React.PointerEvent) => void;
 }
 
-const PadButton = ({ icon: DirIcon, glowColor = "var(--astro-teal)", onClick, onMouseDown, onMouseUp, onMouseLeave, onTouchStart, onTouchEnd }: PadButtonProps) => (
+const PadButton = ({ icon: DirIcon, glowColor = "var(--astro-teal)", onClick, onPointerDown, onPointerUp, onPointerLeave }: PadButtonProps) => (
     <Button
         variant="plain"
         w="40px"
@@ -38,11 +36,9 @@ const PadButton = ({ icon: DirIcon, glowColor = "var(--astro-teal)", onClick, on
         transition="all 0.2s"
         p={0}
         onClick={onClick}
-        onMouseDown={onMouseDown}
-        onMouseUp={onMouseUp}
-        onMouseLeave={onMouseLeave}
-        onTouchStart={onTouchStart}
-        onTouchEnd={onTouchEnd}
+        onPointerDown={onPointerDown}
+        onPointerUp={onPointerUp}
+        onPointerLeave={onPointerLeave}
     >
         <DirIcon size={20} />
     </Button>
@@ -165,41 +161,33 @@ export const TelescopeControls = ({ variant }: TelescopeControlsProps) => {
                 <Box position="absolute" top="15px">
                     <PadButton 
                         icon={ChevronUp} 
-                        onMouseDown={() => handleMoveStart('up')}
-                        onMouseUp={handleMoveStop}
-                        onMouseLeave={handleMoveStop}
-                        onTouchStart={() => handleMoveStart('up')}
-                        onTouchEnd={handleMoveStop}
+                        onPointerDown={(e) => { e.preventDefault(); handleMoveStart('up'); }}
+                        onPointerUp={(e) => { e.preventDefault(); handleMoveStop(); }}
+                        onPointerLeave={(e) => { e.preventDefault(); handleMoveStop(); }}
                     />
                 </Box>
                 <Box position="absolute" bottom="15px">
                     <PadButton 
                         icon={ChevronDown}
-                        onMouseDown={() => handleMoveStart('down')}
-                        onMouseUp={handleMoveStop}
-                        onMouseLeave={handleMoveStop}
-                        onTouchStart={() => handleMoveStart('down')}
-                        onTouchEnd={handleMoveStop}
+                        onPointerDown={(e) => { e.preventDefault(); handleMoveStart('down'); }}
+                        onPointerUp={(e) => { e.preventDefault(); handleMoveStop(); }}
+                        onPointerLeave={(e) => { e.preventDefault(); handleMoveStop(); }}
                     />
                 </Box>
                 <Box position="absolute" left="15px">
                     <PadButton 
                         icon={ChevronLeft}
-                        onMouseDown={() => handleMoveStart('left')}
-                        onMouseUp={handleMoveStop}
-                        onMouseLeave={handleMoveStop}
-                        onTouchStart={() => handleMoveStart('left')}
-                        onTouchEnd={handleMoveStop}
+                        onPointerDown={(e) => { e.preventDefault(); handleMoveStart('left'); }}
+                        onPointerUp={(e) => { e.preventDefault(); handleMoveStop(); }}
+                        onPointerLeave={(e) => { e.preventDefault(); handleMoveStop(); }}
                     />
                 </Box>
                 <Box position="absolute" right="15px">
                     <PadButton 
                         icon={ChevronRight}
-                        onMouseDown={() => handleMoveStart('right')}
-                        onMouseUp={handleMoveStop}
-                        onMouseLeave={handleMoveStop}
-                        onTouchStart={() => handleMoveStart('right')}
-                        onTouchEnd={handleMoveStop}
+                        onPointerDown={(e) => { e.preventDefault(); handleMoveStart('right'); }}
+                        onPointerUp={(e) => { e.preventDefault(); handleMoveStop(); }}
+                        onPointerLeave={(e) => { e.preventDefault(); handleMoveStop(); }}
                     />
                 </Box>
                 
@@ -207,41 +195,33 @@ export const TelescopeControls = ({ variant }: TelescopeControlsProps) => {
                 <Box position="absolute" top="25px" left="25px">
                     <PadButton 
                         icon={ArrowUpLeft}
-                        onMouseDown={() => handleMoveStart('up-left')}
-                        onMouseUp={handleMoveStop}
-                        onMouseLeave={handleMoveStop}
-                        onTouchStart={() => handleMoveStart('up-left')}
-                        onTouchEnd={handleMoveStop}
+                        onPointerDown={(e) => { e.preventDefault(); handleMoveStart('up-left'); }}
+                        onPointerUp={(e) => { e.preventDefault(); handleMoveStop(); }}
+                        onPointerLeave={(e) => { e.preventDefault(); handleMoveStop(); }}
                     />
                 </Box>
                 <Box position="absolute" top="25px" right="25px">
                     <PadButton 
                         icon={ArrowUpRight}
-                        onMouseDown={() => handleMoveStart('up-right')}
-                        onMouseUp={handleMoveStop}
-                        onMouseLeave={handleMoveStop}
-                        onTouchStart={() => handleMoveStart('up-right')}
-                        onTouchEnd={handleMoveStop}
+                        onPointerDown={(e) => { e.preventDefault(); handleMoveStart('up-right'); }}
+                        onPointerUp={(e) => { e.preventDefault(); handleMoveStop(); }}
+                        onPointerLeave={(e) => { e.preventDefault(); handleMoveStop(); }}
                     />
                 </Box>
                 <Box position="absolute" bottom="25px" left="25px">
                     <PadButton 
                         icon={ArrowDownLeft}
-                        onMouseDown={() => handleMoveStart('down-left')}
-                        onMouseUp={handleMoveStop}
-                        onMouseLeave={handleMoveStop}
-                        onTouchStart={() => handleMoveStart('down-left')}
-                        onTouchEnd={handleMoveStop}
+                        onPointerDown={(e) => { e.preventDefault(); handleMoveStart('down-left'); }}
+                        onPointerUp={(e) => { e.preventDefault(); handleMoveStop(); }}
+                        onPointerLeave={(e) => { e.preventDefault(); handleMoveStop(); }}
                     />
                 </Box>
                 <Box position="absolute" bottom="25px" right="25px">
                     <PadButton 
                         icon={ArrowDownRight}
-                        onMouseDown={() => handleMoveStart('down-right')}
-                        onMouseUp={handleMoveStop}
-                        onMouseLeave={handleMoveStop}
-                        onTouchStart={() => handleMoveStart('down-right')}
-                        onTouchEnd={handleMoveStop}
+                        onPointerDown={(e) => { e.preventDefault(); handleMoveStart('down-right'); }}
+                        onPointerUp={(e) => { e.preventDefault(); handleMoveStop(); }}
+                        onPointerLeave={(e) => { e.preventDefault(); handleMoveStop(); }}
                     />
                 </Box>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { 
   Box, VStack, HStack, Text, Button, Icon, Badge, Flex, 
   Grid, NumberInput, Switch, Spinner, IconButton 
@@ -48,6 +48,7 @@ export const CaptureAndStack = () => {
   const [gain, setGain] = useState(800);
   const [numFrames, setNumFrames] = useState(20);
   const [isCapturing, setIsCapturing] = useState(false);
+  const isCapturingRef = useRef(false);
   const [currentFrame, setCurrentFrame] = useState(0);
   const [frames, setFrames] = useState<CaptureFrame[]>([]);
   const [isAutoFocus, setIsAutoFocus] = useState(true);
@@ -97,6 +98,7 @@ export const CaptureAndStack = () => {
   }, [performAction]);
 
   const startCapture = useCallback(async () => {
+    isCapturingRef.current = true;
     setIsCapturing(true);
     setCurrentFrame(0);
     setFrames([]);
@@ -106,7 +108,7 @@ export const CaptureAndStack = () => {
     }
     
     for (let i = 1; i <= numFrames; i++) {
-      if (!isCapturing && i > 1) break; // Check for stop
+      if (!isCapturingRef.current) break; // Check for stop
       setCurrentFrame(i);
       
       try {
@@ -114,20 +116,35 @@ export const CaptureAndStack = () => {
           exposure: String(exposure),
           device: "Canon DSLR EOS 600D",
         });
-        await fetch(clientApiUrl(`/api/indi/ccd?${capParams.toString()}`), {
+        const res = await fetch(clientApiUrl(`/api/indi/ccd?${capParams.toString()}`), {
             method: 'GET',
             headers: { 'Accept': 'application/json' },
             cache: 'no-store',
         });
+        if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.error || `HTTP ${res.status}`);
+        }
       } catch (e: any) {
         notification.error("Échec de la capture", {
           description: e?.message || "Erreur lors de la prise de vue",
           source: "Caméra",
         });
+        isCapturingRef.current = false;
+        setIsCapturing(false);
+        break; // Stop loop immediately on capture error
       }
       
-      // Wait for exposure plus small overhead
-      await new Promise(r => setTimeout(r, (exposure + 1) * 1000));
+      // Wait for exposure plus small overhead, checking periodically if we aborted
+      const sleepTimeMs = (exposure + 1) * 1000;
+      const checkIntervalMs = 500;
+      let elapsedMs = 0;
+      while (elapsedMs < sleepTimeMs) {
+        if (!isCapturingRef.current) break;
+        await new Promise(r => setTimeout(r, Math.min(checkIntervalMs, sleepTimeMs - elapsedMs)));
+        elapsedMs += checkIntervalMs;
+      }
+      if (!isCapturingRef.current) break;
       
       // Read actual focus metric
       let measuredHfr = focusHFR;
@@ -151,12 +168,13 @@ export const CaptureAndStack = () => {
       setLiveStats(s => ({ ...s, remainingTime: (numFrames - i) * (exposure + 3) }));
     }
     
+    isCapturingRef.current = false;
     setIsCapturing(false);
     if (isAiSequencePending) {
       setIsAiSequencePending(false);
       setAutoStartAiSequence(false);
     }
-  }, [exposure, gain, numFrames, isAutoFocus, performAutoFocus, focusHFR, isCapturing, isAiSequencePending]);
+  }, [exposure, gain, numFrames, isAutoFocus, performAutoFocus, focusHFR, isAiSequencePending]);
 
   const startStacking = useCallback(async () => {
     setIsStacking(true);
@@ -471,7 +489,10 @@ export const CaptureAndStack = () => {
                     bg="red.500"
                     color="white"
                     _hover={{ bg: "red.600" }}
-                    onClick={() => setIsCapturing(false)}
+                    onClick={() => {
+                        isCapturingRef.current = false;
+                        setIsCapturing(false);
+                    }}
                     h="40px"
                     fontSize="11px"
                     fontWeight="bold"

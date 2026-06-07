@@ -14,6 +14,16 @@ declare global {
     }
 }
 
+const SURVEY_URLS: Record<string, string> = {
+    'P/DSS2/color': '/api/proxy/aladin/alasky/DSS/DSSColor',
+    'P/DSS2/red': '/api/proxy/aladin/alaskybis/DSS/DSS2Merged',
+    'P/2MASS/color': '/api/proxy/aladin/alaskybis/2MASS/Color',
+    'P/SDSS9/g': '/api/proxy/aladin/alasky/SDSS/DR9/band-g',
+    'P/SDSS9/r': '/api/proxy/aladin/alasky/SDSS/DR9/band-r',
+    'P/SDSS9/i': '/api/proxy/aladin/alasky/SDSS/DR9/band-i',
+    'P/GLADE': '/api/proxy/aladin/alasky/GLADE'
+};
+
 // Parse RA string to decimal degrees
 function parseRaToDecimal(ra: string): number {
     if (!ra) return 0;
@@ -342,6 +352,7 @@ const AladinSkyMap = ({
     const [aladinReady, setAladinReady] = useState(false);
     const [loadError, setLoadError] = useState<string | null>(null);
     const [hoveredObject, setHoveredObject] = useState<CelestialObject | null>(null);
+    const [isOnline, setIsOnline] = useState<boolean | null>(null);
     const mountCatalogRef = useRef<any>(null);
     const mountSourceRef = useRef<any>(null);
     const dsoCatalogRef = useRef<any>(null);
@@ -368,8 +379,30 @@ const AladinSkyMap = ({
         };
     }, []);
 
+    // Check if Strasbourg is reachable through our proxy to run in offline mode if needed
+    useEffect(() => {
+        const checkOnline = async () => {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 1200);
+                const res = await fetch('/api/proxy/aladin/alasky/DSS/DSSColor/properties', {
+                    method: 'GET',
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+                setIsOnline(res.ok);
+            } catch (e) {
+                console.warn('Strasbourg server is unreachable, configuring Aladin in offline mode (survey: null).');
+                setIsOnline(false);
+            }
+        };
+        checkOnline();
+    }, []);
+
     // Load Aladin Lite with retry logic
     useEffect(() => {
+        if (isOnline === null) return; // Wait for connectivity check
+
         let retryCount = 0;
         const maxRetries = 10;
 
@@ -383,9 +416,11 @@ const AladinSkyMap = ({
             }
 
             // Check if Aladin already loaded and initialized
-            if (typeof window.A !== 'undefined' && window.A.init) {
+            if (typeof window.A !== 'undefined') {
                 try {
-                    await window.A.init;
+                    if (window.A.init) {
+                        await window.A.init;
+                    }
                     await setupAladin();
                     return;
                 } catch (e) {
@@ -399,7 +434,6 @@ const AladinSkyMap = ({
             }
 
             retryCount++;
-
             // Load CSS from local file
             if (!document.getElementById('aladin-css')) {
                 const link = document.createElement('link');
@@ -408,7 +442,7 @@ const AladinSkyMap = ({
                 link.href = '/aladin.css';
                 document.head.appendChild(link);
             }
-
+ 
             // Load JS from local file
             if (!document.getElementById('aladin-script')) {
                 const script = document.createElement('script');
@@ -421,7 +455,7 @@ const AladinSkyMap = ({
                     setLoadError('Aladin failed to load, using fallback mode');
                 };
                 document.head.appendChild(script);
-            } else if (typeof window.A !== 'undefined' && window.A.init) {
+            } else {
                 setTimeout(() => initAladin(), 500);
             }
         };
@@ -451,8 +485,11 @@ const AladinSkyMap = ({
                 showFullscreen: false,
                 projection: 'SIN'
             };
+            const selectedSurvey = settings.survey || 'P/DSS2/color';
+            const surveyUrl = isOnline ? (SURVEY_URLS[selectedSurvey] || selectedSurvey) : null;
+
             aladinRef.current = window.A.aladin(containerRef.current, {
-                survey: settings.survey || 'P/DSS2/color',
+                survey: surveyUrl,
                 fov: fov,
                 target: [raVal, decVal],
                 showReticle: settings.showReticle || false,
@@ -584,9 +621,24 @@ const AladinSkyMap = ({
         const raVal = parseRaToDecimal(mountRa);
         const decVal = parseDecToDecimal(mountDec);
         try {
-            mountSourceRef.current.ra = raVal;
-            mountSourceRef.current.dec = decVal;
-            mountCatalogRef.current.updateSources();
+            if (typeof mountCatalogRef.current.updateSources === 'function') {
+                mountSourceRef.current.ra = raVal;
+                mountSourceRef.current.dec = decVal;
+                mountCatalogRef.current.updateSources();
+            } else {
+                // Fallback for Aladin v3 which doesn't use updateSources
+                if (typeof mountCatalogRef.current.removeAllSources === 'function') {
+                    mountCatalogRef.current.removeAllSources();
+                } else if (mountSourceRef.current && typeof mountCatalogRef.current.remove === 'function') {
+                    try {
+                        mountCatalogRef.current.remove(mountSourceRef.current);
+                    } catch (err) {
+                        console.warn('Error calling catalog.remove:', err);
+                    }
+                }
+                mountSourceRef.current = window.A.source(raVal, decVal, { name: 'Mount' });
+                mountCatalogRef.current.addSources([mountSourceRef.current]);
+            }
         } catch (e) {
             console.warn('Mount marker update error:', e);
         }
@@ -608,7 +660,7 @@ const AladinSkyMap = ({
 
     // Update Aladin when settings change — non-destructive for minor changes
     useEffect(() => {
-        if (!aladinReady || !aladinRef.current || !aladinSettings) return;
+        if (!aladinReady || !aladinRef.current || !aladinSettings || isOnline === null) return;
         
         const prevMajorRef = (window as any).__aladinMajorSettings;
         const majorKey = `${aladinSettings.survey}|${aladinSettings.projection}|${aladinSettings.showReticle}|${aladinSettings.showFullscreen}|${aladinSettings.showZoom}|${aladinSettings.fov}`;
@@ -626,8 +678,11 @@ const AladinSkyMap = ({
                 const raVal = parseRaToDecimal(mountRa || '0');
                 const decVal = parseDecToDecimal(mountDec || '0');
                 
+                const selectedSurvey = aladinSettings.survey;
+                const surveyUrl = isOnline ? (SURVEY_URLS[selectedSurvey] || selectedSurvey) : null;
+
                 aladinRef.current = window.A.aladin(container, {
-                    survey: aladinSettings.survey,
+                    survey: surveyUrl,
                     fov: aladinSettings.fov,
                     target: [raVal, decVal],
                     showReticle: aladinSettings.showReticle,
