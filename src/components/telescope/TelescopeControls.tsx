@@ -1,11 +1,12 @@
 // src/components/telescope/TelescopeControls.tsx
 "use client";
 
-import { Box, Grid, Button, VStack, HStack, Circle, Icon, Flex, Text } from "@chakra-ui/react";
-import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Target, RotateCcw, ArrowUpLeft, ArrowUpRight, ArrowDownLeft, ArrowDownRight } from "lucide-react";
+import { Box, Grid, Button, VStack, HStack, Circle, Icon, Flex, Text, Badge } from "@chakra-ui/react";
+import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Target, RotateCcw, ArrowUpLeft, ArrowUpRight, ArrowDownLeft, ArrowDownRight, Moon, Sun, Star, Globe } from "lucide-react";
 import React from "react";
 import { useStargazerStore } from "@/store/useStargazerStore";
 import { useAstroAction } from "@/hooks/useAstroAction";
+import { useJog } from "@/hooks/useJog";
 
 interface TelescopeControlsProps {
     variant: "pad" | "jog" | "guiding";
@@ -34,6 +35,7 @@ const PadButton = ({ icon: DirIcon, glowColor = "var(--astro-teal)", onClick, on
         _hover={{ bg: "rgba(255,255,255,0.1)", transform: "scale(1.1)", boxShadow: `0 0 15px ${glowColor}` }}
         _active={{ bg: glowColor, color: "#000" }}
         transition="all 0.2s"
+        style={{ touchAction: 'none' }}
         p={0}
         onClick={onClick}
         onPointerDown={onPointerDown}
@@ -47,99 +49,29 @@ const PadButton = ({ icon: DirIcon, glowColor = "var(--astro-teal)", onClick, on
 export const TelescopeControls = ({ variant }: TelescopeControlsProps) => {
     const { isSlewing, setSlewing, setPosition, config, detectedMount } = useStargazerStore();
     const { execute } = useAstroAction();
-    type Direction = 'up' | 'down' | 'left' | 'right' | 'up-left' | 'up-right' | 'down-left' | 'down-right';
-    const activeDirectionRef = React.useRef<Direction | null>(null);
-    // Lets us cancel an in-flight START so a STOP is never queued behind it.
-    const startAbortRef = React.useRef<AbortController | null>(null);
+    const jog = useJog();
     const [slewRate, setSlewRate] = React.useState(5);
 
-    // Real-time motion commands must be fast and never retry: a stale jog keeps the
-    // mount moving. Short timeout + no retries + no global loader.
     const JOG_TIMEOUT = 3000;
 
     const handleRateChange = async (value: number) => {
-        const wasMoving = activeDirectionRef.current !== null;
-        const prevDir = activeDirectionRef.current;
+        // Capture active direction BEFORE stopping (stopJog resets it)
+        const prevDir = jog.activeDir;
+        if (prevDir) jog.stopJog();
 
-        // Stop motion if currently moving
-        if (wasMoving) {
-            handleMoveStop();
-        }
-
-        // Change slew rate
         setSlewRate(value);
-
-        // Send rate to backend using hook
         await execute('/api/indi/mount', `SET RATE ${value}x`, {
             body: { action: 'rate', rate: value, device: detectedMount, ip: config.astroberryUrl },
-            showGlobalLoader: false, // No need for full screen loader for rate change
-            timeout: JOG_TIMEOUT,
-            retries: 0,
-        });
-
-        // Restart motion if it was moving
-        if (wasMoving && prevDir) {
-            handleMoveStart(prevDir);
-        }
-    };
-
-    const handleMoveStart = (direction: Direction) => {
-        // Cancel any START still in flight so commands can't stack up.
-        startAbortRef.current?.abort();
-        const controller = new AbortController();
-        startAbortRef.current = controller;
-
-        activeDirectionRef.current = direction;
-        setSlewing(true);
-
-        // Fire immediately — NOT chained behind previous requests.
-        return execute('/api/indi/mount', `SLEW ${direction.toUpperCase()}`, {
-            body: {
-                action: 'jog',
-                direction: direction,
-                state: 'start',
-                duration: 0.5,
-                device: detectedMount,
-                ip: config.astroberryUrl,
-            },
             showGlobalLoader: false,
-            silent: true, // No toast for movements
-            timeout: JOG_TIMEOUT,
-            retries: 0,
-            signal: controller.signal,
-        }).then((result) => {
-            // Only clear the slewing indicator if this start failed AND we're still
-            // meant to be going this direction (i.e. it wasn't superseded/aborted).
-            if (!result.success && activeDirectionRef.current === direction) {
-                setSlewing(false);
-            }
-        });
-    };
-
-    const handleMoveStop = () => {
-        const dir = activeDirectionRef.current;
-        activeDirectionRef.current = null;
-        setSlewing(false);
-
-        // Abort any pending START so the STOP is sent right now, never queued behind it.
-        startAbortRef.current?.abort();
-        startAbortRef.current = null;
-
-        // Always send an explicit (idempotent) stop for both axes so the mount halts
-        // the instant the button is released.
-        return execute('/api/indi/mount', "HALT", {
-            body: { action: 'jog', direction: dir ?? 'up', state: 'stop', device: detectedMount, ip: config.astroberryUrl },
-            showGlobalLoader: false,
-            silent: true, // No toast for stops
             timeout: JOG_TIMEOUT,
             retries: 0,
         });
+
+        if (prevDir) jog.startJog(prevDir);
     };
 
     const handleAbort = async () => {
-        activeDirectionRef.current = null;
-        startAbortRef.current?.abort();
-        startAbortRef.current = null;
+        jog.stopJog();
         await execute('/api/indi/mount', "EMERGENCY ABORT", {
             body: { action: 'abort_all', device: detectedMount },
             showGlobalLoader: false,
@@ -157,8 +89,15 @@ export const TelescopeControls = ({ variant }: TelescopeControlsProps) => {
         });
     };
 
+    if (variant === "jog" || variant === "guiding") {
+        return null;
+    }
+
     if (variant === "pad") {
         return (
+            /* Outer VStack keeps the slider in natural flow — no absolute overflow,
+               no z-index fight with the SkyMap or adjacent panels. */
+            <Box display="flex" flexDirection="column" alignItems="center" gap={0} w="180px">
             <Box position="relative" w="180px" h="180px" display="flex" alignItems="center" justifyContent="center">
                 {/* Compass background rings */}
                 <Box position="absolute" inset="0" borderRadius="full" border="1px solid rgba(255,255,255,0.05)" />
@@ -174,33 +113,33 @@ export const TelescopeControls = ({ variant }: TelescopeControlsProps) => {
                 <Box position="absolute" top="15px">
                     <PadButton
                         icon={ChevronUp}
-                        onPointerDown={(e) => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); handleMoveStart('up'); }}
-                        onPointerUp={(e) => { e.preventDefault(); handleMoveStop(); }}
-                        onPointerCancel={(e) => { e.preventDefault(); handleMoveStop(); }}
+                        onPointerDown={(e) => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); jog.startJog('up'); }}
+                        onPointerUp={(e) => { e.preventDefault(); jog.stopJog(); }}
+                        onPointerCancel={(e) => { e.preventDefault(); jog.stopJog(); }}
                     />
                 </Box>
                 <Box position="absolute" bottom="15px">
                     <PadButton
                         icon={ChevronDown}
-                        onPointerDown={(e) => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); handleMoveStart('down'); }}
-                        onPointerUp={(e) => { e.preventDefault(); handleMoveStop(); }}
-                        onPointerCancel={(e) => { e.preventDefault(); handleMoveStop(); }}
+                        onPointerDown={(e) => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); jog.startJog('down'); }}
+                        onPointerUp={(e) => { e.preventDefault(); jog.stopJog(); }}
+                        onPointerCancel={(e) => { e.preventDefault(); jog.stopJog(); }}
                     />
                 </Box>
                 <Box position="absolute" left="15px">
                     <PadButton
                         icon={ChevronLeft}
-                        onPointerDown={(e) => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); handleMoveStart('left'); }}
-                        onPointerUp={(e) => { e.preventDefault(); handleMoveStop(); }}
-                        onPointerCancel={(e) => { e.preventDefault(); handleMoveStop(); }}
+                        onPointerDown={(e) => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); jog.startJog('left'); }}
+                        onPointerUp={(e) => { e.preventDefault(); jog.stopJog(); }}
+                        onPointerCancel={(e) => { e.preventDefault(); jog.stopJog(); }}
                     />
                 </Box>
                 <Box position="absolute" right="15px">
                     <PadButton
                         icon={ChevronRight}
-                        onPointerDown={(e) => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); handleMoveStart('right'); }}
-                        onPointerUp={(e) => { e.preventDefault(); handleMoveStop(); }}
-                        onPointerCancel={(e) => { e.preventDefault(); handleMoveStop(); }}
+                        onPointerDown={(e) => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); jog.startJog('right'); }}
+                        onPointerUp={(e) => { e.preventDefault(); jog.stopJog(); }}
+                        onPointerCancel={(e) => { e.preventDefault(); jog.stopJog(); }}
                     />
                 </Box>
 
@@ -208,33 +147,33 @@ export const TelescopeControls = ({ variant }: TelescopeControlsProps) => {
                 <Box position="absolute" top="25px" left="25px">
                     <PadButton
                         icon={ArrowUpLeft}
-                        onPointerDown={(e) => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); handleMoveStart('up-left'); }}
-                        onPointerUp={(e) => { e.preventDefault(); handleMoveStop(); }}
-                        onPointerCancel={(e) => { e.preventDefault(); handleMoveStop(); }}
+                        onPointerDown={(e) => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); jog.startJog('up-left'); }}
+                        onPointerUp={(e) => { e.preventDefault(); jog.stopJog(); }}
+                        onPointerCancel={(e) => { e.preventDefault(); jog.stopJog(); }}
                     />
                 </Box>
                 <Box position="absolute" top="25px" right="25px">
                     <PadButton
                         icon={ArrowUpRight}
-                        onPointerDown={(e) => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); handleMoveStart('up-right'); }}
-                        onPointerUp={(e) => { e.preventDefault(); handleMoveStop(); }}
-                        onPointerCancel={(e) => { e.preventDefault(); handleMoveStop(); }}
+                        onPointerDown={(e) => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); jog.startJog('up-right'); }}
+                        onPointerUp={(e) => { e.preventDefault(); jog.stopJog(); }}
+                        onPointerCancel={(e) => { e.preventDefault(); jog.stopJog(); }}
                     />
                 </Box>
                 <Box position="absolute" bottom="25px" left="25px">
                     <PadButton
                         icon={ArrowDownLeft}
-                        onPointerDown={(e) => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); handleMoveStart('down-left'); }}
-                        onPointerUp={(e) => { e.preventDefault(); handleMoveStop(); }}
-                        onPointerCancel={(e) => { e.preventDefault(); handleMoveStop(); }}
+                        onPointerDown={(e) => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); jog.startJog('down-left'); }}
+                        onPointerUp={(e) => { e.preventDefault(); jog.stopJog(); }}
+                        onPointerCancel={(e) => { e.preventDefault(); jog.stopJog(); }}
                     />
                 </Box>
                 <Box position="absolute" bottom="25px" right="25px">
                     <PadButton
                         icon={ArrowDownRight}
-                        onPointerDown={(e) => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); handleMoveStart('down-right'); }}
-                        onPointerUp={(e) => { e.preventDefault(); handleMoveStop(); }}
-                        onPointerCancel={(e) => { e.preventDefault(); handleMoveStop(); }}
+                        onPointerDown={(e) => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); jog.startJog('down-right'); }}
+                        onPointerUp={(e) => { e.preventDefault(); jog.stopJog(); }}
+                        onPointerCancel={(e) => { e.preventDefault(); jog.stopJog(); }}
                     />
                 </Box>
 
@@ -254,36 +193,111 @@ export const TelescopeControls = ({ variant }: TelescopeControlsProps) => {
                     </Box>
                 </Circle>
 
-                {/* Slew Rate Slider */}
-                <Box position="absolute" bottom="-50px" w="160px">
-                    <Flex justify="space-between" mb={1}>
-                        <Text fontSize="10px" color="whiteAlpha.600">1x</Text>
-                        <Text fontSize="11px" color="var(--astro-teal)" fontWeight="bold">{slewRate}x</Text>
-                        <Text fontSize="10px" color="whiteAlpha.600">9x</Text>
-                    </Flex>
-                    <input
-                        type="range"
-                        min={1}
-                        max={9}
-                        step={1}
-                        value={slewRate}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleRateChange(parseInt(e.target.value))}
-                        className="slew-rate-slider"
-                        style={{
-                            width: '100%',
-                            height: '8px',
-                            cursor: 'pointer',
-                            WebkitAppearance: 'none',
-                            appearance: 'none',
-                            background: `linear-gradient(to right, var(--astro-teal) 0%, var(--astro-teal) ${((slewRate - 1) / 8) * 100}%, rgba(255,255,255,0.2) ${((slewRate - 1) / 8) * 100}%, rgba(255,255,255,0.2) 100%)`,
-                            borderRadius: '4px',
-                            outline: 'none'
-                        }}
-                    />
-                </Box>
+            </Box>
+
+            {/* Slew Rate Slider — in natural flow, no absolute overflow */}
+            <Box w="160px" pt={2}>
+                <Flex justify="space-between" mb={1}>
+                    <Text fontSize="10px" color="whiteAlpha.600">1x</Text>
+                    <Text fontSize="11px" color="var(--astro-teal)" fontWeight="bold">{slewRate}x</Text>
+                    <Text fontSize="10px" color="whiteAlpha.600">9x</Text>
+                </Flex>
+                <input
+                    type="range"
+                    min={1}
+                    max={9}
+                    step={1}
+                    value={slewRate}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleRateChange(parseInt(e.target.value))}
+                    className="slew-rate-slider"
+                    style={{
+                        width: '100%',
+                        height: '8px',
+                        cursor: 'pointer',
+                        WebkitAppearance: 'none',
+                        appearance: 'none',
+                        background: `linear-gradient(to right, var(--astro-teal) 0%, var(--astro-teal) ${((slewRate - 1) / 8) * 100}%, rgba(255,255,255,0.2) ${((slewRate - 1) / 8) * 100}%, rgba(255,255,255,0.2) 100%)`,
+                        borderRadius: '4px',
+                        outline: 'none'
+                    }}
+                />
+            </Box>
             </Box>
         );
     }
 
     return null;
+};
+
+// ─── TrackingModeSelector ─────────────────────────────────────────────────────
+
+type TrackRate = "SIDEREAL" | "LUNAR" | "SOLAR";
+
+const RATE_OPTIONS: { rate: TrackRate; label: string; icon: any; desc: string }[] = [
+    { rate: "SIDEREAL", label: "Sidéral",  icon: Star,  desc: "Étoiles" },
+    { rate: "LUNAR",    label: "Lunaire",  icon: Moon,  desc: "Lune"    },
+    { rate: "SOLAR",    label: "Solaire",  icon: Sun,   desc: "Soleil"  },
+];
+
+export const TrackingModeSelector = () => {
+    const { trackingRate, setTrackingRate, config, detectedMount } = useStargazerStore();
+    const [loading, setLoading] = React.useState<TrackRate | null>(null);
+
+    const handleSelect = async (rate: TrackRate) => {
+        if (rate === trackingRate) return;
+        setLoading(rate);
+        try {
+            const baseUrl = config.astroberryUrl?.replace(/\/+$/, "") || "http://localhost:5005";
+            const res = await fetch(`${baseUrl}/mount/tracking-rate`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ rate, device: detectedMount }),
+            });
+            const data = await res.json();
+            if (data.success) {
+                setTrackingRate(rate);
+            }
+        } catch (e) {
+            console.error("tracking-rate error", e);
+        } finally {
+            setLoading(null);
+        }
+    };
+
+    return (
+        <VStack gap={1} align="stretch">
+            <Text fontSize="9px" color="whiteAlpha.500" textTransform="uppercase" letterSpacing="wider" textAlign="center">
+                Mode suivi
+            </Text>
+            <HStack gap={1} justify="center">
+                {RATE_OPTIONS.map(({ rate, label, icon: Ico, desc }) => {
+                    const active = trackingRate === rate;
+                    const isLoading = loading === rate;
+                    return (
+                        <Button
+                            key={rate}
+                            size="xs"
+                            variant={active ? "solid" : "ghost"}
+                            bg={active ? "teal.600" : "rgba(255,255,255,0.04)"}
+                            color={active ? "white" : "whiteAlpha.600"}
+                            borderRadius="md"
+                            border="1px solid"
+                            borderColor={active ? "teal.400" : "whiteAlpha.100"}
+                            _hover={{ bg: active ? "teal.500" : "rgba(255,255,255,0.08)", color: "white" }}
+                            onClick={() => handleSelect(rate)}
+                            loading={isLoading}
+                            px={2}
+                            h="28px"
+                            title={desc}
+                        >
+                            <HStack gap={1}>
+                                <Icon as={Ico} boxSize={2.5} />
+                                <Text fontSize="10px">{label}</Text>
+                            </HStack>
+                        </Button>
+                    );
+                })}
+            </HStack>
+        </VStack>
+    );
 };

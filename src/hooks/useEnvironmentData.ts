@@ -108,6 +108,9 @@ export function useEnvironmentData() {
         };
 
         const init = async () => {
+            // Apply default fallback immediately so GPS is never "ACQUISITION..."
+            applyDefaultFallback();
+            // Then try to override with better sources
             const synced = await syncWithHardware();
             if (!synced) {
                 startBrowserGeolocation();

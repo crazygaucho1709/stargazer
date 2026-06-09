@@ -8,6 +8,7 @@ import {
 import { Search, Star, Target, Camera, Zap, AlertCircle, Navigation, Moon, ArrowUpDown } from "lucide-react";
 import { useStargazerStore } from "@/store/useStargazerStore";
 import { useAstroAction } from "@/hooks/useAstroAction";
+import { useGoTo } from "@/hooks/useGoTo";
 import { CELESTIAL_CATALOG, CelestialObject } from "@/data/celestialCatalog";
 import {
     calculateLimitingMagnitude,
@@ -28,6 +29,7 @@ type SortMode = "score" | "magnitude" | "altitude";
 export const TargetSelector: React.FC<TargetSelectorProps> = ({ onSelectTarget }) => {
     const { language, config } = useStargazerStore();
     const { execute } = useAstroAction();
+    const goTo = useGoTo();
 
     const [searchQuery, setSearchQuery] = useState("");
     const [filterType, setFilterType] = useState<string>("all");
@@ -143,15 +145,8 @@ export const TargetSelector: React.FC<TargetSelectorProps> = ({ onSelectTarget }
     };
 
     const handleGoto = async (obj: CelestialObject) => {
-        await execute("/api/indi/mount", `GOTO ${obj.id}`, {
-            body: {
-                action: "goto",
-                ra: obj.ra_deg,
-                dec: obj.dec_deg,
-                device: "Celestron GPS",
-                ip: config.astroberryUrl,
-            },
-        });
+        const ok = await goTo.goto(obj.ra_deg, obj.dec_deg);
+        if (ok) goTo.waitForSlew();
     };
 
     const qualityColors: Record<string, string> = {

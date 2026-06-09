@@ -6,6 +6,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   const url = `${BRIDGE_URL}/video_feed`;
+  let activeRequest: http.ClientRequest | null = null;
 
   const stream = new ReadableStream({
     start(controller) {
@@ -34,6 +35,8 @@ export async function GET() {
         });
       });
 
+      activeRequest = request;
+
       request.on('error', (err) => {
         controller.error(err);
       });
@@ -44,7 +47,9 @@ export async function GET() {
       });
     },
     cancel() {
-      // Client disconnected - cleanup happens automatically
+      if (activeRequest) {
+        activeRequest.destroy();
+      }
     }
   });
 

@@ -3,86 +3,41 @@
 
 import { Box, Flex, Text, Icon, VStack, HStack, Button, Heading } from "@chakra-ui/react";
 import { useStargazerStore } from "@/store/useStargazerStore";
-import { clientApiUrl } from "@/lib/clientApi";
 import { t } from "@/i18n/translations";
-import { Crosshair, Target, Scan, ShieldCheck, Camera, Globe, ZoomIn, ZoomOut, Play, Square, AlertTriangle } from "lucide-react";
+import { Crosshair, Camera, Globe, ZoomIn, ZoomOut, Play, Square, AlertTriangle } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { HfrOverlay } from "@/components/observatory/HfrOverlay";
 import { CaptureProgress } from "@/components/observatory/CaptureProgress";
-import { SkyMap } from "./SkyMap";
+import { useLiveView } from "@/hooks/useLiveView";
 
 export const LiveView = () => {
-    const { isExposing, isSlewing, ra, dec, alt, az, liveViewMode, setLiveViewMode, zoom, setZoom, language, config } = useStargazerStore();
-    const [ccdImage, setCcdImage] = useState<string | null>(null);
+    const { isExposing, isSlewing, ra, dec, alt, az, liveViewMode, setLiveViewMode, zoom, setZoom, language, config, isConfigMenuOpen } = useStargazerStore();
+    const liveView = useLiveView();
     const [ccdError, setCcdError] = useState(false);
-    const [isLiveStreaming, setIsLiveStreaming] = useState(false);
-    const [streamStatus, setStreamStatus] = useState<string>("");
-    const streamUrlRef = useRef<string>("");
 
-    // Canon DSLR live view: switching to CANON mode by itself MUST NOT open
-    // the shutter or fetch frames from the camera. The shutter only opens
-    // when the user explicitly clicks the green "LIVE" button (which calls
-    // startLiveView() and posts /ccd/stream/start), and closes when they
-    // click "STOP". So while we're in CANON mode but not streaming, just
-    // show the placeholder — no polling, no auto-fetch.
+    // Reset error + stop stream when leaving CANON mode
     useEffect(() => {
-        if (liveViewMode !== "CANON") return;
-        setCcdError(false);
-        if (!isLiveStreaming) {
-            setCcdImage(null);
-            streamUrlRef.current = "";
+        if (liveViewMode !== "CANON") {
+            if (liveView.isLive) liveView.stop();
+            setCcdError(false);
         }
-    }, [liveViewMode, isLiveStreaming]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [liveViewMode]);
 
-    const startLiveView = async () => {
-        try {
-            setStreamStatus("Starting...");
-            const res = await fetch(clientApiUrl('/api/indi/liveview'), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'start' })
-            });
-            if (!res.ok) {
-                let msg = `HTTP ${res.status}`;
-                try {
-                    const j = await res.json();
-                    if (j.error) msg = j.error;
-                } catch { /* ignore */ }
-                setStreamStatus(msg);
-                return;
-            }
-            // Use stable URL without timestamp - critical for MJPEG streaming
-            const streamUrl = clientApiUrl('/api/indi/stream');
-            streamUrlRef.current = streamUrl;
-            setCcdImage(streamUrl);
-            setIsLiveStreaming(true);
-            setStreamStatus("LIVE");
-        } catch (e) {
-            setStreamStatus("Error");
+    // Auto-stop live stream when config menu is opened to free the USB bus
+    useEffect(() => {
+        if (isConfigMenuOpen && liveView.isLive) {
+            liveView.stop();
         }
-    };
-
-    const stopLiveView = async () => {
-        try {
-            await fetch(clientApiUrl('/api/indi/liveview'), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'stop' })
-            });
-            setIsLiveStreaming(false);
-            setCcdImage(null);
-            setStreamStatus("");
-        } catch (e) {
-            console.error(e);
-        }
-    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isConfigMenuOpen]);
 
     // Safety Watchdog: Auto-cut live view after inactivity
     const [lastActivity, setLastActivity] = useState(Date.now());
     const [showSafetyModal, setShowSafetyModal] = useState(false);
 
     useEffect(() => {
-        if (!isLiveStreaming) {
+        if (!liveView.isLive) {
             setShowSafetyModal(false);
             return;
         }
@@ -95,18 +50,14 @@ export const LiveView = () => {
 
         const checkInactivity = setInterval(() => {
             const idleTime = Date.now() - lastActivity;
-            
-            // 10 minutes = 600,000 ms
             if (idleTime > 600000 && !showSafetyModal) {
                 setShowSafetyModal(true);
             }
-            
-            // 15 minutes = 900,000 ms
             if (idleTime > 900000) {
-                stopLiveView();
+                liveView.stop();
                 setShowSafetyModal(false);
             }
-        }, 10000); // check every 10s
+        }, 10000);
 
         return () => {
             window.removeEventListener('mousemove', handleActivity);
@@ -116,7 +67,7 @@ export const LiveView = () => {
             clearInterval(checkInactivity);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isLiveStreaming, lastActivity, showSafetyModal]);
+    }, [liveView.isLive, lastActivity, showSafetyModal]);
 
     // Format coordinates to avoid Aladin trying to resolve them as names (which causes CORS/SESAME errors)
     const cleanRa = String(ra).replace(/[hms]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -135,12 +86,12 @@ export const LiveView = () => {
         >
             {/* Safety Modal Overlay */}
             {showSafetyModal && (
-                <Box 
+                <Box
                     position="fixed" inset="0" bg="rgba(0,0,0,0.85)" zIndex={100}
                     backdropFilter="blur(10px)" display="flex" alignItems="center" justifyContent="center"
                 >
-                    <VStack 
-                        bg="rgba(10, 20, 40, 0.95)" p={10} borderRadius="16px" 
+                    <VStack
+                        bg="rgba(10, 20, 40, 0.95)" p={10} borderRadius="16px"
                         border="2px solid var(--astro-gold)" maxW="400px" textAlign="center" gap={6}
                         boxShadow="0 0 50px rgba(255, 179, 71, 0.3)"
                         className="pulse-glow"
@@ -149,12 +100,12 @@ export const LiveView = () => {
                         <VStack gap={2}>
                             <Heading size="md" color="white" className="hud-font">VEILLE SÉCURITÉ</Heading>
                             <Text color="whiteAlpha.800" fontSize="14px">
-                                {language === 'fr' 
+                                {language === 'fr'
                                     ? "Inactivité détectée. Le flux direct sera coupé dans 5 minutes pour préserver la connexion avec l'Astroberry."
                                     : "Inactivity detected. Live feed will be cut in 5 minutes to preserve connection with Astroberry."}
                             </Text>
                         </VStack>
-                        <Button 
+                        <Button
                             w="full" bg="var(--astro-gold)" color="black" _hover={{ bg: "white" }}
                             onClick={() => setLastActivity(Date.now())}
                         >
@@ -178,12 +129,13 @@ export const LiveView = () => {
                     justifyContent="center"
                 >
                     {liveViewMode === "NASA" ? (
-                        <SkyMap />
+                        /* SkyMap is rendered in page.tsx center Box; LiveView shows a dark background in NASA mode */
+                        <Box w="full" h="full" bg="#030509" />
                     ) : ccdError ? (
                         <Box display="flex" alignItems="center" justifyContent="center" w="100%" h="100%" bg="#112233">
                             <Text color="var(--astro-gold)" fontSize="18px">{t("CANON_CONNECTION_ERROR", language)}</Text>
                         </Box>
-                    ) : ccdImage ? (
+                    ) : liveView.streamUrl ? (
                         <Box
                             position="absolute"
                             top={0}
@@ -191,11 +143,11 @@ export const LiveView = () => {
                             w="full"
                             h="full"
                         >
-                            {/* Using native <img> because ccdImage is a dynamic MJPEG stream URL,
+                            {/* Using native <img> because streamUrl is a dynamic MJPEG stream URL,
                                 not a static import – next/Image is not suitable here. */}
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
-                                src={ccdImage}
+                                src={liveView.streamUrl}
                                 alt="Canon Live View"
                                 crossOrigin="anonymous"
                                 style={{
@@ -223,7 +175,7 @@ export const LiveView = () => {
                 </Box>
 
                 {/* Vignette effect for depth */}
-                <Box 
+                <Box
                     position="absolute" inset="0" pointerEvents="none"
                     bg="radial-gradient(circle at center, transparent 30%, rgba(3, 5, 9, 0.8) 100%)"
                 />
@@ -249,12 +201,12 @@ export const LiveView = () => {
                 </Flex>
 
                 {/* Large decorative focus rings */}
-                <Box 
+                <Box
                     position="absolute" top="50%" left="50%" transform="translate(-50%, -50%)"
                     w="80vh" h="80vh" border="1px dashed rgba(255,255,255,0.05)" borderRadius="full"
                     pointerEvents="none"
                 />
-                <Box 
+                <Box
                     position="absolute" top="50%" left="50%" transform="translate(-50%, -50%)"
                     w="50vh" h="50vh" border="1px solid rgba(255, 51, 51, 0.1)" borderRadius="full"
                     pointerEvents="none"
@@ -267,8 +219,8 @@ export const LiveView = () => {
                     backdropFilter="blur(10px)" zIndex={20} gap={4}
                     boxShadow="0 10px 30px rgba(0,0,0,0.5)"
                 >
-                    <Button 
-                        size="sm" variant="ghost" color="whiteAlpha.700" 
+                    <Button
+                        size="sm" variant="ghost" color="whiteAlpha.700"
                         _hover={{ color: "var(--astro-teal)", bg: "rgba(255, 51, 51, 0.1)" }}
                         onClick={() => setZoom(Math.min(10, zoom + 0.5))}
                     >
@@ -277,8 +229,8 @@ export const LiveView = () => {
                     <Text fontSize="12px" className="hud-font" color="var(--astro-teal)" fontWeight="bold">
                         {zoom.toFixed(1)}x
                     </Text>
-                    <Button 
-                        size="sm" variant="ghost" color="whiteAlpha.700" 
+                    <Button
+                        size="sm" variant="ghost" color="whiteAlpha.700"
                         _hover={{ color: "var(--astro-teal)", bg: "rgba(255, 51, 51, 0.1)" }}
                         onClick={() => setZoom(Math.max(1, zoom - 0.5))}
                     >
@@ -319,23 +271,23 @@ export const LiveView = () => {
                         <Camera size={14} style={{ marginRight: '6px' }} />
                         {t("LIVE_SENSOR", language)}
                     </Button>
-                    
+
                     {/* LIVE VIEW START/STOP BUTTON - Only in CANON mode */}
                     {liveViewMode === "CANON" && (
                         <Button
                             size="sm" borderRadius="full" px={4}
                             variant="solid"
-                            bg={isLiveStreaming ? "red.500" : "green.500"}
+                            bg={liveView.isLive ? "red.500" : "green.500"}
                             color="white"
-                            onClick={isLiveStreaming ? stopLiveView : startLiveView}
+                            onClick={liveView.isLive ? liveView.stop : liveView.start}
                             fontSize="10px" className="hud-font"
-                            _hover={{ bg: isLiveStreaming ? "red.600" : "green.600" }}
-                            animation={isLiveStreaming ? "pulse 1s infinite" : undefined}
+                            _hover={{ bg: liveView.isLive ? "red.600" : "green.600" }}
+                            animation={liveView.isLive ? "pulse 1s infinite" : undefined}
                         >
-                            {isLiveStreaming ? <Square size={12} fill="currentColor" /> : <Play size={12} fill="currentColor" />}
-                            <Text ml={1}>{isLiveStreaming ? "STOP" : "LIVE"}</Text>
-                            {streamStatus && (
-                                <Text ml={1} fontSize="8px" opacity={0.8}>({streamStatus})</Text>
+                            {liveView.isLive ? <Square size={12} fill="currentColor" /> : <Play size={12} fill="currentColor" />}
+                            <Text ml={1}>{liveView.isLive ? "STOP" : "LIVE"}</Text>
+                            {liveView.status && (
+                                <Text ml={1} fontSize="8px" opacity={0.8}>({liveView.status})</Text>
                             )}
                         </Button>
                     )}

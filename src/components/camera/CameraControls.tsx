@@ -1,6 +1,6 @@
 import { Box, VStack, HStack, Text, Button, Icon, Grid, Spinner } from "@chakra-ui/react";
 import { Tooltip } from "@/components/ui/tooltip";
-import { Camera, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Aperture, Settings2, Brain, Eye, Crosshair, HelpCircle } from "lucide-react";
+import { Camera, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Aperture, Brain, Eye, Crosshair, HelpCircle, Globe, Video } from "lucide-react";
 import { useStargazerStore } from "@/store/useStargazerStore";
 import { useAstroAction } from "@/hooks/useAstroAction";
 import { Switch } from "@/components/ui/switch";
@@ -36,16 +36,18 @@ const ControlButton = ({ icon: DirIcon, onClick, glowColor = "var(--astro-teal)"
 );
 
 export const CameraControls = ({ variant = "standard" }: CameraControlsProps) => {
-    const { 
-        isExposing, 
-        setExposing, 
-        config, 
-        updateConfig, 
-        setCaptureProgress, 
-        setStackingProgress, 
-        setHfr, 
+    const {
+        isExposing,
+        setExposing,
+        config,
+        updateConfig,
+        setCaptureProgress,
+        setStackingProgress,
+        setHfr,
         language,
-        detectedCcd
+        detectedCcd,
+        liveViewMode,
+        setLiveViewMode,
     } = useStargazerStore();
     
     const { execute, isPending } = useAstroAction();
@@ -100,6 +102,36 @@ export const CameraControls = ({ variant = "standard" }: CameraControlsProps) =>
     if (variant === "circular") {
         return (
             <VStack w="full" gap={3}>
+
+                {/* Live view mode toggle */}
+                <HStack
+                    w="full" bg="rgba(10, 20, 40, 0.6)" p={1} borderRadius="full"
+                    border="1px solid rgba(255,255,255,0.08)" gap={1}
+                >
+                    <Button
+                        flex={1} size="xs" borderRadius="full"
+                        bg={liveViewMode === "NASA" ? "var(--astro-teal)" : "transparent"}
+                        color={liveViewMode === "NASA" ? "black" : "whiteAlpha.600"}
+                        fontSize="9px" className="hud-font"
+                        _hover={liveViewMode !== "NASA" ? { bg: "whiteAlpha.100" } : undefined}
+                        onClick={() => setLiveViewMode("NASA")}
+                    >
+                        <Globe size={11} style={{ marginRight: 4 }} />
+                        SKY MAP
+                    </Button>
+                    <Button
+                        flex={1} size="xs" borderRadius="full"
+                        bg={liveViewMode === "CANON" ? "var(--astro-gold)" : "transparent"}
+                        color={liveViewMode === "CANON" ? "black" : "whiteAlpha.600"}
+                        fontSize="9px" className="hud-font"
+                        _hover={liveViewMode !== "CANON" ? { bg: "whiteAlpha.100" } : undefined}
+                        onClick={() => setLiveViewMode("CANON")}
+                    >
+                        <Video size={11} style={{ marginRight: 4 }} />
+                        LIVE VIEW
+                    </Button>
+                </HStack>
+
                 <Box position="relative" w="140px" h="140px">
                     {/* Outer HUD Ring */}
                     <Box

@@ -5,6 +5,10 @@ export async function GET() {
   const BRIDGE = 'http://127.0.0.1:5005';
   const encoder = new TextEncoder();
 
+  let id: NodeJS.Timeout;
+  let hbId: NodeJS.Timeout;
+  let timeoutId: NodeJS.Timeout;
+
   const stream = new ReadableStream({
     async start(controller) {
       let lastIdx = 0;
@@ -24,14 +28,29 @@ export async function GET() {
       // Initial load
       await poll();
       // Poll every 2 seconds
-      const id = setInterval(poll, 2000);
+      id = setInterval(poll, 2000);
       // Heartbeat every 30s to keep SSE alive
-      const hbId = setInterval(() => {
-        controller.enqueue(encoder.encode(`: heartbeat\n\n`));
+      hbId = setInterval(() => {
+        try {
+          controller.enqueue(encoder.encode(`: heartbeat\n\n`));
+        } catch (e) {
+          // Stream may be closed
+        }
       }, 30000);
       // Cleanup after 5 min (client will reconnect)
-      setTimeout(() => { clearInterval(id); clearInterval(hbId); controller.close(); }, 5 * 60 * 1000);
+      timeoutId = setTimeout(() => { 
+        clearInterval(id); 
+        clearInterval(hbId); 
+        try {
+          controller.close();
+        } catch (e) {}
+      }, 5 * 60 * 1000);
     },
+    cancel() {
+      clearInterval(id);
+      clearInterval(hbId);
+      clearTimeout(timeoutId);
+    }
   });
 
   return new Response(stream, {

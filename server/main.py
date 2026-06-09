@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 
 # Load .env file (server/.env)
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '.env'))
-from fastapi import FastAPI, HTTPException, Response, Request
+from fastapi import FastAPI, HTTPException, Response, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -26,6 +26,9 @@ from datetime import datetime, timezone
 from astropy.coordinates import SkyCoord, EarthLocation, AltAz
 from astropy.time import Time
 import astropy.units as u
+from astropy.utils.iers import conf
+conf.auto_max_age = None
+conf.auto_download = False  # Pas de téléchargement IERS — évite le timeout 9s sur LAN sans internet
 from starlette.responses import StreamingResponse, PlainTextResponse
 import collections
 import astroberry as raspi
@@ -39,6 +42,13 @@ from metrics import metrics
 cached_astroberry_status = {"reachable": False, "error": "Initializing..."}
 status_lock = threading.Lock()
 executor = ThreadPoolExecutor(max_workers=2)
+
+# --- JOG WATCHDOG STATE ---
+jog_lock = threading.Lock()
+jog_timer = None
+current_jog_direction = None
+latest_jog_timestamp = 0.0
+jog_endpoint_lock = asyncio.Lock()
 
 BACKEND_VERSION = "2026-05-17-V1"
 BACKEND_START_TIME = datetime.now(timezone.utc)
@@ -165,6 +175,7 @@ class JogRequest(BaseModel):
     state: str = "start"
     device: str = "Celestron GPS"
     duration: float = 0.5
+    timestamp: float = 0.0
 
 class RateRequest(BaseModel):
     rate: int
@@ -176,6 +187,22 @@ class SyncMasterRequest(BaseModel):
     alt: float
     az: float
     device: str = "Celestron GPS"
+
+class InitStationRequest(BaseModel):
+    lat: float
+    lon: float
+    elevation: float = 0.0
+    device: str = "Celestron GPS"
+
+class TrackingRateRequest(BaseModel):
+    rate: str  # "SIDEREAL" | "LUNAR" | "SOLAR"
+    device: str = "Celestron GPS"
+
+class CaptureSequenceRequest(BaseModel):
+    exposure: float = 30.0
+    count: int = 20
+    gain: int = 400
+    device: str = None
 
 class CoordsRequest(BaseModel):
     ra: float = 0.0
@@ -268,7 +295,7 @@ class INDIClient:
     def run_loop(self):
         """Main reconnection loop with exponential backoff."""
         retry_delay = 5      # initial delay in seconds
-        max_delay    = 60    # cap at 60s
+        max_delay    = 10    # cap at 10s — safety: long dropout blocks jog STOP commands
         while True:
             try:
                 if not self.connected:
@@ -438,8 +465,9 @@ class INDIClient:
             sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
             sock.settimeout(10)
             sock.connect((host, self.port))
-            # Switch to short recv timeout for listener thread
-            sock.settimeout(1.0)
+            # Recv timeout for listener thread; send timeout caps sendall() so a
+            # stalled Pi never blocks jog STOP commands for more than 3 seconds.
+            sock.settimeout(3.0)
             with self.socket_lock:
                 self.sock = sock
             self.connected = True
@@ -477,17 +505,17 @@ class INDIClient:
                     self.sock.sendall((xml + "\r\n").encode())
                     logger.info(f"INDI SEND: {xml}")
                     return True
-                except (socket.error, BrokenPipeError, ConnectionResetError) as e:
+                except (socket.error, BrokenPipeError, ConnectionResetError, socket.timeout) as e:
                     logger.error(f"Send failure (socket error): {e}")
                     self.connected = False
+                    self.mount_connected = False
+                    self.ccd_connected = False
                     self._close_socket()
                     return False
                 except Exception as e:
                     logger.error(f"Send error: {e}")
-                    # Don't necessarily disconnect on non-socket errors, but log it
                     return False
             else:
-                # If we're not connected, try a quick reachability check
                 if not self.connected:
                     logger.warning("Socket not available for send, attempting lazy reconnect...")
                 return False
@@ -868,6 +896,42 @@ async def health():
         "active_requests": metrics._active_requests,
     }
 
+@app.get("/coords/stream")
+async def coords_stream(request: Request):
+    """SSE — pousse RA/DEC + état monture toutes les 500ms.
+    Remplace le polling HTTP pour les coordonnées temps réel."""
+    async def event_generator():
+        prev_ra = None
+        prev_dec = None
+        prev_slew = None
+        while True:
+            if await request.is_disconnected():
+                break
+            ra  = getattr(indi, "mount_ra",  0.0)
+            dec = getattr(indi, "mount_dec", 0.0)
+            slew_state = getattr(indi, "mount_slew_state", "Idle")
+            # N'émettre que si quelque chose a changé (économise la bande passante)
+            if ra != prev_ra or dec != prev_dec or slew_state != prev_slew:
+                prev_ra, prev_dec, prev_slew = ra, dec, slew_state
+                payload = json.dumps({
+                    "ra":  format_ra(ra),
+                    "dec": format_dec(dec),
+                    "ra_deg":  ra,
+                    "dec_deg": dec,
+                    "mount_slew_state": slew_state,
+                })
+                yield f"data: {payload}\n\n"
+            await asyncio.sleep(0.5)
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
 @app.get("/metrics")
 async def prometheus_metrics():
     return PlainTextResponse(metrics.generate_prometheus(), media_type="text/plain")
@@ -903,56 +967,129 @@ async def debug_properties():
 
 @app.post("/mount/jog")
 async def mount_jog(req: JogRequest):
-    global indi
+    global indi, jog_timer, current_jog_direction, latest_jog_timestamp
     try:
         device = indi.device_mount if (indi and indi.device_mount) else "Celestron GPS"
         if not indi or not indi.connected:
             return {"success": False, "error": "Matériel déconnecté"}
 
-        xmls = []
-        if req.state == "stop":
-            # Send stop vectors for both axes. Set all switches to Off to ensure it stops.
-            xmls.append(f'<newSwitchVector device="{device}" name="TELESCOPE_MOTION_NS"><oneSwitch name="MOTION_NORTH">Off</oneSwitch><oneSwitch name="MOTION_SOUTH">Off</oneSwitch></newSwitchVector>')
-            xmls.append(f'<newSwitchVector device="{device}" name="TELESCOPE_MOTION_WE"><oneSwitch name="MOTION_EAST">Off</oneSwitch><oneSwitch name="MOTION_WEST">Off</oneSwitch></newSwitchVector>')
-        else:
-            # Split direction to support diagonals (e.g. "up-left")
-            directions = req.direction.split("-")
-            for d in directions:
-                # Logic: FOV control (stars move in the direction of the arrow)
-                if d == "up":
-                    prop, val = "TELESCOPE_MOTION_NS", "MOTION_SOUTH"
-                elif d == "down":
-                    prop, val = "TELESCOPE_MOTION_NS", "MOTION_NORTH"
-                elif d == "left":
-                    prop, val = "TELESCOPE_MOTION_WE", "MOTION_EAST"
-                elif d == "right":
-                    prop, val = "TELESCOPE_MOTION_WE", "MOTION_WEST"
-                else:
-                    continue
-                    
-                # To be compliant with INDI rules, when starting, turn on the direction we want, and turn off the opposite direction switch
-                # This ensures the AtMostOne rule is explicitly handled.
-                if prop == "TELESCOPE_MOTION_NS":
-                    opposite_val = "MOTION_NORTH" if val == "MOTION_SOUTH" else "MOTION_SOUTH"
-                    xml = f'<newSwitchVector device="{device}" name="{prop}"><oneSwitch name="{val}">On</oneSwitch><oneSwitch name="{opposite_val}">Off</oneSwitch></newSwitchVector>'
-                else: # TELESCOPE_MOTION_WE
-                    opposite_val = "MOTION_EAST" if val == "MOTION_WEST" else "MOTION_WEST"
-                    xml = f'<newSwitchVector device="{device}" name="{prop}"><oneSwitch name="{val}">On</oneSwitch><oneSwitch name="{opposite_val}">Off</oneSwitch></newSwitchVector>'
-                xmls.append(xml)
+        # 1. Sequence/timestamp check under a light lock
+        if req.timestamp > 0.0:
+            with jog_lock:
+                if req.timestamp < latest_jog_timestamp:
+                    logger.warning(
+                        f"Ignoring out-of-order jog request: state={req.state}, direction={req.direction}, "
+                        f"req.timestamp={req.timestamp} < latest_jog_timestamp={latest_jog_timestamp}"
+                    )
+                    return {"success": True, "ignored": True}
+                latest_jog_timestamp = req.timestamp
 
-        if not xmls:
-            return {"success": False, "error": f"Invalid direction: {req.direction}"}
-            
-        all_ok = True
-        for xml in xmls:
-            ok = indi.send(xml)
-            if not ok:
-                all_ok = False
-                
-        if not all_ok:
-            return {"success": False, "error": "INDI send failed"}
-            
-        return {"success": True}
+        # Capture running event loop for scheduling watchdog events on it
+        loop = asyncio.get_running_loop()
+
+        # 2. Serialize all execution (especially socket writes) using asyncio lock
+        async with jog_endpoint_lock:
+            # Define the stop helper
+            def send_stop_command():
+                global current_jog_direction, jog_timer
+                logger.info("Watchdog or stop command: halting mount motion")
+                stop_ns = f'<newSwitchVector device="{device}" name="TELESCOPE_MOTION_NS"><oneSwitch name="MOTION_NORTH">Off</oneSwitch><oneSwitch name="MOTION_SOUTH">Off</oneSwitch></newSwitchVector>'
+                stop_we = f'<newSwitchVector device="{device}" name="TELESCOPE_MOTION_WE"><oneSwitch name="MOTION_EAST">Off</oneSwitch><oneSwitch name="MOTION_WEST">Off</oneSwitch></newSwitchVector>'
+                indi.send(stop_ns)
+                indi.send(stop_we)
+                with jog_lock:
+                    current_jog_direction = None
+                    if jog_timer:
+                        jog_timer.cancel()
+                        jog_timer = None
+
+            def trigger_watchdog_stop():
+                logger.warning("Watchdog timer expired! Scheduling STOP command safely on event loop.")
+                # Schedule a call to mount_jog with state='stop' on the main event loop
+                mock_req = JogRequest(
+                    direction="up",
+                    state="stop",
+                    device=device,
+                    timestamp=time.time() * 1000
+                )
+                asyncio.run_coroutine_threadsafe(mount_jog(mock_req), loop)
+
+            if req.state == "stop":
+                with jog_lock:
+                    if jog_timer:
+                        jog_timer.cancel()
+                        jog_timer = None
+                # Execute stop synchronously relative to other loop operations
+                await loop.run_in_executor(None, send_stop_command)
+                return {"success": True}
+
+            # Otherwise, state is "start"
+            with jog_lock:
+                # Check if we are already moving in the requested direction
+                if current_jog_direction == req.direction:
+                    # Reset the watchdog timer
+                    if jog_timer:
+                        jog_timer.cancel()
+                    jog_timer = threading.Timer(1.2, trigger_watchdog_stop)
+                    jog_timer.daemon = True
+                    jog_timer.start()
+                    return {"success": True}
+
+                # Direction changed or starting fresh: cancel existing timer
+                if jog_timer:
+                    jog_timer.cancel()
+                    jog_timer = None
+
+                current_jog_direction = req.direction
+
+                # Split direction to support diagonals (e.g. "up-left")
+                directions = req.direction.split("-")
+                xmls = []
+                for d in directions:
+                    if d == "up":
+                        prop, val = "TELESCOPE_MOTION_NS", "MOTION_SOUTH"
+                    elif d == "down":
+                        prop, val = "TELESCOPE_MOTION_NS", "MOTION_NORTH"
+                    elif d == "left":
+                        prop, val = "TELESCOPE_MOTION_WE", "MOTION_EAST"
+                    elif d == "right":
+                        prop, val = "TELESCOPE_MOTION_WE", "MOTION_WEST"
+                    else:
+                        continue
+
+                    if prop == "TELESCOPE_MOTION_NS":
+                        opposite_val = "MOTION_NORTH" if val == "MOTION_SOUTH" else "MOTION_SOUTH"
+                        xml = f'<newSwitchVector device="{device}" name="{prop}"><oneSwitch name="{val}">On</oneSwitch><oneSwitch name="{opposite_val}">Off</oneSwitch></newSwitchVector>'
+                    else:
+                        opposite_val = "MOTION_EAST" if val == "MOTION_WEST" else "MOTION_WEST"
+                        xml = f'<newSwitchVector device="{device}" name="{prop}"><oneSwitch name="{val}">On</oneSwitch><oneSwitch name="{opposite_val}">Off</oneSwitch></newSwitchVector>'
+                    xmls.append(xml)
+
+                if not xmls:
+                    current_jog_direction = None
+                    return {"success": False, "error": f"Invalid direction: {req.direction}"}
+
+                # Start the new watchdog timer
+                jog_timer = threading.Timer(1.2, trigger_watchdog_stop)
+                jog_timer.daemon = True
+                jog_timer.start()
+
+            # Send start commands to INDI
+            indi_ref = indi
+            def send_all():
+                return all(indi_ref.send(x) for x in xmls)
+
+            all_ok = await loop.run_in_executor(None, send_all)
+
+            if not all_ok:
+                with jog_lock:
+                    current_jog_direction = None
+                    if jog_timer:
+                        jog_timer.cancel()
+                        jog_timer = None
+                return {"success": False, "error": "INDI send failed"}
+
+            return {"success": True}
     except Exception as e:
         logger.error(f"Jog error: {e}")
         return {"success": False, "error": str(e)}
@@ -1007,6 +1144,15 @@ async def mount_slew_internal(device: str, ra: float, dec: float, sync: bool = F
         logger.warning(f"Mount {device} is parked. Attempting to unpark before slew.")
         indi.send(f'<newSwitchVector device="{device}" name="TELESCOPE_PARK"><oneSwitch name="UNPARK">On</oneSwitch></newSwitchVector>')
         await asyncio.sleep(1.0) # More time for unparking mechanics
+
+    # ABORT before every GoTo (unconditional).
+    # The NexStar firmware queues GoTo commands internally — sending Abort first
+    # ensures the previous command is cancelled regardless of what our Python state
+    # thinks (mount_slew_state can be stale after a backend restart).
+    if not sync:
+        logger.info(f"Sending ABORT_MOTION before GoTo (unconditional)")
+        indi.send(f'<newSwitchVector device="{device}" name="TELESCOPE_ABORT_MOTION"><oneSwitch name="ABORT">On</oneSwitch></newSwitchVector>')
+        await asyncio.sleep(0.5)  # give the NexStar time to fully stop
 
     try:
         # 1. Set ON_COORD_SET mode FIRST
@@ -1262,32 +1408,52 @@ def launch_ekos():
 
 async def ccd_capture_internal(device: str, exposure: float):
     # Use detected device if provided one is generic or empty
-    if not device or device == "Canon" or device == "Canon DSLR EOS 600D": 
+    if not device or device == "Canon" or device == "Canon DSLR EOS 600D":
         device = indi.device_ccd or "Canon DSLR EOS 600D"
-    
+
     if not indi.connected:
         return {"success": False, "error": "Hardware offline"}
 
-    logger.info(f"EXEC CAPTURE -> {device} | Exp: {exposure}s")
-    
-    # 1. Ensure BLOBs are enabled for this specific device
+    is_canon = any(kw in device for kw in ["Canon", "EOS", "DSLR"])
+    logger.info(f"EXEC CAPTURE -> {device} | Exp: {exposure}s | Canon={is_canon}")
+
+    # ── Step 0: Hard BLOB reset ──────────────────────────────────────────────
+    # Flush any stuck driver state left from a previous session or restart.
+    indi.send(f'<enableBLOB device="{device}">Never</enableBLOB>')
+    await asyncio.sleep(0.4)
+
+    if is_canon:
+        # ── Step 1: Ensure mirror is down (live-view off) ────────────────────
+        # If the backend restarted while live-view was active, the mirror stays
+        # up. A stuck mirror prevents the shutter from firing entirely.
+        indi.send(f'<newSwitchVector device="{device}" name="CCD_VIDEO_STREAM">'
+                  f'<oneSwitch name="STREAM_OFF">On</oneSwitch></newSwitchVector>')
+        await asyncio.sleep(0.2)
+        indi.send(f'<newSwitchVector device="{device}" name="viewfinder">'
+                  f'<oneSwitch name="viewfinder1">On</oneSwitch></newSwitchVector>')
+        await asyncio.sleep(1.2)  # mirror takes ~1s to physically lower
+
+    # ── Step 2: Re-enable BLOBs ──────────────────────────────────────────────
     indi.send(f'<enableBLOB device="{device}">Also</enableBLOB>')
-    
-    # 2. Set UPLOAD MODE to Both (Client + Local)
-    # This ensures the driver stores it locally AND sends it to us
-    indi.send(f'<newSwitchVector device="{device}" name="UPLOAD_MODE"><oneSwitch name="UPLOAD_BOTH">On</oneSwitch></newSwitchVector>')
-    
-    # 3. Ensure target is RAM for fast transfer on Astroberry
-    # Some drivers use CCD_CAPTURE_TARGET, others UPLOAD_SETTINGS
-    indi.send(f'<newSwitchVector device="{device}" name="CCD_CAPTURE_TARGET"><oneSwitch name="CCD_CAPTURE_RAM">On</oneSwitch></newSwitchVector>')
-    
-    # 4. Small wait to ensure settings are applied
-    await asyncio.sleep(0.3)
-    
-    # 5. Trigger exposure
+    await asyncio.sleep(0.2)
+
+    # ── Step 3: Upload mode = CLIENT (driver sends frame to us over INDI) ────
+    # UPLOAD_BOTH can fail if the remote storage path doesn't exist after restart.
+    indi.send(f'<newSwitchVector device="{device}" name="UPLOAD_MODE">'
+              f'<oneSwitch name="UPLOAD_CLIENT">On</oneSwitch></newSwitchVector>')
+
+    # ── Step 4: Capture target = RAM ─────────────────────────────────────────
+    indi.send(f'<newSwitchVector device="{device}" name="CCD_CAPTURE_TARGET">'
+              f'<oneSwitch name="CCD_CAPTURE_RAM">On</oneSwitch></newSwitchVector>')
+
+    # ── Step 5: Wait for driver to acknowledge settings ──────────────────────
+    await asyncio.sleep(0.4)
+
+    # ── Step 6: Trigger exposure ─────────────────────────────────────────────
     indi.ccd_exposure_state = "Busy"
-    indi.send(f'<newNumberVector device="{device}" name="CCD_EXPOSURE"><oneNumber name="CCD_EXPOSURE_VALUE">{exposure}</oneNumber></newNumberVector>')
-    
+    indi.send(f'<newNumberVector device="{device}" name="CCD_EXPOSURE">'
+              f'<oneNumber name="CCD_EXPOSURE_VALUE">{exposure}</oneNumber></newNumberVector>')
+
     return {"success": True, "message": f"Exposure of {exposure}s started on {device}", "state": "Busy"}
 
 async def ccd_focus_internal(device: str, direction: str, steps: int):
@@ -1335,75 +1501,88 @@ async def ccd_focus_metric():
         logger.error(f"Error computing focus metric: {e}")
         return {"success": False, "metric": 0, "error": str(e)}
 
+# ── Calcul Alt/Az sans astropy IERS (précision ~0.1° — suffisant pour alt-az) ──────────────
+def _lst_deg(lon_deg: float) -> float:
+    """Local Sidereal Time en degrés à partir de l'heure UTC courante et de la longitude."""
+    now = datetime.utcnow()
+    # Julian Day Number
+    y, mo, d = now.year, now.month, now.day
+    h = now.hour + now.minute / 60.0 + now.second / 3600.0
+    jd = (367 * y - int(7 * (y + int((mo + 9) / 12)) / 4)
+          + int(275 * mo / 9) + d + 1721013.5 + h / 24.0)
+    t = (jd - 2451545.0) / 36525.0
+    # Greenwich Mean Sidereal Time (degrés)
+    gst = (280.46061837 + 360.98564736629 * (jd - 2451545.0)
+           + 0.000387933 * t * t - t * t * t / 38710000.0) % 360.0
+    return (gst + lon_deg) % 360.0
+
+def _radec_to_altaz(ra_hours: float, dec_deg: float, lat_deg: float, lon_deg: float):
+    """RA/Dec (ICRS) → Alt/Az. Précision ~0.1° sans téléchargement IERS."""
+    lst = _lst_deg(lon_deg)
+    ha  = math.radians((lst - ra_hours * 15.0) % 360.0)
+    dec = math.radians(dec_deg)
+    lat = math.radians(lat_deg)
+    sin_alt = math.sin(dec) * math.sin(lat) + math.cos(dec) * math.cos(lat) * math.cos(ha)
+    sin_alt = max(-1.0, min(1.0, sin_alt))
+    alt = math.degrees(math.asin(sin_alt))
+    cos_az = (math.sin(dec) - math.sin(lat) * sin_alt) / (math.cos(lat) * math.cos(math.radians(alt)) + 1e-12)
+    cos_az = max(-1.0, min(1.0, cos_az))
+    az = math.degrees(math.acos(cos_az))
+    if math.sin(ha) > 0:
+        az = 360.0 - az
+    return alt, az
+
+def _altaz_to_radec(alt_deg: float, az_deg: float, lat_deg: float, lon_deg: float):
+    """Alt/Az → RA/Dec (ICRS). Précision ~0.1° sans téléchargement IERS."""
+    lst = _lst_deg(lon_deg)
+    alt = math.radians(alt_deg)
+    az  = math.radians(az_deg)
+    lat = math.radians(lat_deg)
+    sin_dec = math.sin(alt) * math.sin(lat) + math.cos(alt) * math.cos(lat) * math.cos(az)
+    sin_dec = max(-1.0, min(1.0, sin_dec))
+    dec = math.degrees(math.asin(sin_dec))
+    cos_ha = (math.sin(alt) - math.sin(lat) * sin_dec) / (math.cos(lat) * math.cos(math.radians(dec)) + 1e-12)
+    cos_ha = max(-1.0, min(1.0, cos_ha))
+    ha = math.degrees(math.acos(cos_ha))
+    if math.sin(az) > 0:
+        ha = 360.0 - ha
+    ra_hours = ((lst - ha) % 360.0) / 15.0
+    return ra_hours, dec
+
 @app.post("/astro/coords")
 async def get_astro_coords(req: CoordsRequest):
+    """RA/Dec → Alt/Az. Calcul purement local (pas de IERS, pas de réseau)."""
     try:
-        lat = req.lat
-        lon = req.lon
-        if math.isnan(lat) or math.isinf(lat):
-            lat = -17.6333
-        if math.isnan(lon) or math.isinf(lon):
-            lon = -149.6000
-        obs = EarthLocation(lat=lat*u.deg, lon=lon*u.deg, height=0*u.m)
-        time = Time(datetime.utcnow())
-        
-        ra = req.ra
-        dec = req.dec
-        if math.isnan(ra) or math.isinf(ra):
-            ra = 0.0
-        if math.isnan(dec) or math.isinf(dec):
-            dec = 0.0
-            
-        target = SkyCoord(ra=ra*u.hourangle, dec=dec*u.deg, frame='icrs')
-        altaz = target.transform_to(AltAz(obstime=time, location=obs))
-        return {"success": True, "alt": float(altaz.alt.deg), "az": float(altaz.az.deg)}
+        lat = req.lat if not (math.isnan(req.lat) or math.isinf(req.lat)) else -17.6333
+        lon = req.lon if not (math.isnan(req.lon) or math.isinf(req.lon)) else -149.6000
+        ra  = req.ra  if not (math.isnan(req.ra)  or math.isinf(req.ra))  else 0.0
+        dec = req.dec if not (math.isnan(req.dec) or math.isinf(req.dec)) else 0.0
+        alt, az = _radec_to_altaz(ra, dec, lat, lon)
+        return {"success": True, "alt": alt, "az": az}
     except Exception as e:
         logger.error(f"Error in get_astro_coords: {e}")
         return {"success": False, "error": str(e), "alt": 0.0, "az": 0.0}
 
 
 class AltAzToRaDecRequest(BaseModel):
-    alt: float = 0.0   # altitude in degrees (above horizon)
-    az:  float = 0.0   # azimuth in degrees (N=0, E=90)
-    lat: float = -17.6333   # observer latitude
-    lon: float = -149.6000   # observer longitude
-    height: float = 0.0  # altitude above sea level in metres
+    alt: float = 0.0
+    az:  float = 0.0
+    lat: float = -17.6333
+    lon: float = -149.6000
+    height: float = 0.0
 
 
 @app.post("/astro/altaz_to_radec")
 async def altaz_to_radec(req: AltAzToRaDecRequest):
-    """Inverse of /astro/coords — convert local Alt/Az to equatorial RA/Dec.
-
-    Uses the observer's position and the current UTC time to determine the
-    Local Sidereal Time, then transforms into the ICRS frame.
-    Returns RA in decimal *hours* (0–24) and Dec in decimal *degrees*.
-    """
+    """Alt/Az → RA/Dec. Calcul purement local (pas de IERS, pas de réseau)."""
     try:
-        lat = req.lat
-        lon = req.lon
-        if math.isnan(lat) or math.isinf(lat):
-            lat = -17.6333
-        if math.isnan(lon) or math.isinf(lon):
-            lon = -149.6000
-        obs = EarthLocation(lat=lat*u.deg, lon=lon*u.deg, height=req.height*u.m)
-        time = Time(datetime.utcnow())
-        altaz_frame = AltAz(obstime=time, location=obs)
-        
-        alt = req.alt
-        az = req.az
-        if math.isnan(alt) or math.isinf(alt):
-            alt = 0.0
-        if math.isnan(az) or math.isinf(az):
-            az = 0.0
-            
-        coord = SkyCoord(alt=alt*u.deg, az=az*u.deg, frame=altaz_frame)
-        icrs  = coord.transform_to('icrs')
-        logger.info(f"AltAz→RaDec: Alt={alt:.1f}° Az={az:.1f}° → RA={icrs.ra.hour:.4f}h Dec={icrs.dec.deg:.4f}°")
-        return {
-            "success": True,
-            "ra":  float(icrs.ra.hour),   # decimal hours
-            "dec": float(icrs.dec.deg),   # decimal degrees
-        }
+        lat = req.lat if not (math.isnan(req.lat) or math.isinf(req.lat)) else -17.6333
+        lon = req.lon if not (math.isnan(req.lon) or math.isinf(req.lon)) else -149.6000
+        alt = req.alt if not (math.isnan(req.alt) or math.isinf(req.alt)) else 0.0
+        az  = req.az  if not (math.isnan(req.az)  or math.isinf(req.az))  else 0.0
+        ra_hours, dec = _altaz_to_radec(alt, az, lat, lon)
+        logger.info(f"AltAz→RaDec: Alt={alt:.1f}° Az={az:.1f}° → RA={ra_hours:.4f}h Dec={dec:.4f}°")
+        return {"success": True, "ra": ra_hours, "dec": dec}
     except Exception as e:
         logger.error(f"Error in altaz_to_radec: {e}")
         return {"success": False, "error": str(e), "ra": 0.0, "dec": 0.0}
@@ -1439,6 +1618,60 @@ async def get_status():
         "mount_slew_state": indi.mount_slew_state,
         "ccd_exposure_state": indi.ccd_exposure_state
     }
+
+# --- PHONE SENSOR ---
+
+_phone_sensor: dict = {
+    "connected": False,
+    "alpha": None,      # compass azimuth 0-360° (0 = north)
+    "beta": None,       # pitch -180..180° (altitude proxy when mounted on tube)
+    "gamma": None,      # roll -90..90°
+    "lat": None,
+    "lon": None,
+    "accuracy_m": None,
+    "timestamp": None,
+}
+_phone_sensor_lock = threading.Lock()
+
+active_phone_sensor_ws = set()
+
+@app.websocket("/ws/phone-sensor")
+async def phone_sensor_ws(ws: WebSocket):
+    await ws.accept()
+    logger.info("Phone sensor WebSocket connected")
+    active_phone_sensor_ws.add(ws)
+    with _phone_sensor_lock:
+        _phone_sensor["connected"] = True
+    try:
+        while True:
+            data = await ws.receive_json()
+            with _phone_sensor_lock:
+                _phone_sensor.update({k: v for k, v in data.items() if k in _phone_sensor})
+                _phone_sensor["connected"] = True
+                _phone_sensor["timestamp"] = datetime.now(timezone.utc).isoformat()
+                current_state = _phone_sensor.copy()
+            
+            # Broadcast the updated state to other connected WebSockets (e.g. desktop wizard)
+            for client in list(active_phone_sensor_ws):
+                if client != ws:
+                    try:
+                        await client.send_json(current_state)
+                    except Exception:
+                        active_phone_sensor_ws.discard(client)
+    except WebSocketDisconnect:
+        logger.info("Phone sensor WebSocket disconnected")
+    except Exception as e:
+        logger.warning(f"Phone sensor WS error: {e}")
+    finally:
+        active_phone_sensor_ws.discard(ws)
+        with _phone_sensor_lock:
+            if not active_phone_sensor_ws:
+                _phone_sensor["connected"] = False
+
+@app.get("/phone-sensor/state")
+async def get_phone_sensor_state():
+    with _phone_sensor_lock:
+        return _phone_sensor.copy()
 
 # --- STREAMING ---
 async def mjpeg_generator():
@@ -1483,28 +1716,46 @@ async def ccd_stream_start():
     dev = (indi.device_ccd or "Canon DSLR EOS 600D").strip()
     if not indi.connected:
         return {"success": False, "error": "INDI bridge not connected"}
-    
-    # 1. Force HIGH QUALITY and proper compression
-    indi.send(f'<newSwitchVector device="{dev}" name="CCD_COMPRESSION"><oneSwitch name="OFF">On</oneSwitch></newSwitchVector>')
-    
-    # 2. Set UPLOAD MODE to CLIENT (Crucial for streaming)
+
+    logger.info(f"[LiveView] Starting stream on {dev} — full driver reset sequence")
+
+    # ── Step 0: Aggressive reset ─────────────────────────────────────────────
+    # Stop stream, lower mirror, then disable BLOBs to flush driver buffers.
+    # This clears Busy/stuck states left over from previous sessions or crashes.
+    indi.send(f'<newSwitchVector device="{dev}" name="CCD_VIDEO_STREAM"><oneSwitch name="STREAM_OFF">On</oneSwitch></newSwitchVector>')
+    await asyncio.sleep(0.3)
+    indi.send(f'<newSwitchVector device="{dev}" name="viewfinder"><oneSwitch name="viewfinder1">On</oneSwitch></newSwitchVector>')
+    await asyncio.sleep(0.3)
+    # Temporarily disable BLOBs to flush any partially-read frame from the socket
+    indi.send(f'<enableBLOB device="{dev}">Never</enableBLOB>')
+    await asyncio.sleep(0.5)
+
+    # ── Step 1: Re-enable BLOBs ──────────────────────────────────────────────
+    indi.send(f'<enableBLOB device="{dev}">Also</enableBLOB>')
+
+    # ── Step 2: Upload mode = CLIENT (frames come to us, not saved to disk) ──
     indi.send(f'<newSwitchVector device="{dev}" name="UPLOAD_MODE"><oneSwitch name="UPLOAD_CLIENT">On</oneSwitch></newSwitchVector>')
 
-    # 2.5 Force stream encoder to MJPEG format (required for browser rendering)
+    # ── Step 3: Encoder = MJPEG ──────────────────────────────────────────────
     indi.send(f'<newSwitchVector device="{dev}" name="CCD_STREAM_ENCODER"><oneSwitch name="MJPEG">On</oneSwitch></newSwitchVector>')
 
-    # 2.7 Raise preview FPS limit to 30 FPS (default is 10 in the driver)
+    # ── Step 4: FPS cap ──────────────────────────────────────────────────────
     indi.send(f'<newNumberVector device="{dev}" name="LIMITS"><oneNumber name="LIMITS_PREVIEW_FPS">30</oneNumber></newNumberVector>')
 
-    # 3. Enable viewfinder (mirror up) - This is the DSLR specific live view trigger
-    # Using BOTH common ways to ensure compatibility
+    # ── Step 5: Live view size (largest) ─────────────────────────────────────
+    indi.send(f'<newSwitchVector device="{dev}" name="liveviewsize"><oneSwitch name="liveviewsize0">On</oneSwitch></newSwitchVector>')
+
+    await asyncio.sleep(0.5)  # let driver digest all configuration before mirror up
+
+    # ── Step 6: Mirror up (viewfinder0 = live view mode on 600D) ─────────────
+    # The 600D takes ~1.5s for the mirror to physically travel and lock.
     indi.send(f'<newSwitchVector device="{dev}" name="viewfinder"><oneSwitch name="viewfinder0">On</oneSwitch></newSwitchVector>')
+    await asyncio.sleep(2.5)  # 2.5 s — more headroom than the original 2.0
+
+    # ── Step 7: Start stream ─────────────────────────────────────────────────
     indi.send(f'<newSwitchVector device="{dev}" name="CCD_VIDEO_STREAM"><oneSwitch name="STREAM_ON">On</oneSwitch></newSwitchVector>')
-    
-    # 4. Request fast stream if available
-    indi.send(f'<newNumberVector device="{dev}" name="CCD_STREAM_FRAME"><oneNumber name="CCD_STREAM_FRAME_DIVIDER">1</oneNumber></newNumberVector>')
-    
-    logger.info(f"LIVE VIEW STARTED on {dev}")
+
+    logger.info(f"[LiveView] STREAM_ON sent to {dev}")
     return {"success": True}
 
 @app.post("/ccd/stream/stop")
@@ -1512,9 +1763,9 @@ async def ccd_stream_stop():
     dev = (indi.device_ccd or "Canon DSLR EOS 600D").strip()
     if not indi.connected:
         return {"success": False, "error": "INDI bridge not connected"}
-    # Turn off live stream first
+    # Stop stream first, then lower mirror — order matters for the 600D
     indi.send(f'<newSwitchVector device="{dev}" name="CCD_VIDEO_STREAM"><oneSwitch name="STREAM_OFF">On</oneSwitch></newSwitchVector>')
-    # Disable live view (mirror down) - viewfinder1 is "Off" (Viewfinder)
+    await asyncio.sleep(0.5)
     indi.send(f'<newSwitchVector device="{dev}" name="viewfinder"><oneSwitch name="viewfinder1">On</oneSwitch></newSwitchVector>')
     return {"success": True}
 
@@ -1724,6 +1975,237 @@ def mount_track(req: TrackRequest):
     logger.info(f"Mount tracking: {mode}")
     indi.send(f'<newSwitchVector device="{indi.device_mount}" name="TELESCOPE_TRACK_STATE"><oneSwitch name="TRACK_{mode.upper()}">On</oneSwitch></newSwitchVector>')
     return {"success": True, "tracking": req.enabled}
+
+
+@app.post("/mount/init-station")
+async def mount_init_station(req: InitStationRequest):
+    """Étape 2 du wizard mise en station: envoie GPS+UTC à INDI et active le suivi sidéral."""
+    device = req.device or indi.device_mount or "Celestron GPS"
+    now_utc = datetime.utcnow()
+    logger.info(f"Init station: device={device} lat={req.lat} lon={req.lon} elev={req.elevation}")
+
+    # Send geographic coordinates
+    indi.send(
+        f'<newNumberVector device="{device}" name="GEOGRAPHIC_COORD">'
+        f'<oneNumber name="LAT">{req.lat}</oneNumber>'
+        f'<oneNumber name="LONG">{req.lon}</oneNumber>'
+        f'<oneNumber name="ELEV">{req.elevation}</oneNumber>'
+        f'</newNumberVector>'
+    )
+    await asyncio.sleep(0.3)
+
+    # Send UTC time
+    utc_str = now_utc.strftime("%Y-%m-%dT%H:%M:%S")
+    offset_str = "0"
+    indi.send(
+        f'<newTextVector device="{device}" name="TIME_UTC">'
+        f'<oneText name="UTC">{utc_str}</oneText>'
+        f'<oneText name="OFFSET">{offset_str}</oneText>'
+        f'</newTextVector>'
+    )
+    await asyncio.sleep(0.3)
+
+    # Enable sidereal tracking
+    indi.send(
+        f'<newSwitchVector device="{device}" name="TELESCOPE_TRACK_STATE">'
+        f'<oneSwitch name="TRACK_ON">On</oneSwitch>'
+        f'</newSwitchVector>'
+    )
+
+    return {
+        "success": True,
+        "lat": req.lat,
+        "lon": req.lon,
+        "elevation": req.elevation,
+        "utc": utc_str,
+        "tracking": True,
+        "message": "GPS, heure et suivi sidéral initialisés"
+    }
+
+
+@app.post("/mount/tracking-rate")
+async def mount_tracking_rate(req: TrackingRateRequest):
+    """Définit le mode de suivi: SIDEREAL, LUNAR ou SOLAR."""
+    device = req.device or indi.device_mount or "Celestron GPS"
+    rate = req.rate.upper()
+    if rate not in ("SIDEREAL", "LUNAR", "SOLAR"):
+        return {"success": False, "error": f"Rate invalide: {rate}"}
+
+    logger.info(f"Tracking rate: {rate} on {device}")
+
+    # First ensure tracking is ON
+    indi.send(
+        f'<newSwitchVector device="{device}" name="TELESCOPE_TRACK_STATE">'
+        f'<oneSwitch name="TRACK_ON">On</oneSwitch>'
+        f'</newSwitchVector>'
+    )
+    await asyncio.sleep(0.2)
+
+    # Set track mode
+    indi.send(
+        f'<newSwitchVector device="{device}" name="TELESCOPE_TRACK_MODE">'
+        f'<oneSwitch name="TRACK_{rate}">On</oneSwitch>'
+        f'</newSwitchVector>'
+    )
+
+    return {"success": True, "rate": rate}
+
+
+# ─── Capture sequence state (shared between SSE stream and background task) ───
+_capture_state: dict = {
+    "running": False,
+    "phase": "idle",          # idle | capturing | stacking | complete | error
+    "current_frame": 0,
+    "total_frames": 0,
+    "elapsed_s": 0.0,
+    "eta_s": 0.0,
+    "hfr": None,
+    "snr": None,
+    "stack_count": 0,
+    "last_thumbnail": None,   # base64 jpeg thumbnail of latest stack
+    "log": [],                # list of {time, msg, type}
+    "error": None,
+}
+_capture_lock = threading.Lock()
+
+
+def _cap_log(msg: str, kind: str = "info"):
+    entry = {"time": datetime.utcnow().strftime("%H:%M:%S"), "msg": msg, "type": kind}
+    with _capture_lock:
+        _capture_state["log"].append(entry)
+    logger.info(f"[capture] {msg}")
+
+
+@app.get("/capture/progress")
+async def capture_progress(request: Request):
+    """SSE stream of current capture+stacking state."""
+    async def event_generator():
+        while True:
+            if await request.is_disconnected():
+                break
+            with _capture_lock:
+                payload = json.dumps(_capture_state)
+            yield f"data: {payload}\n\n"
+            await asyncio.sleep(0.8)
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        }
+    )
+
+
+@app.post("/capture/sequence/start")
+async def capture_sequence_start(req: CaptureSequenceRequest):
+    """Démarre une séquence de capture+stacking en arrière-plan."""
+    with _capture_lock:
+        if _capture_state["running"]:
+            return {"success": False, "error": "Une séquence est déjà en cours"}
+        _capture_state.update({
+            "running": True,
+            "phase": "capturing",
+            "current_frame": 0,
+            "total_frames": req.count,
+            "elapsed_s": 0.0,
+            "eta_s": req.exposure * req.count,
+            "hfr": None,
+            "snr": None,
+            "stack_count": 0,
+            "last_thumbnail": None,
+            "log": [],
+            "error": None,
+        })
+
+    device = req.device or indi.detectedCcd or "Canon DSLR"
+
+    def run_sequence():
+        import time as _time
+        start = _time.time()
+        frames = []
+
+        _cap_log(f"Démarrage: {req.count} frames × {req.exposure}s — {device}", "info")
+
+        for i in range(req.count):
+            with _capture_lock:
+                if not _capture_state["running"]:
+                    _cap_log("Séquence annulée", "warn")
+                    return
+                _capture_state["current_frame"] = i + 1
+                elapsed = _time.time() - start
+                _capture_state["elapsed_s"] = round(elapsed, 1)
+                remaining = req.count - i
+                _capture_state["eta_s"] = round(remaining * req.exposure, 1)
+
+            _cap_log(f"Frame {i+1}/{req.count} — exposition {req.exposure}s")
+
+            # Trigger INDI CCD exposure
+            indi.send(
+                f'<newNumberVector device="{device}" name="CCD_EXPOSURE">'
+                f'<oneNumber name="CCD_EXPOSURE_VALUE">{req.exposure}</oneNumber>'
+                f'</newNumberVector>'
+            )
+
+            # Wait for exposure to complete (poll ccd_exposure_state)
+            deadline = _time.time() + req.exposure + 15.0
+            while _time.time() < deadline:
+                _time.sleep(0.5)
+                if indi.ccd_exposure_state not in ("Busy", "Ok"):
+                    break
+                if indi.ccd_exposure_state == "Ok":
+                    break
+
+            # Retrieve latest captured file path
+            capture_dir = STORAGE_PATH if os.path.isdir(STORAGE_PATH) else os.path.join(os.path.dirname(__file__), "captures")
+            files = sorted(Path(capture_dir).glob("*.jpg"), key=os.path.getmtime)
+            if files:
+                latest = str(files[-1])
+                frames.append(latest)
+                _cap_log(f"Frame {i+1} capturée: {os.path.basename(latest)}", "success")
+
+                # Generate thumbnail from latest frame
+                try:
+                    img = cv2.imread(latest)
+                    if img is not None:
+                        h, w = img.shape[:2]
+                        scale = 200 / max(h, w)
+                        thumb = cv2.resize(img, (int(w * scale), int(h * scale)))
+                        _, buf = cv2.imencode(".jpg", thumb, [cv2.IMWRITE_JPEG_QUALITY, 70])
+                        b64 = base64.b64encode(buf).decode()
+                        with _capture_lock:
+                            _capture_state["last_thumbnail"] = f"data:image/jpeg;base64,{b64}"
+                except Exception as e:
+                    logger.warning(f"Thumbnail error: {e}")
+            else:
+                _cap_log(f"Frame {i+1}: aucun fichier trouvé", "warn")
+
+            # Basic stacking: update stack count
+            with _capture_lock:
+                _capture_state["stack_count"] = len(frames)
+
+        # Done
+        with _capture_lock:
+            _capture_state["running"] = False
+            _capture_state["phase"] = "complete"
+            _capture_state["elapsed_s"] = round(_time.time() - start, 1)
+            _capture_state["eta_s"] = 0.0
+
+        _cap_log(f"Séquence terminée — {len(frames)} frames capturées", "success")
+
+    threading.Thread(target=run_sequence, daemon=True).start()
+    return {"success": True, "count": req.count, "exposure": req.exposure}
+
+
+@app.post("/capture/sequence/stop")
+def capture_sequence_stop():
+    """Arrête la séquence en cours."""
+    with _capture_lock:
+        _capture_state["running"] = False
+        _capture_state["phase"] = "idle"
+    _cap_log("Séquence arrêtée par l'utilisateur", "warn")
+    return {"success": True}
 
 
 @app.get("/mount/status")

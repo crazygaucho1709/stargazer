@@ -1,0 +1,39 @@
+# Stargazer — HTTPS local via Caddy (port 8443, pas besoin de sudo)
+#
+# Accès iOS : https://macmini.local:8443/sensor
+# Prérequis  : brew install caddy mkcert && ./scripts/setup-https.sh
+#
+# Ce fichier est lancé par PM2 (process: stargazer-https).
+
+macmini.local:8443 {
+    tls certs/stargazer.pem certs/stargazer-key.pem
+
+    # WebSocket phone-sensor → FastAPI:5005
+    @ws {
+        path /ws/*
+    }
+    reverse_proxy @ws localhost:5005
+
+    # API FastAPI passthrough (health, stream, etc.)
+    @api {
+        path /api/indi/health-full /video_feed /phone-sensor/* /health* /ccd/* /mount/*
+    }
+    reverse_proxy @api localhost:5005
+
+    # Tout le reste → Next.js:3001
+    reverse_proxy localhost:3001
+
+    # Headers pour les capteurs iOS
+    header {
+        Permissions-Policy "accelerometer=*, gyroscope=*, magnetometer=*"
+        Access-Control-Allow-Origin "*"
+    }
+
+    log {
+        output file logs/caddy-access.log {
+            roll_size 10mb
+            roll_keep 3
+        }
+        level INFO
+    }
+}

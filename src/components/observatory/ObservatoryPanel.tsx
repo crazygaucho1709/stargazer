@@ -6,6 +6,8 @@ import { useEffect } from "react";
 import { InfrastructureStatus } from "./InfrastructureStatus";
 import { ActionButtons } from "./ActionButtons";
 import { LogStream } from "./LogStream";
+import { PhoneSensorWidget } from "./PhoneSensorWidget";
+import { TelescopeControls } from "@/components/telescope/TelescopeControls";
 import { useStargazerStore } from "@/store/useStargazerStore";
 import { OBSERVATORY_LABELS, OBSERVATORY_COLORS, SubsystemHealth, SubsystemId, canObservatoryTransition, ObservatoryEvent } from "@/lib/observatoryMachine";
 
@@ -287,6 +289,20 @@ export default function ObservatoryPanel() {
       <Box>
         <InfrastructureStatus />
       </Box>
+
+      {/* Phone Sensor + Mount control side by side */}
+      <Grid templateColumns={{ base: "1fr", md: "1fr 200px" }} gap={4} alignItems="start">
+        <PhoneSensorWidget />
+        <Box
+          bg="rgba(255,255,255,0.02)"
+          border="1px solid rgba(255,255,255,0.07)"
+          borderRadius="xl"
+          p={4}
+        >
+          <Text fontSize="9px" color="whiteAlpha.500" letterSpacing="0.15em" mb={3}>RAQUETTE</Text>
+          <TelescopeControls variant="pad" />
+        </Box>
+      </Grid>
 
       {/* Main Content: Actions & Logs */}
       <Grid templateColumns={{ base: "1fr", xl: "350px 1fr" }} gap={8} alignItems="start">

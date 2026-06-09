@@ -1,8 +1,10 @@
 "use client";
 
 import { Box, VStack, HStack, Text, Icon, Flex, Grid, Circle } from "@chakra-ui/react";
-import { TelescopeControls } from "@/components/telescope/TelescopeControls";
+import { TelescopeControls, TrackingModeSelector } from "@/components/telescope/TelescopeControls";
 import { CameraControls } from "@/components/camera/CameraControls";
+import { CaptureProgressPanel } from "@/components/camera/CaptureProgressPanel";
+import { MiseEnStationWizard } from "@/components/telescope/MiseEnStationWizard";
 import { SkyMap } from "@/components/viewport/SkyMap";
 import { AIAssistant } from "@/components/ai/AIAssistant";
 import { MountCalibration } from "@/components/telescope/MountCalibration";
@@ -15,6 +17,7 @@ import { useEffect, useState } from "react";
 import { LiveView } from "@/components/viewport/LiveView";
 import { canObservatoryTransition, ObservatoryEvent } from "@/lib/observatoryMachine";
 import { useEnvironmentData } from "@/hooks/useEnvironmentData";
+import { useMountCoords } from "@/hooks/useMountCoords";
 import { notification } from "@/lib/notificationService";
 import { NotificationCenter } from "@/components/ui/NotificationCenter";
 import { SessionIndicator } from "@/components/ui/SessionIndicator";
@@ -22,11 +25,61 @@ import {
     Activity, Zap, Orbit, Clock, MapPin, Compass, Thermometer, Power, Telescope
 } from "lucide-react";
 
+// ── Sun altitude (crépuscule) — même algo que /sensor ───────────────────────
+function calcSunAlt(latStr: string, lonStr: string): number | null {
+    const lat = parseFloat(latStr), lon = parseFloat(lonStr);
+    if (isNaN(lat) || isNaN(lon)) return null;
+    const rad = Math.PI / 180, d = new Date();
+    const D = d.getTime() / 86400000 - 10957;
+    const g = (357.529 + 0.98560028 * D) * rad;
+    const q = 280.459 + 0.98564736 * D;
+    const L = (q + 1.915 * Math.sin(g) + 0.02 * Math.sin(2 * g)) * rad;
+    const e = 23.439 * rad;
+    const sinDec = Math.sin(e) * Math.sin(L);
+    const dec = Math.asin(sinDec);
+    const UT = d.getUTCHours() + d.getUTCMinutes() / 60 + d.getUTCSeconds() / 3600;
+    const GMST = (6.697375 + 0.0657098242 * D + UT) % 24;
+    const RA = Math.atan2(Math.cos(e) * Math.sin(L), Math.cos(L)) / rad / 15;
+    const LHA = ((GMST + lon / 15 - RA) % 24) * 15 * rad;
+    return Math.asin(Math.sin(lat * rad) * sinDec + Math.cos(lat * rad) * Math.cos(dec) * Math.cos(LHA)) / rad;
+}
+
+function TwilightBadge({ lat, lon }: { lat: string; lon: string }) {
+    const [sunAlt, setSunAlt] = useState<number | null>(null);
+    useEffect(() => {
+        const tick = () => setSunAlt(calcSunAlt(lat, lon));
+        tick();
+        const id = setInterval(tick, 60_000);
+        return () => clearInterval(id);
+    }, [lat, lon]);
+    if (sunAlt == null) return null;
+    const { label, color } = sunAlt > 0 ? { label: "☀ JOUR", color: "#ffd700" }
+        : sunAlt > -6 ? { label: "🌅 CIVIL", color: "#ff9944" }
+        : sunAlt > -12 ? { label: "🌆 NAUTIQUE", color: "#cc88ff" }
+        : sunAlt > -18 ? { label: "🌌 ASTRO", color: "#8888ff" }
+        : { label: "🔭 NUIT NOIRE", color: "#00ffb4" };
+    return (
+        <HStack gap={2}>
+            <VStack align="start" gap={0}>
+                <Text fontSize="8px" color="var(--astro-starlight)" opacity={0.6}>CRÉPUSCULE</Text>
+                <Text fontSize="11px" className="hud-font" color={color} fontWeight="bold">
+                    {label}
+                </Text>
+            </VStack>
+            <Text fontSize="9px" color={color} opacity={0.6}>{sunAlt.toFixed(1)}°</Text>
+        </HStack>
+    );
+}
+
 export default function Home() {
-    const { isConnected: connected, setConnected, isExposing, alt, az, language, isLoading } = useStargazerStore();
+    const { isConnected: connected, setConnected, isExposing, alt, az, language, isLoading, liveViewMode, config } = useStargazerStore();
     const [statusText, setStatusText] = useState("");
     const envData = useEnvironmentData();
+    // SSE temps réel pour RA/DEC — remplace le polling health pour les coords
+    useMountCoords();
     const [mounted, setMounted] = useState(false);
+    const [showMiseEnStation, setShowMiseEnStation] = useState(false);
+    const [showCapturePanel, setShowCapturePanel] = useState(false);
 
     const [wasConnected, setWasConnected] = useState(false);
 
@@ -107,10 +160,7 @@ export default function Home() {
                                 }
                             }
                             
-                            // If backend provided coordinates, update store
-                            if (health.ra && health.dec) {
-                                useStargazerStore.getState().setPosition(health.ra, health.dec);
-                            }
+                            // Coords (RA/DEC) are now pushed via SSE /coords/stream — no update needed here
                         } else {
                             setStatusText(t("LINK_OFFLINE", language));
                             setWasConnected(false);
@@ -129,8 +179,14 @@ export default function Home() {
         };
 
         checkConnection();
-        const interval = setInterval(checkConnection, 2000); // 2s polling
-        return () => clearInterval(interval);
+        // Base poll: 2s. During slew: accelerate to 500ms for real-time marker tracking.
+        let interval = setInterval(checkConnection, 2000);
+        const slewInterval = setInterval(() => {
+            const { isSlewing } = useStargazerStore.getState();
+            clearInterval(interval);
+            interval = setInterval(checkConnection, isSlewing ? 500 : 2000);
+        }, 1000);
+        return () => { clearInterval(interval); clearInterval(slewInterval); };
     }, [setConnected, language, mounted]);
 
     if (!mounted) {
@@ -138,11 +194,12 @@ export default function Home() {
     }
 
     return (
-        <Box h="100vh" w="100vw" position="relative" overflow="hidden" bg="#030509">
+        <Box style={{ height: '100dvh', width: '100dvw', paddingTop: 'env(safe-area-inset-top)' }} position="relative" overflow="hidden" bg="#030509">
             <GlobalLoader />
             <LiveView />
             
-            <Box position="absolute" inset="0" pointerEvents="none" zIndex={1} bg="radial-gradient(circle at center, transparent 40%, rgba(3, 5, 9, 0.95) 100%)" />
+            {/* Subtle vignette — keep edges readable without blocking controls */}
+            <Box position="absolute" inset="0" pointerEvents="none" zIndex={1} bg="radial-gradient(circle at center, transparent 60%, rgba(3, 5, 9, 0.25) 100%)" />
 
             <Flex direction="column" h="full" w="full" position="relative" zIndex={20} pointerEvents="none">
                 
@@ -198,6 +255,9 @@ export default function Home() {
                         </HStack>
                         <Box h="24px" w="1px" bg="rgba(255, 255, 255, 0.1)" />
 
+                        <TwilightBadge lat={config.latitude} lon={config.longitude} />
+                        <Box h="24px" w="1px" bg="rgba(255, 255, 255, 0.1)" />
+
                         <HStack gap={3}>
                             {connected ? (
                                 <Circle size="8px" bg="var(--astro-teal)" boxShadow="0 0 8px var(--astro-teal)" />
@@ -248,21 +308,36 @@ export default function Home() {
                         <AstroPod title={t("MOUNT_NAVIGATOR", language)} glowColor="teal">
                             <VStack gap={3}>
                                 <TelescopeControls variant="pad" />
+                                <TrackingModeSelector />
                                 <HStack justify="space-between" w="full" mt={1} fontSize="10px" color="var(--astro-starlight)" opacity={0.8}>
-                                    <Text>{t("TRK", language)} {t("SIDEREAL", language)}</Text>
                                     <Text>{t("ERR", language)} 0.04&quot;</Text>
+                                    <Box
+                                        as="button"
+                                        fontSize="9px"
+                                        color="teal.300"
+                                        _hover={{ color: "teal.100" }}
+                                        onClick={() => setShowMiseEnStation(!showMiseEnStation)}
+                                        cursor="pointer"
+                                    >
+                                        {showMiseEnStation ? "▲ Fermer wizard" : "⊕ Mise en station"}
+                                    </Box>
                                 </HStack>
                             </VStack>
                         </AstroPod>
+
+                        {showMiseEnStation && (
+                            <MiseEnStationWizard onClose={() => setShowMiseEnStation(false)} />
+                        )}
 
                         <AstroPod title={t("LIMITS_CONFIG", language)} glowColor="gold">
                             <MountCalibration />
                         </AstroPod>
                     </VStack>
 
-                    {/* Centre : Sky Map interactive */}
-                    <Box flex={1} pointerEvents="auto" position="relative" borderRadius="lg" overflow="hidden" mx={2}>
-                        <SkyMap />
+                    {/* Centre : Sky Map interactive — contain:paint clips all z-indexed children */}
+                    {/* When CANON mode is active, hide SkyMap to let LiveView Canon stream show through */}
+                    <Box flex={1} pointerEvents={liveViewMode === "CANON" ? "none" : "auto"} position="relative" borderRadius="lg" overflow="hidden" mx={2} style={{ contain: 'paint' }}>
+                        {liveViewMode !== "CANON" && <SkyMap />}
                     </Box>
 
                     {/* RIGHT COLUMN: Sensor & Oracle Only */}
@@ -280,8 +355,30 @@ export default function Home() {
                                         <Text>{t("COOLER", language)} 85%</Text>
                                     </HStack>
                                 </Box>
+                                <Box
+                                    as="button"
+                                    w="full"
+                                    fontSize="9px"
+                                    color={showCapturePanel ? "blue.300" : "whiteAlpha.500"}
+                                    bg={showCapturePanel ? "rgba(66,153,225,0.1)" : "rgba(255,255,255,0.03)"}
+                                    border="1px solid"
+                                    borderColor={showCapturePanel ? "blue.700" : "whiteAlpha.100"}
+                                    borderRadius="md"
+                                    py={1}
+                                    px={2}
+                                    textAlign="center"
+                                    cursor="pointer"
+                                    _hover={{ color: "blue.200", borderColor: "blue.600" }}
+                                    onClick={() => setShowCapturePanel(!showCapturePanel)}
+                                >
+                                    {showCapturePanel ? "▲ Fermer séquence" : "▶ Séquence de capture"}
+                                </Box>
                             </VStack>
                         </AstroPod>
+
+                        {showCapturePanel && (
+                            <CaptureProgressPanel onClose={() => setShowCapturePanel(false)} />
+                        )}
 
                         <AstroPod title={t("METEO_ORACLE", language)} glowColor="cobalt">
                             <AIAssistant />

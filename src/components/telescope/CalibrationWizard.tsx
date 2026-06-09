@@ -1,14 +1,33 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Box, VStack, HStack, Text, Button, Icon, Badge, Flex, Grid, Spinner, Select } from "@chakra-ui/react";
 import { 
-  Telescope, Target, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, 
+  Telescope, Target,
   Settings2, Activity, MapPin, CheckCircle2, AlertTriangle, RefreshCw, X
 } from "lucide-react";
 import { useStargazerStore } from "@/store/useStargazerStore";
 import { useAstroAction } from "@/hooks/useAstroAction";
 import { Tooltip } from "@/components/ui/tooltip";
+import { notification } from "@/lib/notificationService";
+import { useJog } from "@/hooks/useJog";
+import { JogPad } from "./JogPad";
+import { useLiveView } from "@/hooks/useLiveView";
+
+interface PhoneSensorData {
+  alpha: number | null;
+  beta: number | null;
+  gamma: number | null;
+  lat: number | null;
+  lon: number | null;
+  accuracy_m: number | null;
+  connected: boolean;
+}
+
+function betaToAlt(beta: number | null): number | null {
+  if (beta == null) return null;
+  return Math.max(0, Math.min(90, 90 - Math.abs(beta)));
+}
 
 type CalibrationStep = 
   | 'idle' 
@@ -45,21 +64,88 @@ const BRIGHT_STARS = [
 
 export const CalibrationWizard = () => {
   const { language, config, setMountLimits, mountLimits, setSlewing } = useStargazerStore();
-  const bridgeIp = config.astroberryUrl.includes('http') ? new URL(config.astroberryUrl).hostname : config.astroberryUrl.split(':')[0];
-  
+  const bridgeIp = config.astroberryUrl.includes('http')
+    ? new URL(config.astroberryUrl).hostname
+    : config.astroberryUrl.split(':')[0];
+
   const [step, setStep] = useState<StepStatus>({
     step: 'idle',
     isWaitingUser: false,
     message: '',
     instruction: ''
   });
-  
+
   const [videoActive, setVideoActive] = useState(false);
   const [selectedStar, setSelectedStar] = useState(BRIGHT_STARS[0]);
   const [imageTime, setImageTime] = useState(Date.now());
   const [starAltAz, setStarAltAz] = useState<{alt: number, az: number} | null>(null);
 
   const { execute: performAction, isPending, error: actionError } = useAstroAction();
+  const jog = useJog();
+  const liveView = useLiveView();
+  
+  const [phoneSensor, setPhoneSensor] = useState<PhoneSensorData>({
+    alpha: null, beta: null, gamma: null,
+    lat: null, lon: null, accuracy_m: null,
+    connected: false
+  });
+
+  // WebSocket for phone sensor data HUD
+  useEffect(() => {
+    let ws: WebSocket | null = null;
+    let timerId: NodeJS.Timeout | null = null;
+    let active = true;
+
+    const connect = () => {
+      if (!active) return;
+      const host = window.location.hostname;
+      const isHttps = window.location.protocol === "https:";
+      const wsUrl = isHttps
+        ? `wss://${host}:${window.location.port}/ws/phone-sensor`
+        : `ws://${host}:5005/ws/phone-sensor`;
+
+      ws = new WebSocket(wsUrl);
+
+      ws.onmessage = (evt) => {
+        try {
+          const d = JSON.parse(evt.data);
+          setPhoneSensor({
+            alpha: d.alpha ?? null,
+            beta: d.beta ?? null,
+            gamma: d.gamma ?? null,
+            lat: d.lat ?? null,
+            lon: d.lon ?? null,
+            accuracy_m: d.accuracy_m ?? null,
+            connected: !!d.connected,
+          });
+        } catch (_) {}
+      };
+
+      ws.onopen = () => {
+        setPhoneSensor(prev => ({ ...prev, connected: true }));
+      };
+
+      ws.onclose = () => {
+        setPhoneSensor(prev => ({ ...prev, connected: false }));
+        if (active) {
+          timerId = setTimeout(connect, 3000);
+        }
+      };
+
+      ws.onerror = () => {
+        ws?.close();
+      };
+    };
+
+    connect();
+
+    return () => {
+      active = false;
+      if (timerId) clearTimeout(timerId);
+      if (ws) ws.close();
+    };
+  }, []);
+
 
   // Step Progress Calculation
   const getStepProgress = () => {
@@ -91,15 +177,13 @@ export const CalibrationWizard = () => {
   useEffect(() => {
     if (step.step !== 'idle' && step.step !== 'complete') {
       setVideoActive(true);
-      fetch('/api/indi/liveview', { 
-        method: 'POST', 
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'start', ip: bridgeIp })
-      }).catch(console.error);
+      liveView.start();
     } else {
       setVideoActive(false);
+      liveView.stop();
     }
-  }, [step.step, bridgeIp]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step.step]);
 
   useEffect(() => {
     if (!videoActive) return;
@@ -292,21 +376,6 @@ export const CalibrationWizard = () => {
     setStep({ step: 'idle', isWaitingUser: false, message: '', instruction: '' });
   };
   
-  const jogMount = (direction: 'up' | 'down' | 'left' | 'right') => {
-    fetch('/api/indi/mount', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'jog', direction, state: 'start', ip: bridgeIp })
-    }).catch(console.error);
-  };
-
-  const stopMount = (direction: 'up' | 'down' | 'left' | 'right') => {
-    fetch('/api/indi/mount', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'jog', direction, state: 'stop', ip: bridgeIp })
-    }).catch(console.error);
-  };
 
   if (step.step === 'idle') {
     return (
@@ -432,57 +501,69 @@ export const CalibrationWizard = () => {
         </Box>
       )}
 
+      {/* Phone Sensor HUD */}
+      {videoActive && (
+        <Box 
+          p={3.5} 
+          bg="rgba(10, 25, 50, 0.4)" 
+          border="1px solid rgba(0, 180, 255, 0.25)" 
+          borderRadius="8px"
+        >
+          <HStack justify="space-between" mb={2}>
+            <HStack gap={1.5}>
+              <Icon as={Telescope} boxSize={3.5} color="#00b4ff" />
+              <Text fontSize="9px" fontWeight="bold" color="whiteAlpha.800" letterSpacing="0.08em">
+                {language === 'fr' ? "CAPTEURS IPHONE EMBARQUÉ" : "EMBEDDED IPHONE SENSORS"}
+              </Text>
+            </HStack>
+            <Badge variant="solid" bg={phoneSensor.connected ? "green.700" : "red.700"} color="white" fontSize="8px">
+              {phoneSensor.connected ? "LIVE" : "DÉCONNECTÉ"}
+            </Badge>
+          </HStack>
+
+          <Grid templateColumns="repeat(3, 1fr)" gap={2}>
+            <VStack bg="rgba(0,0,0,0.3)" p={2} borderRadius="4px" align="center" gap={0.5}>
+              <Text fontSize="8px" color="whiteAlpha.400" letterSpacing="0.05em">
+                {language === 'fr' ? "AZIMUT (CAP)" : "AZIMUTH"}
+              </Text>
+              <Text fontSize="13px" fontWeight="bold" color="#00ffb4" fontFamily="monospace">
+                {phoneSensor.alpha != null ? `${phoneSensor.alpha.toFixed(1)}°` : "—"}
+              </Text>
+            </VStack>
+            
+            <VStack bg="rgba(0,0,0,0.3)" p={2} borderRadius="4px" align="center" gap={0.5}>
+              <Text fontSize="8px" color="whiteAlpha.400" letterSpacing="0.05em">
+                {language === 'fr' ? "ALTITUDE (TANGAGE)" : "ALTITUDE"}
+              </Text>
+              <Text fontSize="13px" fontWeight="bold" color="#ffd700" fontFamily="monospace">
+                {phoneSensor.beta != null ? `${betaToAlt(phoneSensor.beta)?.toFixed(1)}°` : "—"}
+              </Text>
+            </VStack>
+
+            <VStack bg="rgba(0,0,0,0.3)" p={2} borderRadius="4px" align="center" gap={0.5}>
+              <Text fontSize="8px" color="whiteAlpha.400" letterSpacing="0.05em">
+                {language === 'fr' ? "ROULIS" : "ROLL"}
+              </Text>
+              <Text fontSize="13px" fontWeight="bold" color="#aaaaff" fontFamily="monospace">
+                {phoneSensor.gamma != null ? `${phoneSensor.gamma.toFixed(1)}°` : "—"}
+              </Text>
+            </VStack>
+          </Grid>
+
+          {(phoneSensor.lat != null && phoneSensor.lon != null) && (
+            <HStack justify="space-between" mt={2} px={1} fontSize="8px" color="whiteAlpha.500">
+              <Text>GPS: {phoneSensor.lat.toFixed(5)}, {phoneSensor.lon.toFixed(5)}</Text>
+              <Text>ACCURACY: ±{phoneSensor.accuracy_m?.toFixed(0)}m</Text>
+            </HStack>
+          )}
+        </Box>
+      )}
+
       {/* Manual Controls - HUD Style */}
       {step.isWaitingUser && step.step !== 'complete' && (
-        <VStack bg="rgba(255,255,255,0.02)" p={4} borderRadius="4px" border="1px solid rgba(255,255,255,0.05)" gap={4}>
+        <VStack bg="rgba(255,255,255,0.02)" p={4} borderRadius="4px" border="1px solid rgba(255,255,255,0.05)" gap={3}>
           <Text fontSize="10px" fontWeight="bold" letterSpacing="0.1em" color="whiteAlpha.400">MANUAL JOG CONTROL</Text>
-          <Grid templateColumns="repeat(3, 1fr)" gap={2} w="fit-content">
-            <Box />
-            <Button 
-                variant="ghost" 
-                size="sm" 
-                color="var(--astro-teal)"
-                _hover={{ bg: "rgba(0, 255, 209, 0.1)" }}
-                onMouseDown={() => jogMount('up')} 
-                onMouseUp={() => stopMount('up')} 
-                onMouseLeave={() => stopMount('up')}
-            ><ChevronUp size={20}/></Button>
-            <Box />
-            
-            <Button 
-                variant="ghost" 
-                size="sm" 
-                color="var(--astro-teal)"
-                _hover={{ bg: "rgba(0, 255, 209, 0.1)" }}
-                onMouseDown={() => jogMount('left')} 
-                onMouseUp={() => stopMount('left')} 
-                onMouseLeave={() => stopMount('left')}
-            ><ChevronLeft size={20}/></Button>
-            <Box display="flex" alignItems="center" justifyContent="center">
-                <Box w="4px" h="4px" bg="var(--astro-teal)" borderRadius="full" className="ping-slow" />
-            </Box>
-            <Button 
-                variant="ghost" 
-                size="sm" 
-                color="var(--astro-teal)"
-                _hover={{ bg: "rgba(0, 255, 209, 0.1)" }}
-                onMouseDown={() => jogMount('right')} 
-                onMouseUp={() => stopMount('right')} 
-                onMouseLeave={() => stopMount('right')}
-            ><ChevronRight size={20}/></Button>
-            
-            <Box />
-            <Button 
-                variant="ghost" 
-                size="sm" 
-                color="var(--astro-teal)"
-                _hover={{ bg: "rgba(0, 255, 209, 0.1)" }}
-                onMouseDown={() => jogMount('down')} 
-                onMouseUp={() => stopMount('down')} 
-                onMouseLeave={() => stopMount('down')}
-            ><ChevronDown size={20}/></Button>
-            <Box />
-          </Grid>
+          <JogPad jog={jog} size="md" />
         </VStack>
       )}
 
