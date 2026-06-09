@@ -26,10 +26,22 @@ export const ConfigurationMenu = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [activeTab, setActiveTab] = useState("hardware");
     
-    const onOpen = () => setIsOpen(true);
-    const onClose = () => setIsOpen(false);
-    
-    const { config, updateConfig, language, setLanguage } = useStargazerStore();
+    const { config, updateConfig, language, setLanguage, setConfigMenuOpen } = useStargazerStore();
+
+    const onOpen = () => {
+        setIsOpen(true);
+        setConfigMenuOpen(true);
+    };
+    const onClose = () => {
+        setIsOpen(false);
+        setConfigMenuOpen(false);
+    };
+
+    useEffect(() => {
+        return () => {
+            setConfigMenuOpen(false);
+        };
+    }, [setConfigMenuOpen]);
 
     const tabs = [
         { id: "autoalign", label: language === 'fr' ? "AUTO-ALIGN IA" : "AUTO-ALIGN AI", icon: LocateFixed },

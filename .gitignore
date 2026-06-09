@@ -47,3 +47,4 @@ next-env.d.ts
 *.stream_jpg
 *.stream.jpg
 logs/backend-error.log
+certs/

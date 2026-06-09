@@ -3,9 +3,10 @@
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { Box, Spinner, Center, Text, VStack, HStack, Input, Icon, Flex, Button, Badge } from "@chakra-ui/react";
-import { Search, Crosshair, Map as MapIcon, Layers, Star, Target, Navigation, AlertCircle } from "lucide-react";
+import { Search, Crosshair, Map as MapIcon, Layers, Star, Target, Navigation, AlertCircle, Camera, Globe } from "lucide-react";
 import { useStargazerStore } from "@/store/useStargazerStore";
 import { useAstroAction } from "@/hooks/useAstroAction";
+import { useGoTo } from "@/hooks/useGoTo";
 import { CELESTIAL_CATALOG, CelestialObject } from "@/data/celestialCatalog";
 
 declare global {
@@ -58,16 +59,27 @@ function parseDecToDecimal(dec: string): number {
 }
 
 // Fallback sky canvas when Aladin fails to load - Simple star chart
-const SkyFallback = ({ objects, onSelect, mountRa, mountDec }: { 
-    objects: CelestialObject[], 
+const SkyFallback = ({ objects, onSelect, mountRa, mountDec, resetViewSignal, showGrid, showLabels, onViewChange }: {
+    objects: CelestialObject[],
     onSelect: (obj: CelestialObject) => void,
     mountRa?: string,
-    mountDec?: string
+    mountDec?: string,
+    resetViewSignal?: number,
+    showGrid?: boolean,
+    showLabels?: boolean,
+    onViewChange?: (ra: number, dec: number) => void,
 }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [mounted, setMounted] = useState(false);
     const [hoveredObj, setHoveredObj] = useState<CelestialObject | null>(null);
     const [canvasSize, setCanvasSize] = useState({ w: 800, h: 600 });
+
+    // Pan/zoom state
+    const mountRaDeg = parseRaToDecimal(mountRa || '0');
+    const mountDecDeg = parseDecToDecimal(mountDec || '0');
+    const [viewCenter, setViewCenter] = useState({ raDeg: mountRaDeg, decDeg: mountDecDeg });
+    const [fovDeg, setFovDeg] = useState(60);
+    const dragRef = useRef<{ x: number; y: number } | null>(null);
 
     useEffect(() => {
         setMounted(true);
@@ -82,18 +94,37 @@ const SkyFallback = ({ objects, onSelect, mountRa, mountDec }: {
         return () => window.removeEventListener('resize', updateSize);
     }, []);
 
-    // Convert mount position to canvas coords
-    const getMountPosition = useCallback(() => {
-        if (!mountRa || !mountDec) return { x: canvasSize.w / 2, y: canvasSize.h / 2 };
-        const raVal = parseRaToDecimal(mountRa);
-        const decVal = parseDecToDecimal(mountDec);
-        const raNorm = ((raVal - raVal + 180) % 360) / 360;
-        const decNorm = (decVal + 90) / 180;
+    // Reset view to mount position when signal fires
+    useEffect(() => {
+        if (resetViewSignal === undefined) return;
+        setViewCenter({ raDeg: parseRaToDecimal(mountRa || '0'), decDeg: parseDecToDecimal(mountDec || '0') });
+        setFovDeg(60);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [resetViewSignal]);
+
+    // Propagate pan position so GOTO MAP TARGET works with fallback canvas
+    useEffect(() => {
+        onViewChange?.(viewCenter.raDeg, viewCenter.decDeg);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [viewCenter]);
+
+    // Project a RA/Dec to canvas coordinates using viewCenter and fovDeg
+    const project = useCallback((raDeg: number, decDeg: number) => {
+        const raNorm = (((raDeg - viewCenter.raDeg + 180 + 360) % 360) - 180) / fovDeg + 0.5;
+        const decNorm = (decDeg - viewCenter.decDeg) / fovDeg + 0.5;
         return {
             x: raNorm * canvasSize.w,
             y: (1 - decNorm) * canvasSize.h
         };
-    }, [mountRa, mountDec, canvasSize]);
+    }, [viewCenter, fovDeg, canvasSize]);
+
+    // Convert mount position to canvas coords using projection
+    const getMountPosition = useCallback(() => {
+        if (!mountRa || !mountDec) return { x: canvasSize.w / 2, y: canvasSize.h / 2 };
+        const raVal = parseRaToDecimal(mountRa);
+        const decVal = parseDecToDecimal(mountDec);
+        return project(raVal, decVal);
+    }, [mountRa, mountDec, canvasSize, project]);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -116,47 +147,42 @@ const SkyFallback = ({ objects, onSelect, mountRa, mountDec }: {
         ctx.fillRect(0, 0, canvasSize.w, canvasSize.h);
 
         // Draw coordinate grid
-        ctx.strokeStyle = '#1a2a3a';
-        ctx.lineWidth = 1;
-        
-        // RA lines (vertical)
-        for (let i = 0; i < 12; i++) {
-            const x = (i / 12) * canvasSize.w;
-            ctx.beginPath();
-            ctx.moveTo(x, 0);
-            ctx.lineTo(x, canvasSize.h);
-            ctx.stroke();
-        }
-        // DEC lines (horizontal)
-        for (let i = 0; i < 8; i++) {
-            const y = (i / 8) * canvasSize.h;
-            ctx.beginPath();
-            ctx.moveTo(0, y);
-            ctx.lineTo(canvasSize.w, y);
-            ctx.stroke();
+        if (showGrid !== false) {
+            ctx.strokeStyle = '#1a2a3a';
+            ctx.lineWidth = 1;
+
+            // RA lines (vertical)
+            for (let i = 0; i < 12; i++) {
+                const x = (i / 12) * canvasSize.w;
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvasSize.h);
+                ctx.stroke();
+            }
+            // DEC lines (horizontal)
+            for (let i = 0; i < 8; i++) {
+                const y = (i / 8) * canvasSize.h;
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvasSize.w, y);
+                ctx.stroke();
+            }
         }
 
         const mountPos = getMountPosition();
 
         // Draw objects from catalog
         objects.forEach((obj) => {
-            // Project using simple equirectangular centered on mount
-            const raNorm = ((obj.ra_deg - parseRaToDecimal(mountRa || '0') + 180 + 360) % 360) / 360;
-            const decNorm = (obj.dec_deg + 90) / 180;
-            
-            let x = raNorm * canvasSize.w;
-            let y = (1 - decNorm) * canvasSize.h;
-            
-            // Wrap around for objects near the edge
-            if (x < -50) x += canvasSize.w;
-            if (x > canvasSize.w + 50) x -= canvasSize.w;
-            
+            // Project using equirectangular centered on viewCenter
+            const { x, y } = project(obj.ra_deg, obj.dec_deg);
+
             // Skip if out of view
-            if (y < -50 || y > canvasSize.h + 50) return;
+            if (x < -50 || x > canvasSize.w + 50 || y < -50 || y > canvasSize.h + 50) return;
 
             const isHovered = hoveredObj?.id === obj.id;
             const mag = obj.magnitude;
-            const size = Math.max(3, Math.min(12, 10 - mag * 0.8));
+            const fovScale = Math.max(0.3, Math.min(2, 60 / fovDeg));
+            const size = Math.max(2, Math.min(12, (10 - mag * 0.8) * fovScale));
             const brightness = Math.max(0.3, 1 - mag / 12);
 
             // Glow for bright objects
@@ -175,7 +201,7 @@ const SkyFallback = ({ objects, onSelect, mountRa, mountDec }: {
             ctx.fill();
 
             // Label
-            if (mag < 6 || isHovered) {
+            if (showLabels !== false && (mag < 6 || isHovered)) {
                 ctx.fillStyle = isHovered ? '#fff' : '#ffd700';
                 ctx.font = isHovered ? 'bold 12px sans-serif' : '10px sans-serif';
                 ctx.fillText(obj.id, x + size + 4, y + 4);
@@ -211,7 +237,7 @@ const SkyFallback = ({ objects, onSelect, mountRa, mountDec }: {
         ctx.arc(mx, my, 3, 0, Math.PI * 2);
         ctx.fill();
 
-    }, [objects, canvasSize, hoveredObj, mountRa, mountDec, getMountPosition]);
+    }, [objects, canvasSize, hoveredObj, mountRa, mountDec, getMountPosition, project, fovDeg, showGrid, showLabels]);
 
     const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
         const canvas = canvasRef.current;
@@ -224,13 +250,8 @@ const SkyFallback = ({ objects, onSelect, mountRa, mountDec }: {
         const y = (e.clientY - rect.top) * scaleY;
 
         // Find clicked object
-        const mountPos = getMountPosition();
         objects.forEach((obj) => {
-            const raNorm = ((obj.ra_deg - parseRaToDecimal(mountRa || '0') + 180 + 360) % 360) / 360;
-            const decNorm = (obj.dec_deg + 90) / 180;
-            let ox = raNorm * canvasSize.w;
-            let oy = (1 - decNorm) * canvasSize.h;
-            
+            const { x: ox, y: oy } = project(obj.ra_deg, obj.dec_deg);
             const dist = Math.sqrt((x - ox) ** 2 + (y - oy) ** 2);
             if (dist < 20) {
                 onSelect(obj);
@@ -238,41 +259,69 @@ const SkyFallback = ({ objects, onSelect, mountRa, mountDec }: {
         });
     };
 
+    const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+        dragRef.current = { x: e.clientX, y: e.clientY };
+    };
+
+    const handleMouseMovePan = (e: React.MouseEvent<HTMLCanvasElement>) => {
+        // Pan logic
+        if (dragRef.current) {
+            const dx = e.clientX - dragRef.current.x;
+            const dy = e.clientY - dragRef.current.y;
+            dragRef.current = { x: e.clientX, y: e.clientY };
+            // dx pixels → delta RA, dy pixels → delta Dec
+            const deltaRa = -(dx / canvasSize.w) * fovDeg;
+            const deltaDec = (dy / canvasSize.h) * fovDeg;
+            setViewCenter(prev => ({
+                raDeg: (prev.raDeg + deltaRa + 360) % 360,
+                decDeg: Math.max(-90, Math.min(90, prev.decDeg + deltaDec))
+            }));
+        }
+
+        // Hover logic
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const x = (e.clientX - rect.left) * scaleX;
+        const y = (e.clientY - rect.top) * scaleY;
+
+        let found: CelestialObject | null = null;
+        objects.forEach((obj) => {
+            const { x: ox, y: oy } = project(obj.ra_deg, obj.dec_deg);
+            const dist = Math.sqrt((x - ox) ** 2 + (y - oy) ** 2);
+            if (dist < 20) found = obj;
+        });
+        setHoveredObj(found);
+    };
+
+    const handleMouseUp = () => { dragRef.current = null; };
+
+    const handleWheel = (e: React.WheelEvent<HTMLCanvasElement>) => {
+        e.preventDefault();
+        const factor = e.deltaY > 0 ? 1.15 : 0.87;
+        setFovDeg(prev => Math.max(2, Math.min(180, prev * factor)));
+    };
+
     if (!mounted) return <Center h="full"><Spinner color="var(--astro-teal)" /></Center>;
 
     return (
         <Box position="relative" w="full" h="full" id="fallback-canvas-container">
-            <canvas 
-                ref={canvasRef} 
-                style={{ 
-                    width: '100%', 
-                    height: '100%', 
+            <canvas
+                ref={canvasRef}
+                style={{
+                    width: '100%',
+                    height: '100%',
                     objectFit: 'contain',
-                    cursor: 'crosshair'
+                    cursor: dragRef.current ? 'grabbing' : 'grab'
                 }}
                 onClick={handleCanvasClick}
-                onMouseMove={(e) => {
-                    const canvas = canvasRef.current;
-                    if (!canvas) return;
-                    const rect = canvas.getBoundingClientRect();
-                    const scaleX = canvas.width / rect.width;
-                    const scaleY = canvas.height / rect.height;
-                    const x = (e.clientX - rect.left) * scaleX;
-                    const y = (e.clientY - rect.top) * scaleY;
-                    
-                    const mountPos = getMountPosition();
-                    let found: CelestialObject | null = null;
-                    
-                    objects.forEach((obj) => {
-                        const raNorm = ((obj.ra_deg - parseRaToDecimal(mountRa || '0') + 180 + 360) % 360) / 360;
-                        const decNorm = (obj.dec_deg + 90) / 180;
-                        let ox = raNorm * canvasSize.w;
-                        let oy = (1 - decNorm) * canvasSize.h;
-                        const dist = Math.sqrt((x - ox) ** 2 + (y - oy) ** 2);
-                        if (dist < 20) found = obj;
-                    });
-                    setHoveredObj(found);
-                }}
+                onMouseDown={handleMouseDown}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
+                onWheel={handleWheel}
+                onMouseMove={handleMouseMovePan}
             />
             {/* Hover info */}
             {hoveredObj && (
@@ -286,22 +335,6 @@ const SkyFallback = ({ objects, onSelect, mountRa, mountDec }: {
                     <Text color="gray.400" fontSize="xs">Mag: {hoveredObj.magnitude}</Text>
                 </Box>
             )}
-            {/* Info banner */}
-            <HStack 
-                position="absolute" bottom={2} left={2} 
-                bg="rgba(0,0,0,0.7)" px={3} py={2} borderRadius="md"
-                gap={4}
-            >
-                <VStack gap={0} align="start">
-                    <Text color="cyan.300" fontSize="xs" fontWeight="bold">FALLBACK MODE</Text>
-                    <Text color="gray.400" fontSize="xs">Aladin CDN unavailable</Text>
-                </VStack>
-                <Box w="1px" h="30px" bg="gray.600" />
-                <VStack gap={0} align="start">
-                    <Text color="gray.400" fontSize="xs">Click objects to select</Text>
-                    <Text color="gray.400" fontSize="xs">Cyan cross = Mount position</Text>
-                </VStack>
-            </HStack>
         </Box>
     );
 };
@@ -309,8 +342,8 @@ const SkyFallback = ({ objects, onSelect, mountRa, mountDec }: {
 // Aladin Lite wrapper with full interactivity
 const AladinSkyMap = ({ 
     objects, 
-    onSelect, 
-    mountRa, 
+    onSelect,
+    mountRa,
     mountDec,
     showGrid,
     showLabels,
@@ -320,8 +353,9 @@ const AladinSkyMap = ({
     fov = 15,
     onViewChange,
     aladinSettings,
-    gotoTarget
-}: { 
+    gotoTarget,
+    resetViewSignal
+}: {
     objects: CelestialObject[], 
     onSelect: (obj: CelestialObject) => void,
     onViewChange?: (ra: number, dec: number) => void,
@@ -345,7 +379,8 @@ const AladinSkyMap = ({
         showFullscreen: boolean;
         projection: string;
     },
-    gotoTarget?: { ra: number, dec: number } | null
+    gotoTarget?: { ra: number, dec: number } | null,
+    resetViewSignal?: number
 }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const aladinRef = useRef<any>(null);
@@ -425,6 +460,9 @@ const AladinSkyMap = ({
                     return;
                 } catch (e) {
                     console.error('Aladin init error:', e);
+                    // Surface the error so we fall back to canvas immediately
+                    setLoadError(`Aladin init failed: ${e}`);
+                    return;
                 }
             }
 
@@ -788,32 +826,44 @@ const AladinSkyMap = ({
     // Remove periodic sync - user should be able to pan freely
     // Only sync when trackMount is explicitly enabled
 
-    if (loadError) {
-        return (
-            <SkyFallback 
-                objects={objects} 
-                onSelect={onSelect}
-                mountRa={mountRa}
-                mountDec={mountDec}
-            />
-        );
-    }
-
+    // Always show the canvas fallback while Aladin loads or if it fails.
+    // Aladin mounts invisibly on top; once ready it becomes visible.
     return (
-        <Box 
-            position="relative" 
-            w="full" 
-            h="full"
-            bg="#000510"
-        >
-            <div 
-                ref={containerRef} 
-                id="aladin-container"
-                style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0 }} 
-            />
-            {/* Hover info overlay */}
-            {hoveredObject && (
-                <Box 
+        <Box position="relative" w="full" h="full" bg="#000510">
+            {/* Canvas fallback — always visible until Aladin is ready */}
+            {!aladinReady && (
+                <Box position="absolute" inset={0} zIndex={1}>
+                    <SkyFallback
+                        objects={objects}
+                        onSelect={onSelect}
+                        mountRa={mountRa}
+                        mountDec={mountDec}
+                        resetViewSignal={resetViewSignal}
+                        showGrid={showGrid}
+                        showLabels={showLabels}
+                        onViewChange={onViewChangeRef.current}
+                    />
+                </Box>
+            )}
+
+            {/* Aladin container — hidden until ready, then shown above canvas */}
+            {!loadError && (
+                <div
+                    ref={containerRef}
+                    id="aladin-container"
+                    style={{
+                        width: '100%', height: '100%',
+                        position: 'absolute', top: 0, left: 0,
+                        opacity: aladinReady ? 1 : 0,
+                        pointerEvents: aladinReady ? 'auto' : 'none',
+                        zIndex: 2,
+                    }}
+                />
+            )}
+
+            {/* Hover info overlay (Aladin) */}
+            {hoveredObject && aladinReady && (
+                <Box
                     position="absolute" top={3} left={3}
                     bg="rgba(10, 20, 40, 0.9)"
                     border="1px solid var(--astro-gold)"
@@ -828,23 +878,24 @@ const AladinSkyMap = ({
                     <Text color="cyan.300" fontSize="xs">Mag: {hoveredObject.magnitude}</Text>
                 </Box>
             )}
-
-            {!aladinReady && !loadError && (
-                <Center position="absolute" inset={0} bg="transparent" zIndex={10}>
-                    <VStack>
-                        <Spinner color="var(--astro-teal)" size="xl" />
-                        <Text color="var(--astro-teal)" fontSize="sm">Loading sky map...</Text>
-                    </VStack>
-                </Center>
-            )}
         </Box>
     );
 };
 
 export const SkyMap = () => {
-    const { ra, dec, alt, az, zoom, language, detectedMount, config, selectedObjectId, setSelectedObjectId } = useStargazerStore();
+    const { ra, dec, alt, az, zoom, language, detectedMount, config, selectedObjectId, setSelectedObjectId, liveViewMode, setLiveViewMode } = useStargazerStore();
     const { execute } = useAstroAction();
-    const [loading, setLoading] = useState(false); // Start with loading false since we use local canvas
+    const goTo = useGoTo();
+    const [loading, setLoading] = useState(false);
+    // Debounce GoTo: évite le flood sur les clics rapides sur la carte céleste
+    const lastGotoRef = useRef<number>(0);
+    const executeGoto = useCallback(async (ra_deg: number, dec_deg: number, _label: string) => {
+        const now = Date.now();
+        if (now - lastGotoRef.current < 600) return; // 600ms gate
+        lastGotoRef.current = now;
+        const ok = await goTo.goto(ra_deg, dec_deg);
+        if (ok) goTo.waitForSlew();
+    }, [goTo]);
     const [selectedObject, setSelectedObject] = useState<CelestialObject | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
     const [searchResults, setSearchResults] = useState<CelestialObject[]>([]);
@@ -901,9 +952,31 @@ export const SkyMap = () => {
     // Track current view center for GOTO function
     const [viewCenter, setViewCenter] = useState({ ra: 0, dec: 0 });
     const [obsMode, setObsMode] = useState<'visual' | 'photo'>('visual');
+    const [resetViewSignal, setResetViewSignal] = useState(0);
+
+    // Gemini sequence modal state
+    const [showSequenceModal, setShowSequenceModal] = useState(false);
+    const [sequenceLoading, setSequenceLoading] = useState(false);
+    const [sequenceParams, setSequenceParams] = useState<{
+        lights: { count: number; exposure: number; iso: number };
+        darks: { count: number; exposure: number };
+        flats: { count: number; exposure: number };
+        bias: { count: number };
+        stacking_method: string;
+        notes: string;
+    } | null>(null);
     const [gotoTarget, setGotoTarget] = useState<{ra: number, dec: number} | null>(null);
     
-    const limitingMagnitude = obsMode === 'visual' ? 12.5 : 17;
+    // Moon phase (0=new, 0.5=full) — simple synodic approximation
+    const moonPhase = (() => {
+        const d = new Date();
+        const known = new Date(2000, 0, 6); // known new moon Jan 6 2000
+        const elapsed = (d.getTime() - known.getTime()) / 86400000;
+        return ((elapsed % 29.53) / 29.53 + 1) % 1; // 0..1
+    })();
+    // Limiting magnitude: full moon reduces sky transparency by ~3 mag visually
+    const moonPenalty = obsMode === 'visual' ? moonPhase * 3 : moonPhase * 2;
+    const limitingMagnitude = (obsMode === 'visual' ? 12.5 : 17) - moonPenalty;
     
     const filteredObjects = CELESTIAL_CATALOG.filter(obj => obj.magnitude <= limitingMagnitude);
 
@@ -948,24 +1021,89 @@ export const SkyMap = () => {
     };
 
     const handleSlewToMap = async () => {
-        // Use the current view center for GOTO
-        const raDeg = viewCenter.ra;
-        const decDeg = viewCenter.dec;
-        
-        await execute('/api/indi/mount', `GOTO MAP TARGET`, {
-            body: {
-                action: 'goto',
-                ra: raDeg,
-                dec: decDeg,
-                device: detectedMount,
-                ip: config.astroberryUrl
-            }
-        });
+        await executeGoto(viewCenter.ra, viewCenter.dec, 'GOTO MAP TARGET');
         setTrackMount(true);
     };
 
     const centerOnMount = () => {
         setTrackMount(true);
+    };
+
+    const launchSequenceAI = async () => {
+        if (!selectedObject) return;
+        setShowSequenceModal(true);
+        setSequenceLoading(true);
+        setSequenceParams(null);
+
+        const cloudCover = 30; // fallback
+        const prompt = `Équipement: NexStar 4SE (100mm f/13) + Canon EOS 600D APS-C
+Objet: ${selectedObject.id} - ${selectedObject.name} (${selectedObject.type}, constellation ${selectedObject.constellation}, magnitude ${selectedObject.magnitude}, taille ${selectedObject.size_arcmin || 'N/A'}')
+Conditions météo actuelles: couverture nuageuse ${cloudCover}%
+Position actuelle monture: Alt ${alt.toFixed(1)}°, Az ${az.toFixed(1)}°
+
+Génère une séquence de capture optimale au format JSON strict:
+{
+  "lights": { "count": <nombre>, "exposure": <secondes>, "iso": <valeur ISO> },
+  "darks": { "count": <nombre>, "exposure": <même que lights> },
+  "flats": { "count": <nombre>, "exposure": 0 },
+  "bias": { "count": <nombre> },
+  "stacking_method": "<Kappa-Sigma|Median|Average>",
+  "notes": "<conseil court>"
+}`;
+
+        const defaultParams = {
+            lights: { count: 30, exposure: 120, iso: 800 },
+            darks: { count: 20, exposure: 120 },
+            flats: { count: 20, exposure: 0 },
+            bias: { count: 50 },
+            stacking_method: 'Kappa-Sigma',
+            notes: 'Paramètres par défaut — configurez votre clé Gemini pour des recommandations personnalisées.'
+        };
+
+        if (!config.aiKey) {
+            setSequenceParams({ ...defaultParams, notes: 'Configurez votre clé Gemini dans les paramètres pour des recommandations IA.' });
+            setSequenceLoading(false);
+            return;
+        }
+
+        try {
+            const res = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${config.aiKey}`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                        generationConfig: { temperature: 0.3, responseMimeType: 'application/json' }
+                    })
+                }
+            );
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (!text) throw new Error('Empty response');
+            const parsed = JSON.parse(text);
+            setSequenceParams(parsed);
+        } catch (e) {
+            console.error('Gemini error:', e);
+            setSequenceParams(defaultParams);
+        } finally {
+            setSequenceLoading(false);
+        }
+    };
+
+    const launchSequence = async () => {
+        if (!sequenceParams) return;
+        try {
+            await fetch('/api/indi/sequence', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(sequenceParams)
+            });
+        } catch (e) {
+            console.error('Sequence launch error:', e);
+        }
+        setShowSequenceModal(false);
     };
 
     const toggleGrid = () => {
@@ -988,420 +1126,198 @@ export const SkyMap = () => {
     };
 
     return (
-        <Box ref={mapContainerRef} w="full" h="full" bg="black" position="relative" overflow="hidden">
-            {/* Search Bar with Dropdown Results */}
+        /* Flex-column layout: control bar on top (in-flow), map below.
+           No position:absolute on controls → zero bleed into side columns. */
+        <Flex direction="column" w="full" h="full" bg="black" overflow="hidden">
+
+            {/* ── TOP BAR: search + toggles (normal flow, no z-index fighting) ── */}
             <Box
-                position="absolute" top="12px" left="50%" transform="translateX(-50%)"
-                zIndex={20} w="420px" pointerEvents="auto"
+                flexShrink={0}
+                bg="rgba(5, 8, 20, 0.97)"
+                borderBottom="1px solid rgba(255,255,255,0.06)"
+                px={3} py={2}
+                position="relative"   /* containing block for the dropdown only */
             >
-                <form onSubmit={handleSearch}>
-                    <Flex 
-                        align="center" 
-                        bg="rgba(10, 20, 40, 0.95)" 
-                        borderRadius="full" 
-                        border="1px solid var(--astro-teal)"
-                        px={4} py={2}
-                        boxShadow="0 0 20px rgba(0, 240, 255, 0.2)"
-                        position="relative"
-                    >
-                        <Search size={20} color="var(--astro-teal)" />
-                        <Input
-                            placeholder={language === 'fr' ? "Rechercher (ex: M31, Orion)..." : "Search (e.g., M31, Orion)..."}
-                            variant="flushed" border="none" outline="none" _focus={{ border: "none", outline: "none", boxShadow: "none" }}
-                            bg="transparent" color="white" fontSize="md" ml={3}
-                            value={searchQuery} onChange={(e) => handleSearchInput(e.target.value)}
-                        />
-                        <Button 
-                            type="submit"
-                            size="sm" variant="ghost" color="var(--astro-teal)" 
-                            borderRadius="full" px={3} mr={2}
+                <HStack gap={2} wrap="nowrap">
+                    {/* Live/Sky mode buttons */}
+                    <HStack gap={1} flexShrink={0}>
+                        <Button size="xs" borderRadius="full" px={3}
+                            bg={liveViewMode === "NASA" ? "var(--astro-teal)" : "rgba(10,20,40,0.8)"}
+                            color={liveViewMode === "NASA" ? "black" : "var(--astro-teal)"}
+                            border="1px solid rgba(255,255,255,0.15)"
+                            onClick={() => setLiveViewMode("NASA")}
                         >
-                            FIND
+                            <Icon as={Globe} boxSize={3} mr={1} />SKY
                         </Button>
-                        <Button 
-                            size="sm" variant="solid" bg="var(--astro-gold)" color="black"
-                            _hover={{ bg: "yellow.400" }}
-                            onClick={handleSlewToMap}
-                            borderRadius="full" px={4} fontWeight="bold"
+                        <Button size="xs" borderRadius="full" px={3}
+                            bg={liveViewMode === "CANON" ? "var(--astro-gold)" : "rgba(10,20,40,0.8)"}
+                            color={liveViewMode === "CANON" ? "black" : "var(--astro-gold)"}
+                            border="1px solid rgba(255,255,255,0.15)"
+                            onClick={() => setLiveViewMode("CANON")}
                         >
-                            GOTO
+                            <Icon as={Camera} boxSize={3} mr={1} />LIVE
                         </Button>
-                    </Flex>
-                    
-                    {/* Search Results Dropdown */}
-                    {showSearchResults && searchResults.length > 0 && (
-                        <Box 
-                            position="absolute" top="100%" left="0" right="0" 
-                            bg="rgba(10, 20, 40, 0.98)" 
-                            borderRadius="md" 
+                    </HStack>
+
+                    {/* Search form */}
+                    <Box as="form" onSubmit={handleSearch} flex={1} minW={0}>
+                        <HStack
+                            bg="rgba(10, 20, 40, 0.95)"
+                            borderRadius="full"
                             border="1px solid var(--astro-teal)"
-                            mt={2}
-                            maxH="300px"
-                            overflowY="auto"
-                            zIndex={30}
+                            px={3} py={1}
+                            boxShadow="0 0 12px rgba(0, 240, 255, 0.15)"
                         >
-                            <VStack gap={0} align="stretch">
-                                {searchResults.map((obj) => (
-                                    <Box 
-                                        key={obj.id}
-                                        px={4} py={2}
-                                        cursor="pointer"
-                                        _hover={{ bg: "rgba(0, 240, 255, 0.2)" }}
-                                        onClick={() => handleSelectResult(obj)}
-                                        display="flex" alignItems="center" justifyContent="space-between"
-                                    >
-                                        <Box>
-                                            <Text color="white" fontWeight="bold" fontSize="sm">
-                                                {obj.id} - {obj.name}
-                                            </Text>
-                                            <Text color="gray.400" fontSize="xs">
-                                                {obj.constellation} | {obj.type}
-                                            </Text>
-                                        </Box>
-                                        <Badge colorScheme={obj.catalog === 'Messier' ? 'yellow' : 'blue'} fontSize="xs">
-                                            {obj.catalog}
-                                        </Badge>
+                            <Search size={16} color="var(--astro-teal)" />
+                            <Input
+                                placeholder={language === 'fr' ? "Rechercher (M31, Orion…)" : "Search (M31, Orion…)"}
+                                variant="flushed" border="none" outline="none"
+                                _focus={{ border: "none", outline: "none", boxShadow: "none" }}
+                                bg="transparent" color="white" fontSize="sm"
+                                value={searchQuery}
+                                onChange={(e) => handleSearchInput(e.target.value)}
+                            />
+                            <Button type="submit" size="xs" variant="ghost" color="var(--astro-teal)" borderRadius="full" px={2}>
+                                FIND
+                            </Button>
+                            <Button
+                                size="xs" bg="var(--astro-gold)" color="black"
+                                _hover={{ bg: "yellow.400" }}
+                                onClick={handleSlewToMap}
+                                borderRadius="full" px={3} fontWeight="bold"
+                            >
+                                GOTO
+                            </Button>
+                        </HStack>
+                    </Box>
+
+                    {/* Toggle buttons — all in-flow, no absolute positioning */}
+                    <HStack gap={1} flexShrink={0}>
+                        <Button size="xs" borderRadius="full"
+                            bg={trackMount ? "var(--astro-teal)" : "rgba(10,20,40,0.8)"}
+                            color={trackMount ? "black" : "var(--astro-teal)"}
+                            border="1px solid rgba(255,255,255,0.15)"
+                            onClick={centerOnMount}
+                        >
+                            <Icon as={Navigation} boxSize={3} mr={1} />
+                            {trackMount ? "TRACK" : "CENTER"}
+                        </Button>
+                        <Button size="xs" borderRadius="full"
+                            bg={gridVisible ? "var(--astro-teal)" : "rgba(10,20,40,0.8)"}
+                            color={gridVisible ? "black" : "var(--astro-teal)"}
+                            border="1px solid rgba(255,255,255,0.15)"
+                            onClick={toggleGrid}
+                        >GRID</Button>
+                        <Button size="xs" borderRadius="full"
+                            bg={showCatalog ? "var(--astro-teal)" : "rgba(10,20,40,0.8)"}
+                            color={showCatalog ? "black" : "var(--astro-teal)"}
+                            border="1px solid rgba(255,255,255,0.15)"
+                            onClick={() => setShowCatalog(!showCatalog)}
+                        >CAT</Button>
+                        <Button size="xs" borderRadius="full"
+                            bg={showLabels ? "var(--astro-teal)" : "rgba(10,20,40,0.8)"}
+                            color={showLabels ? "black" : "var(--astro-teal)"}
+                            border="1px solid rgba(255,255,255,0.15)"
+                            onClick={() => setShowLabels(!showLabels)}
+                        >LABELS</Button>
+                        <Button size="xs" borderRadius="full"
+                            bg={showCardinals ? "var(--astro-teal)" : "rgba(10,20,40,0.8)"}
+                            color={showCardinals ? "black" : "var(--astro-teal)"}
+                            border="1px solid rgba(255,255,255,0.15)"
+                            onClick={() => setShowCardinals(!showCardinals)}
+                        >N/S/E/W</Button>
+                        <Button size="xs" borderRadius="full"
+                            bg={showTelrad ? "var(--astro-teal)" : "rgba(10,20,40,0.8)"}
+                            color={showTelrad ? "black" : "var(--astro-teal)"}
+                            border="1px solid rgba(255,255,255,0.15)"
+                            onClick={() => setShowTelrad(!showTelrad)}
+                        >
+                            <Icon as={Target} boxSize={3} mr={1} />TELRAD
+                        </Button>
+                        <Button size="xs" borderRadius="full"
+                            bg={obsMode === 'visual' ? "var(--astro-gold)" : "rgba(10,20,40,0.8)"}
+                            color={obsMode === 'visual' ? "black" : "var(--astro-gold)"}
+                            border="1px solid rgba(255,255,255,0.15)"
+                            onClick={() => setObsMode(obsMode === 'visual' ? 'photo' : 'visual')}
+                        >
+                            {obsMode === 'visual' ? 'Visual' : 'Photo'}
+                        </Button>
+                        <Text color="gray.500" fontSize="10px" whiteSpace="nowrap">≤{limitingMagnitude}</Text>
+                        <Button size="xs" borderRadius="full"
+                            bg="rgba(10,20,40,0.8)"
+                            color="var(--astro-teal)"
+                            border="1px solid var(--astro-teal)"
+                            onClick={() => setShowSettings(!showSettings)}
+                        >
+                            <Icon as={Layers} boxSize={3} />
+                        </Button>
+                        <Button size="xs" borderRadius="full"
+                            bg="rgba(10,20,40,0.8)"
+                            color="white"
+                            border="1px solid rgba(255,255,255,0.2)"
+                            onClick={() => setResetViewSignal(s => s + 1)}
+                            title="Reset view to mount position"
+                        >
+                            ⊕ RESET
+                        </Button>
+                    </HStack>
+                </HStack>
+
+                {/* Search Results Dropdown — positioned relative to the top bar only */}
+                {showSearchResults && searchResults.length > 0 && (
+                    <Box
+                        position="absolute" top="100%" left="12px" w="420px"
+                        bg="rgba(10, 20, 40, 0.98)"
+                        borderRadius="md"
+                        border="1px solid var(--astro-teal)"
+                        mt={1} maxH="280px" overflowY="auto"
+                        zIndex={30}
+                    >
+                        <VStack gap={0} align="stretch">
+                            {searchResults.map((obj) => (
+                                <Box
+                                    key={obj.id} px={4} py={2} cursor="pointer"
+                                    _hover={{ bg: "rgba(0, 240, 255, 0.15)" }}
+                                    onClick={() => handleSelectResult(obj)}
+                                    display="flex" alignItems="center" justifyContent="space-between"
+                                >
+                                    <Box>
+                                        <Text color="white" fontWeight="bold" fontSize="sm">{obj.id} — {obj.name}</Text>
+                                        <Text color="gray.400" fontSize="xs">{obj.constellation} | {obj.type}</Text>
                                     </Box>
-                                ))}
-                            </VStack>
-                        </Box>
-                    )}
-                </form>
+                                    <Badge colorScheme={obj.catalog === 'Messier' ? 'yellow' : 'blue'} fontSize="xs">
+                                        {obj.catalog}
+                                    </Badge>
+                                </Box>
+                            ))}
+                        </VStack>
+                    </Box>
+                )}
             </Box>
 
-            {/* Floating Controls - Right side */}
-            <VStack
-                position="absolute" top="60px" right="10px" zIndex={20}
-                gap={2} pointerEvents="auto"
-                align="flex-end"
-            >
-                <Button 
-                    size="xs" borderRadius="full" bg={trackMount ? "var(--astro-teal)" : "rgba(10, 20, 40, 0.8)"} 
-                    color={trackMount ? "black" : "var(--astro-teal)"} border="1px solid rgba(255,255,255,0.1)"
-                    onClick={centerOnMount}
-                    boxShadow="0 4px 10px rgba(0,0,0,0.5)"
-                >
-                    <Icon as={Navigation} boxSize={3} mr={1} />
-                    {trackMount ? "TRACKING" : "CENTER"}
-                </Button>
-                <Button 
-                    size="xs" borderRadius="full" bg={gridVisible ? "var(--astro-teal)" : "rgba(10, 20, 40, 0.8)"} 
-                    color={gridVisible ? "black" : "var(--astro-teal)"} border="1px solid rgba(255,255,255,0.1)"
-                    onClick={toggleGrid}
-                    boxShadow="0 4px 10px rgba(0,0,0,0.5)"
-                >
-                    GRID
-                </Button>
-                <Button 
-                    size="xs" borderRadius="full" bg={showCatalog ? "var(--astro-teal)" : "rgba(10, 20, 40, 0.8)"} 
-                    color={showCatalog ? "black" : "var(--astro-teal)"} border="1px solid rgba(255,255,255,0.1)"
-                    onClick={() => setShowCatalog(!showCatalog)}
-                    boxShadow="0 4px 10px rgba(0,0,0,0.5)"
-                >
-                    <Icon as={Star} boxSize={3} mr={1} />
-                    CAT
-                </Button>
-                <Button 
-                    size="xs" borderRadius="full" bg={showLabels ? "var(--astro-teal)" : "rgba(10, 20, 40, 0.8)"} 
-                    color={showLabels ? "black" : "var(--astro-teal)"} border="1px solid rgba(255,255,255,0.1)"
-                    onClick={() => setShowLabels(!showLabels)}
-                    boxShadow="0 4px 10px rgba(0,0,0,0.5)"
-                >
-                    LABELS
-                </Button>
-                <Button 
-                    size="xs" borderRadius="full" bg={showCardinals ? "var(--astro-teal)" : "rgba(10, 20, 40, 0.8)"} 
-                    color={showCardinals ? "black" : "var(--astro-teal)"} border="1px solid rgba(255,255,255,0.1)"
-                    onClick={() => setShowCardinals(!showCardinals)}
-                    boxShadow="0 4px 10px rgba(0,0,0,0.5)"
-                >
-                    N/S/E/W
-                </Button>
-                <Button 
-                    size="xs" borderRadius="full" bg={showTelrad ? "var(--astro-teal)" : "rgba(10, 20, 40, 0.8)"} 
-                    color={showTelrad ? "black" : "var(--astro-teal)"} border="1px solid rgba(255,255,255,0.1)"
-                    onClick={() => setShowTelrad(!showTelrad)}
-                    boxShadow="0 4px 10px rgba(0,0,0,0.5)"
-                >
-                    <Icon as={Target} boxSize={3} mr={1} />
-                    TELRAD
-                </Button>
-                <Button 
-                    size="xs" borderRadius="full" 
-                    bg={obsMode === 'visual' ? "var(--astro-gold)" : "rgba(10, 20, 40, 0.8)"} 
-                    color={obsMode === 'visual' ? "black" : "var(--astro-gold)"} 
-                    border="1px solid rgba(255,255,255,0.1)"
-                    onClick={() => setObsMode(obsMode === 'visual' ? 'photo' : 'visual')}
-                    boxShadow="0 4px 10px rgba(0,0,0,0.5)"
-                >
-                    {obsMode === 'visual' ? '👁️ Visual' : '📷 Photo'}
-                </Button>
-                <Text color="gray.400" fontSize="xs" textAlign="center">
-                    Mag ≤ {limitingMagnitude}
-                </Text>
-                </VStack>
+            {/* ── MAP AREA (flex:1, proper containing block for all overlays) ── */}
+            <Box ref={mapContainerRef} flex={1} position="relative" overflow="hidden" bg="#000510">
 
-            {/* Aladin Settings Button */}
-            <Box 
-                position="absolute" 
-                bottom="80px" 
-                left="50%" 
-                transform="translateX(-50%)"
-                zIndex={50}
-            >
-                <Button 
-                    size="lg" 
-                    borderRadius="full" 
-                    bg="rgba(10, 20, 40, 0.95)" 
-                    color="var(--astro-teal)"
-                    border="2px solid var(--astro-teal)"
-                    px={8}
-                    onClick={() => setShowSettings(!showSettings)}
-                    boxShadow="0 0 20px rgba(0, 240, 255, 0.4)"
-                    _hover={{ bg: "rgba(0, 240, 255, 0.2)", boxShadow: "0 0 30px rgba(0, 240, 255, 0.6)" }}
-                    zIndex={200}
-                >
-                    <Icon as={Layers} boxSize={5} mr={2} />
-                    {language === 'fr' ? 'PARAMÈTRES' : 'SETTINGS'}
-                </Button>
-            </Box>
-
-            {/* Aladin Settings Panel */}
-            {showSettings && (
-                <Box 
-                    position="fixed"
-                    top="10%"
-                    left="50%"
-                    transform="translateX(-50%)"
-                    w="90%"
-                    maxW="500px"
-                    maxH="80vh"
-                    bg="rgba(10, 20, 40, 0.98)" 
-                    borderRadius="xl" 
-                    border="2px solid var(--astro-teal)"
-                    p={6}
-                    zIndex={1000}
-                    boxShadow="0 0 50px rgba(0, 240, 255, 0.5)"
-                    overflowY="auto"
-                >
-                    <HStack justify="space-between" mb={4}>
-                        <Text color="var(--astro-teal)" fontWeight="bold" fontSize="xl">
-                            {language === 'fr' ? 'Paramètres Aladin' : 'Aladin Settings'}
-                        </Text>
-                        <Button size="md" bg="red.500" color="white" onClick={() => setShowSettings(false)}>
-                            ✕
-                        </Button>
-                    </HStack>
-                    
-                    <VStack gap={4} align="stretch">
-                        {/* Survey */}
-                        <Box>
-                            <Text color="gray.400" fontSize="xs" mb={1}>Survey</Text>
-                            <select 
-                                value={aladinSettings.survey}
-                                onChange={(e) => setAladinSettings({...aladinSettings, survey: e.target.value})}
-                                style={{
-                                    width: '100%',
-                                    background: 'rgba(0,0,0,0.5)',
-                                    color: 'white',
-                                    border: '1px solid #00f0ff',
-                                    borderRadius: '4px',
-                                    padding: '6px'
-                                }}
-                            >
-                                <option value="P/DSS2/color">DSS Color</option>
-                                <option value="P/DSS2/red">DSS Red</option>
-                                <option value="P/2MASS/color">2MASS Color</option>
-                                <option value="P/SDSS9/g">SDSS g</option>
-                                <option value="P/SDSS9/r">SDSS r</option>
-                                <option value="P/SDSS9/i">SDSS i</option>
-                                <option value="P/GLADE">GLADE</option>
-                            </select>
-                        </Box>
-
-                        {/* FOV */}
-                        <Box>
-                            <Text color="gray.400" fontSize="xs" mb={1}>Field of View (°): {aladinSettings.fov}</Text>
-                            <input 
-                                type="range" min="1" max="180" step="1"
-                                value={aladinSettings.fov}
-                                onChange={(e) => setAladinSettings({...aladinSettings, fov: parseFloat(e.target.value)})}
-                                style={{ width: '100%' }}
-                            />
-                        </Box>
-
-                        {/* Object Size */}
-                        <Box>
-                            <Text color="gray.400" fontSize="xs" mb={1}>Object Size: {aladinSettings.sourceSize}px</Text>
-                            <input 
-                                type="range" min="6" max="30" step="1"
-                                value={aladinSettings.sourceSize}
-                                onChange={(e) => setAladinSettings({...aladinSettings, sourceSize: parseInt(e.target.value)})}
-                                style={{ width: '100%' }}
-                            />
-                        </Box>
-
-                        {/* Object Color */}
-                        <Box>
-                            <Text color="gray.400" fontSize="xs" mb={1}>Object Color</Text>
-                            <input 
-                                type="color"
-                                value={aladinSettings.objectColor}
-                                onChange={(e) => setAladinSettings({...aladinSettings, objectColor: e.target.value})}
-                                style={{ width: '100%', height: '30px', border: 'none' }}
-                            />
-                        </Box>
-
-                        {/* Mount Color */}
-                        <Box>
-                            <Text color="gray.400" fontSize="xs" mb={1}>Mount Marker Color</Text>
-                            <input 
-                                type="color"
-                                value={aladinSettings.mountColor}
-                                onChange={(e) => setAladinSettings({...aladinSettings, mountColor: e.target.value})}
-                                style={{ width: '100%', height: '30px', border: 'none' }}
-                            />
-                        </Box>
-
-                        {/* Grid Color */}
-                        <Box>
-                            <Text color="gray.400" fontSize="xs" mb={1}>Grid Color</Text>
-                            <input 
-                                type="color"
-                                value={aladinSettings.gridColor}
-                                onChange={(e) => setAladinSettings({...aladinSettings, gridColor: e.target.value})}
-                                style={{ width: '100%', height: '30px', border: 'none' }}
-                            />
-                        </Box>
-
-                        {/* Projection */}
-                        <Box>
-                            <Text color="gray.400" fontSize="xs" mb={1}>Projection</Text>
-                            <select 
-                                value={aladinSettings.projection}
-                                onChange={(e) => setAladinSettings({...aladinSettings, projection: e.target.value})}
-                                style={{
-                                    width: '100%',
-                                    background: 'rgba(0,0,0,0.5)',
-                                    color: 'white',
-                                    border: '1px solid #00f0ff',
-                                    borderRadius: '4px',
-                                    padding: '6px'
-                                }}
-                            >
-                                <option value="SIN">Orthographic (SIN)</option>
-                                <option value="MOL">Mollweide</option>
-                                <option value="AIT">Hammer-Aitoff</option>
-                                <option value="ZEA">Zenithal Equal Area</option>
-                                <option value="MER">Mercator</option>
-                            </select>
-                        </Box>
-
-                        {/* Toggles */}
-                        <HStack justify="space-between">
-                            <Text color="gray.300" fontSize="sm">Show Reticle</Text>
-                            <input 
-                                type="checkbox" 
-                                checked={aladinSettings.showReticle}
-                                onChange={(e) => setAladinSettings({...aladinSettings, showReticle: e.target.checked})}
-                            />
-                        </HStack>
-                        <HStack justify="space-between">
-                            <Text color="gray.300" fontSize="sm">Show Zoom Control</Text>
-                            <input 
-                                type="checkbox" 
-                                checked={aladinSettings.showZoom}
-                                onChange={(e) => setAladinSettings({...aladinSettings, showZoom: e.target.checked})}
-                            />
-                        </HStack>
-                        <HStack justify="space-between">
-                            <Text color="gray.300" fontSize="sm">Auto Refresh</Text>
-                            <input 
-                                type="checkbox" 
-                                checked={aladinSettings.autoRefresh}
-                                onChange={(e) => setAladinSettings({...aladinSettings, autoRefresh: e.target.checked})}
-                            />
-                        </HStack>
-
-                        {/* Close button */}
-                        <Button 
-                            size="md" w="full" bg="var(--astro-teal)" color="black"
-                            onClick={() => setShowSettings(false)}
-                        >
-                            {language === 'fr' ? 'Fermer' : 'Close'}
-                        </Button>
-                    </VStack>
-                </Box>
-            )}
-
-            {/* Mount Status Panel - Bottom Left */}
-            <Box 
-                position="absolute" bottom="20px" left="20px" zIndex={20}
-                bg="rgba(10, 20, 40, 0.9)" 
-                borderRadius="md" 
-                border="1px solid var(--astro-teal)"
-                p={4}
-                minW="280px"
-                boxShadow="0 4px 20px rgba(0,0,0,0.5)"
-            >
-                <VStack align="start" gap={2}>
-                    <HStack>
-                        <Icon as={Target} color="var(--astro-gold)" />
-                        <Text color="white" fontWeight="bold" fontSize="sm">
-                            {language === 'fr' ? 'POSITION MONTURE' : 'MOUNT POSITION'}
-                        </Text>
-                        {trackMount && (
-                            <Badge colorScheme="green" fontSize="xs">TRACKING</Badge>
-                        )}
-                    </HStack>
-                    
-                    <HStack gap={8}>
-                        <Box>
-                            <Text color="gray.400" fontSize="xs">RA</Text>
-                            <Text color="var(--astro-teal)" fontSize="md" fontFamily="mono">
-                                {formatRA(ra)}
-                            </Text>
-                        </Box>
-                        <Box>
-                            <Text color="gray.400" fontSize="xs">DEC</Text>
-                            <Text color="var(--astro-teal)" fontSize="md" fontFamily="mono">
-                                {formatDEC(dec)}
-                            </Text>
-                        </Box>
-                    </HStack>
-                    
-                    <HStack gap={8}>
-                        <Box>
-                            <Text color="gray.400" fontSize="xs">Alt</Text>
-                            <Text color="white" fontSize="sm" fontFamily="mono">
-                                {typeof alt === 'number' ? `${alt.toFixed(1)}°` : 'N/A'}
-                            </Text>
-                        </Box>
-                        <Box>
-                            <Text color="gray.400" fontSize="xs">Az</Text>
-                            <Text color="white" fontSize="sm" fontFamily="mono">
-                                {typeof az === 'number' ? `${az.toFixed(1)}°` : 'N/A'}
-                            </Text>
-                        </Box>
-                        <Box>
-                            <Text color="gray.400" fontSize="xs">Mount</Text>
-                            <Text color="gray.300" fontSize="xs">
-                                {detectedMount || 'N/A'}
-                            </Text>
-                        </Box>
-                    </HStack>
-                </VStack>
-            </Box>
-
-            {/* Object Info - Bottom Right */}
-            {selectedObject ? (
-                <Box 
-                    position="absolute" bottom="20px" right="20px" zIndex={20}
-                    bg="rgba(10, 20, 40, 0.95)" 
-                    borderRadius="lg" 
+            {/* Object Info - Bottom Center */}
+            {selectedObject && (() => {
+                const cloudCover = 30;
+                const mag = selectedObject.magnitude;
+                // Observability badges
+                const visualOk = alt > 15 && mag <= 11.5 && cloudCover < 70;
+                const visualLimit = alt > 10 && mag <= 12.5 && cloudCover < 80;
+                const photoOk = alt > 20 && mag <= 15 && cloudCover < 50;
+                const photoLimit = alt > 15 && mag <= 16 && cloudCover < 65;
+                const visualBadge = visualOk ? { label: 'OBSERVABLE', color: 'green' } : visualLimit ? { label: 'LIMITE', color: 'orange' } : { label: 'NON VISIBLE', color: 'red' };
+                const photoBadge = photoOk ? { label: 'PHOTO OK', color: 'green' } : photoLimit ? { label: 'PHOTO LIMITE', color: 'orange' } : { label: 'PHOTO NON', color: 'red' };
+                return (
+                <Box
+                    position="absolute" bottom="20px" left="50%" transform="translateX(-50%)"
+                    zIndex={10}
+                    bg="rgba(10, 20, 40, 0.95)"
+                    borderRadius="lg"
                     border="2px solid var(--astro-gold)"
                     p={4}
-                    w="320px"
+                    w="360px"
                     boxShadow="0 8px 40px rgba(0,0,0,0.8)"
                     backdropFilter="blur(10px)"
                 >
@@ -1414,11 +1330,17 @@ export const SkyMap = () => {
                                 {selectedObject.name}
                             </Text>
                         </VStack>
-                        <Badge colorScheme={selectedObject.catalog === 'Messier' ? 'yellow' : 'blue'}>
-                            {selectedObject.catalog}
-                        </Badge>
+                        <VStack align="end" gap={1}>
+                            <Badge colorScheme={selectedObject.catalog === 'Messier' ? 'yellow' : 'blue'}>
+                                {selectedObject.catalog}
+                            </Badge>
+                            <HStack gap={1}>
+                                <Badge colorScheme={visualBadge.color as any} fontSize="9px">{visualBadge.label}</Badge>
+                                <Badge colorScheme={photoBadge.color as any} fontSize="9px">{photoBadge.label}</Badge>
+                            </HStack>
+                        </VStack>
                     </HStack>
-                    
+
                     <VStack align="start" gap={1} fontSize="xs" color="gray.300">
                         <HStack><Text color="gray.500">Type:</Text><Text>{selectedObject.type}</Text></HStack>
                         <HStack><Text color="gray.500">Constellation:</Text><Text>{selectedObject.constellation}</Text></HStack>
@@ -1431,8 +1353,11 @@ export const SkyMap = () => {
                                 {selectedObject.difficulty}
                             </Badge>
                         </HStack>
+                        <HStack><Text color="gray.500">Statut:</Text>
+                            <Text color={alt > 0 ? 'green.300' : 'gray.500'}>{alt > 0 ? 'En cours (au-dessus horizon)' : 'Indisponible'}</Text>
+                        </HStack>
                     </VStack>
-                    
+
                     <Box borderTop="1px solid rgba(255,255,255,0.1)" mt={2} pt={2}>
                         <Text color="gray.400" fontSize="xs" mb={1}>Coordonnées (J2000)</Text>
                         <HStack gap={4} fontSize="xs" fontFamily="mono">
@@ -1446,45 +1371,46 @@ export const SkyMap = () => {
                             </VStack>
                         </HStack>
                     </Box>
-                    
+
                     {selectedObject.description && (
                         <Box borderTop="1px solid rgba(255,255,255,0.1)" mt={2} pt={2}>
                             <Text color="gray.400" fontSize="xs">{selectedObject.description}</Text>
                         </Box>
                     )}
-                    
+
+                    {/* AI Sequence button */}
+                    <Button
+                        w="full" mt={3}
+                        bg="linear-gradient(135deg, #1a5c2a, #b8860b)"
+                        color="white" fontWeight="bold" fontSize="sm"
+                        _hover={{ opacity: 0.9 }}
+                        onClick={launchSequenceAI}
+                    >
+                        🎬 LANCER LA SÉQUENCE IA
+                    </Button>
+
                     <HStack borderTop="1px solid rgba(255,255,255,0.1)" mt={3} pt={3}>
-                        <Button 
-                            size="sm" flex={1} bg="var(--astro-gold)" color="black" 
+                        <Button
+                            size="sm" flex={1} bg="var(--astro-gold)" color="black"
                             _hover={{ bg: "yellow.400" }}
                             onClick={() => {
-                                // Center is automatic - the canvas tracks selected objects
+                                setGotoTarget({ ra: selectedObject.ra_deg, dec: selectedObject.dec_deg });
                                 setTrackMount(false);
                             }}
                         >
                             <Icon as={Navigation} boxSize={3} mr={1} />
-                            {language === 'fr' ? 'CENTRER' : 'CENTER'}
+                            CENTER
                         </Button>
-                        <Button 
-                            size="sm" flex={1} bg="green.500" color="white" 
+                        <Button
+                            size="sm" flex={1} bg="green.500" color="white"
                             _hover={{ bg: "green.600" }}
-                            onClick={async () => {
-                                await execute('/api/indi/mount', `GOTO ${selectedObject.id}`, {
-                                    body: {
-                                        action: 'goto',
-                                        ra: selectedObject.ra_deg,
-                                        dec: selectedObject.dec_deg,
-                                        device: detectedMount,
-                                        ip: config.astroberryUrl
-                                    }
-                                });
-                            }}
+                            onClick={() => executeGoto(selectedObject.ra_deg, selectedObject.dec_deg, `GOTO ${selectedObject.id}`)}
                         >
                             <Icon as={Target} boxSize={3} mr={1} />
                             GOTO
                         </Button>
-                        <Button 
-                            size="sm" variant="ghost" color="white" 
+                        <Button
+                            size="sm" variant="ghost" color="white"
                             onClick={() => {
                                 setSelectedObject(null);
                                 setSelectedObjectId(null);
@@ -1494,44 +1420,36 @@ export const SkyMap = () => {
                         </Button>
                     </HStack>
                 </Box>
-            ) : (
-                <Box 
-                    position="absolute" bottom="20px" right="20px" zIndex={20}
-                    bg="rgba(10, 20, 40, 0.9)" 
-                    borderRadius="md" 
-                    border="1px solid var(--astro-gold)"
-                    p={3}
-                    maxW="250px"
-                    boxShadow="0 4px 20px rgba(0,0,0,0.5)"
-                >
-                    <Text color="var(--astro-gold)" fontSize="xs" mb={1}>
-                        {language === 'fr' ? 'OBJET SELECTIONNÉ' : 'SELECTED OBJECT'}
-                    </Text>
-                    <Text color="white" fontSize="sm">
-                        {language === 'fr' ? 'Cliquez sur un objet' : 'Click on an object'}
-                    </Text>
-                </Box>
-            )}
+                );
+            })()}
 
             {/* Hover is handled by SkyChartCanvas - no separate panel needed */}
 
-            {/* Cardinal Directions */}
+            {/* Cardinal Directions — zIndex above Aladin (which sits at zIndex 2) */}
             {showCardinals && (
                 <>
-                    <Text position="absolute" top="20px" left="50%" transform="translateX(-50%)" 
-                        color="rgba(255,255,255,0.5)" fontSize="md" fontWeight="bold" pointerEvents="none">
+                    <Text position="absolute" top="16px" left="50%" transform="translateX(-50%)"
+                        color="var(--astro-teal)" fontSize="14px" fontWeight="bold" letterSpacing="0.15em"
+                        pointerEvents="none" zIndex={5} opacity={0.75}
+                        textShadow="0 0 8px rgba(0,240,255,0.6)">
                         N
                     </Text>
-                    <Text position="absolute" bottom="20px" left="50%" transform="translateX(-50%)" 
-                        color="rgba(255,255,255,0.5)" fontSize="md" fontWeight="bold" pointerEvents="none">
+                    <Text position="absolute" bottom="16px" left="50%" transform="translateX(-50%)"
+                        color="var(--astro-teal)" fontSize="14px" fontWeight="bold" letterSpacing="0.15em"
+                        pointerEvents="none" zIndex={5} opacity={0.75}
+                        textShadow="0 0 8px rgba(0,240,255,0.6)">
                         S
                     </Text>
-                    <Text position="absolute" left="20px" top="50%" transform="translateY(-50%)" 
-                        color="rgba(255,255,255,0.5)" fontSize="md" fontWeight="bold" pointerEvents="none">
+                    <Text position="absolute" left="16px" top="50%" transform="translateY(-50%)"
+                        color="var(--astro-teal)" fontSize="14px" fontWeight="bold" letterSpacing="0.15em"
+                        pointerEvents="none" zIndex={5} opacity={0.75}
+                        textShadow="0 0 8px rgba(0,240,255,0.6)">
                         W
                     </Text>
-                    <Text position="absolute" right="20px" top="50%" transform="translateY(-50%)" 
-                        color="rgba(255,255,255,0.5)" fontSize="md" fontWeight="bold" pointerEvents="none">
+                    <Text position="absolute" right="16px" top="50%" transform="translateY(-50%)"
+                        color="var(--astro-teal)" fontSize="14px" fontWeight="bold" letterSpacing="0.15em"
+                        pointerEvents="none" zIndex={5} opacity={0.75}
+                        textShadow="0 0 8px rgba(0,240,255,0.6)">
                         E
                     </Text>
                 </>
@@ -1547,7 +1465,7 @@ export const SkyMap = () => {
             )}
 
             {/* Aladin Sky Map */}
-            <AladinSkyMap 
+            <AladinSkyMap
                 objects={showCatalog ? filteredObjects : []}
                 onSelect={handleSelectResult}
                 onViewChange={(r, d) => setViewCenter({ ra: r, dec: d })}
@@ -1561,6 +1479,7 @@ export const SkyMap = () => {
                 fov={aladinSettings.fov / Math.max(1, zoom)}
                 aladinSettings={aladinSettings}
                 gotoTarget={gotoTarget}
+                resetViewSignal={resetViewSignal}
             />
             
             {/* Telrad finder circles */}
@@ -1602,12 +1521,208 @@ export const SkyMap = () => {
             )}
 
             {/* Subtle crosshair overlay */}
-            <Box position="absolute" top="50%" left="50%" transform="translate(-50%, -50%)" pointerEvents="none" zIndex={6}>
-                <VStack gap={2}>
-                    <Icon as={Crosshair} boxSize="80px" color="var(--astro-gold)" opacity={0.15} />
+            <Box position="absolute" top="50%" left="50%" transform="translate(-50%, -50%)" pointerEvents="none" zIndex={1}>
+                <Icon as={Crosshair} boxSize="80px" color="var(--astro-gold)" opacity={0.15} />
+            </Box>
+        </Box>{/* end map area */}
+
+        {/* Settings panel — position:fixed to cover the whole screen */}
+        {showSettings && (
+            <Box
+                position="fixed" top="10%" left="50%" transform="translateX(-50%)"
+                w="90%" maxW="500px" maxH="80vh"
+                bg="rgba(10, 20, 40, 0.98)"
+                borderRadius="xl"
+                border="2px solid var(--astro-teal)"
+                p={6} zIndex={1000}
+                boxShadow="0 0 50px rgba(0, 240, 255, 0.5)"
+                overflowY="auto"
+            >
+                <HStack justify="space-between" mb={4}>
+                    <Text color="var(--astro-teal)" fontWeight="bold" fontSize="xl">
+                        {language === 'fr' ? 'Paramètres carte' : 'Map Settings'}
+                    </Text>
+                    <Button size="md" bg="red.500" color="white" onClick={() => setShowSettings(false)}>✕</Button>
+                </HStack>
+                <VStack gap={4} align="stretch">
+                    <Box>
+                        <Text color="gray.400" fontSize="xs" mb={1}>Survey</Text>
+                        <select value={aladinSettings.survey} onChange={(e) => setAladinSettings({...aladinSettings, survey: e.target.value})}
+                            style={{ width:'100%', background:'rgba(0,0,0,0.5)', color:'white', border:'1px solid #00f0ff', borderRadius:'4px', padding:'6px' }}>
+                            <option value="P/DSS2/color">DSS Color</option>
+                            <option value="P/DSS2/red">DSS Red</option>
+                            <option value="P/2MASS/color">2MASS Color</option>
+                            <option value="P/SDSS9/g">SDSS g</option>
+                            <option value="P/SDSS9/r">SDSS r</option>
+                            <option value="P/SDSS9/i">SDSS i</option>
+                            <option value="P/GLADE">GLADE</option>
+                        </select>
+                    </Box>
+                    <Box>
+                        <Text color="gray.400" fontSize="xs" mb={1}>Field of View (°): {aladinSettings.fov}</Text>
+                        <input type="range" min="1" max="180" step="1" value={aladinSettings.fov}
+                            onChange={(e) => setAladinSettings({...aladinSettings, fov: parseFloat(e.target.value)})}
+                            style={{ width:'100%' }} />
+                    </Box>
+                    <Box>
+                        <Text color="gray.400" fontSize="xs" mb={1}>Object Size: {aladinSettings.sourceSize}px</Text>
+                        <input type="range" min="6" max="30" step="1" value={aladinSettings.sourceSize}
+                            onChange={(e) => setAladinSettings({...aladinSettings, sourceSize: parseInt(e.target.value)})}
+                            style={{ width:'100%' }} />
+                    </Box>
+                    <Box>
+                        <Text color="gray.400" fontSize="xs" mb={1}>Object Color</Text>
+                        <input type="color" value={aladinSettings.objectColor}
+                            onChange={(e) => setAladinSettings({...aladinSettings, objectColor: e.target.value})}
+                            style={{ width:'100%', height:'30px', border:'none' }} />
+                    </Box>
+                    <Box>
+                        <Text color="gray.400" fontSize="xs" mb={1}>Mount Marker Color</Text>
+                        <input type="color" value={aladinSettings.mountColor}
+                            onChange={(e) => setAladinSettings({...aladinSettings, mountColor: e.target.value})}
+                            style={{ width:'100%', height:'30px', border:'none' }} />
+                    </Box>
+                    <Box>
+                        <Text color="gray.400" fontSize="xs" mb={1}>Projection</Text>
+                        <select value={aladinSettings.projection} onChange={(e) => setAladinSettings({...aladinSettings, projection: e.target.value})}
+                            style={{ width:'100%', background:'rgba(0,0,0,0.5)', color:'white', border:'1px solid #00f0ff', borderRadius:'4px', padding:'6px' }}>
+                            <option value="SIN">Orthographic (SIN)</option>
+                            <option value="MOL">Mollweide</option>
+                            <option value="AIT">Hammer-Aitoff</option>
+                            <option value="ZEA">Zenithal Equal Area</option>
+                            <option value="MER">Mercator</option>
+                        </select>
+                    </Box>
+                    <HStack justify="space-between">
+                        <Text color="gray.300" fontSize="sm">Show Reticle</Text>
+                        <input type="checkbox" checked={aladinSettings.showReticle}
+                            onChange={(e) => setAladinSettings({...aladinSettings, showReticle: e.target.checked})} />
+                    </HStack>
+                    <HStack justify="space-between">
+                        <Text color="gray.300" fontSize="sm">Show Zoom Control</Text>
+                        <input type="checkbox" checked={aladinSettings.showZoom}
+                            onChange={(e) => setAladinSettings({...aladinSettings, showZoom: e.target.checked})} />
+                    </HStack>
+                    <Button size="md" w="full" bg="var(--astro-teal)" color="black" onClick={() => setShowSettings(false)}>
+                        {language === 'fr' ? 'Fermer' : 'Close'}
+                    </Button>
                 </VStack>
             </Box>
-        </Box>
+        )}
+
+        {/* Gemini Sequence Modal */}
+        {showSequenceModal && (
+            <Box
+                position="fixed" inset="0" zIndex={500}
+                bg="rgba(0,0,0,0.7)" backdropFilter="blur(8px)"
+                display="flex" alignItems="center" justifyContent="center"
+                onClick={(e) => { if (e.target === e.currentTarget) setShowSequenceModal(false); }}
+            >
+                <Box
+                    bg="rgba(10, 20, 40, 0.98)"
+                    border="2px solid var(--astro-gold)"
+                    borderRadius="xl"
+                    p={6}
+                    w="90%" maxW="480px"
+                    boxShadow="0 0 50px rgba(255,179,71,0.3)"
+                >
+                    <HStack justify="space-between" mb={4}>
+                        <Text color="var(--astro-gold)" fontWeight="bold" fontSize="lg">
+                            🎬 Séquence IA — {selectedObject?.id}
+                        </Text>
+                        <Button size="sm" variant="ghost" color="white" onClick={() => setShowSequenceModal(false)}>✕</Button>
+                    </HStack>
+
+                    {sequenceLoading ? (
+                        <VStack gap={4} py={8}>
+                            <Spinner color="var(--astro-gold)" size="xl" borderWidth="4px" />
+                            <Text color="gray.300">Analyse IA en cours...</Text>
+                        </VStack>
+                    ) : sequenceParams ? (
+                        <VStack gap={3} align="stretch">
+                            <HStack gap={4}>
+                                <VStack align="start" gap={1} flex={1}>
+                                    <Text color="gray.400" fontSize="xs">Lights</Text>
+                                    <HStack>
+                                        <Input size="sm" type="number" value={sequenceParams.lights.count}
+                                            onChange={e => setSequenceParams(p => p ? {...p, lights: {...p.lights, count: +e.target.value}} : p)}
+                                            w="70px" bg="rgba(0,0,0,0.4)" color="white" border="1px solid rgba(255,255,255,0.2)" />
+                                        <Text color="gray.500" fontSize="xs">×</Text>
+                                        <Input size="sm" type="number" value={sequenceParams.lights.exposure}
+                                            onChange={e => setSequenceParams(p => p ? {...p, lights: {...p.lights, exposure: +e.target.value}} : p)}
+                                            w="70px" bg="rgba(0,0,0,0.4)" color="white" border="1px solid rgba(255,255,255,0.2)" />
+                                        <Text color="gray.500" fontSize="xs">s</Text>
+                                    </HStack>
+                                </VStack>
+                                <VStack align="start" gap={1}>
+                                    <Text color="gray.400" fontSize="xs">ISO</Text>
+                                    <select
+                                        value={sequenceParams.lights.iso}
+                                        onChange={e => setSequenceParams(p => p ? {...p, lights: {...p.lights, iso: +e.target.value}} : p)}
+                                        style={{ background: 'rgba(0,0,0,0.5)', color: 'white', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '4px', padding: '4px 8px' }}
+                                    >
+                                        {[100,200,400,800,1600,3200,6400].map(v => <option key={v} value={v}>{v}</option>)}
+                                    </select>
+                                </VStack>
+                            </HStack>
+                            <HStack gap={4}>
+                                <VStack align="start" gap={1} flex={1}>
+                                    <Text color="gray.400" fontSize="xs">Darks × Exposure</Text>
+                                    <HStack>
+                                        <Input size="sm" type="number" value={sequenceParams.darks.count}
+                                            onChange={e => setSequenceParams(p => p ? {...p, darks: {...p.darks, count: +e.target.value}} : p)}
+                                            w="70px" bg="rgba(0,0,0,0.4)" color="white" border="1px solid rgba(255,255,255,0.2)" />
+                                        <Text color="gray.500" fontSize="xs">×</Text>
+                                        <Input size="sm" type="number" value={sequenceParams.darks.exposure}
+                                            onChange={e => setSequenceParams(p => p ? {...p, darks: {...p.darks, exposure: +e.target.value}} : p)}
+                                            w="70px" bg="rgba(0,0,0,0.4)" color="white" border="1px solid rgba(255,255,255,0.2)" />
+                                        <Text color="gray.500" fontSize="xs">s</Text>
+                                    </HStack>
+                                </VStack>
+                                <VStack align="start" gap={1}>
+                                    <Text color="gray.400" fontSize="xs">Flats</Text>
+                                    <Input size="sm" type="number" value={sequenceParams.flats.count}
+                                        onChange={e => setSequenceParams(p => p ? {...p, flats: {...p.flats, count: +e.target.value}} : p)}
+                                        w="70px" bg="rgba(0,0,0,0.4)" color="white" border="1px solid rgba(255,255,255,0.2)" />
+                                </VStack>
+                                <VStack align="start" gap={1}>
+                                    <Text color="gray.400" fontSize="xs">Bias</Text>
+                                    <Input size="sm" type="number" value={sequenceParams.bias.count}
+                                        onChange={e => setSequenceParams(p => p ? {...p, bias: {count: +e.target.value}} : p)}
+                                        w="70px" bg="rgba(0,0,0,0.4)" color="white" border="1px solid rgba(255,255,255,0.2)" />
+                                </VStack>
+                            </HStack>
+                            <VStack align="start" gap={1}>
+                                <Text color="gray.400" fontSize="xs">Stacking</Text>
+                                <select
+                                    value={sequenceParams.stacking_method}
+                                    onChange={e => setSequenceParams(p => p ? {...p, stacking_method: e.target.value} : p)}
+                                    style={{ width: '100%', background: 'rgba(0,0,0,0.5)', color: 'white', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '4px', padding: '6px' }}
+                                >
+                                    <option value="Kappa-Sigma">Kappa-Sigma</option>
+                                    <option value="Median">Median</option>
+                                    <option value="Average">Average</option>
+                                </select>
+                            </VStack>
+                            {sequenceParams.notes && (
+                                <Box bg="rgba(255,179,71,0.1)" border="1px solid rgba(255,179,71,0.3)" borderRadius="md" p={3}>
+                                    <Text color="var(--astro-gold)" fontSize="xs">{sequenceParams.notes}</Text>
+                                </Box>
+                            )}
+                            <HStack mt={2}>
+                                <Button flex={1} bg="green.500" color="white" _hover={{ bg: 'green.600' }} onClick={launchSequence}>
+                                    ✅ LANCER
+                                </Button>
+                                <Button flex={1} variant="ghost" color="white" onClick={() => setShowSequenceModal(false)}>
+                                    ✕ Annuler
+                                </Button>
+                            </HStack>
+                        </VStack>
+                    ) : null}
+                </Box>
+            </Box>
+        )}
+        </Flex>
     );
 };
 

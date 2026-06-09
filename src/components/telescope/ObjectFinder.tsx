@@ -6,17 +6,18 @@ import { Search, Target, Star, Telescope, MapPin, Clock, Compass, Filter, Chevro
 import { useStargazerStore } from "@/store/useStargazerStore";
 import { CELESTIAL_CATALOG, getVisibleObjects, CelestialObject } from "@/data/celestialCatalog";
 import { t } from "@/i18n/translations";
+import { useGoTo } from "@/hooks/useGoTo";
 
 interface ObjectFinderProps {
   onSlew?: (ra: number, dec: number) => void;
 }
 
 export const ObjectFinder = ({ onSlew }: ObjectFinderProps) => {
-  const { language, setPosition, setSlewing, config, mountLimits, selectedObjectId, setSelectedObjectId } = useStargazerStore();
+  const { language, setPosition, config, mountLimits, selectedObjectId, setSelectedObjectId } = useStargazerStore();
+  const goTo = useGoTo();
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
   const [filterDifficulty, setFilterDifficulty] = useState<string>("all");
-  const [isSlewingToTarget, setIsSlewingToTarget] = useState(false);
   const [visibleObjects, setVisibleObjects] = useState<CelestialObject[]>([]);
   const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -57,50 +58,13 @@ export const ObjectFinder = ({ onSlew }: ObjectFinderProps) => {
   }, [visibleObjects, searchQuery, filterType, filterDifficulty]);
 
   const handleSlewToObject = async (obj: CelestialObject) => {
-    setIsSlewingToTarget(true);
     setSelectedObjectId(obj.id);
-    setSlewing(true);
-
-    // Call API to slew mount
-    try {
-      const res = await fetch('/api/indi/mount', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'slew',
-          device: config.driverInstance,
-          ra: obj.ra_deg,
-          dec: obj.dec_deg,
-          ip: config.astroberryUrl.includes('http') ? new URL(config.astroberryUrl).hostname : config.astroberryUrl.split(':')[0]
-        })
-      });
-
-      if (res.ok) {
-        // Update UI position
-        setPosition(obj.ra, obj.dec, 45, 180); // Placeholder alt/az
-        
-        // Wait for slew to finish by polling status
-        const pollInterval = setInterval(async () => {
-          try {
-            const statRes = await fetch('/api/indi?endpoint=mount/status');
-            const stat = await statRes.json();
-            if (stat.slew_state === 'IDLE' || stat.slew_state === 'TRACKING') {
-              clearInterval(pollInterval);
-              setSlewing(false);
-              setIsSlewingToTarget(false);
-            }
-          } catch(e) {
-            console.error("Polling error", e);
-          }
-        }, 1500);
-      } else {
-        throw new Error('Slew failed');
-      }
-    } catch (e) {
-      console.error('GOTO failed:', e);
-      setSlewing(false);
-      setIsSlewingToTarget(false);
+    const ok = await goTo.goto(obj.ra_deg, obj.dec_deg);
+    if (ok) {
+      setPosition(obj.ra, obj.dec, 45, 180); // Placeholder alt/az (mis à jour par le poll coords)
+      goTo.waitForSlew(); // Lance la résolution en arrière-plan
     }
+    if (onSlew) onSlew(obj.ra_deg, obj.dec_deg);
   };
 
   const getTypeColor = (type: string) => {
@@ -133,9 +97,9 @@ export const ObjectFinder = ({ onSlew }: ObjectFinderProps) => {
             {language === 'fr' ? 'CHERCHEUR D\'OBJETS' : 'OBJECT FINDER'}
           </Text>
         </HStack>
-        <Badge colorScheme="cyan" variant="outline">
+        <Box px="8px" py="3px" borderRadius="6px" fontSize="10px" fontWeight="bold" color="var(--astro-teal)" bg="rgba(0,240,255,0.12)" border="1px solid rgba(0,240,255,0.4)">
           {visibleObjects.length} {language === 'fr' ? 'visibles' : 'visible'}
-        </Badge>
+        </Box>
       </HStack>
 
       {/* Search & Filters */}
@@ -229,9 +193,15 @@ export const ObjectFinder = ({ onSlew }: ObjectFinderProps) => {
                 <Text fontSize="12px" fontWeight="bold">{obj.id}</Text>
                 <Text fontSize="11px" color="whiteAlpha.700">{obj.name}</Text>
               </HStack>
-              <Badge size="sm" colorScheme={getDifficultyColor(obj.difficulty)} variant="outline">
+              <Box
+                px="6px" py="2px" borderRadius="4px" fontSize="10px" fontWeight="bold"
+                color="white"
+                bg={obj.difficulty === 'Easy' ? 'rgba(72,187,120,0.35)' : obj.difficulty === 'Medium' ? 'rgba(236,201,75,0.35)' : 'rgba(245,101,101,0.35)'}
+                border="1px solid"
+                borderColor={obj.difficulty === 'Easy' ? 'rgba(72,187,120,0.7)' : obj.difficulty === 'Medium' ? 'rgba(236,201,75,0.7)' : 'rgba(245,101,101,0.7)'}
+              >
                 {obj.magnitude.toFixed(1)}m
-              </Badge>
+              </Box>
             </HStack>
 
             <Flex justify="space-between" align="center">
@@ -246,7 +216,7 @@ export const ObjectFinder = ({ onSlew }: ObjectFinderProps) => {
                 bg="var(--astro-teal)"
                 color="black"
                 _hover={{ bg: "white" }}
-                loading={isSlewingToTarget && selectedObject?.id === obj.id}
+                loading={goTo.isSlewing && selectedObject?.id === obj.id}
                 onClick={(e) => {
                   e.stopPropagation();
                   handleSlewToObject(obj);
@@ -312,7 +282,7 @@ export const ObjectFinder = ({ onSlew }: ObjectFinderProps) => {
               bg="var(--astro-teal)"
               color="black"
               _hover={{ bg: "white" }}
-              loading={isSlewingToTarget}
+              loading={goTo.isSlewing}
               onClick={() => handleSlewToObject(selectedObject)}
             >
               <Icon as={Navigation} boxSize={4} mr={2} />

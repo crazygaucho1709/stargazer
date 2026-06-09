@@ -3,12 +3,10 @@ import { BRIDGE_URL } from '@/lib/apiConfig';
 
 export const dynamic = 'force-dynamic';
 
-// Proxy commands to Python bridge
-async function sendToBridge(bridgeIp: string, endpoint: string, data: any): Promise<any> {
-  const cleanBridgeIp = bridgeIp ? bridgeIp.replace(/^https?:\/\//, '') : '';
-  const baseUrl = cleanBridgeIp && cleanBridgeIp !== '127.0.0.1:5005' ? `http://${cleanBridgeIp}` : BRIDGE_URL;
-  const url = `${baseUrl}${endpoint}`;
-  
+// Proxy commands to Python bridge — always localhost, never mDNS
+async function sendToBridge(_bridgeIp: string, endpoint: string, data: any): Promise<any> {
+  const url = `${BRIDGE_URL}${endpoint}`;
+
   try {
     const res = await fetch(url, {
       method: 'POST',
@@ -87,7 +85,7 @@ function parseDecToDegrees(coord: string | number): number {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    let { action, device = 'Celestron GPS', ra, dec, direction, state = 'start', duration = 0.5, ip } = body;
+    let { action, device = 'Celestron GPS', ra, dec, direction, state = 'start', duration = 0.5, ip, timestamp } = body;
     
     // Ensure we have a valid device name
     if (!device || device === 'undefined' || device === 'null') {
@@ -113,7 +111,7 @@ export async function POST(request: Request) {
         
       case 'jog':
         // Mouvement relatif (flèches directionnelles)
-        response = await sendToBridge(bridgeIp, '/mount/jog', { device, direction, state, duration });
+        response = await sendToBridge(bridgeIp, '/mount/jog', { device, direction, state, duration, timestamp });
         break;
         
       case 'slew':

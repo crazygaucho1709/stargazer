@@ -9,6 +9,8 @@ import datetime
 from astropy.coordinates import SkyCoord, EarthLocation, AltAz
 from astropy.time import Time
 import astropy.units as u
+from astropy.utils.iers import conf
+conf.auto_max_age = None
 import os
 import json
 import threading

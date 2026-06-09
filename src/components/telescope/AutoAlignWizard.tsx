@@ -18,11 +18,17 @@ import {
 } from "@chakra-ui/react";
 import {
   Satellite, Zap, Square, RotateCcw, CheckCircle2, AlertTriangle,
-  ArrowUp, ArrowDown, ArrowLeft, ArrowRight, MapPin, Navigation,
+  MapPin, Navigation,
   Camera, Play, Crosshair
 } from "lucide-react";
 import { useStargazerStore } from "@/store/useStargazerStore";
 import { plateSolve, SolvedPosition } from "@/services/plateSolve";
+import { clientApiUrl } from "@/lib/clientApi";
+import { notification } from "@/lib/notificationService";
+import { useJog } from "@/hooks/useJog";
+import { JogPad } from "./JogPad";
+import { useGoTo } from "@/hooks/useGoTo";
+import { useLiveView } from "@/hooks/useLiveView";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -207,33 +213,6 @@ const SkyDome = ({
   );
 };
 
-// ─── Jog Pad compact ─────────────────────────────────────────────────────────
-
-const JogPad = ({ onJog }: { onJog: (dir: string) => void }) => {
-  const btn = (dir: string, icon: React.ReactNode) => (
-    <Button
-      size="xs" w="28px" h="28px" p={0} minW={0}
-      bg="rgba(255,255,255,0.06)" _hover={{ bg: 'rgba(255,255,255,0.12)' }}
-      borderRadius="5px" border="1px solid rgba(255,255,255,0.08)"
-      onClick={() => onJog(dir)}
-    >
-      {icon}
-    </Button>
-  );
-  return (
-    <Grid templateColumns="repeat(3, 28px)" templateRows="repeat(3, 28px)" gap="2px">
-      <Box />
-      {btn('up',    <Icon as={ArrowUp}    boxSize={3} color="whiteAlpha.700" />)}
-      <Box />
-      {btn('left',  <Icon as={ArrowLeft}  boxSize={3} color="whiteAlpha.700" />)}
-      <Box bg="rgba(255,255,255,0.03)" borderRadius="4px" />
-      {btn('right', <Icon as={ArrowRight} boxSize={3} color="whiteAlpha.700" />)}
-      <Box />
-      {btn('down',  <Icon as={ArrowDown}  boxSize={3} color="whiteAlpha.700" />)}
-      <Box />
-    </Grid>
-  );
-};
 
 // ─── Limit record card ───────────────────────────────────────────────────────
 
@@ -247,7 +226,10 @@ const LIMIT_META: Record<LimitKey, { fr: string; en: string; frDesc: string; enD
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export const AutoAlignWizard = () => {
-  const { language, config, setPosition } = useStargazerStore();
+  const { language, config, setPosition, detectedMount, mountLimits, setMountLimits } = useStargazerStore();
+  const jog = useJog();
+  const goTo = useGoTo();
+  const liveView = useLiveView();
   const L = (fr: string, en: string) => language === 'fr' ? fr : en;
 
   const bridgeIp = (() => {
@@ -260,6 +242,18 @@ export const AutoAlignWizard = () => {
   const [limits,  setLimits]  = useState<TelescopeLimits>({});
   const [zone,    setZone]    = useState<Zone | null>(null);
   const [logs,    setLogs]    = useState<LogEntry[]>([]);
+
+  // Load limits from store on mount / store updates
+  useEffect(() => {
+    if (mountLimits) {
+      setLimits({
+        low: { alt: mountLimits.minAlt, az: 180, ra: 0, dec: 0 },
+        high: { alt: mountLimits.maxAlt, az: 180, ra: 0, dec: 0 },
+        left: { alt: 45, az: mountLimits.minAz, ra: 0, dec: 0 },
+        right: { alt: 45, az: mountLimits.maxAz, ra: 0, dec: 0 }
+      });
+    }
+  }, [mountLimits]);
   const [results, setResults] = useState<(CycleResult | null)[]>([null, null, null]);
   const [finalRa,  setFinalRa]  = useState<number | null>(null);
   const [finalDec, setFinalDec] = useState<number | null>(null);
@@ -273,11 +267,13 @@ export const AutoAlignWizard = () => {
   const [isMountConnected, setIsMountConnected] = useState<boolean>(true);
   const [isConnectingMount, setIsConnectingMount] = useState<boolean>(false);
 
-  // Camera live view stream state
-  const [isLiveStreaming, setIsLiveStreaming] = useState(false);
-  const [ccdImage, setCcdImage] = useState<string | null>(null);
-  const [ccdError, setCcdError] = useState(false);
-  const [streamStatus, setStreamStatus] = useState<string>("");
+  // Aliases pour compatibilité JSX — câblés sur useLiveView
+  const isLiveStreaming = liveView.isLive;
+  const ccdImage       = liveView.streamUrl;
+  const streamStatus   = liveView.status;
+
+  const [isPolling, setIsPolling] = useState(false);
+  const [ccdError, setCcdError] = useState(false); // erreur de chargement img (img onError)
 
   const abortRef  = useRef(false);
   const logEndRef = useRef<HTMLDivElement>(null);
@@ -292,22 +288,30 @@ export const AutoAlignWizard = () => {
   useEffect(() => {
     if (phase !== 'limits-setup' && phase !== 'zone-confirm') return;
     let active = true;
+    let timerId: NodeJS.Timeout | null = null;
 
     const poll = async () => {
+      if (!active) return;
+      setIsPolling(true);
       try {
-        const res = await fetch('/api/indi/mount/status', { cache: 'no-store' });
+        const ac = new AbortController();
+        const t = setTimeout(() => ac.abort(), 5000);
+        const res = await fetch(clientApiUrl('/api/indi/mount/status'), { cache: 'no-store', signal: ac.signal });
+        clearTimeout(t);
         if (!res.ok) {
-          setIsMountConnected(false);
+          if (active) setIsMountConnected(false);
           return;
         }
         const data = await res.json();
-        setIsMountConnected(!!data.connected);
-        if (!data.connected) return;
+        if (active) setIsMountConnected(!!data.connected);
+        if (!data.connected || !active) return;
         // ra from INDI is in degrees, dec in degrees
         const raHours = (data.ra ?? 0) / 15;
         const decDeg  = data.dec ?? 0;
-        setLiveRa(raHours);
-        setLiveDec(decDeg);
+        if (active) {
+          setLiveRa(raHours);
+          setLiveDec(decDeg);
+        }
 
         const latVal = parseFloat(config.latitude);
         const lonVal = parseFloat(config.longitude);
@@ -315,92 +319,76 @@ export const AutoAlignWizard = () => {
         const safeLon = isNaN(lonVal) ? -149.6000 : lonVal;
 
         // Convert to Alt/Az via backend
-        const convRes = await fetch('/api/indi/astro/coords', {
+        const convRes = await fetch(clientApiUrl('/api/indi/astro/coords'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ra: raHours, dec: decDeg, lat: safeLat, lon: safeLon })
+          body: JSON.stringify({ ra: raHours, dec: decDeg, lat: safeLat, lon: safeLon }),
+          signal: ac.signal
         });
         if (convRes.ok) {
           const conv = await convRes.json();
-          if (conv.success) {
+          if (conv.success && active) {
             setLiveAlt(conv.alt);
             setLiveAz(conv.az);
-          } else {
+          } else if (active) {
             console.warn("Coords conversion returned success: false", conv.error);
             setLiveAlt(0.0);
             setLiveAz(0.0);
           }
-        } else {
+        } else if (active) {
           console.warn("Coords API returned non-ok status:", convRes.status);
           setLiveAlt(0.0);
           setLiveAz(0.0);
         }
-      } catch {}
+      } catch (err) {
+        console.error("Poll error:", err);
+      } finally {
+        if (active) setIsPolling(false);
+        if (active) {
+          timerId = setTimeout(poll, 2500);
+        }
+      }
     };
 
     poll();
-    const interval = setInterval(() => { if (active) poll(); }, 2500);
-    return () => { active = false; clearInterval(interval); };
+    return () => {
+      active = false;
+      if (timerId) clearTimeout(timerId);
+    };
   }, [phase, config.latitude, config.longitude]);
 
-  // ── Camera live stream controls ──
-  const startLiveView = async () => {
-    try {
-      setStreamStatus(L("Démarrage...", "Starting..."));
-      const res = await fetch('/api/indi/liveview', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'start' })
-      });
-      if (!res.ok) {
-        let msg = `HTTP ${res.status}`;
-        try {
-          const j = await res.json();
-          if (j.error) msg = j.error;
-        } catch {}
-        setStreamStatus(msg);
-        return;
-      }
-      const streamUrl = `/api/indi/stream?t=${Date.now()}`;
-      setCcdImage(streamUrl);
-      setIsLiveStreaming(true);
-      setStreamStatus("LIVE");
-      setCcdError(false);
-    } catch (e) {
-      setStreamStatus(L("Erreur", "Error"));
-    }
-  };
+  const startLiveView = liveView.start;
+  const stopLiveView  = liveView.stop;
 
-  const stopLiveView = async () => {
-    try {
-      await fetch('/api/indi/liveview', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'stop' })
-      });
-      setIsLiveStreaming(false);
-      setCcdImage(null);
-      setStreamStatus("");
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  // Cleanup live view on unmount
+  // Cleanup on unmount: abort alignment loop, stop jog and live view
+  // Note: useJog() handles its own cleanup via its own useEffect
   useEffect(() => {
     return () => {
-      fetch('/api/indi/liveview', {
+      // Critical: stop the autonomous alignment loop if running
+      abortRef.current = true;
+      fetch(clientApiUrl('/api/indi/mount'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'abort', device: detectedMount || config.driverInstance || 'Celestron GPS', ip: bridgeIp })
+      }).catch(() => {});
+      fetch(clientApiUrl('/api/indi/mount'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'jog', direction: 'up', state: 'stop', device: detectedMount || config.driverInstance || 'Celestron GPS', ip: bridgeIp, timestamp: Date.now() })
+      }).catch(() => {});
+      fetch(clientApiUrl('/api/indi/liveview'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'stop' })
       }).catch(() => {});
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const connectHardware = async () => {
     setIsConnectingMount(true);
     try {
-      await fetch('/api/hardware/connect', { method: 'POST' });
+      await fetch(clientApiUrl('/api/hardware/connect'), { method: 'POST' });
       await new Promise(r => setTimeout(r, 2000));
     } catch {}
     setIsConnectingMount(false);
@@ -414,6 +402,19 @@ export const AutoAlignWizard = () => {
     }
     setRecording(key);
     await new Promise(r => setTimeout(r, 400)); // visual feedback delay
+
+    // Map to global store keys
+    const storeKeyMap: Record<LimitKey, keyof typeof mountLimits> = {
+      low: 'minAlt',
+      high: 'maxAlt',
+      left: 'minAz',
+      right: 'maxAz'
+    };
+    
+    const storeValueKey = storeKeyMap[key];
+    const val = key.includes('left') || key.includes('right') ? liveAz : liveAlt;
+    setMountLimits({ [storeValueKey]: val });
+
     setLimits(prev => ({
       ...prev,
       [key]: { alt: liveAlt, az: liveAz, ra: liveRa, dec: liveDec }
@@ -421,20 +422,6 @@ export const AutoAlignWizard = () => {
     setRecording(null);
   };
 
-  // ── Jog mount ──
-  const jog = async (direction: string) => {
-    await fetch('/api/indi/mount', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'jog', direction, state: 'start', duration: 0.5, device: config.driverInstance, ip: bridgeIp })
-    }).catch(() => {});
-    await new Promise(r => setTimeout(r, 600));
-    await fetch('/api/indi/mount', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'jog', direction, state: 'stop', device: config.driverInstance, ip: bridgeIp })
-    }).catch(() => {});
-  };
 
   // ── Confirm zone from limits ──
   const confirmZone = () => {
@@ -461,7 +448,7 @@ export const AutoAlignWizard = () => {
       const lonVal = parseFloat(config.longitude);
       const safeLat = isNaN(latVal) ? -17.6333 : latVal;
       const safeLon = isNaN(lonVal) ? -149.6000 : lonVal;
-      const res = await fetch('/api/indi/astro/coords', {
+      const res = await fetch(clientApiUrl('/api/indi/astro/coords'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ra, dec, lat: safeLat, lon: safeLon })
@@ -478,7 +465,7 @@ export const AutoAlignWizard = () => {
       const lonVal = parseFloat(config.longitude);
       const safeLat = isNaN(latVal) ? -17.6333 : latVal;
       const safeLon = isNaN(lonVal) ? -149.6000 : lonVal;
-      const res = await fetch('/api/indi/astro/altaz_to_radec', {
+      const res = await fetch(clientApiUrl('/api/indi/astro/altaz_to_radec'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ alt, az, lat: safeLat, lon: safeLon })
@@ -489,34 +476,6 @@ export const AutoAlignWizard = () => {
     } catch { return null; }
   };
 
-  const gotoRaDec = async (ra: number, dec: number): Promise<boolean> => {
-    try {
-      const res = await fetch('/api/indi/mount', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'slew', device: config.driverInstance, ip: bridgeIp, ra, dec })
-      });
-      return (await res.json()).success === true;
-    } catch { return false; }
-  };
-
-  const waitForSlew = async (timeoutSec = 90): Promise<boolean> => {
-    await new Promise(r => setTimeout(r, 2000));
-    const deadline = Date.now() + timeoutSec * 1000;
-    while (Date.now() < deadline) {
-      if (abortRef.current) return false;
-      try {
-        const res = await fetch('/api/indi?endpoint=status', { cache: 'no-store' });
-        if (res.ok) {
-          const s = (await res.json()).mount_slew_state;
-          if (s === 'Idle' || s === 'Ok' || s === 'Not Aligned') return true;
-          if (s === 'Error') return false;
-        }
-      } catch {}
-      await new Promise(r => setTimeout(r, 2000));
-    }
-    return true;
-  };
 
   const updateCycle = (i: number, patch: Partial<CycleResult>) =>
     setResults(prev => {
@@ -530,7 +489,7 @@ export const AutoAlignWizard = () => {
     updateCycle(i, { state: 'capturing' });
     log(L(`  📷 Capture ${EXPOSURE}s ISO 800...`, `  📷 Capturing ${EXPOSURE}s ISO 800...`));
 
-    const captureRes = await fetch('/api/indi', {
+    const captureRes = await fetch(clientApiUrl('/api/indi'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'capture', iso: 800, exposure: EXPOSURE, endpoint: 'ccd/capture' })
@@ -541,7 +500,7 @@ export const AutoAlignWizard = () => {
     }
 
     await new Promise(r => setTimeout(r, EXPOSURE * 1000 + 1500));
-    const imageUrl = `/api/indi/latest-image?t=${Date.now()}`;
+    const imageUrl = clientApiUrl(`/api/indi/latest-image?t=${Date.now()}`);
     const checkRes = await fetch(imageUrl, { cache: 'no-store' });
     if (checkRes.status === 204 || !checkRes.ok) {
       log(L('  ❌ Aucune image (204). Caméra connectée?', '  ❌ No image (204). Camera connected?'), 'error');
@@ -570,7 +529,7 @@ export const AutoAlignWizard = () => {
       `📍 Zone: Alt ${zone.altMin.toFixed(1)}°–${zone.altMax.toFixed(1)}° | Az ${zone.azMin.toFixed(1)}°–${zone.azMax.toFixed(1)}°`
     ));
 
-    const health = await fetch(`/api/indi?endpoint=health&ip=${bridgeIp}`, { cache: 'no-store' })
+    const health = await fetch(clientApiUrl(`/api/indi?endpoint=health&ip=${bridgeIp}`), { cache: 'no-store' })
       .then(r => r.ok ? r.json() : null).catch(() => null);
     if (!(Array.isArray(health) && health.length > 0 && health[0]?.status === 'True')) {
       log(L('❌ Hardware non joignable. Vérifiez INDI.', '❌ Hardware unreachable. Check INDI.'), 'error');
@@ -605,13 +564,13 @@ export const AutoAlignWizard = () => {
             `  → RA ${fmtRA(radec.ra)}  DEC ${fmtDEC(radec.dec)}`));
 
       log(L('  🔭 GoTo en cours...', '  🔭 Slewing...'));
-      if (!await gotoRaDec(radec.ra, radec.dec)) {
+      if (!await goTo.goto(radec.ra, radec.dec)) {
         log(L('  ⚠️ GoTo échoué.', '  ⚠️ GoTo failed.'), 'warn');
         updateCycle(i, { state: 'failed' }); continue;
       }
 
       log(L('  ⏳ Attente fin de déplacement...', '  ⏳ Waiting for slew...'));
-      await waitForSlew(90);
+      await goTo.waitForSlew(90);
       log(L('  ⚙️ Stabilisation 3s...', '  ⚙️ Settling 3s...'));
       await new Promise(r => setTimeout(r, 3000));
       if (abortRef.current) { setPhase('failed'); return; }
@@ -639,7 +598,7 @@ export const AutoAlignWizard = () => {
     setPhase('syncing');
     log(L(`\n🔄 Sync → RA ${fmtRA(lastSolved.ra)}  DEC ${fmtDEC(lastSolved.dec)}`,
           `\n🔄 Sync → RA ${fmtRA(lastSolved.ra)}  DEC ${fmtDEC(lastSolved.dec)}`));
-    const syncRes = await fetch('/api/indi/mount', {
+    const syncRes = await fetch(clientApiUrl('/api/indi/mount'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'sync', device: config.driverInstance, ip: bridgeIp, ra: lastSolved.ra, dec: lastSolved.dec })
@@ -650,10 +609,19 @@ export const AutoAlignWizard = () => {
 
     // Tracking
     log(L('▶️ Activation suivi sidéral...', '▶️ Enabling sidereal tracking...'));
-    await fetch('/api/indi/mount', {
+    await fetch(clientApiUrl('/api/indi/mount'), {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'track', device: config.driverInstance, ip: bridgeIp, enabled: true })
-    }).catch(() => {});
+    }).then(async (res) => {
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`HTTP error ${res.status}: ${text}`);
+      }
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || "Erreur inconnue");
+    }).catch((e) => {
+      log(L(`⚠️ Suivi sidéral: ${e.message}`, `⚠️ Sidereal tracking: ${e.message}`), 'warn');
+    });
     await new Promise(r => setTimeout(r, 800));
     log(L('✅ Suivi sidéral actif.', '✅ Sidereal tracking active.'), 'success');
 
@@ -738,9 +706,12 @@ export const AutoAlignWizard = () => {
                 bg="rgba(255,255,255,0.02)" borderRadius="8px" p={2.5}
                 border="1px solid rgba(255,255,255,0.06)">
                 <VStack align="start" gap={0.5}>
-                  <Text fontSize="8px" color="whiteAlpha.400" letterSpacing="0.06em">
-                    {L("POSITION ACTUELLE", "CURRENT POSITION")}
-                  </Text>
+                  <HStack gap={1}>
+                    <Text fontSize="8px" color="whiteAlpha.400" letterSpacing="0.06em">
+                      {L("POSITION ACTUELLE", "CURRENT POSITION")}
+                    </Text>
+                    {isPolling && <Spinner size="xs" color="whiteAlpha.300" w="8px" h="8px" />}
+                  </HStack>
                   {!isMountConnected ? (
                     <VStack align="start" gap={1}>
                       <Text fontSize="8px" color="red.400" fontWeight="bold">
@@ -784,8 +755,16 @@ export const AutoAlignWizard = () => {
                   )}
                 </VStack>
                 <VStack align="center" gap={1}>
-                  <Text fontSize="7px" color="whiteAlpha.400" letterSpacing="0.06em">{L("DÉPLACEMENT FIN", "FINE JOG")}</Text>
-                  <JogPad onJog={jog} />
+                  <HStack gap={1}>
+                    <Text fontSize="7px" color="whiteAlpha.400" letterSpacing="0.06em">{L("DÉPLACEMENT FIN", "FINE JOG")}</Text>
+                    {jog.activeDir && (
+                      <Text fontSize="6px" color="var(--astro-teal)" fontWeight="bold" letterSpacing="0.05em"
+                        style={{ animation: 'pulse 0.6s infinite alternate' }}>
+                        ▶ {jog.activeDir.toUpperCase()}
+                      </Text>
+                    )}
+                  </HStack>
+                  <JogPad jog={jog} />
                 </VStack>
               </HStack>
 
@@ -933,14 +912,23 @@ export const AutoAlignWizard = () => {
                         <img
                           src={ccdImage}
                           alt="Live Feed"
+                          crossOrigin="anonymous"
+                          referrerPolicy="no-referrer"
                           style={{
                             width: "100%",
                             height: "100%",
                             objectFit: "contain",
                             background: "#000",
                           }}
-                          onError={() => setCcdError(true)}
-                          onLoad={() => setCcdError(false)}
+                          onError={() => {
+                            setCcdError(true);
+                            liveView.stop();
+                            notification.error("Flux caméra perdu", {
+                              description: L("Le flux MJPEG s'est interrompu. Vérifiez que la Canon est connectée à INDI et en mode live view.", "MJPEG stream interrupted. Check that the Canon is connected to INDI and in live view mode."),
+                              source: "Caméra"
+                            });
+                          }}
+                          onLoad={() => { setCcdError(false); }}
                         />
                         {/* Reticle / Crosshair overlay */}
                         <Box
@@ -982,6 +970,12 @@ export const AutoAlignWizard = () => {
                     </VStack>
                   )}
                 </Box>
+                {/* Stream error / status line */}
+                {streamStatus && streamStatus !== "LIVE" && (
+                  <Text fontSize="8px" color={streamStatus.startsWith("❌") ? "red.400" : "whiteAlpha.500"} mt={1} textAlign="center">
+                    {streamStatus}
+                  </Text>
+                )}
               </Box>
 
               {/* Sky dome live preview */}

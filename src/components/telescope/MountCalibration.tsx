@@ -1,18 +1,18 @@
 "use client";
 
-import { Box, VStack, HStack, Text, Button, Icon } from "@chakra-ui/react";
-import { MoveUpRight, Settings, AlertTriangle, ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from "lucide-react";
-import { useState, useRef } from "react";
+import { Box, VStack, HStack, Text, Button } from "@chakra-ui/react";
+import { MoveUpRight, Settings, AlertTriangle } from "lucide-react";
+import { useState } from "react";
 import { useStargazerStore } from "@/store/useStargazerStore";
 import { t } from "@/i18n/translations";
 import { notification } from "@/lib/notificationService";
+import { useJog } from "@/hooks/useJog";
+import { JogPad } from "./JogPad";
 
 export const MountCalibration = () => {
-    const { mountLimits, setMountLimits, alt, az, language, setSlewing, config } = useStargazerStore();
+    const { mountLimits, setMountLimits, alt, az, language } = useStargazerStore();
     const [step, setStep] = useState<"idle" | "maxAlt" | "minAlt" | "maxAz" | "minAz">("idle");
-    const [isMoving, setIsMoving] = useState(false);
-    const activeDirectionRef = useRef<'up' | 'down' | 'left' | 'right' | null>(null);
-    const pendingStartPromiseRef = useRef<Promise<any> | null>(null);
+    const jog = useJog();
 
     const handleSaveLimit = () => {
         if (step === "maxAlt") {
@@ -28,81 +28,26 @@ export const MountCalibration = () => {
             const finalLimits = { ...mountLimits, minAz: az };
             setMountLimits(finalLimits);
             setStep("idle");
-            
-            // Persiste les limites dans la configuration backend (config.json)
+
             fetch('/api/indi/config', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    mountLimits: finalLimits
-                })
-            }).then(() => {
+                body: JSON.stringify({ mountLimits: finalLimits })
+            }).then(async (res) => {
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 notification.success("Limites sauvegardées", {
                     description: "Les nouvelles limites ont été enregistrées.",
                     source: "Configuration"
                 });
             }).catch((err) => {
                 notification.error("Échec de la sauvegarde", {
-                  description: err?.message || "Impossible de sauvegarder la configuration",
-                  source: "Système",
+                    description: err?.message || "Impossible de sauvegarder la configuration",
+                    source: "Système",
                 });
             });
         }
     };
 
-    const startJog = async (direction: 'up' | 'down' | 'left' | 'right') => {
-        if (activeDirectionRef.current === direction) return;
-        activeDirectionRef.current = direction;
-        setIsMoving(true);
-        setSlewing(true);
-        const bridgeIp = config.astroberryUrl.replace('http://', '').replace(':8624', '');
-        
-        const promise = fetch('/api/indi/mount', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'jog', direction, state: 'start', ip: bridgeIp })
-        }).then(async (res) => {
-            if (!res.ok) {
-                const data = await res.json().catch(() => ({}));
-                throw new Error(data.error || `HTTP ${res.status}`);
-            }
-        }).catch((err) => {
-            notification.error("Échec du déplacement", {
-              description: err?.message || "Impossible de déplacer la monture",
-              source: "Monture",
-            });
-        });
-        
-        pendingStartPromiseRef.current = promise;
-    };
-
-    const stopJog = async (direction: 'up' | 'down' | 'left' | 'right') => {
-        const dir = activeDirectionRef.current;
-        if (!dir) return;
-        activeDirectionRef.current = null;
-
-        if (pendingStartPromiseRef.current) {
-            await pendingStartPromiseRef.current;
-            pendingStartPromiseRef.current = null;
-        }
-
-        const bridgeIp = config.astroberryUrl.replace('http://', '').replace(':8624', '');
-        fetch('/api/indi/mount', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'jog', direction: dir, state: 'stop', ip: bridgeIp })
-        }).then(() => {
-            setSlewing(false);
-            setIsMoving(false);
-        }).catch((err) => {
-            notification.warning("Échec de l'arrêt", {
-              description: err?.message || "Impossible d'arrêter le déplacement",
-              source: "Monture",
-            });
-            setSlewing(false);
-            setIsMoving(false);
-        });
-    };
 
     const getStepHint = () => {
         switch (step) {
@@ -152,9 +97,9 @@ export const MountCalibration = () => {
                             <Text>{mountLimits.minAz.toFixed(1)}° ➔ {mountLimits.maxAz.toFixed(1)}°</Text>
                         </VStack>
                     </HStack>
-                    
-                    <Button 
-                        size="sm" w="full" bg="rgba(255, 51, 51, 0.1)" 
+
+                    <Button
+                        size="sm" w="full" bg="rgba(255, 51, 51, 0.1)"
                         border="1px solid var(--astro-teal)" color="var(--astro-teal)"
                         _hover={{ bg: "var(--astro-teal)", color: "black", boxShadow: "0 0 15px rgba(255, 51, 51, 0.4)" }}
                         fontSize="10px"
@@ -174,35 +119,17 @@ export const MountCalibration = () => {
                     </HStack>
                     <Text fontSize="10px" lineHeight={1.4}>{getStepInstruction()}</Text>
                     <Text fontSize="9px" color="var(--astro-teal)" fontStyle="italic">{getStepHint()}</Text>
-                    
+
                     <HStack justify="center" gap={2} py={2}>
-                        {step.includes("Alt") ? (
-                            <VStack gap={1}>
-                                <Button size="sm" variant="outline" borderColor="var(--astro-teal)" color="var(--astro-teal)" w="50px" h="40px" 
-                                    onPointerDown={(e) => { e.preventDefault(); startJog('up'); }}
-                                    onPointerUp={(e) => { e.preventDefault(); stopJog('up'); }}
-                                    onPointerLeave={(e) => { e.preventDefault(); stopJog('up'); }}><ArrowUp size={16} /></Button>
-                                <Text fontSize="8px" opacity={0.6}>UP</Text>
-                                <Button size="sm" variant="outline" borderColor="var(--astro-teal)" color="var(--astro-teal)" w="50px" h="40px" 
-                                    onPointerDown={(e) => { e.preventDefault(); startJog('down'); }}
-                                    onPointerUp={(e) => { e.preventDefault(); stopJog('down'); }}
-                                    onPointerLeave={(e) => { e.preventDefault(); stopJog('down'); }}><ArrowDown size={16} /></Button>
-                            </VStack>
-                        ) : (
-                            <HStack gap={1}>
-                                <Button size="sm" variant="outline" borderColor="var(--astro-teal)" color="var(--astro-teal)" w="50px" h="40px" 
-                                    onPointerDown={(e) => { e.preventDefault(); startJog('left'); }}
-                                    onPointerUp={(e) => { e.preventDefault(); stopJog('left'); }}
-                                    onPointerLeave={(e) => { e.preventDefault(); stopJog('left'); }}><ArrowLeft size={16} /></Button>
-                                <Text fontSize="8px" opacity={0.6}>AZ</Text>
-                                <Button size="sm" variant="outline" borderColor="var(--astro-teal)" color="var(--astro-teal)" w="50px" h="40px" 
-                                    onPointerDown={(e) => { e.preventDefault(); startJog('right'); }}
-                                    onPointerUp={(e) => { e.preventDefault(); stopJog('right'); }}
-                                    onPointerLeave={(e) => { e.preventDefault(); stopJog('right'); }}><ArrowRight size={16} /></Button>
-                            </HStack>
+                        {jog.activeDir && (
+                            <Text fontSize="8px" color="var(--astro-teal)" fontWeight="bold"
+                                style={{ animation: 'pulse 0.6s infinite alternate' }}>
+                                ▶ {jog.activeDir.toUpperCase()}
+                            </Text>
                         )}
+                        <JogPad jog={jog} size="md" />
                     </HStack>
-                    
+
                     <HStack justify="space-between" bg="#030509" p={2} borderRadius="4px" border="1px solid rgba(255,255,255,0.05)">
                         <VStack align="start" gap={0}>
                             <Text fontSize="8px" opacity={0.6}>{t("CALIB_CURRENT_POS", language)}</Text>
@@ -210,20 +137,20 @@ export const MountCalibration = () => {
                                 {step.includes("Alt") ? `ALT: ${alt.toFixed(1)}°` : `AZ: ${az.toFixed(1)}°`}
                             </Text>
                         </VStack>
-                        <Button 
+                        <Button
                             size="sm" bg="var(--astro-teal)" color="black"
                             _hover={{ bg: "white" }}
                             onClick={handleSaveLimit}
-                            disabled={isMoving}
+                            disabled={jog.isMoving}
                         >
                             {t("CALIB_VALIDATE", language)}
                         </Button>
                     </HStack>
 
-                    <Button 
+                    <Button
                         size="xs" variant="ghost" color="whiteAlpha.600" mt={1}
                         onClick={() => setStep("idle")}
-                        disabled={isMoving}
+                        disabled={jog.isMoving}
                     >
                         {t("CALIB_CANCEL", language)}
                     </Button>

@@ -68,6 +68,8 @@ interface StargazerState {
     detectedCcd: string;
     detectedMount: string;
     selectedObjectId: string | null;
+    trackingRate: "SIDEREAL" | "LUNAR" | "SOLAR";
+    isConfigMenuOpen: boolean;
 
     setLanguage: (lang: "en" | "fr") => void;
     setConnected: (status: boolean) => void;
@@ -87,6 +89,8 @@ interface StargazerState {
     setMountLimits: (limits: Partial<MountLimits>) => void;
     setDetectedDevices: (ccd: string, mount: string) => void;
     setSelectedObjectId: (id: string | null) => void;
+    setTrackingRate: (rate: "SIDEREAL" | "LUNAR" | "SOLAR") => void;
+    setConfigMenuOpen: (isOpen: boolean) => void;
 
     // Legacy compat — derived from sessionState
     isSlewing: boolean;
@@ -151,6 +155,8 @@ export const useStargazerStore = create<StargazerState>()(
             detectedCcd: "Canon DSLR EOS 600D", // Default
             detectedMount: "Celestron GPS", // Default
             selectedObjectId: null,
+            trackingRate: "SIDEREAL" as "SIDEREAL" | "LUNAR" | "SOLAR",
+            isConfigMenuOpen: false,
             targets: [
                 { id: "1", name: "M42 - Orion Nebula", type: "Nebula", ra: "05h 35m", dec: "-05° 23'" },
                 { id: "2", name: "M31 - Andromeda Galaxy", type: "Galaxy", ra: "00h 42m", dec: "+41° 16'" },
@@ -224,6 +230,8 @@ export const useStargazerStore = create<StargazerState>()(
             setMountLimits: (limits) => set((state) => ({ mountLimits: { ...state.mountLimits, ...limits } })),
             setDetectedDevices: (detectedCcd, detectedMount) => set({ detectedCcd, detectedMount }),
             setSelectedObjectId: (selectedObjectId) => set({ selectedObjectId }),
+            setTrackingRate: (trackingRate) => set({ trackingRate }),
+            setConfigMenuOpen: (isOpen) => set({ isConfigMenuOpen: isOpen }),
         }),
         {
             name: 'stargazer-storage',
@@ -237,7 +245,8 @@ export const useStargazerStore = create<StargazerState>()(
                 az: state.az,
                 ra: state.ra,
                 dec: state.dec,
-                selectedObjectId: state.selectedObjectId
+                selectedObjectId: state.selectedObjectId,
+                trackingRate: state.trackingRate,
             })
         }
     )

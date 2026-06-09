@@ -8,6 +8,12 @@ export const metadata: Metadata = {
     description: "Advanced Telescope & Camera Control System",
 };
 
+export const viewport = {
+    width: "device-width",
+    initialScale: 1,
+    viewportFit: "cover",          // lets dvh reach behind Safari notch/toolbar
+};
+
 export default function RootLayout({
     children,
 }: {
