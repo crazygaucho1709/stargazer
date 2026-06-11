@@ -8,6 +8,7 @@
  *  - RA transmis en degrés (la route Next.js convertit automatiquement en heures)
  *  - Toutes les erreurs sont affichées via notification (zéro silence)
  *  - isSlewing reflété dans le store Zustand global
+ *  - waitForSlew s'abonne au SSE /coords/stream — zéro polling HTTP
  */
 
 import { useRef, useState, useCallback } from "react";
@@ -21,7 +22,7 @@ export interface UseGoToReturn {
   /** Annule le slew en cours. */
   abort: () => Promise<void>;
   /**
-   * Attend la fin du slew par polling INDI.
+   * Attend la fin du slew via SSE /coords/stream.
    * Retourne true si IDLE avant le timeout, false si timeout ou abort.
    */
   waitForSlew: (timeoutSec?: number) => Promise<boolean>;
@@ -29,7 +30,7 @@ export interface UseGoToReturn {
 }
 
 export function useGoTo(): UseGoToReturn {
-  const { config, detectedMount, setSlewing, setPosition } = useStargazerStore();
+  const { config, detectedMount, setSlewing } = useStargazerStore();
   const [isSlewing, setIsSlewing] = useState(false);
   const abortRef = useRef(false);
   const gotoAbortRef = useRef<AbortController | null>(null);
@@ -117,55 +118,77 @@ export function useGoTo(): UseGoToReturn {
   }, [config.astroberryUrl, getDevice, setSlewing]);
 
   const waitForSlew = useCallback(
-    async (timeoutSec = 90): Promise<boolean> => {
-      // Petite pause initiale : le mount met ~1-2s avant de passer en Busy
-      await new Promise((r) => setTimeout(r, 2000));
+    (timeoutSec = 90): Promise<boolean> =>
+      new Promise<boolean>((resolve) => {
+        let wasSlewing = false;
+        let settled = false;
+        let es: EventSource | null = null;
+        let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
-      const deadline = Date.now() + timeoutSec * 1000;
-      while (Date.now() < deadline) {
-        if (abortRef.current) {
+        const finish = (result: boolean) => {
+          if (settled) return;
+          settled = true;
+          if (timeoutId) clearTimeout(timeoutId);
+          es?.close();
           setIsSlewing(false);
           setSlewing(false);
-          return false;
-        }
+          resolve(result);
+        };
 
-        try {
-          const res = await fetch(clientApiUrl("/api/indi?endpoint=status"), {
-            cache: "no-store",
+        // Garde-fou global
+        timeoutId = setTimeout(() => {
+          notification.error("Timeout GoTo", {
+            description: `Le pointage n'a pas abouti en ${timeoutSec}s`,
+            source: "Monture",
           });
-          if (res.ok) {
-            const s = (await res.json()).mount_slew_state as string | undefined;
-            if (s === "Idle" || s === "Ok" || s === "Not Aligned") {
-              setIsSlewing(false);
-              setSlewing(false);
-              return true;
-            }
-            if (s === "Error") {
-              notification.error("Erreur de pointage", {
-                description: "Le mount a signalé une erreur pendant le slew",
-                source: "Monture",
-              });
-              setIsSlewing(false);
-              setSlewing(false);
-              return false;
-            }
-          }
-        } catch {
-          // Réseau temporairement indisponible — on réessaie
-        }
+          finish(false);
+        }, timeoutSec * 1000);
 
-        await new Promise((r) => setTimeout(r, 2000));
-      }
+        // Courte grâce pour que le NexStar passe en Busy (~200ms de latence firmware)
+        setTimeout(() => {
+          if (abortRef.current) { finish(false); return; }
 
-      // Timeout
-      notification.error("Timeout GoTo", {
-        description: `Le pointage n'a pas abouti en ${timeoutSec}s`,
-        source: "Monture",
-      });
-      setIsSlewing(false);
-      setSlewing(false);
-      return false;
-    },
+          es = new EventSource(clientApiUrl("/api/indi/coords/stream"));
+
+          es.onmessage = (evt) => {
+            if (abortRef.current) { finish(false); return; }
+            try {
+              const data = JSON.parse(evt.data) as {
+                mount_slew_state?: string;
+                error?: string;
+              };
+              if (data.error) return; // backend temporairement indispo — ignorer
+
+              const state = data.mount_slew_state;
+              if (state === "Busy") {
+                wasSlewing = true;
+              } else if (state && wasSlewing) {
+                // Était en cours → vient de se terminer
+                if (state === "Error") {
+                  notification.error("Erreur de pointage", {
+                    description: "Le mount a signalé une erreur pendant le slew",
+                    source: "Monture",
+                  });
+                  finish(false);
+                } else {
+                  // Idle, Ok, Not Aligned — arrivé à destination
+                  finish(true);
+                }
+              }
+            } catch {
+              // Donnée SSE malformée — ignorer
+            }
+          };
+
+          es.onerror = () => {
+            notification.error("Stream SSE perdu pendant le slew", {
+              description: "Connexion interrompue — statut du pointage inconnu",
+              source: "Monture",
+            });
+            finish(false);
+          };
+        }, 300);
+      }),
     [setSlewing]
   );
 

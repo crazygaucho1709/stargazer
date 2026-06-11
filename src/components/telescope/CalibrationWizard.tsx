@@ -79,6 +79,8 @@ export const CalibrationWizard = () => {
   const [selectedStar, setSelectedStar] = useState(BRIGHT_STARS[0]);
   const [imageTime, setImageTime] = useState(Date.now());
   const [starAltAz, setStarAltAz] = useState<{alt: number, az: number} | null>(null);
+  // Track which limits were recorded in this wizard session
+  const [recordedInSession, setRecordedInSession] = useState<Set<string>>(new Set());
 
   const { execute: performAction, isPending, error: actionError } = useAstroAction();
   const jog = useJog();
@@ -294,6 +296,7 @@ export const CalibrationWizard = () => {
   const saveMaxAlt = async () => {
     const currentAlt = await getCurrentAlt();
     setMountLimits({ ...mountLimits, maxAlt: currentAlt });
+    setRecordedInSession(prev => new Set(prev).add('maxAlt'));
     setStep({
       step: 'limits-alt-min',
       isWaitingUser: true,
@@ -305,6 +308,7 @@ export const CalibrationWizard = () => {
   const saveMinAlt = async () => {
     const currentAlt = await getCurrentAlt();
     setMountLimits({ ...mountLimits, minAlt: currentAlt });
+    setRecordedInSession(prev => new Set(prev).add('minAlt'));
     setStep({
       step: 'limits-az-max',
       isWaitingUser: true,
@@ -316,6 +320,7 @@ export const CalibrationWizard = () => {
   const saveMaxAz = async () => {
     const currentAz = await getCurrentAz();
     setMountLimits({ ...mountLimits, maxAz: currentAz });
+    setRecordedInSession(prev => new Set(prev).add('maxAz'));
     setStep({
       step: 'limits-az-min',
       isWaitingUser: true,
@@ -328,13 +333,17 @@ export const CalibrationWizard = () => {
     const currentAz = await getCurrentAz();
     const finalLimits = { ...mountLimits, minAz: currentAz };
     setMountLimits(finalLimits);
-    
+    setRecordedInSession(prev => new Set(prev).add('minAz'));
+
     // Persist limits to backend config.json
     fetch('/api/indi/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mountLimits: finalLimits })
-    }).catch(console.error);
+    }).catch((err: Error) => notification.error("Sauvegarde limites échouée", {
+        description: err?.message || "Impossible d'écrire config.json",
+        source: "Calibration",
+    }));
 
     setStep({
       step: 'camera-test',
@@ -374,6 +383,7 @@ export const CalibrationWizard = () => {
 
   const reset = () => {
     setStep({ step: 'idle', isWaitingUser: false, message: '', instruction: '' });
+    setRecordedInSession(new Set());
   };
   
 
@@ -459,6 +469,59 @@ export const CalibrationWizard = () => {
         <Text fontSize="12px" fontWeight="bold" color="white" mb={1}>{step.message}</Text>
         <Text fontSize="10px" color="whiteAlpha.700" lineHeight="1.4">{step.instruction}</Text>
       </Box>
+
+      {/* Limits Dashboard — visible dès le début des étapes limites */}
+      {['limits-alt-max', 'limits-alt-min', 'limits-az-max', 'limits-az-min', 'camera-test', 'alignment', 'complete'].includes(step.step) && (
+        <Box p={3} bg="rgba(0,0,0,0.3)" borderRadius="4px" border="1px solid rgba(0,255,209,0.12)">
+          <HStack justify="space-between" mb={2}>
+            <Text fontSize="9px" fontWeight="bold" letterSpacing="0.12em" color="whiteAlpha.400">SLEW LIMITS</Text>
+            <Text fontSize="9px" color="whiteAlpha.300">{recordedInSession.size}/4 enregistrées</Text>
+          </HStack>
+          <Grid templateColumns="repeat(2, 1fr)" gap={1.5}>
+            {([
+              { key: 'maxAlt', limitStep: 'limits-alt-max', label: 'ALT MAX', value: mountLimits.maxAlt },
+              { key: 'minAlt', limitStep: 'limits-alt-min', label: 'ALT MIN',  value: mountLimits.minAlt },
+              { key: 'maxAz',  limitStep: 'limits-az-max',  label: 'AZ MAX',   value: mountLimits.maxAz },
+              { key: 'minAz',  limitStep: 'limits-az-min',  label: 'AZ MIN',   value: mountLimits.minAz },
+            ] as { key: string; limitStep: string; label: string; value: number }[]).map(({ key, limitStep, label, value }) => {
+              const isCurrent = step.step === limitStep;
+              const isDone = recordedInSession.has(key);
+              return (
+                <HStack
+                  key={key}
+                  p={2}
+                  bg={isCurrent ? 'rgba(0,255,209,0.08)' : 'rgba(255,255,255,0.02)'}
+                  borderRadius="4px"
+                  border={`1px solid ${isCurrent ? 'rgba(0,255,209,0.35)' : isDone ? 'rgba(72,199,142,0.3)' : 'rgba(255,255,255,0.05)'}`}
+                  gap={1.5}
+                >
+                  <Icon
+                    as={isDone ? CheckCircle2 : isCurrent ? Target : MapPin}
+                    boxSize={3}
+                    color={isDone ? 'green.400' : isCurrent ? 'var(--astro-teal)' : 'whiteAlpha.200'}
+                  />
+                  <VStack gap={0} align="start" flex={1} minW={0}>
+                    <Text fontSize="8px" color="whiteAlpha.400" letterSpacing="0.06em">{label}</Text>
+                    <Text
+                      fontSize="11px"
+                      fontWeight="bold"
+                      fontFamily="monospace"
+                      color={isDone ? 'green.300' : isCurrent ? 'var(--astro-teal)' : 'whiteAlpha.400'}
+                    >
+                      {`${value.toFixed(1)}°`}
+                    </Text>
+                  </VStack>
+                  {isDone ? (
+                    <Badge fontSize="7px" bg="green.800" color="green.300" px={1}>NEW</Badge>
+                  ) : (
+                    <Badge fontSize="7px" bg="rgba(255,255,255,0.05)" color="whiteAlpha.400" px={1}>SAVED</Badge>
+                  )}
+                </HStack>
+              );
+            })}
+          </Grid>
+        </Box>
+      )}
 
       {/* Live View HUD */}
       {videoActive && (

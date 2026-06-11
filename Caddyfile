@@ -5,7 +5,7 @@
 #
 # Ce fichier est lancé par PM2 (process: stargazer-https).
 
-macmini.local:8443 {
+macmini.local:8443, 192.168.178.110:8443, localhost:8443 {
     tls certs/stargazer.pem certs/stargazer-key.pem
 
     # WebSocket phone-sensor → FastAPI:5005

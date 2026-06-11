@@ -1,13 +1,14 @@
 "use client";
 
 /**
- * useJog — source unique de vérité pour le pilotage directionnel de la monture.
+ * useJog — pilotage directionnel de la monture.
  *
- * Règles :
- *  - Tous les pulses partagent le même AbortController → abort() les annule TOUS ensemble
- *  - Intervalle 800ms (< 1200ms watchdog backend) pour laisser de la marge au STOP
- *  - STOP envoyé SANS signal (non annulable) avec timestamp +9999ms pour écraser tout pulse tardif
- *  - Toute erreur est affichée via notification (zéro silence)
+ * Protocole :
+ *  - onPointerDown → startJog(dir) : envoie START immédiatement, puis un pulse
+ *    toutes les 800ms pour maintenir le watchdog backend (1.5s) en vie.
+ *  - onPointerUp   → stopJog()     : coupe l'intervalle, envoie STOP.
+ *  - Pas de timestamp, pas de lock asyncio côté backend → STOP est toujours
+ *    traité immédiatement, indépendamment des pulses en vol.
  */
 
 import { useRef, useState, useEffect, useCallback } from "react";
@@ -31,21 +32,18 @@ export function useJog(): UseJogReturn {
   const [activeDir, setActiveDir] = useState<JogDirection | null>(null);
   const [isMoving, setIsMoving] = useState(false);
 
-  const activeDirRef   = useRef<JogDirection | null>(null);
-  const jogAbortRef    = useRef<AbortController | null>(null);
-  const jogIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const activeDirRef    = useRef<JogDirection | null>(null);
+  const intervalRef     = useRef<NodeJS.Timeout | null>(null);
+  const startAbortRef   = useRef<AbortController | null>(null);
 
-  // Nettoyage au démontage du composant
   useEffect(() => {
     return () => {
-      jogAbortRef.current?.abort();
-      if (jogIntervalRef.current) clearInterval(jogIntervalRef.current);
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      startAbortRef.current?.abort();
     };
   }, []);
 
-  /** Extrait hostname + device depuis le store */
   const getParams = useCallback(() => {
-    // Supporte "astroberry.local", "http://astroberry.local:8624", "192.168.1.x"
     const bridgeIp = config.astroberryUrl
       .replace(/^https?:\/\//, "")
       .replace(/:\d+$/, "");
@@ -53,73 +51,65 @@ export function useJog(): UseJogReturn {
     return { bridgeIp, device };
   }, [config.astroberryUrl, config.driverInstance, detectedMount]);
 
+  /** Envoie un pulse START (fire-and-forget, ignoré si AbortSignal révoqué). */
+  const sendStart = useCallback(
+    (direction: JogDirection, signal: AbortSignal) => {
+      const { bridgeIp, device } = getParams();
+      fetch("/api/indi/mount", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal,
+        body: JSON.stringify({ action: "jog", direction, state: "start", device, ip: bridgeIp }),
+      })
+        .then(async (res) => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
+          const data = await res.json();
+          if (data && !data.success) throw new Error(data.error || "Erreur inconnue");
+        })
+        .catch((err) => {
+          if (err?.name === "AbortError") return; // normal à l'arrêt
+          notification.error("Échec du déplacement", {
+            description: err?.message || "Impossible de déplacer la monture",
+            source: "Monture",
+          });
+          setIsMoving(false);
+          setSlewing(false);
+        });
+    },
+    [getParams, setSlewing]
+  );
+
   const startJog = useCallback(
     (direction: JogDirection) => {
-      // Annuler le jog précédent s'il existe
-      if (jogIntervalRef.current) clearInterval(jogIntervalRef.current);
-      jogAbortRef.current?.abort();
+      // Arrêter un jog précédent si nécessaire
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      startAbortRef.current?.abort();
 
       const controller = new AbortController();
-      jogAbortRef.current  = controller;
+      startAbortRef.current = controller;
       activeDirRef.current = direction;
       setActiveDir(direction);
       setIsMoving(true);
       setSlewing(true);
 
-      const { bridgeIp, device } = getParams();
-
-      // Tous les pulses utilisent le même controller → un seul abort() les arrête tous
-      const sendPulse = () => {
-        fetch("/api/indi/mount", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          signal: controller.signal,
-          body: JSON.stringify({
-            action: "jog",
-            direction,
-            state: "start",
-            device,
-            ip: bridgeIp,
-            timestamp: Date.now(),
-          }),
-        })
-          .then(async (res) => {
-            if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
-            const data = await res.json();
-            if (data && !data.success) throw new Error(data.error || "Erreur inconnue");
-          })
-          .catch((err) => {
-            if (err?.name === "AbortError") return; // Normal à l'arrêt
-            notification.error("Échec du déplacement", {
-              description: err?.message || "Impossible de déplacer la monture",
-              source: "Monture",
-            });
-            setIsMoving(false);
-            setSlewing(false);
-          });
-      };
-
       // Premier pulse immédiat
-      sendPulse();
+      sendStart(direction, controller.signal);
 
-      // 800ms < 1200ms watchdog backend — laisse de la marge avant timeout
-      jogIntervalRef.current = setInterval(() => {
+      // Pulses suivants toutes les 800ms (< watchdog 1.5s) pour maintenir le mouvement
+      intervalRef.current = setInterval(() => {
         if (activeDirRef.current === direction) {
-          sendPulse();
-        } else {
-          clearInterval(jogIntervalRef.current!);
-          jogIntervalRef.current = null;
+          sendStart(direction, controller.signal);
         }
       }, 800);
     },
-    [getParams, setSlewing]
+    [sendStart, setSlewing]
   );
 
   const stopJog = useCallback(() => {
-    // 1. Arrêter l'intervalle
-    if (jogIntervalRef.current) {
-      clearInterval(jogIntervalRef.current);
-      jogIntervalRef.current = null;
+    // 1. Couper l'intervalle
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
     }
 
     const dir = activeDirRef.current;
@@ -127,24 +117,17 @@ export function useJog(): UseJogReturn {
     activeDirRef.current = null;
     setActiveDir(null);
 
-    // 2. Annuler TOUS les pulses en vol avant d'envoyer STOP
-    jogAbortRef.current?.abort();
-    jogAbortRef.current = null;
+    // 2. Annuler les pulses en vol (le backend les ignore de toute façon car STOP arrive après)
+    startAbortRef.current?.abort();
+    startAbortRef.current = null;
 
     const { bridgeIp, device } = getParams();
 
-    // 3. STOP sans signal (non annulable) + timestamp futur pour écraser tout pulse tardif
+    // 3. STOP — pas de signal abort, doit arriver coûte que coûte
     fetch("/api/indi/mount", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "jog",
-        direction: dir,
-        state: "stop",
-        device,
-        ip: bridgeIp,
-        timestamp: Date.now() + 9999,
-      }),
+      body: JSON.stringify({ action: "jog", direction: dir, state: "stop", device, ip: bridgeIp }),
     })
       .then(async (res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
@@ -152,14 +135,14 @@ export function useJog(): UseJogReturn {
         if (data && !data.success) throw new Error(data.error || "Erreur inconnue");
       })
       .catch((err) => {
-        notification.error("❌ Arrêt de la monture échoué", {
-          description: err?.message || "Impossible d'arrêter le déplacement — vérifiez INDI",
+        notification.error("❌ Arrêt monture échoué", {
+          description: err?.message || "Impossible d'arrêter la monture — vérifiez INDI",
           source: "Monture",
         });
       })
       .finally(() => {
-        setSlewing(false);
         setIsMoving(false);
+        setSlewing(false);
       });
   }, [getParams, setSlewing]);
 

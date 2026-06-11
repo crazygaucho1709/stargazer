@@ -50,7 +50,7 @@ export function useMountCoords() {
           // Sync l'état de slew dans le store si disponible
           if (data.mount_slew_state) {
             const store = useStargazerStore.getState();
-            const nowSlewing = data.mount_slew_state === "Slewing";
+            const nowSlewing = data.mount_slew_state === "Busy";
             if (store.isSlewing !== nowSlewing) {
               store.setSlewing?.(nowSlewing);
             }

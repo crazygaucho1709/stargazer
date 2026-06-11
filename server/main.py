@@ -31,6 +31,7 @@ conf.auto_max_age = None
 conf.auto_download = False  # Pas de téléchargement IERS — évite le timeout 9s sur LAN sans internet
 from starlette.responses import StreamingResponse, PlainTextResponse
 import collections
+from typing import Optional
 import astroberry as raspi
 import psutil
 from concurrent.futures import ThreadPoolExecutor
@@ -43,12 +44,12 @@ cached_astroberry_status = {"reachable": False, "error": "Initializing..."}
 status_lock = threading.Lock()
 executor = ThreadPoolExecutor(max_workers=2)
 
-# --- JOG WATCHDOG STATE ---
-jog_lock = threading.Lock()
-jog_timer = None
-current_jog_direction = None
-latest_jog_timestamp = 0.0
-jog_endpoint_lock = asyncio.Lock()
+# --- JOG STATE ---
+# Simple watchdog: fires if no heartbeat for 1.5s (safety stop).
+# No asyncio lock — indi.send() is already thread-safe via socket_lock.
+_jog_wd_lock = threading.Lock()
+_jog_wd_timer: Optional[threading.Timer] = None
+_jog_current_dir: Optional[str] = None
 
 BACKEND_VERSION = "2026-05-17-V1"
 BACKEND_START_TIME = datetime.now(timezone.utc)
@@ -83,6 +84,40 @@ Path(STORAGE_PATH).mkdir(parents=True, exist_ok=True)
 Path(THUMBNAIL_PATH).mkdir(parents=True, exist_ok=True)
 
 app = FastAPI(title="Stargazer Backend")
+
+
+@app.on_event("startup")
+async def disable_gvfs_gphoto_on_pi():
+    """Kill and permanently disable gvfs-gphoto2-volume-monitor on the Pi at backend startup.
+
+    This daemon grabs an exclusive libgphoto2 lock on the Canon as soon as it
+    detects the USB device, preventing the INDI gphoto driver from connecting.
+    We disable its GNOME autostart entry so it never respawns after a pkill.
+    Safe: has no effect if Astroberry is unreachable (SSH failure is silently swallowed).
+    """
+    def _run():
+        try:
+            result = raspi._run(
+                # 1. Kill any running instance
+                "pkill -9 gvfs-gphoto2-volume-monitor 2>/dev/null || true; "
+                "pkill -9 gvfsd-gphoto2 2>/dev/null || true; "
+                # 2. Permanently hide the autostart entry so GNOME never relaunches it
+                "mkdir -p ~/.config/autostart && "
+                "printf '[Desktop Entry]\\nType=Application\\nHidden=true\\n' "
+                "> ~/.config/autostart/gvfs-gphoto2-volume-monitor.desktop; "
+                "echo OK",
+                timeout=10,
+            )
+            if result.get("exit_code") == -1:
+                logger.warning(f"[Startup] gvfs disable: SSH unreachable — {result.get('stderr', '')[:80]}")
+            else:
+                logger.info("[Startup] gvfs-gphoto2 killed and disabled on Astroberry")
+        except Exception as exc:
+            logger.warning(f"[Startup] gvfs disable raised: {exc}")
+
+    loop = asyncio.get_event_loop()
+    loop.run_in_executor(executor, _run)
+
 
 # Import and include framing WebSocket router
 try:
@@ -425,11 +460,16 @@ class INDIClient:
                 )
                 time.sleep(0.2)
             
-            # 4. Mount-specific optimizations (slow down polling to avoid serial timeouts)
-            if any(kw in device for kw in ["Celestron", "GPS", "NexStar", "Mount"]):
-                 self.send(f'<newNumberVector device="{device}" name="POLLING_PERIOD"><oneNumber name="PERIOD">10.0</oneNumber></newNumberVector>')
-                 self.send(f'<newSwitchVector device="{device}" name="TELESCOPE_ABORT_MOTION"><oneSwitch name="ABORT">On</oneSwitch></newSwitchVector>')
-            
+            # 4. Mount-specific: reduce polling period for responsive state feedback.
+            #    2 s is fast enough for the NexStar serial link without flooding it.
+            #    Do NOT send TRACK_SIDEREAL here — the Celestron GPS driver activates
+            #    sidereal tracking automatically after a successful connection and the
+            #    TRACK command causes a multi-second "Busy" window that blocks jog.
+            is_mount = any(kw in device for kw in ["Celestron", "GPS", "NexStar", "Mount"])
+            if is_mount:
+                self.send(f'<newNumberVector device="{device}" name="POLLING_PERIOD">'
+                          f'<oneNumber name="PERIOD">2.0</oneNumber></newNumberVector>')
+
             # 5. THE FINAL SWITCH: Trigger the actual connection
             self.send(
                 f'<newSwitchVector device="{device}" name="CONNECTION">'
@@ -965,131 +1005,108 @@ async def debug_properties():
         "properties": indi.devices if hasattr(indi, "devices") else {}
     }
 
+def _jog_send_stop(device: str) -> None:
+    """Hard-stop the mount. Called from watchdog thread or stop request.
+
+    Uses TELESCOPE_ABORT_MOTION (same as /mount/abort): the Celestron GPS
+    driver processes it immediately, whereas MOTION_NS/WE Off can be
+    deferred for several seconds while a motion pulse is in flight."""
+    global indi
+    if not (indi and indi.connected):
+        return
+    logger.info("JOG STOP → ABORT_MOTION")
+    indi.send(
+        f'<newSwitchVector device="{device}" name="TELESCOPE_ABORT_MOTION">'
+        f'<oneSwitch name="ABORT">On</oneSwitch>'
+        f'</newSwitchVector>'
+    )
+
+
+def _jog_arm_watchdog(device: str, timeout: float = 1.5) -> None:
+    """Reset the safety watchdog. Must be called on every START pulse."""
+    global _jog_wd_timer
+    with _jog_wd_lock:
+        if _jog_wd_timer:
+            _jog_wd_timer.cancel()
+        t = threading.Timer(timeout, _jog_send_stop, args=[device])
+        t.daemon = True
+        t.start()
+        _jog_wd_timer = t
+
+
+def _jog_cancel_watchdog() -> None:
+    global _jog_wd_timer
+    with _jog_wd_lock:
+        if _jog_wd_timer:
+            _jog_wd_timer.cancel()
+            _jog_wd_timer = None
+
+
 @app.post("/mount/jog")
 async def mount_jog(req: JogRequest):
-    global indi, jog_timer, current_jog_direction, latest_jog_timestamp
+    """
+    Jog the mount directionally.
+
+    Design principles:
+    - NO asyncio lock: indi.send() is already thread-safe via socket_lock.
+      An asyncio lock was the root cause of STOP commands being queued
+      behind START commands and arriving too late (mount ran uncontrolled).
+    - NO timestamp filtering: eliminated the 10-second blackout bug where
+      STOP's future timestamp blocked all subsequent STARTs.
+    - Watchdog: 1.5s timer fires _jog_send_stop() if no heartbeat received.
+      Frontend sends START pulses every 800ms to keep the watchdog alive.
+    - STOP: always processed immediately, directly on executor, no waiting.
+    """
+    global indi, _jog_current_dir
     try:
-        device = indi.device_mount if (indi and indi.device_mount) else "Celestron GPS"
         if not indi or not indi.connected:
             return {"success": False, "error": "Matériel déconnecté"}
-
-        # 1. Sequence/timestamp check under a light lock
-        if req.timestamp > 0.0:
-            with jog_lock:
-                if req.timestamp < latest_jog_timestamp:
-                    logger.warning(
-                        f"Ignoring out-of-order jog request: state={req.state}, direction={req.direction}, "
-                        f"req.timestamp={req.timestamp} < latest_jog_timestamp={latest_jog_timestamp}"
-                    )
-                    return {"success": True, "ignored": True}
-                latest_jog_timestamp = req.timestamp
-
-        # Capture running event loop for scheduling watchdog events on it
+        device = indi.device_mount if indi.device_mount else "Celestron GPS"
         loop = asyncio.get_running_loop()
 
-        # 2. Serialize all execution (especially socket writes) using asyncio lock
-        async with jog_endpoint_lock:
-            # Define the stop helper
-            def send_stop_command():
-                global current_jog_direction, jog_timer
-                logger.info("Watchdog or stop command: halting mount motion")
-                stop_ns = f'<newSwitchVector device="{device}" name="TELESCOPE_MOTION_NS"><oneSwitch name="MOTION_NORTH">Off</oneSwitch><oneSwitch name="MOTION_SOUTH">Off</oneSwitch></newSwitchVector>'
-                stop_we = f'<newSwitchVector device="{device}" name="TELESCOPE_MOTION_WE"><oneSwitch name="MOTION_EAST">Off</oneSwitch><oneSwitch name="MOTION_WEST">Off</oneSwitch></newSwitchVector>'
-                indi.send(stop_ns)
-                indi.send(stop_we)
-                with jog_lock:
-                    current_jog_direction = None
-                    if jog_timer:
-                        jog_timer.cancel()
-                        jog_timer = None
-
-            def trigger_watchdog_stop():
-                logger.warning("Watchdog timer expired! Scheduling STOP command safely on event loop.")
-                # Schedule a call to mount_jog with state='stop' on the main event loop
-                mock_req = JogRequest(
-                    direction="up",
-                    state="stop",
-                    device=device,
-                    timestamp=time.time() * 1000
-                )
-                asyncio.run_coroutine_threadsafe(mount_jog(mock_req), loop)
-
-            if req.state == "stop":
-                with jog_lock:
-                    if jog_timer:
-                        jog_timer.cancel()
-                        jog_timer = None
-                # Execute stop synchronously relative to other loop operations
-                await loop.run_in_executor(None, send_stop_command)
-                return {"success": True}
-
-            # Otherwise, state is "start"
-            with jog_lock:
-                # Check if we are already moving in the requested direction
-                if current_jog_direction == req.direction:
-                    # Reset the watchdog timer
-                    if jog_timer:
-                        jog_timer.cancel()
-                    jog_timer = threading.Timer(1.2, trigger_watchdog_stop)
-                    jog_timer.daemon = True
-                    jog_timer.start()
-                    return {"success": True}
-
-                # Direction changed or starting fresh: cancel existing timer
-                if jog_timer:
-                    jog_timer.cancel()
-                    jog_timer = None
-
-                current_jog_direction = req.direction
-
-                # Split direction to support diagonals (e.g. "up-left")
-                directions = req.direction.split("-")
-                xmls = []
-                for d in directions:
-                    if d == "up":
-                        prop, val = "TELESCOPE_MOTION_NS", "MOTION_SOUTH"
-                    elif d == "down":
-                        prop, val = "TELESCOPE_MOTION_NS", "MOTION_NORTH"
-                    elif d == "left":
-                        prop, val = "TELESCOPE_MOTION_WE", "MOTION_EAST"
-                    elif d == "right":
-                        prop, val = "TELESCOPE_MOTION_WE", "MOTION_WEST"
-                    else:
-                        continue
-
-                    if prop == "TELESCOPE_MOTION_NS":
-                        opposite_val = "MOTION_NORTH" if val == "MOTION_SOUTH" else "MOTION_SOUTH"
-                        xml = f'<newSwitchVector device="{device}" name="{prop}"><oneSwitch name="{val}">On</oneSwitch><oneSwitch name="{opposite_val}">Off</oneSwitch></newSwitchVector>'
-                    else:
-                        opposite_val = "MOTION_EAST" if val == "MOTION_WEST" else "MOTION_WEST"
-                        xml = f'<newSwitchVector device="{device}" name="{prop}"><oneSwitch name="{val}">On</oneSwitch><oneSwitch name="{opposite_val}">Off</oneSwitch></newSwitchVector>'
-                    xmls.append(xml)
-
-                if not xmls:
-                    current_jog_direction = None
-                    return {"success": False, "error": f"Invalid direction: {req.direction}"}
-
-                # Start the new watchdog timer
-                jog_timer = threading.Timer(1.2, trigger_watchdog_stop)
-                jog_timer.daemon = True
-                jog_timer.start()
-
-            # Send start commands to INDI
-            indi_ref = indi
-            def send_all():
-                return all(indi_ref.send(x) for x in xmls)
-
-            all_ok = await loop.run_in_executor(None, send_all)
-
-            if not all_ok:
-                with jog_lock:
-                    current_jog_direction = None
-                    if jog_timer:
-                        jog_timer.cancel()
-                        jog_timer = None
-                return {"success": False, "error": "INDI send failed"}
-
+        # ── STOP ──────────────────────────────────────────────────────────────
+        if req.state == "stop":
+            _jog_cancel_watchdog()
+            _jog_current_dir = None
+            await loop.run_in_executor(None, _jog_send_stop, device)
             return {"success": True}
+
+        # ── START / HEARTBEAT ─────────────────────────────────────────────────
+        is_new_direction = (_jog_current_dir != req.direction)
+        _jog_current_dir = req.direction
+
+        if is_new_direction:
+            # Send INDI motion command only when direction actually changes
+            directions = req.direction.split("-")
+            xmls: list[str] = []
+            for d in directions:
+                if d == "up":
+                    prop, val, opp = "TELESCOPE_MOTION_NS", "MOTION_SOUTH", "MOTION_NORTH"
+                elif d == "down":
+                    prop, val, opp = "TELESCOPE_MOTION_NS", "MOTION_NORTH", "MOTION_SOUTH"
+                elif d == "left":
+                    prop, val, opp = "TELESCOPE_MOTION_WE", "MOTION_EAST", "MOTION_WEST"
+                elif d == "right":
+                    prop, val, opp = "TELESCOPE_MOTION_WE", "MOTION_WEST", "MOTION_EAST"
+                else:
+                    continue
+                xmls.append(
+                    f'<newSwitchVector device="{device}" name="{prop}">'
+                    f'<oneSwitch name="{val}">On</oneSwitch>'
+                    f'<oneSwitch name="{opp}">Off</oneSwitch>'
+                    f'</newSwitchVector>'
+                )
+
+            if not xmls:
+                return {"success": False, "error": f"Invalid direction: {req.direction}"}
+
+            indi_ref = indi
+            await loop.run_in_executor(None, lambda: [indi_ref.send(x) for x in xmls])
+
+        # Always reset the watchdog (both new direction and heartbeat pulse)
+        _jog_arm_watchdog(device, timeout=1.5)
+        return {"success": True}
+
     except Exception as e:
         logger.error(f"Jog error: {e}")
         return {"success": False, "error": str(e)}
@@ -1152,7 +1169,7 @@ async def mount_slew_internal(device: str, ra: float, dec: float, sync: bool = F
     if not sync:
         logger.info(f"Sending ABORT_MOTION before GoTo (unconditional)")
         indi.send(f'<newSwitchVector device="{device}" name="TELESCOPE_ABORT_MOTION"><oneSwitch name="ABORT">On</oneSwitch></newSwitchVector>')
-        await asyncio.sleep(0.5)  # give the NexStar time to fully stop
+        await asyncio.sleep(0.1)  # NexStar acknowledges ABORT in <100ms over INDI TCP
 
     try:
         # 1. Set ON_COORD_SET mode FIRST
@@ -1161,7 +1178,7 @@ async def mount_slew_internal(device: str, ra: float, dec: float, sync: bool = F
         indi.send(f'<newSwitchVector device="{device}" name="ON_COORD_SET"><oneSwitch name="{mode}">On</oneSwitch></newSwitchVector>')
         
         # Small delay for the driver to acknowledge the mode change
-        await asyncio.sleep(0.2)
+        await asyncio.sleep(0.05)
 
         # 2. Send RA and DEC to BOTH common property names for maximum compatibility
         # Standard property
@@ -1676,7 +1693,10 @@ async def get_phone_sensor_state():
 # --- STREAMING ---
 async def mjpeg_generator():
     """Yield frames as fast as the camera delivers them using frame_condition."""
-    last_frame_count = -1
+    # Initialiser au frame_count courant — évite de servir la dernière capture
+    # comme si c'était un frame live (indi.frame_count part à 0, -1 causerait
+    # un yield immédiat de l'ancienne image dès la première itération).
+    last_frame_count = indi.frame_count
     loop = asyncio.get_event_loop()
 
     while True:
@@ -1711,11 +1731,76 @@ async def mjpeg_generator():
 async def video_feed():
     return StreamingResponse(mjpeg_generator(), media_type="multipart/x-mixed-replace; boundary=frame")
 
+@app.post("/ccd/reconnect")
+async def ccd_reconnect():
+    """Reconnect Canon ONLY — without restarting indiserver or disconnecting the mount.
+
+    Strategy (up to 2 attempts):
+      1. Kill gvfs-gphoto2 + fuser -k on Canon USB node (aggressive lock release)
+      2. INDI DISCONNECT Canon
+      3. Wait 2 s (driver releases internal libgphoto2 handle)
+      4. INDI CONNECT Canon
+      5. Wait 3 s for driver to enumerate USB
+      If ccd_connected is still False → repeat once more from step 1.
+
+    The mount stays connected throughout.
+    """
+    dev = (indi.device_ccd or "Canon DSLR EOS 600D").strip()
+    if not indi.connected:
+        return {"success": False, "error": "INDI bridge not connected"}
+
+    loop = asyncio.get_event_loop()
+
+    for attempt in range(1, 3):
+        logger.info(f"[CCD Reconnect] Attempt {attempt}/2 for {dev}")
+
+        # Step 1 — aggressive USB lock release via SSH
+        try:
+            lock_result = await asyncio.wait_for(
+                loop.run_in_executor(executor, raspi.release_camera_usb_lock),
+                timeout=15.0
+            )
+            if not lock_result.get("success"):
+                logger.warning(f"[CCD Reconnect] USB lock release warning: {lock_result.get('error')}")
+        except asyncio.TimeoutError:
+            logger.warning("[CCD Reconnect] USB lock release timed out — continuing")
+
+        # Step 2 — INDI DISCONNECT
+        indi.send(f'<newSwitchVector device="{dev}" name="CONNECTION">'
+                  f'<oneSwitch name="DISCONNECT">On</oneSwitch>'
+                  f'<oneSwitch name="CONNECT">Off</oneSwitch>'
+                  f'</newSwitchVector>')
+        await asyncio.sleep(2.0)
+
+        # Step 3 — INDI CONNECT (full safe-connect sequence)
+        await loop.run_in_executor(executor, indi._safe_connect_device, dev)
+        await asyncio.sleep(3.0)  # gphoto USB enumeration can take up to 3 s
+
+        if indi.ccd_connected:
+            logger.info(f"[CCD Reconnect] ✅ Success on attempt {attempt}")
+            return {"success": True}
+
+        logger.warning(f"[CCD Reconnect] Attempt {attempt} failed — ccd_connected still False")
+        if attempt < 2:
+            await asyncio.sleep(1.0)  # brief pause before retry
+
+    return {
+        "success": False,
+        "error": (
+            "Canon toujours non connectée après 2 tentatives. "
+            "Débranchez/rebranchez le câble USB puis réessayez."
+        )
+    }
+
+
 @app.post("/ccd/stream/start")
 async def ccd_stream_start():
     dev = (indi.device_ccd or "Canon DSLR EOS 600D").strip()
     if not indi.connected:
         return {"success": False, "error": "INDI bridge not connected"}
+    if not indi.ccd_connected:
+        logger.warning(f"[LiveView] ccd_connected=False — Canon not responding on INDI. Check USB and gphoto driver.")
+        return {"success": False, "error": f"Canon non connectée à INDI ({dev}) — vérifiez le câble USB et le driver gphoto"}
 
     logger.info(f"[LiveView] Starting stream on {dev} — full driver reset sequence")
 

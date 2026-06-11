@@ -98,6 +98,19 @@ function isIos(): boolean {
     (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 }
 
+function isAndroid(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /android/i.test(navigator.userAgent);
+}
+
+/**
+ * Convert DeviceOrientationEvent alpha (counterclockwise from North, Android absolute)
+ * to compass heading (clockwise from North, same convention as iOS webkitCompassHeading).
+ */
+function androidAlphaToCompass(alpha: number): number {
+  return (360 - alpha + 360) % 360;
+}
+
 function httpsUrl(): string {
   if (typeof window === "undefined") return "";
   return `https://${window.location.hostname}:8443${window.location.pathname}`;
@@ -125,6 +138,7 @@ export default function SensorPage() {
   
   const [isSending, setIsSending] = useState(false);
   const isSendingRef = useRef(false);
+  const orientationCleanupRef = useRef<(() => void) | null>(null);
 
   latestRef.current = sensor;
 
@@ -220,19 +234,65 @@ export default function SensorPage() {
   }, [state]);
 
   // ── DeviceOrientation listener ────────────────────────────────────────────
+  //
+  // iOS  : DeviceOrientationEvent fires with webkitCompassHeading (CW from North).
+  // Android: DeviceOrientationEvent.alpha is RELATIVE (resets on page load).
+  //          deviceorientationabsolute fires with absolute alpha (CCW from North)
+  //          → convert to CW via (360 - alpha) % 360.
+  //          Fallback to deviceorientation if no absolute event fires within 1.5 s.
 
   const startOrientation = useCallback(() => {
-    const handler = (e: DeviceOrientationEvent) => {
-      const ios = e as DeviceOrientationEvent & {
-        webkitCompassHeading?: number;
-        webkitCompassAccuracy?: number;
+    const ios = isIos();
+
+    if (ios) {
+      // ── iOS path ─────────────────────────────────────────────────────────
+      const handler = (e: DeviceOrientationEvent) => {
+        const ev = e as DeviceOrientationEvent & {
+          webkitCompassHeading?: number;
+          webkitCompassAccuracy?: number;
+        };
+        const az = ev.webkitCompassHeading ?? e.alpha;
+        if (ev.webkitCompassAccuracy != null) setCompassAccuracy(ev.webkitCompassAccuracy);
+        setSensor(prev => ({ ...prev, alpha: az, beta: e.beta, gamma: e.gamma }));
       };
-      const az = ios.webkitCompassHeading ?? e.alpha;
-      if (ios.webkitCompassAccuracy != null) setCompassAccuracy(ios.webkitCompassAccuracy);
-      setSensor(prev => ({ ...prev, alpha: az, beta: e.beta, gamma: e.gamma }));
+      window.addEventListener("deviceorientation", handler, true);
+      return () => window.removeEventListener("deviceorientation", handler, true);
+    }
+
+    // ── Android / generic path ────────────────────────────────────────────
+    // NOTE: screen.orientation.lock() intentionally omitted — it requires
+    // fullscreen or PWA context and crashes Chrome tabs otherwise.
+
+    let hasAbsolute = false;
+
+    const handleAbsolute = (e: Event) => {
+      const ev = e as DeviceOrientationEvent;
+      hasAbsolute = true;
+      // deviceorientationabsolute: alpha is CCW from North → convert to CW
+      const az = ev.alpha != null ? androidAlphaToCompass(ev.alpha) : null;
+      setSensor(prev => ({ ...prev, alpha: az, beta: ev.beta, gamma: ev.gamma }));
     };
-    (window as Window).addEventListener("deviceorientation", handler, true);
-    return () => (window as Window).removeEventListener("deviceorientation", handler, true);
+
+    const handleRelative = (e: Event) => {
+      const ev = e as DeviceOrientationEvent;
+      // Relative deviceorientation: use alpha as-is (imprecise, no compass heading)
+      setSensor(prev => ({ ...prev, alpha: ev.alpha, beta: ev.beta, gamma: ev.gamma }));
+    };
+
+    window.addEventListener("deviceorientationabsolute", handleAbsolute, true);
+
+    // After 1.5 s, if no absolute event fired, fall back to relative deviceorientation.
+    const fallbackTimer = setTimeout(() => {
+      if (!hasAbsolute) {
+        window.addEventListener("deviceorientation", handleRelative, true);
+      }
+    }, 1500);
+
+    return () => {
+      clearTimeout(fallbackTimer);
+      window.removeEventListener("deviceorientationabsolute", handleAbsolute, true);
+      window.removeEventListener("deviceorientation", handleRelative, true);
+    };
   }, []);
 
   // ── Geolocation watcher ───────────────────────────────────────────────────
@@ -255,33 +315,42 @@ export default function SensorPage() {
   // ── Request permissions (iOS) then start ─────────────────────────────────
 
   const handleStart = useCallback(async () => {
-    const DOE = DeviceOrientationEvent as any;
-    if (typeof DOE.requestPermission === "function") {
-      try {
-        const res = await DOE.requestPermission();
+    try {
+      const DOE = (typeof DeviceOrientationEvent !== "undefined" ? DeviceOrientationEvent : null) as any;
+      if (DOE && typeof DOE.requestPermission === "function") {
+        // iOS 13+ requires explicit permission
+        let res: string;
+        try {
+          res = await DOE.requestPermission();
+        } catch {
+          setState("https_required");
+          setErrorMsg("iOS requiert HTTPS pour les capteurs. Ouvre cette page via https://");
+          return;
+        }
         if (res !== "granted") {
           setState("https_required");
           setErrorMsg("Permission refusée. Autorise l'accès au mouvement dans Réglages > Safari.");
           return;
         }
-      } catch {
-        setState("https_required");
-        setErrorMsg("iOS requiert HTTPS pour les capteurs. Ouvre cette page via https://");
-        return;
       }
+      await acquireWakeLock();
+      isSendingRef.current = true;
+      setIsSending(true);
+      orientationCleanupRef.current = startOrientation();
+      startGps();
+      setState("live");
+    } catch (err: any) {
+      setState("error");
+      setErrorMsg(`Erreur capteurs : ${err?.message ?? String(err)}`);
     }
-    await acquireWakeLock();
-    isSendingRef.current = true;
-    setIsSending(true);
-    startOrientation();
-    startGps();
-    setState("live");
   }, [startOrientation, startGps, acquireWakeLock]);
 
-  // On iOS + HTTP: redirect to HTTPS immediately — requestPermission() throws otherwise
+  // Both iOS and Android Chrome 91+ require HTTPS for DeviceOrientation.
+  // iOS: redirect immediately (requestPermission throws on HTTP).
+  // Android: redirect immediately too — sensors silently return null on HTTP.
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (window.location.protocol !== "https:" && isIos()) {
+    if (window.location.protocol !== "https:") {
       window.location.replace(httpsUrl());
     }
   }, []);
@@ -297,6 +366,7 @@ export default function SensorPage() {
       if (retryRef.current) clearTimeout(retryRef.current);
       wsRef.current?.close();
       wakeLockRef.current?.release();
+      orientationCleanupRef.current?.();
     };
   }, []);
 
@@ -381,7 +451,7 @@ export default function SensorPage() {
           animation: "fadeIn 0.3s ease-out"
         }}>
           <span style={{ fontSize: 11, color: "#00b4ff", letterSpacing: "0.05em" }}>
-            📱 Ce terminal fonctionne en mode écoute (lectures de l&apos;iPhone de la monture).
+            📱 Ce terminal fonctionne en mode écoute (capteurs du téléphone actif).
           </span>
           <button
             style={{
@@ -413,13 +483,13 @@ export default function SensorPage() {
           <button style={styles.btn} onClick={handleStart}>
             ACTIVER LES CAPTEURS
           </button>
-          {/* Remind iOS users to use HTTPS if on HTTP */}
+          {/* iOS + Android Chrome 91+: les capteurs requièrent HTTPS */}
           {typeof window !== "undefined" && window.location.protocol !== "https:" && (
             <div style={{ marginTop: 20, padding: "12px 16px", borderRadius: 10,
               background: "rgba(255,215,0,0.08)", border: "1px solid rgba(255,215,0,0.3)",
               maxWidth: 300, textAlign: "center" }}>
               <p style={{ fontSize: 11, color: "#ffd700", marginBottom: 8, lineHeight: 1.5 }}>
-                📱 iPhone : les capteurs requièrent HTTPS
+                🔒 Les capteurs requièrent HTTPS (iOS et Android)
               </p>
               <a href={httpsUrl()} style={{
                 fontSize: 11, color: "#00ffb4", textDecoration: "underline",
