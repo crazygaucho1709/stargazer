@@ -31,6 +31,22 @@ export async function POST(request: Request) {
       }
       return NextResponse.json({ success: true });
     }
+
+    // Reconnect camera only (surgical — does NOT restart indiserver)
+    if (action === 'reconnect-camera') {
+      const res = await fetch(`${BRIDGE_URL}/ccd/reconnect`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(20_000), // 20s max — SSH + INDI cycle
+      });
+      let data: { success?: boolean; error?: string } = {};
+      try { data = await res.json(); } catch {}
+      return NextResponse.json(
+        { success: data.success ?? res.ok, error: data.error },
+        { status: res.ok ? 200 : 503 }
+      );
+    }
+
     return NextResponse.json({ success: false, error: 'Invalid action' }, { status: 400 });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

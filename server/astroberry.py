@@ -162,6 +162,43 @@ def get_status() -> Dict[str, Any]:
     }
 
 
+def release_camera_usb_lock() -> Dict[str, Any]:
+    """Kill every process that could hold an exclusive libgphoto2 lock on the Canon.
+
+    gvfs-gphoto2-volume-monitor respawns via D-Bus within ~1 s after a simple
+    pkill.  To win the race we must:
+      1. Kill all gvfs / gphoto helper processes.
+      2. Kill any stray gphoto2 CLI process.
+      3. Use ``fuser -k`` to force-close any remaining file handles on the Canon
+         USB node — works even for processes that respawned before pkill returned.
+      4. Sleep 0.5 s so the kernel releases the fd before we return.
+
+    The indiserver gphoto driver is NOT killed — only user-space lock holders.
+    """
+    cmd = (
+        # Kill all known gvfs camera-related daemons and stray gphoto2 CLI
+        "for proc in gvfs-gphoto2-volume-monitor gvfs-gphoto2-volume-monitor-ap "
+        "gvfsd-gphoto2 gvfs-afc-volume-monitor gphoto2; do "
+        "  pkill -9 \"$proc\" 2>/dev/null || true; "
+        "done; "
+        # Force-close remaining file handles on the Canon USB device via fuser
+        "CANON_DEV=$(lsusb 2>/dev/null | grep -i 'Canon\\|EOS' | head -1 "
+        "  | awk '{printf \"/dev/bus/usb/%s/%s\", $2, substr($4,1,3)}'); "
+        "if [ -n \"$CANON_DEV\" ] && [ -e \"$CANON_DEV\" ]; then "
+        "  fuser -k \"$CANON_DEV\" 2>/dev/null || true; "
+        "fi; "
+        "sleep 0.5; "
+        "echo OK"
+    )
+    result = _run(cmd, timeout=12)
+    if result.get("exit_code") == -1:
+        err = result.get("stderr") or "SSH connection to Astroberry failed"
+        logger.error("release_camera_usb_lock: SSH failed — %s", err)
+        return {"success": False, "error": err}
+    logger.info("USB lock released on Astroberry — %s", result.get("stdout", "").strip())
+    return {"success": True}
+
+
 def get_indi_logs(lines: int = 50) -> str:
     """Fetch indiserver logs from /tmp/indiserver.log on Astroberry."""
     result = _run(f"tail -n {lines} /tmp/indiserver.log 2>/dev/null || journalctl -u indiserver -n {lines} --no-pager")

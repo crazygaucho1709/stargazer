@@ -19,7 +19,7 @@ import {
 import {
   Satellite, Zap, Square, RotateCcw, CheckCircle2, AlertTriangle,
   MapPin, Navigation,
-  Camera, Play, Crosshair
+  Camera, Play, Crosshair, Smartphone
 } from "lucide-react";
 import { useStargazerStore } from "@/store/useStargazerStore";
 import { plateSolve, SolvedPosition } from "@/services/plateSolve";
@@ -78,6 +78,7 @@ interface LogEntry {
 type AlignPhase =
   | 'limits-setup'             // étape 0 : l'user enseigne les limites
   | 'zone-confirm'             // étape de confirmation de la zone
+  | 'iphone-coarse'            // étape 1 : sync approximatif via capteurs téléphone (iOS/Android)
   | 'preflight'
   | 'cycle-1' | 'cycle-2' | 'cycle-3'
   | 'syncing'
@@ -85,15 +86,16 @@ type AlignPhase =
   | 'failed';
 
 const PHASE_PROGRESS: Record<AlignPhase, number> = {
-  'limits-setup':  0,
-  'zone-confirm':  5,
-  'preflight':     8,
-  'cycle-1':      18,
-  'cycle-2':      45,
-  'cycle-3':      72,
-  'syncing':      92,
-  'complete':    100,
-  'failed':        0,
+  'limits-setup':   0,
+  'zone-confirm':   5,
+  'iphone-coarse': 12,
+  'preflight':     18,
+  'cycle-1':       30,
+  'cycle-2':       55,
+  'cycle-3':       78,
+  'syncing':       92,
+  'complete':     100,
+  'failed':         0,
 };
 
 const LIMIT_KEYS = ['low', 'high', 'left', 'right'] as const;
@@ -102,6 +104,23 @@ type LimitKey = typeof LIMIT_KEYS[number];
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
+
+// iPhone sensor helpers
+interface PhoneSensorState {
+  alpha: number | null; // compass heading = azimut (0-360°)
+  beta:  number | null; // tilt → altitude via betaToAlt
+  gamma: number | null; // roulis
+  lat:   number | null;
+  lon:   number | null;
+  accuracy_m: number | null;
+  connected: boolean;
+}
+
+/** beta=0 (plat) → alt 90° (zénith), beta=90 (vertical) → alt 0° (horizon) */
+function betaToAlt(beta: number | null): number | null {
+  if (beta == null) return null;
+  return Math.max(0, Math.min(90, 90 - Math.abs(beta)));
+}
 
 function fmtRA(h: number): string {
   const hh = Math.floor(h);
@@ -258,6 +277,17 @@ export const AutoAlignWizard = () => {
   const [finalRa,  setFinalRa]  = useState<number | null>(null);
   const [finalDec, setFinalDec] = useState<number | null>(null);
 
+  // ── iPhone sensor state ──
+  const [phoneSensor, setPhoneSensor] = useState<PhoneSensorState>({
+    alpha: null, beta: null, gamma: null,
+    lat: null, lon: null, accuracy_m: null,
+    connected: false,
+  });
+  const phoneSensorRef = useRef<PhoneSensorState>(phoneSensor);
+  const [phoneRaDec, setPhoneRaDec] = useState<{ ra: number; dec: number } | null>(null);
+  const [isSyncing,      setIsSyncing]      = useState(false);
+  const [iphoneSyncDone, setIphoneSyncDone] = useState(false);
+
   // Live position from INDI (for limit-setup UI)
   const [liveAlt, setLiveAlt] = useState<number | undefined>();
   const [liveAz,  setLiveAz]  = useState<number | undefined>();
@@ -360,6 +390,60 @@ export const AutoAlignWizard = () => {
   const startLiveView = liveView.start;
   const stopLiveView  = liveView.stop;
 
+  // ── Sync phoneSensorRef ──
+  useEffect(() => { phoneSensorRef.current = phoneSensor; }, [phoneSensor]);
+
+  // ── Phone WebSocket (capteurs iPhone) ──
+  useEffect(() => {
+    let ws: WebSocket | null = null;
+    let timerId: NodeJS.Timeout | null = null;
+    let active = true;
+    const connect = () => {
+      if (!active) return;
+      const host = window.location.hostname;
+      const isHttps = window.location.protocol === "https:";
+      const wsUrl = isHttps
+        ? `wss://${host}:${window.location.port}/ws/phone-sensor`
+        : `ws://${host}:5005/ws/phone-sensor`;
+      ws = new WebSocket(wsUrl);
+      ws.onmessage = (evt) => {
+        try {
+          const d = JSON.parse(evt.data);
+          setPhoneSensor({
+            alpha: d.alpha ?? null, beta: d.beta ?? null, gamma: d.gamma ?? null,
+            lat: d.lat ?? null, lon: d.lon ?? null,
+            accuracy_m: d.accuracy_m ?? null, connected: !!d.connected,
+          });
+        } catch {}
+      };
+      ws.onopen  = () => setPhoneSensor(p => ({ ...p, connected: true }));
+      ws.onclose = () => {
+        setPhoneSensor(p => ({ ...p, connected: false }));
+        if (active) timerId = setTimeout(connect, 3000);
+      };
+      ws.onerror = () => ws?.close();
+    };
+    connect();
+    return () => { active = false; if (timerId) clearTimeout(timerId); ws?.close(); };
+  }, []);
+
+  // ── Live RA/Dec depuis capteurs téléphone (toutes les 2s en phase iphone-coarse) ──
+  useEffect(() => {
+    if (phase !== 'iphone-coarse') return;
+    let active = true;
+    const update = async () => {
+      const s = phoneSensorRef.current;
+      const az  = s.alpha;
+      const alt = betaToAlt(s.beta);
+      if (az == null || alt == null) return;
+      const radec = await altazToRaDec(alt, az);
+      if (active && radec) setPhoneRaDec(radec);
+    };
+    update();
+    const id = setInterval(update, 2000);
+    return () => { active = false; clearInterval(id); };
+  }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Cleanup on unmount: abort alignment loop, stop jog and live view
   // Note: useJog() handles its own cleanup via its own useEffect
   useEffect(() => {
@@ -392,6 +476,101 @@ export const AutoAlignWizard = () => {
       await new Promise(r => setTimeout(r, 2000));
     } catch {}
     setIsConnectingMount(false);
+  };
+
+  const [isReconnectingCamera, setIsReconnectingCamera] = useState(false);
+
+  const reconnectCamera = async () => {
+    setIsReconnectingCamera(true);
+    setCcdError(false);
+    // Timeout dur : si l'opération dépasse 25s côté client, on abandonne
+    const ac = new AbortController();
+    const timeoutId = setTimeout(() => ac.abort(), 25_000);
+    try {
+      // Approche chirurgicale : tue uniquement gvfs-gphoto2 sur le Pi
+      // + disconnect/reconnect INDI Canon. La monture reste connectée.
+      const res = await fetch(clientApiUrl('/api/indi/liveview'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reconnect-camera' }),
+        signal: ac.signal,
+      });
+      clearTimeout(timeoutId);
+      const data = await res.json().catch(() => ({}));
+      if (!data.success) {
+        notification.error("Reconnexion caméra échouée", {
+          description: data.error || "Vérifiez le câble USB et le mode PTP sur la Canon",
+          source: "Caméra",
+        });
+        return;
+      }
+      // Canon reconnectée — tenter le live view
+      await liveView.start();
+    } catch (err: any) {
+      clearTimeout(timeoutId);
+      const isTimeout = err?.name === "AbortError";
+      notification.error("Reconnexion caméra échouée", {
+        description: isTimeout
+          ? "Timeout (>25s) — SSH vers Pi inaccessible ou opération bloquée"
+          : err?.message || "Impossible de contacter le backend",
+        source: "Caméra",
+      });
+    } finally {
+      setIsReconnectingCamera(false);
+    }
+  };
+
+  // ── Sync mount from iPhone sensors ──
+  const syncFromPhone = async () => {
+    const s = phoneSensorRef.current;
+    const az  = s.alpha;
+    const alt = betaToAlt(s.beta);
+    if (az == null || alt == null) {
+      notification.error("Capteurs iPhone non disponibles", {
+        description: "Aucune donnée de cap/inclinaison reçue du téléphone",
+        source: "iPhone",
+      });
+      return;
+    }
+    setIsSyncing(true);
+    try {
+      const radec = await altazToRaDec(alt, az);
+      if (!radec) {
+        notification.error("Conversion Alt/Az échouée", {
+          description: "Vérifiez la latitude/longitude dans les paramètres",
+          source: "iPhone",
+        });
+        return;
+      }
+      // SYNC mount to these coordinates
+      const res = await fetch(clientApiUrl('/api/indi/mount'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'sync',
+          ra: radec.ra,
+          dec: radec.dec,
+          device: detectedMount || config.driverInstance || 'Celestron GPS',
+          ip: bridgeIp,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!data.success) {
+        notification.error("Sync INDI échoué", {
+          description: data.error || "La monture n'a pas accepté le SYNC",
+          source: "Monture",
+        });
+        return;
+      }
+      setPhoneRaDec(radec);
+      setIphoneSyncDone(true);
+      log(L(
+        `📱 Sync iPhone : Alt=${alt.toFixed(1)}° Az=${az.toFixed(1)}° → RA=${radec.ra.toFixed(4)}h Dec=${radec.dec.toFixed(2)}°`,
+        `📱 iPhone sync : Alt=${alt.toFixed(1)}° Az=${az.toFixed(1)}° → RA=${radec.ra.toFixed(4)}h Dec=${radec.dec.toFixed(2)}°`,
+      ), 'success');
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   // ── Record current position as a limit ──
@@ -636,7 +815,7 @@ export const AutoAlignWizard = () => {
   // RENDER
   // ─────────────────────────────────────────────────────────────────────────
 
-  const isRunning = !['limits-setup', 'zone-confirm', 'complete', 'failed'].includes(phase);
+  const isRunning = !['limits-setup', 'zone-confirm', 'iphone-coarse', 'complete', 'failed'].includes(phase);
   const allLimitsDefined = LIMIT_KEYS.every(k => !!limits[k]);
   const progress = PHASE_PROGRESS[phase];
 
@@ -970,11 +1149,32 @@ export const AutoAlignWizard = () => {
                     </VStack>
                   )}
                 </Box>
-                {/* Stream error / status line */}
+                {/* Stream error / status line + reconnect */}
                 {streamStatus && streamStatus !== "LIVE" && (
-                  <Text fontSize="8px" color={streamStatus.startsWith("❌") ? "red.400" : "whiteAlpha.500"} mt={1} textAlign="center">
-                    {streamStatus}
-                  </Text>
+                  <VStack gap={1} mt={1}>
+                    <Text fontSize="8px" color={streamStatus.startsWith("❌") ? "red.400" : "whiteAlpha.500"} textAlign="center">
+                      {streamStatus}
+                    </Text>
+                    {streamStatus.startsWith("❌") && (
+                      <Button
+                        size="2xs"
+                        h="20px"
+                        px={2.5}
+                        fontSize="8px"
+                        fontWeight="bold"
+                        borderRadius="4px"
+                        bg="rgba(246,173,85,0.15)"
+                        color="orange.300"
+                        border="1px solid rgba(246,173,85,0.3)"
+                        _hover={{ bg: "rgba(246,173,85,0.25)" }}
+                        onClick={reconnectCamera}
+                        loading={isReconnectingCamera}
+                        w="full"
+                      >
+                        🔌 {L("RECONNECTER CAMÉRA", "RECONNECT CAMERA")}
+                      </Button>
+                    )}
+                  </VStack>
                 )}
               </Box>
 
@@ -1029,18 +1229,156 @@ export const AutoAlignWizard = () => {
             </Box>
           </Box>
           <SkyDome zone={zone} limits={limits} results={[null, null, null]} />
-          <HStack gap={2}>
-            <Button flex={1} variant="outline" borderColor="whiteAlpha.200" color="whiteAlpha.500"
-              fontSize="10px" onClick={() => setPhase('limits-setup')}>
-              {L("← MODIFIER", "← MODIFY")}
+          {/* Two-path choice */}
+          <Box bg="rgba(255,255,255,0.02)" border="1px solid rgba(255,255,255,0.07)" borderRadius="8px" p={3}>
+            <Text fontSize="8px" color="whiteAlpha.400" letterSpacing="0.08em" mb={2} textAlign="center">
+              {L("CHOISIR LA MÉTHODE D'ALIGNEMENT INITIAL", "CHOOSE INITIAL ALIGNMENT METHOD")}
+            </Text>
+            <VStack gap={2}>
+              <Button w="full" bg="rgba(147,112,219,0.12)" color="#b39ddb"
+                border="1px solid rgba(147,112,219,0.35)" fontWeight="bold" fontSize="10px" letterSpacing="0.08em"
+                _hover={{ bg: 'rgba(147,112,219,0.22)' }} onClick={() => setPhase('iphone-coarse')}>
+                <Icon as={Smartphone} boxSize={3} mr={1.5} />
+                {L("SYNC VIA TÉLÉPHONE (JOUR / TEST)", "SYNC VIA PHONE (DAY / TEST)")}
+              </Button>
+              <Button w="full" bg="rgba(0,255,209,0.08)" color="var(--astro-teal)"
+                border="1px solid rgba(0,255,209,0.25)" fontWeight="bold" fontSize="10px" letterSpacing="0.08em"
+                _hover={{ bg: 'rgba(0,255,209,0.18)' }} onClick={runAutoAlign}>
+                <Icon as={Zap} boxSize={3} mr={1.5} />
+                {L("ASTROMÉTRIE DIRECTE (NUIT)", "DIRECT ASTROMETRY (NIGHT)")}
+              </Button>
+            </VStack>
+          </Box>
+          <Button variant="ghost" fontSize="9px" color="whiteAlpha.400" onClick={() => setPhase('limits-setup')}>
+            {L("← MODIFIER LA ZONE", "← MODIFY ZONE")}
+          </Button>
+        </VStack>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════
+          PHASE : PHONE COARSE SYNC (iOS + Android)
+      ══════════════════════════════════════════════════════════════════ */}
+      {phase === 'iphone-coarse' && (
+        <VStack align="stretch" gap={3}>
+          {/* Connection status */}
+          <Box
+            bg={phoneSensor.connected ? "rgba(147,112,219,0.06)" : "rgba(255,107,107,0.06)"}
+            border={`1px solid ${phoneSensor.connected ? "rgba(147,112,219,0.3)" : "rgba(255,107,107,0.3)"}`}
+            borderRadius="8px" p={3}
+          >
+            <HStack justify="space-between" mb={2}>
+              <HStack gap={2}>
+                <Icon as={Smartphone} boxSize={3.5} color={phoneSensor.connected ? "#b39ddb" : "red.400"} />
+                <Text fontSize="9px" fontWeight="bold" color={phoneSensor.connected ? "#b39ddb" : "red.300"} letterSpacing="0.08em">
+                  {phoneSensor.connected
+                    ? L("TÉLÉPHONE CONNECTÉ", "PHONE CONNECTED")
+                    : L("EN ATTENTE DU TÉLÉPHONE…", "WAITING FOR PHONE…")}
+                </Text>
+              </HStack>
+              {!phoneSensor.connected && <Spinner size="xs" color="purple.400" />}
+            </HStack>
+            {!phoneSensor.connected && (
+              <Text fontSize="8px" color="whiteAlpha.500">
+                {L(
+                  "Ouvrez stargazer sur votre téléphone et activez l'envoi des capteurs.",
+                  "Open stargazer on your phone and enable sensor streaming.",
+                )}
+              </Text>
+            )}
+            {/* Live sensor values */}
+            {phoneSensor.connected && (
+              <Grid templateColumns="repeat(3, 1fr)" gap={2} mt={1}>
+                <VStack gap={0} align="center">
+                  <Text fontSize="7px" color="whiteAlpha.400">CAP (Az)</Text>
+                  <Text fontSize="11px" fontWeight="bold" color="white" fontFamily="monospace">
+                    {phoneSensor.alpha != null ? `${phoneSensor.alpha.toFixed(1)}°` : '—'}
+                  </Text>
+                </VStack>
+                <VStack gap={0} align="center">
+                  <Text fontSize="7px" color="whiteAlpha.400">ALT</Text>
+                  <Text fontSize="11px" fontWeight="bold" color="white" fontFamily="monospace">
+                    {phoneSensor.beta != null ? `${betaToAlt(phoneSensor.beta).toFixed(1)}°` : '—'}
+                  </Text>
+                </VStack>
+                <VStack gap={0} align="center">
+                  <Text fontSize="7px" color="whiteAlpha.400">ROULIS</Text>
+                  <Text fontSize="11px" fontWeight="bold" color="white" fontFamily="monospace">
+                    {phoneSensor.gamma != null ? `${phoneSensor.gamma.toFixed(1)}°` : '—'}
+                  </Text>
+                </VStack>
+              </Grid>
+            )}
+          </Box>
+
+          {/* Live RA/Dec result */}
+          {phoneRaDec && (
+            <Box bg="rgba(0,255,209,0.04)" border="1px solid rgba(0,255,209,0.15)" borderRadius="8px" p={3}>
+              <Text fontSize="8px" color="whiteAlpha.400" letterSpacing="0.08em" mb={2}>
+                {L("COORDONNÉES CALCULÉES (MàJ ~2s)", "CALCULATED COORDINATES (updated ~2s)")}
+              </Text>
+              <HStack justify="space-around">
+                <VStack gap={0} align="center">
+                  <Text fontSize="7px" color="whiteAlpha.400">RA</Text>
+                  <Text fontSize="12px" fontWeight="bold" color="var(--astro-teal)" fontFamily="monospace">
+                    {phoneRaDec.ra.toFixed(4)}h
+                  </Text>
+                </VStack>
+                <VStack gap={0} align="center">
+                  <Text fontSize="7px" color="whiteAlpha.400">DEC</Text>
+                  <Text fontSize="12px" fontWeight="bold" color="var(--astro-teal)" fontFamily="monospace">
+                    {phoneRaDec.dec.toFixed(2)}°
+                  </Text>
+                </VStack>
+              </HStack>
+            </Box>
+          )}
+
+          {/* Sync done confirmation */}
+          {iphoneSyncDone && (
+            <Box bg="rgba(104,211,145,0.06)" border="1px solid rgba(104,211,145,0.3)" borderRadius="8px" p={2}>
+              <Text fontSize="9px" color="green.300" fontWeight="bold" textAlign="center">
+                {L("✅ SYNC EFFECTUÉ — monture calée sur les coordonnées iPhone", "✅ SYNC DONE — mount aligned to iPhone coordinates")}
+              </Text>
+            </Box>
+          )}
+
+          {/* Action buttons */}
+          <VStack gap={2}>
+            <Button w="full"
+              bg={iphoneSyncDone ? "rgba(104,211,145,0.1)" : "rgba(147,112,219,0.12)"}
+              color={iphoneSyncDone ? "green.300" : "#b39ddb"}
+              border={`1px solid ${iphoneSyncDone ? "rgba(104,211,145,0.3)" : "rgba(147,112,219,0.35)"}`}
+              fontWeight="bold" fontSize="11px" letterSpacing="0.1em"
+              _hover={{ bg: iphoneSyncDone ? "rgba(104,211,145,0.2)" : "rgba(147,112,219,0.22)" }}
+              onClick={syncFromPhone}
+              loading={isSyncing}
+              disabled={!phoneSensor.connected || phoneSensor.alpha == null}>
+              <Icon as={Smartphone} boxSize={3} mr={1.5} />
+              {iphoneSyncDone
+                ? L("RE-SYNC TÉLÉPHONE", "RE-SYNC PHONE")
+                : L("SYNC DEPUIS LE TÉLÉPHONE", "SYNC FROM PHONE")}
             </Button>
-            <Button flex={2} bg="rgba(0,255,209,0.12)" color="var(--astro-teal)"
-              border="1px solid rgba(0,255,209,0.35)" fontWeight="bold" fontSize="11px" letterSpacing="0.1em"
-              _hover={{ bg: 'rgba(0,255,209,0.22)' }} onClick={runAutoAlign}>
-              <Icon as={Zap} boxSize={3} mr={1} />
-              {L("LANCER L'ALIGNEMENT AUTO", "START AUTO-ALIGNMENT")}
+
+            {iphoneSyncDone && (
+              <HStack gap={2} w="full">
+                <Button flex={1} variant="outline" borderColor="whiteAlpha.200" color="whiteAlpha.600"
+                  fontSize="10px" onClick={() => setPhase('complete')}>
+                  {L("TERMINER", "FINISH")}
+                </Button>
+                <Button flex={2} bg="rgba(0,255,209,0.12)" color="var(--astro-teal)"
+                  border="1px solid rgba(0,255,209,0.35)" fontWeight="bold" fontSize="10px" letterSpacing="0.08em"
+                  _hover={{ bg: 'rgba(0,255,209,0.22)' }} onClick={runAutoAlign}>
+                  <Icon as={Zap} boxSize={3} mr={1} />
+                  {L("AFFINER PAR ASTROMÉTRIE", "REFINE WITH ASTROMETRY")}
+                </Button>
+              </HStack>
+            )}
+
+            <Button variant="ghost" fontSize="9px" color="whiteAlpha.400"
+              onClick={() => { setIphoneSyncDone(false); setPhoneRaDec(null); setPhase('zone-confirm'); }}>
+              {L("← RETOUR", "← BACK")}
             </Button>
-          </HStack>
+          </VStack>
         </VStack>
       )}
 
