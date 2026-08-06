@@ -1,81 +1,120 @@
 // src/components/layout/Sidebar.tsx
 "use client";
 
-import { Box, Flex, VStack, Icon } from "@chakra-ui/react";
-import { Telescope, Camera, Map, History, Settings, Zap } from "lucide-react";
+import React from "react";
+import { Telescope, Camera, Map, History, Settings, Zap, LucideIcon } from "lucide-react";
 import { useStargazerStore } from "@/store/useStargazerStore";
 
-const NavItem = ({ icon: LucideIcon, label, active = false }: { icon: any, label: string, active?: boolean }) => (
-    <Flex
-        align="center"
-        justify="center"
-        w="50px"
-        h="50px"
-        cursor="pointer"
-        borderRadius="full"
-        position="relative"
-        bg={active ? "rgba(208, 0, 0, 0.2)" : "transparent"}
-        color={active ? "#D00000" : "whiteAlpha.600"}
-        transition="all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)"
-        title={label}
-        _hover={{
-            color: "#D00000",
-            bg: "rgba(208, 0, 0, 0.1)",
-            transform: "scale(1.1)"
-        }}
+interface NavItemProps {
+  icon: LucideIcon;
+  label: string;
+  active?: boolean;
+}
+
+const NavItem = ({ icon: LucideIconComponent, label, active = false }: NavItemProps) => {
+  const [hovered, setHovered] = React.useState(false);
+
+  const isHighlighted = active || hovered;
+
+  return (
+    <div
+      title={label}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        position: "relative",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: "50px",
+        height: "50px",
+        cursor: "pointer",
+        borderRadius: "50%",
+        background: isHighlighted ? "rgba(208, 0, 0, 0.1)" : "transparent",
+        color: isHighlighted ? "#D00000" : "rgba(255,255,255,0.4)",
+        transition: "all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+        transform: hovered ? "scale(1.1)" : "scale(1)",
+      }}
     >
-        {active && (
-            <Box
-                position="absolute"
-                left="-15px"
-                w="4px"
-                h="20px"
-                bg="#D00000"
-                borderRadius="full"
-                className="glow-red"
-            />
-        )}
-        <LucideIcon size={24} strokeWidth={active ? 2.5 : 2} />
-    </Flex>
-);
+      {active && (
+        <span
+          className="glow-red"
+          style={{
+            position: "absolute",
+            left: "-15px",
+            width: "4px",
+            height: "20px",
+            background: "#D00000",
+            borderRadius: "9999px",
+          }}
+        />
+      )}
+      <LucideIconComponent size={24} strokeWidth={active ? 2.5 : 2} />
+    </div>
+  );
+};
 
 export const Sidebar = () => {
-    const isConnected = useStargazerStore((state) => state.isConnected);
+  const isConnected = useStargazerStore((state) => state.isConnected);
 
-    return (
-        <Box
-            w="80px"
-            h="calc(100vh - 40px)"
-            className="glass-panel"
-            borderRadius="2xl"
-            position="fixed"
-            left="20px"
-            top="20px"
-            zIndex={30}
-        >
-            <Flex direction="column" h="full" align="center" py="40px" justify="space-between">
-                <VStack gap={10}>
-                    <Box
-                        p="10px"
-                        borderRadius="15px"
-                        bg="black"
-                        border="1px solid"
-                        borderColor={isConnected ? "#FFB300" : "whiteAlpha.100"}
-                        className={isConnected ? "pulse" : ""}
-                    >
-                        <Icon as={Zap} boxSize={6} color={isConnected ? "#FFB300" : "whiteAlpha.400"} />
-                    </Box>
+  return (
+    <div
+      className="glass-panel"
+      style={{
+        width: "80px",
+        height: "calc(100vh - 40px)",
+        borderRadius: "16px",
+        position: "fixed",
+        left: "20px",
+        top: "20px",
+        zIndex: 30,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          height: "100%",
+          alignItems: "center",
+          paddingTop: "40px",
+          paddingBottom: "40px",
+          justifyContent: "space-between",
+        }}
+      >
+        {/* Top section: status indicator + nav items */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "40px" }}>
+          {/* Connection status indicator */}
+          <div
+            className={isConnected ? "pulse" : ""}
+            style={{
+              padding: "10px",
+              borderRadius: "15px",
+              background: "black",
+              border: `1px solid ${isConnected ? "#FFB300" : "rgba(255,255,255,0.1)"}`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Zap
+              size={24}
+              color={isConnected ? "#FFB300" : "rgba(255,255,255,0.25)"}
+              strokeWidth={2}
+            />
+          </div>
 
-                    <VStack gap={5}>
-                        <NavItem icon={Telescope} label="Dashboard" active />
-                        <NavItem icon={Camera} label="Imaging" />
-                        <NavItem icon={Map} label="Star Map" />
-                        <NavItem icon={History} label="Logs" />
-                    </VStack>
-                </VStack>
+          {/* Navigation items */}
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "20px" }}>
+            <NavItem icon={Telescope} label="Dashboard" active />
+            <NavItem icon={Camera} label="Imaging" />
+            <NavItem icon={Map} label="Star Map" />
+            <NavItem icon={History} label="Logs" />
+          </div>
+        </div>
 
-                <NavItem icon={Settings} label="Settings" />
-            </Flex>
-        </Box>
-    );
+        {/* Bottom: settings */}
+        <NavItem icon={Settings} label="Settings" />
+      </div>
+    </div>
+  );
 };

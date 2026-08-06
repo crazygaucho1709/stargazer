@@ -60,7 +60,7 @@ export function useEnvironmentData() {
                     }));
                 }
             } catch (err) {
-                console.error("Failed to fetch weather", err);
+                /* weather fetch échoue silencieusement — données non critiques */
             }
         };
 
@@ -77,7 +77,7 @@ export function useEnvironmentData() {
                     return true;
                 }
             } catch (e) {
-                console.warn("Hardware GPS sync failed, falling back to browser/defaults", e);
+                /* GPS hardware sync failed — fallback to browser/defaults */
             }
             return false;
         };

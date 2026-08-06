@@ -1,6 +1,6 @@
+// src/components/telescope/MountCalibration.tsx
 "use client";
 
-import { Box, VStack, HStack, Text, Button } from "@chakra-ui/react";
 import { MoveUpRight, Settings, AlertTriangle } from "lucide-react";
 import { useState } from "react";
 import { useStargazerStore } from "@/store/useStargazerStore";
@@ -48,7 +48,6 @@ export const MountCalibration = () => {
         }
     };
 
-
     const getStepHint = () => {
         switch (step) {
             case "maxAlt": return language === 'fr' ? "Montez au maximum" : "Move to max altitude";
@@ -72,90 +71,109 @@ export const MountCalibration = () => {
     const isCalibrating = step !== "idle";
 
     return (
-        <VStack align="stretch" gap={4} color="var(--astro-starlight)" w="full">
-            <HStack justify="space-between">
-                <HStack gap={2}>
-                    <Box color="var(--astro-teal)" className={isCalibrating ? "pulse-glow" : ""}>
+        <div className="flex flex-col gap-4 w-full" style={{ color: "var(--astro-starlight)" }}>
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <span className={isCalibrating ? "pulse-glow" : ""} style={{ color: "var(--astro-teal)" }}>
                         <Settings size={16} />
-                    </Box>
-                    <Text fontSize="12px" fontWeight="bold" letterSpacing="0.1em">{t("CALIB_LIMITS_TITLE", language)}</Text>
-                </HStack>
-                {isCalibrating && <Text fontSize="10px" color="var(--astro-gold)" className="pulse-glow">{t("CALIB_IN_PROGRESS", language)}</Text>}
-            </HStack>
+                    </span>
+                    <span className="text-[12px] font-bold tracking-[0.1em]">{t("CALIB_LIMITS_TITLE", language)}</span>
+                </div>
+                {isCalibrating && (
+                    <span className="text-[10px] pulse-glow" style={{ color: "var(--astro-gold)" }}>
+                        {t("CALIB_IN_PROGRESS", language)}
+                    </span>
+                )}
+            </div>
 
-            <Box borderTop="1px dashed rgba(255, 255, 255, 0.1)" my={1} />
+            <div className="border-t border-dashed border-white/10 my-1" />
 
             {!isCalibrating ? (
-                <VStack align="stretch" gap={3}>
-                    <HStack justify="space-between" fontSize="10px" color="var(--astro-starlight)" opacity={0.8}>
-                        <VStack align="start" gap={0}>
-                            <Text color="var(--astro-teal)">{t("CALIB_ALTITUDE", language)}</Text>
-                            <Text>{mountLimits.minAlt.toFixed(1)}° ➔ {mountLimits.maxAlt.toFixed(1)}°</Text>
-                        </VStack>
-                        <VStack align="end" gap={0}>
-                            <Text color="var(--astro-teal)">{t("CALIB_AZIMUTH", language)}</Text>
-                            <Text>{mountLimits.minAz.toFixed(1)}° ➔ {mountLimits.maxAz.toFixed(1)}°</Text>
-                        </VStack>
-                    </HStack>
+                <div className="flex flex-col gap-3">
+                    <div className="flex items-center justify-between text-[10px] opacity-80">
+                        <div className="flex flex-col gap-0">
+                            <span style={{ color: "var(--astro-teal)" }}>{t("CALIB_ALTITUDE", language)}</span>
+                            <span>{mountLimits.minAlt.toFixed(1)}° ➔ {mountLimits.maxAlt.toFixed(1)}°</span>
+                        </div>
+                        <div className="flex flex-col items-end gap-0">
+                            <span style={{ color: "var(--astro-teal)" }}>{t("CALIB_AZIMUTH", language)}</span>
+                            <span>{mountLimits.minAz.toFixed(1)}° ➔ {mountLimits.maxAz.toFixed(1)}°</span>
+                        </div>
+                    </div>
 
-                    <Button
-                        size="sm" w="full" bg="rgba(255, 51, 51, 0.1)"
-                        border="1px solid var(--astro-teal)" color="var(--astro-teal)"
-                        _hover={{ bg: "var(--astro-teal)", color: "black", boxShadow: "0 0 15px rgba(255, 51, 51, 0.4)" }}
-                        fontSize="10px"
+                    <button
+                        className="w-full flex items-center justify-center gap-1.5 h-8 rounded-md border text-[10px] transition-all duration-200 cursor-pointer hover:text-black"
+                        style={{
+                            background: "rgba(255, 51, 51, 0.1)",
+                            borderColor: "var(--astro-teal)",
+                            color: "var(--astro-teal)",
+                        }}
+                        onMouseEnter={e => {
+                            (e.currentTarget as HTMLElement).style.background = "var(--astro-teal)";
+                            (e.currentTarget as HTMLElement).style.color = "black";
+                            (e.currentTarget as HTMLElement).style.boxShadow = "0 0 15px rgba(255, 51, 51, 0.4)";
+                        }}
+                        onMouseLeave={e => {
+                            (e.currentTarget as HTMLElement).style.background = "rgba(255, 51, 51, 0.1)";
+                            (e.currentTarget as HTMLElement).style.color = "var(--astro-teal)";
+                            (e.currentTarget as HTMLElement).style.boxShadow = "";
+                        }}
                         onClick={() => setStep("maxAlt")}
                     >
-                        <MoveUpRight size={12} style={{ marginRight: '6px' }} />
+                        <MoveUpRight size={12} />
                         {t("CALIB_WIZARD_BTN", language)}
-                    </Button>
-                </VStack>
+                    </button>
+                </div>
             ) : (
-                <VStack align="stretch" gap={3} bg="rgba(0, 0, 0, 0.3)" p={3} borderRadius="8px" borderLeft="2px solid var(--astro-gold)">
-                    <HStack gap={2}>
-                        <Box color="var(--astro-gold)">
-                            <AlertTriangle size={16} />
-                        </Box>
-                        <Text fontSize="10px" fontWeight="bold" color="var(--astro-gold)">{step.toUpperCase()}</Text>
-                    </HStack>
-                    <Text fontSize="10px" lineHeight={1.4}>{getStepInstruction()}</Text>
-                    <Text fontSize="9px" color="var(--astro-teal)" fontStyle="italic">{getStepHint()}</Text>
+                <div className="flex flex-col gap-3 p-3 rounded-lg" style={{
+                    background: "rgba(0, 0, 0, 0.3)",
+                    borderLeft: "2px solid var(--astro-gold)",
+                }}>
+                    <div className="flex items-center gap-2">
+                        <span style={{ color: "var(--astro-gold)" }}><AlertTriangle size={16} /></span>
+                        <span className="text-[10px] font-bold" style={{ color: "var(--astro-gold)" }}>{step.toUpperCase()}</span>
+                    </div>
+                    <p className="text-[10px] leading-[1.4]">{getStepInstruction()}</p>
+                    <p className="text-[9px] italic" style={{ color: "var(--astro-teal)" }}>{getStepHint()}</p>
 
-                    <HStack justify="center" gap={2} py={2}>
+                    <div className="flex items-center justify-center gap-2 py-2">
                         {jog.activeDir && (
-                            <Text fontSize="8px" color="var(--astro-teal)" fontWeight="bold"
-                                style={{ animation: 'pulse 0.6s infinite alternate' }}>
+                            <span className="text-[8px] font-bold" style={{ color: "var(--astro-teal)", animation: 'pulse 0.6s infinite alternate' }}>
                                 ▶ {jog.activeDir.toUpperCase()}
-                            </Text>
+                            </span>
                         )}
                         <JogPad jog={jog} size="md" />
-                    </HStack>
+                    </div>
 
-                    <HStack justify="space-between" bg="#030509" p={2} borderRadius="4px" border="1px solid rgba(255,255,255,0.05)">
-                        <VStack align="start" gap={0}>
-                            <Text fontSize="8px" opacity={0.6}>{t("CALIB_CURRENT_POS", language)}</Text>
-                            <Text fontSize="12px" color="var(--astro-teal)" className="hud-font">
+                    <div className="flex items-center justify-between p-2 rounded"
+                        style={{ background: "#030509", border: "1px solid rgba(255,255,255,0.05)" }}>
+                        <div className="flex flex-col gap-0">
+                            <span className="text-[8px] opacity-60">{t("CALIB_CURRENT_POS", language)}</span>
+                            <span className="text-[12px] hud-font" style={{ color: "var(--astro-teal)" }}>
                                 {step.includes("Alt") ? `ALT: ${alt.toFixed(1)}°` : `AZ: ${az.toFixed(1)}°`}
-                            </Text>
-                        </VStack>
-                        <Button
-                            size="sm" bg="var(--astro-teal)" color="black"
-                            _hover={{ bg: "white" }}
+                            </span>
+                        </div>
+                        <button
+                            className="h-8 px-3 rounded-md text-black font-semibold text-[12px] transition-colors cursor-pointer disabled:opacity-40"
+                            style={{ background: "var(--astro-teal)" }}
+                            onMouseEnter={e => (e.currentTarget.style.background = "white")}
+                            onMouseLeave={e => (e.currentTarget.style.background = "var(--astro-teal)")}
                             onClick={handleSaveLimit}
                             disabled={jog.isMoving}
                         >
                             {t("CALIB_VALIDATE", language)}
-                        </Button>
-                    </HStack>
+                        </button>
+                    </div>
 
-                    <Button
-                        size="xs" variant="ghost" color="whiteAlpha.600" mt={1}
+                    <button
+                        className="text-[10px] text-white/40 hover:text-white/70 transition-colors mt-1 cursor-pointer disabled:opacity-30"
                         onClick={() => setStep("idle")}
                         disabled={jog.isMoving}
                     >
                         {t("CALIB_CANCEL", language)}
-                    </Button>
-                </VStack>
+                    </button>
+                </div>
             )}
-        </VStack>
+        </div>
     );
 };

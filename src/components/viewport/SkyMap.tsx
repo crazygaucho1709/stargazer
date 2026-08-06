@@ -2,12 +2,12 @@
 "use client";
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { Box, Spinner, Center, Text, VStack, HStack, Input, Icon, Flex, Button, Badge } from "@chakra-ui/react";
-import { Search, Crosshair, Map as MapIcon, Layers, Star, Target, Navigation, AlertCircle, Camera, Globe } from "lucide-react";
+import { Search, Crosshair, Layers, Target, Navigation, Camera, Globe } from "lucide-react";
 import { useStargazerStore } from "@/store/useStargazerStore";
 import { useAstroAction } from "@/hooks/useAstroAction";
 import { useGoTo } from "@/hooks/useGoTo";
 import { CELESTIAL_CATALOG, CelestialObject } from "@/data/celestialCatalog";
+import { notification } from "@/lib/notificationService";
 
 declare global {
     interface Window {
@@ -213,7 +213,7 @@ const SkyFallback = ({ objects, onSelect, mountRa, mountDec, resetViewSignal, sh
         ctx.lineWidth = 2;
         const mx = mountPos.x;
         const my = mountPos.y;
-        
+
         // Crosshair
         ctx.beginPath();
         ctx.moveTo(mx - 30, my);
@@ -242,7 +242,7 @@ const SkyFallback = ({ objects, onSelect, mountRa, mountDec, resetViewSignal, sh
     const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
         const canvas = canvasRef.current;
         if (!canvas) return;
-        
+
         const rect = canvas.getBoundingClientRect();
         const scaleX = canvas.width / rect.width;
         const scaleY = canvas.height / rect.height;
@@ -304,10 +304,14 @@ const SkyFallback = ({ objects, onSelect, mountRa, mountDec, resetViewSignal, sh
         setFovDeg(prev => Math.max(2, Math.min(180, prev * factor)));
     };
 
-    if (!mounted) return <Center h="full"><Spinner color="var(--astro-teal)" /></Center>;
+    if (!mounted) return (
+        <div className="flex items-center justify-center h-full">
+            <div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--astro-teal)', borderTopColor: 'transparent' }} />
+        </div>
+    );
 
     return (
-        <Box position="relative" w="full" h="full" id="fallback-canvas-container">
+        <div className="relative w-full h-full" id="fallback-canvas-container">
             <canvas
                 ref={canvasRef}
                 style={{
@@ -325,23 +329,22 @@ const SkyFallback = ({ objects, onSelect, mountRa, mountDec, resetViewSignal, sh
             />
             {/* Hover info */}
             {hoveredObj && (
-                <Box 
-                    position="absolute" top={2} left={2} 
-                    bg="rgba(10, 20, 40, 0.9)" p={3} borderRadius="md"
-                    border="1px solid var(--astro-teal)"
+                <div
+                    className="absolute top-2 left-2 p-3 rounded-md"
+                    style={{ background: 'rgba(10, 20, 40, 0.9)', border: '1px solid var(--astro-teal)' }}
                 >
-                    <Text color="var(--astro-gold)" fontWeight="bold">{hoveredObj.id} - {hoveredObj.name}</Text>
-                    <Text color="white" fontSize="xs">{hoveredObj.constellation} | {hoveredObj.type}</Text>
-                    <Text color="gray.400" fontSize="xs">Mag: {hoveredObj.magnitude}</Text>
-                </Box>
+                    <p className="font-bold text-sm" style={{ color: 'var(--astro-gold)' }}>{hoveredObj.id} - {hoveredObj.name}</p>
+                    <p className="text-white text-xs">{hoveredObj.constellation} | {hoveredObj.type}</p>
+                    <p className="text-xs" style={{ color: '#9ca3af' }}>Mag: {hoveredObj.magnitude}</p>
+                </div>
             )}
-        </Box>
+        </div>
     );
 };
 
 // Aladin Lite wrapper with full interactivity
-const AladinSkyMap = ({ 
-    objects, 
+const AladinSkyMap = ({
+    objects,
     onSelect,
     mountRa,
     mountDec,
@@ -356,7 +359,7 @@ const AladinSkyMap = ({
     gotoTarget,
     resetViewSignal
 }: {
-    objects: CelestialObject[], 
+    objects: CelestialObject[],
     onSelect: (obj: CelestialObject) => void,
     onViewChange?: (ra: number, dec: number) => void,
     mountRa?: string,
@@ -400,7 +403,7 @@ const AladinSkyMap = ({
         console.error = (...args) => {
             const msg = args[0]?.toString() || '';
             // Suppress known non-critical errors
-            if (msg.includes('CORS') || 
+            if (msg.includes('CORS') ||
                 msg.includes('Access-Control-Allow-Origin') ||
                 msg.includes('properties') ||
                 msg.includes('irsa.ipac') ||
@@ -426,7 +429,7 @@ const AladinSkyMap = ({
                 });
                 clearTimeout(timeoutId);
                 setIsOnline(res.ok);
-            } catch (e) {
+            } catch (e: unknown) {
                 console.warn('Strasbourg server is unreachable, configuring Aladin in offline mode (survey: null).');
                 setIsOnline(false);
             }
@@ -458,8 +461,7 @@ const AladinSkyMap = ({
                     }
                     await setupAladin();
                     return;
-                } catch (e) {
-                    console.error('Aladin init error:', e);
+                } catch (e: unknown) {
                     // Surface the error so we fall back to canvas immediately
                     setLoadError(`Aladin init failed: ${e}`);
                     return;
@@ -480,7 +482,7 @@ const AladinSkyMap = ({
                 link.href = '/aladin.css';
                 document.head.appendChild(link);
             }
- 
+
             // Load JS from local file
             if (!document.getElementById('aladin-script')) {
                 const script = document.createElement('script');
@@ -489,7 +491,6 @@ const AladinSkyMap = ({
                 script.async = true;
                 script.onload = () => initAladin();
                 script.onerror = () => {
-                    console.error('Aladin script load failed - using fallback');
                     setLoadError('Aladin failed to load, using fallback mode');
                 };
                 document.head.appendChild(script);
@@ -552,14 +553,14 @@ const AladinSkyMap = ({
                     if (settings.gridColor) {
                         aladinRef.current.setCooGridColor(settings.gridColor);
                     }
-                } catch (e) {
+                } catch (e: unknown) {
                     // Ignore grid errors
                 }
             }
 
             // Add our catalog with user settings
             if (objects.length > 0) {
-                const sources = objects.slice(0, 50).map(obj => 
+                const sources = objects.slice(0, 50).map(obj =>
                     window.A.source(obj.ra_deg, obj.dec_deg, {
                         name: `${obj.id} - ${obj.name}`,
                         id: obj.id,
@@ -569,7 +570,7 @@ const AladinSkyMap = ({
                         constellation: obj.constellation
                     })
                 );
-                
+
                 const cat = window.A.catalog({
                     name: 'Deep Sky Objects',
                     color: settings.objectColor || '#ffd700',
@@ -579,7 +580,7 @@ const AladinSkyMap = ({
                     labelColumn: 'id',
                     onClick: 'showPopup'
                 });
-                
+
                 cat.addSources(sources);
                 aladinRef.current.addCatalog(cat);
                 dsoCatalogRef.current = cat;
@@ -645,7 +646,7 @@ const AladinSkyMap = ({
         const decVal = parseDecToDecimal(mountDec);
         try {
             aladinRef.current.gotoRaDec(raVal, decVal);
-        } catch (e) {
+        } catch (e: unknown) {
             console.warn('gotoRaDec error:', e);
         }
         // Only re-run when trackMount changes to true (not on every mount position tick)
@@ -670,14 +671,14 @@ const AladinSkyMap = ({
                 } else if (mountSourceRef.current && typeof mountCatalogRef.current.remove === 'function') {
                     try {
                         mountCatalogRef.current.remove(mountSourceRef.current);
-                    } catch (err) {
+                    } catch (err: unknown) {
                         console.warn('Error calling catalog.remove:', err);
                     }
                 }
                 mountSourceRef.current = window.A.source(raVal, decVal, { name: 'Mount' });
                 mountCatalogRef.current.addSources([mountSourceRef.current]);
             }
-        } catch (e) {
+        } catch (e: unknown) {
             console.warn('Mount marker update error:', e);
         }
     }, [mountRa, mountDec, aladinReady]);
@@ -691,7 +692,7 @@ const AladinSkyMap = ({
             } else {
                 aladinRef.current.setCooGrid(false);
             }
-        } catch (e) {
+        } catch (e: unknown) {
             console.warn('Grid toggle error:', e);
         }
     }, [showGrid]);
@@ -699,7 +700,7 @@ const AladinSkyMap = ({
     // Update Aladin when settings change — non-destructive for minor changes
     useEffect(() => {
         if (!aladinReady || !aladinRef.current || !aladinSettings || isOnline === null) return;
-        
+
         const prevMajorRef = (window as any).__aladinMajorSettings;
         const majorKey = `${aladinSettings.survey}|${aladinSettings.projection}|${aladinSettings.showReticle}|${aladinSettings.showFullscreen}|${aladinSettings.showZoom}|${aladinSettings.fov}`;
         const needsReinit = majorKey !== prevMajorRef;
@@ -709,13 +710,13 @@ const AladinSkyMap = ({
             if (needsReinit) {
                 const container = containerRef.current;
                 if (!container) return;
-                
+
                 aladinRef.current = null;
                 container.innerHTML = '';
-                
+
                 const raVal = parseRaToDecimal(mountRa || '0');
                 const decVal = parseDecToDecimal(mountDec || '0');
-                
+
                 const selectedSurvey = aladinSettings.survey;
                 const surveyUrl = isOnline ? (SURVEY_URLS[selectedSurvey] || selectedSurvey) : null;
 
@@ -733,21 +734,21 @@ const AladinSkyMap = ({
                     backgroundColor: 'rgb(5,5,15)',
                     projection: aladinSettings.projection
                 });
-                
+
                 setTimeout(() => {
                     if (showGrid) {
-                        try { aladinRef.current.setCooGrid(true); } catch(e) {}
+                        try { aladinRef.current.setCooGrid(true); } catch(e: unknown) {}
                     }
-                    
+
                     if (objects.length > 0) {
-                        const sources = objects.slice(0, 50).map(obj => 
+                        const sources = objects.slice(0, 50).map(obj =>
                             window.A.source(obj.ra_deg, obj.dec_deg, {
                                 name: `${obj.id} - ${obj.name}`,
                                 id: obj.id,
                                 label: showLabels ? obj.id : ''
                             })
                         );
-                        
+
                         const cat = window.A.catalog({
                             name: 'Deep Sky Objects',
                             color: aladinSettings.objectColor,
@@ -759,7 +760,7 @@ const AladinSkyMap = ({
                         aladinRef.current.addCatalog(cat);
                         dsoCatalogRef.current = cat;
                     }
-                    
+
                     const mountCat = window.A.catalog({
                         name: 'Telescope',
                         color: aladinSettings.mountColor,
@@ -771,18 +772,18 @@ const AladinSkyMap = ({
                     aladinRef.current.addCatalog(mountCat);
                     mountCatalogRef.current = mountCat;
                     mountSourceRef.current = mountSource;
-                    
+
                     aladinRef.current.on('objectClicked', (source: any) => {
                         if (!source) return;
                         const data = source.data || {};
                         const selected = objects.find(o => o.id === data.id);
                         if (selected) onSelect(selected);
                     });
-                    
+
                     aladinRef.current.on('positionChanged', (ra: number, dec: number) => {
                         onViewChangeRef.current?.(ra, dec);
                     });
-                    
+
                 }, 1000);
             } else {
                 // Non-destructive: update colors and sizes in-place
@@ -790,24 +791,24 @@ const AladinSkyMap = ({
                     try {
                         dsoCatalogRef.current.setColor(aladinSettings.objectColor);
                         dsoCatalogRef.current.setSourceSize(aladinSettings.sourceSize);
-                    } catch(e) { console.warn('DSO catalog update error:', e); }
+                    } catch(e: unknown) { console.warn('DSO catalog update error:', e); }
                 }
                 if (mountCatalogRef.current) {
                     try {
                         mountCatalogRef.current.setColor(aladinSettings.mountColor);
-                    } catch(e) { console.warn('Mount catalog color error:', e); }
+                    } catch(e: unknown) { console.warn('Mount catalog color error:', e); }
                 }
                 // FOV
                 try {
                     aladinRef.current.setFoV(aladinSettings.fov);
-                } catch(e) { console.warn('FOV update error:', e); }
+                } catch(e: unknown) { console.warn('FOV update error:', e); }
                 // Grid color
                 try {
                     aladinRef.current.setCooGridColor(aladinSettings.gridColor);
-                } catch(e) { console.warn('Grid color update error:', e); }
+                } catch(e: unknown) { console.warn('Grid color update error:', e); }
             }
-        } catch (e) {
-            console.error('Settings update error:', e);
+        } catch (e: unknown) {
+            notification.error(`AladinSkyMap: Settings update error: ${e instanceof Error ? e.message : String(e)}`);
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [aladinSettings, aladinReady]);
@@ -815,10 +816,10 @@ const AladinSkyMap = ({
     // Handle gotoTarget - center on selected object
     useEffect(() => {
         if (!aladinReady || !aladinRef.current || !gotoTarget) return;
-        
+
         try {
             aladinRef.current.gotoRaDec(gotoTarget.ra, gotoTarget.dec);
-        } catch (e) {
+        } catch (e: unknown) {
             console.warn('Goto error:', e);
         }
     }, [gotoTarget, aladinReady]);
@@ -829,10 +830,10 @@ const AladinSkyMap = ({
     // Always show the canvas fallback while Aladin loads or if it fails.
     // Aladin mounts invisibly on top; once ready it becomes visible.
     return (
-        <Box position="relative" w="full" h="full" bg="#000510">
+        <div className="relative w-full h-full" style={{ background: '#000510' }}>
             {/* Canvas fallback — always visible until Aladin is ready */}
             {!aladinReady && (
-                <Box position="absolute" inset={0} zIndex={1}>
+                <div className="absolute inset-0" style={{ zIndex: 1 }}>
                     <SkyFallback
                         objects={objects}
                         onSelect={onSelect}
@@ -843,7 +844,7 @@ const AladinSkyMap = ({
                         showLabels={showLabels}
                         onViewChange={onViewChangeRef.current}
                     />
-                </Box>
+                </div>
             )}
 
             {/* Aladin container — hidden until ready, then shown above canvas */}
@@ -863,22 +864,23 @@ const AladinSkyMap = ({
 
             {/* Hover info overlay (Aladin) */}
             {hoveredObject && aladinReady && (
-                <Box
-                    position="absolute" top={3} left={3}
-                    bg="rgba(10, 20, 40, 0.9)"
-                    border="1px solid var(--astro-gold)"
-                    borderRadius="md"
-                    p={3}
-                    maxW="250px"
-                    zIndex={100}
+                <div
+                    className="absolute rounded-md p-3"
+                    style={{
+                        top: 12, left: 12,
+                        background: 'rgba(10, 20, 40, 0.9)',
+                        border: '1px solid var(--astro-gold)',
+                        maxWidth: 250,
+                        zIndex: 100,
+                    }}
                 >
-                    <Text color="var(--astro-gold)" fontWeight="bold">{hoveredObject.id}</Text>
-                    <Text color="white" fontSize="sm">{hoveredObject.name}</Text>
-                    <Text color="gray.400" fontSize="xs">{hoveredObject.type}</Text>
-                    <Text color="cyan.300" fontSize="xs">Mag: {hoveredObject.magnitude}</Text>
-                </Box>
+                    <p className="font-bold text-sm" style={{ color: 'var(--astro-gold)' }}>{hoveredObject.id}</p>
+                    <p className="text-white text-sm">{hoveredObject.name}</p>
+                    <p className="text-xs" style={{ color: '#9ca3af' }}>{hoveredObject.type}</p>
+                    <p className="text-xs" style={{ color: '#67e8f9' }}>Mag: {hoveredObject.magnitude}</p>
+                </div>
             )}
-        </Box>
+        </div>
     );
 };
 
@@ -907,7 +909,7 @@ export const SkyMap = () => {
     const [showCardinals, setShowCardinals] = useState(true);
     const [showSettings, setShowSettings] = useState(false);
     const [showTelrad, setShowTelrad] = useState(false);
-    
+
     // Aladin settings
     const mapContainerRef = useRef<HTMLDivElement>(null);
 
@@ -931,11 +933,11 @@ export const SkyMap = () => {
 
     const handleSearchInput = (value: string) => {
         setSearchQuery(value);
-        
+
         // Search in local catalog
         if (value.trim().length >= 1) {
             const query = value.toLowerCase();
-            const results = CELESTIAL_CATALOG.filter(obj => 
+            const results = CELESTIAL_CATALOG.filter(obj =>
                 obj.name.toLowerCase().includes(query) ||
                 obj.id.toLowerCase().includes(query) ||
                 obj.constellation.toLowerCase().includes(query) ||
@@ -966,7 +968,7 @@ export const SkyMap = () => {
         notes: string;
     } | null>(null);
     const [gotoTarget, setGotoTarget] = useState<{ra: number, dec: number} | null>(null);
-    
+
     // Moon phase (0=new, 0.5=full) — simple synodic approximation
     const moonPhase = (() => {
         const d = new Date();
@@ -977,7 +979,7 @@ export const SkyMap = () => {
     // Limiting magnitude: full moon reduces sky transparency by ~3 mag visually
     const moonPenalty = obsMode === 'visual' ? moonPhase * 3 : moonPhase * 2;
     const limitingMagnitude = (obsMode === 'visual' ? 12.5 : 17) - moonPenalty;
-    
+
     const filteredObjects = CELESTIAL_CATALOG.filter(obj => obj.magnitude <= limitingMagnitude);
 
     // Sync shared selection from store (ObjectFinder clicks) to map
@@ -1007,14 +1009,14 @@ export const SkyMap = () => {
     const handleSearch = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!searchQuery.trim()) return;
-        
+
         // Search in local catalog only
-        const localMatch = CELESTIAL_CATALOG.find(obj => 
-            obj.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        const localMatch = CELESTIAL_CATALOG.find(obj =>
+            obj.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             obj.id.toLowerCase() === searchQuery.toLowerCase() ||
             obj.constellation.toLowerCase().includes(searchQuery.toLowerCase())
         );
-        
+
         if (localMatch) {
             handleSelectResult(localMatch);
         }
@@ -1060,32 +1062,21 @@ Génère une séquence de capture optimale au format JSON strict:
             notes: 'Paramètres par défaut — configurez votre clé Gemini pour des recommandations personnalisées.'
         };
 
-        if (!config.aiKey) {
-            setSequenceParams({ ...defaultParams, notes: 'Configurez votre clé Gemini dans les paramètres pour des recommandations IA.' });
-            setSequenceLoading(false);
-            return;
-        }
-
         try {
-            const res = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${config.aiKey}`,
-                {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: prompt }] }],
-                        generationConfig: { temperature: 0.3, responseMimeType: 'application/json' }
-                    })
-                }
-            );
+            const res = await fetch('/api/ai/sky', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt }),
+                signal: AbortSignal.timeout(35000),
+            });
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const data = await res.json();
-            const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (!text) throw new Error('Empty response');
-            const parsed = JSON.parse(text);
+            const parsed = await res.json();
             setSequenceParams(parsed);
-        } catch (e) {
-            console.error('Gemini error:', e);
+        } catch (e: unknown) {
+            notification.error("Recommandations IA indisponibles", {
+                source: "SkyMap",
+                description: e instanceof Error ? e.message : String(e),
+            });
             setSequenceParams(defaultParams);
         } finally {
             setSequenceLoading(false);
@@ -1100,8 +1091,8 @@ Génère une séquence de capture optimale au format JSON strict:
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(sequenceParams)
             });
-        } catch (e) {
-            console.error('Sequence launch error:', e);
+        } catch (e: unknown) {
+            notification.error(`SkyMap: Sequence launch error: ${e instanceof Error ? e.message : String(e)}`);
         }
         setShowSequenceModal(false);
     };
@@ -1117,7 +1108,7 @@ Génère une séquence de capture optimale au format JSON strict:
             return clean || 'N/A';
         } catch { return 'N/A'; }
     };
-    
+
     const formatDEC = (decStr: string) => {
         try {
             const clean = decStr.replace(/[°'"]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -1125,178 +1116,229 @@ Génère une séquence de capture optimale au format JSON strict:
         } catch { return 'N/A'; }
     };
 
+    // Hover state for toggle buttons
+    const [hoverStates, setHoverStates] = useState<Record<string, boolean>>({});
+    const setHover = (key: string, val: boolean) => setHoverStates(prev => ({ ...prev, [key]: val }));
+
     return (
         /* Flex-column layout: control bar on top (in-flow), map below.
            No position:absolute on controls → zero bleed into side columns. */
-        <Flex direction="column" w="full" h="full" bg="black" overflow="hidden">
+        <div className="flex flex-col w-full h-full overflow-hidden" style={{ background: 'black' }}>
 
             {/* ── TOP BAR: search + toggles (normal flow, no z-index fighting) ── */}
-            <Box
-                flexShrink={0}
-                bg="rgba(5, 8, 20, 0.97)"
-                borderBottom="1px solid rgba(255,255,255,0.06)"
-                px={3} py={2}
-                position="relative"   /* containing block for the dropdown only */
+            <div
+                className="flex-shrink-0 relative px-3 py-2"
+                style={{
+                    background: 'rgba(5, 8, 20, 0.97)',
+                    borderBottom: '1px solid rgba(255,255,255,0.06)',
+                }}
             >
-                <HStack gap={2} wrap="nowrap">
+                <div className="flex items-center gap-2 flex-nowrap">
                     {/* Live/Sky mode buttons */}
-                    <HStack gap={1} flexShrink={0}>
-                        <Button size="xs" borderRadius="full" px={3}
-                            bg={liveViewMode === "NASA" ? "var(--astro-teal)" : "rgba(10,20,40,0.8)"}
-                            color={liveViewMode === "NASA" ? "black" : "var(--astro-teal)"}
-                            border="1px solid rgba(255,255,255,0.15)"
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                        <button
+                            className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium"
+                            style={{
+                                background: liveViewMode === "NASA" ? 'var(--astro-teal)' : 'rgba(10,20,40,0.8)',
+                                color: liveViewMode === "NASA" ? 'black' : 'var(--astro-teal)',
+                                border: '1px solid rgba(255,255,255,0.15)',
+                            }}
                             onClick={() => setLiveViewMode("NASA")}
                         >
-                            <Icon as={Globe} boxSize={3} mr={1} />SKY
-                        </Button>
-                        <Button size="xs" borderRadius="full" px={3}
-                            bg={liveViewMode === "CANON" ? "var(--astro-gold)" : "rgba(10,20,40,0.8)"}
-                            color={liveViewMode === "CANON" ? "black" : "var(--astro-gold)"}
-                            border="1px solid rgba(255,255,255,0.15)"
+                            <Globe size={12} />SKY
+                        </button>
+                        <button
+                            className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium"
+                            style={{
+                                background: liveViewMode === "CANON" ? 'var(--astro-gold)' : 'rgba(10,20,40,0.8)',
+                                color: liveViewMode === "CANON" ? 'black' : 'var(--astro-gold)',
+                                border: '1px solid rgba(255,255,255,0.15)',
+                            }}
                             onClick={() => setLiveViewMode("CANON")}
                         >
-                            <Icon as={Camera} boxSize={3} mr={1} />LIVE
-                        </Button>
-                    </HStack>
+                            <Camera size={12} />LIVE
+                        </button>
+                    </div>
 
                     {/* Search form */}
-                    <Box as="form" onSubmit={handleSearch} flex={1} minW={0}>
-                        <HStack
-                            bg="rgba(10, 20, 40, 0.95)"
-                            borderRadius="full"
-                            border="1px solid var(--astro-teal)"
-                            px={3} py={1}
-                            boxShadow="0 0 12px rgba(0, 240, 255, 0.15)"
+                    <form onSubmit={handleSearch} className="flex-1 min-w-0">
+                        <div
+                            className="flex items-center px-3 py-1 rounded-full gap-2"
+                            style={{
+                                background: 'rgba(10, 20, 40, 0.95)',
+                                border: '1px solid var(--astro-teal)',
+                                boxShadow: '0 0 12px rgba(0, 240, 255, 0.15)',
+                            }}
                         >
-                            <Search size={16} color="var(--astro-teal)" />
-                            <Input
+                            <Search size={16} style={{ color: 'var(--astro-teal)', flexShrink: 0 }} />
+                            <input
+                                className="flex-1 min-w-0 bg-transparent text-white text-sm outline-none border-none"
                                 placeholder={language === 'fr' ? "Rechercher (M31, Orion…)" : "Search (M31, Orion…)"}
-                                variant="flushed" border="none" outline="none"
-                                _focus={{ border: "none", outline: "none", boxShadow: "none" }}
-                                bg="transparent" color="white" fontSize="sm"
                                 value={searchQuery}
                                 onChange={(e) => handleSearchInput(e.target.value)}
                             />
-                            <Button type="submit" size="xs" variant="ghost" color="var(--astro-teal)" borderRadius="full" px={2}>
+                            <button
+                                type="submit"
+                                className="text-xs px-2 rounded-full"
+                                style={{ color: 'var(--astro-teal)', background: 'transparent' }}
+                            >
                                 FIND
-                            </Button>
-                            <Button
-                                size="xs" bg="var(--astro-gold)" color="black"
-                                _hover={{ bg: "yellow.400" }}
+                            </button>
+                            <button
+                                type="button"
+                                className="text-xs font-bold px-3 py-1 rounded-full"
+                                style={{ background: 'var(--astro-gold)', color: 'black' }}
                                 onClick={handleSlewToMap}
-                                borderRadius="full" px={3} fontWeight="bold"
                             >
                                 GOTO
-                            </Button>
-                        </HStack>
-                    </Box>
+                            </button>
+                        </div>
+                    </form>
 
                     {/* Toggle buttons — all in-flow, no absolute positioning */}
-                    <HStack gap={1} flexShrink={0}>
-                        <Button size="xs" borderRadius="full"
-                            bg={trackMount ? "var(--astro-teal)" : "rgba(10,20,40,0.8)"}
-                            color={trackMount ? "black" : "var(--astro-teal)"}
-                            border="1px solid rgba(255,255,255,0.15)"
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                        <button
+                            className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium"
+                            style={{
+                                background: trackMount ? 'var(--astro-teal)' : 'rgba(10,20,40,0.8)',
+                                color: trackMount ? 'black' : 'var(--astro-teal)',
+                                border: '1px solid rgba(255,255,255,0.15)',
+                            }}
                             onClick={centerOnMount}
                         >
-                            <Icon as={Navigation} boxSize={3} mr={1} />
+                            <Navigation size={12} />
                             {trackMount ? "TRACK" : "CENTER"}
-                        </Button>
-                        <Button size="xs" borderRadius="full"
-                            bg={gridVisible ? "var(--astro-teal)" : "rgba(10,20,40,0.8)"}
-                            color={gridVisible ? "black" : "var(--astro-teal)"}
-                            border="1px solid rgba(255,255,255,0.15)"
+                        </button>
+                        <button
+                            className="px-2 py-1 rounded-full text-xs font-medium"
+                            style={{
+                                background: gridVisible ? 'var(--astro-teal)' : 'rgba(10,20,40,0.8)',
+                                color: gridVisible ? 'black' : 'var(--astro-teal)',
+                                border: '1px solid rgba(255,255,255,0.15)',
+                            }}
                             onClick={toggleGrid}
-                        >GRID</Button>
-                        <Button size="xs" borderRadius="full"
-                            bg={showCatalog ? "var(--astro-teal)" : "rgba(10,20,40,0.8)"}
-                            color={showCatalog ? "black" : "var(--astro-teal)"}
-                            border="1px solid rgba(255,255,255,0.15)"
+                        >GRID</button>
+                        <button
+                            className="px-2 py-1 rounded-full text-xs font-medium"
+                            style={{
+                                background: showCatalog ? 'var(--astro-teal)' : 'rgba(10,20,40,0.8)',
+                                color: showCatalog ? 'black' : 'var(--astro-teal)',
+                                border: '1px solid rgba(255,255,255,0.15)',
+                            }}
                             onClick={() => setShowCatalog(!showCatalog)}
-                        >CAT</Button>
-                        <Button size="xs" borderRadius="full"
-                            bg={showLabels ? "var(--astro-teal)" : "rgba(10,20,40,0.8)"}
-                            color={showLabels ? "black" : "var(--astro-teal)"}
-                            border="1px solid rgba(255,255,255,0.15)"
+                        >CAT</button>
+                        <button
+                            className="px-2 py-1 rounded-full text-xs font-medium"
+                            style={{
+                                background: showLabels ? 'var(--astro-teal)' : 'rgba(10,20,40,0.8)',
+                                color: showLabels ? 'black' : 'var(--astro-teal)',
+                                border: '1px solid rgba(255,255,255,0.15)',
+                            }}
                             onClick={() => setShowLabels(!showLabels)}
-                        >LABELS</Button>
-                        <Button size="xs" borderRadius="full"
-                            bg={showCardinals ? "var(--astro-teal)" : "rgba(10,20,40,0.8)"}
-                            color={showCardinals ? "black" : "var(--astro-teal)"}
-                            border="1px solid rgba(255,255,255,0.15)"
+                        >LABELS</button>
+                        <button
+                            className="px-2 py-1 rounded-full text-xs font-medium"
+                            style={{
+                                background: showCardinals ? 'var(--astro-teal)' : 'rgba(10,20,40,0.8)',
+                                color: showCardinals ? 'black' : 'var(--astro-teal)',
+                                border: '1px solid rgba(255,255,255,0.15)',
+                            }}
                             onClick={() => setShowCardinals(!showCardinals)}
-                        >N/S/E/W</Button>
-                        <Button size="xs" borderRadius="full"
-                            bg={showTelrad ? "var(--astro-teal)" : "rgba(10,20,40,0.8)"}
-                            color={showTelrad ? "black" : "var(--astro-teal)"}
-                            border="1px solid rgba(255,255,255,0.15)"
+                        >N/S/E/W</button>
+                        <button
+                            className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium"
+                            style={{
+                                background: showTelrad ? 'var(--astro-teal)' : 'rgba(10,20,40,0.8)',
+                                color: showTelrad ? 'black' : 'var(--astro-teal)',
+                                border: '1px solid rgba(255,255,255,0.15)',
+                            }}
                             onClick={() => setShowTelrad(!showTelrad)}
                         >
-                            <Icon as={Target} boxSize={3} mr={1} />TELRAD
-                        </Button>
-                        <Button size="xs" borderRadius="full"
-                            bg={obsMode === 'visual' ? "var(--astro-gold)" : "rgba(10,20,40,0.8)"}
-                            color={obsMode === 'visual' ? "black" : "var(--astro-gold)"}
-                            border="1px solid rgba(255,255,255,0.15)"
+                            <Target size={12} />TELRAD
+                        </button>
+                        <button
+                            className="px-2 py-1 rounded-full text-xs font-medium"
+                            style={{
+                                background: obsMode === 'visual' ? 'var(--astro-gold)' : 'rgba(10,20,40,0.8)',
+                                color: obsMode === 'visual' ? 'black' : 'var(--astro-gold)',
+                                border: '1px solid rgba(255,255,255,0.15)',
+                            }}
                             onClick={() => setObsMode(obsMode === 'visual' ? 'photo' : 'visual')}
                         >
                             {obsMode === 'visual' ? 'Visual' : 'Photo'}
-                        </Button>
-                        <Text color="gray.500" fontSize="10px" whiteSpace="nowrap">≤{limitingMagnitude}</Text>
-                        <Button size="xs" borderRadius="full"
-                            bg="rgba(10,20,40,0.8)"
-                            color="var(--astro-teal)"
-                            border="1px solid var(--astro-teal)"
+                        </button>
+                        <span className="text-xs whitespace-nowrap" style={{ color: '#6b7280' }}>≤{limitingMagnitude.toFixed(1)}</span>
+                        <button
+                            className="p-1 rounded-full text-xs"
+                            style={{
+                                background: 'rgba(10,20,40,0.8)',
+                                color: 'var(--astro-teal)',
+                                border: '1px solid var(--astro-teal)',
+                            }}
                             onClick={() => setShowSettings(!showSettings)}
                         >
-                            <Icon as={Layers} boxSize={3} />
-                        </Button>
-                        <Button size="xs" borderRadius="full"
-                            bg="rgba(10,20,40,0.8)"
-                            color="white"
-                            border="1px solid rgba(255,255,255,0.2)"
+                            <Layers size={12} />
+                        </button>
+                        <button
+                            className="px-2 py-1 rounded-full text-xs"
+                            style={{
+                                background: 'rgba(10,20,40,0.8)',
+                                color: 'white',
+                                border: '1px solid rgba(255,255,255,0.2)',
+                            }}
                             onClick={() => setResetViewSignal(s => s + 1)}
                             title="Reset view to mount position"
                         >
                             ⊕ RESET
-                        </Button>
-                    </HStack>
-                </HStack>
+                        </button>
+                    </div>
+                </div>
 
                 {/* Search Results Dropdown — positioned relative to the top bar only */}
                 {showSearchResults && searchResults.length > 0 && (
-                    <Box
-                        position="absolute" top="100%" left="12px" w="420px"
-                        bg="rgba(10, 20, 40, 0.98)"
-                        borderRadius="md"
-                        border="1px solid var(--astro-teal)"
-                        mt={1} maxH="280px" overflowY="auto"
-                        zIndex={30}
+                    <div
+                        className="absolute rounded-md mt-1 overflow-y-auto"
+                        style={{
+                            top: '100%', left: 12, width: 420,
+                            background: 'rgba(10, 20, 40, 0.98)',
+                            border: '1px solid var(--astro-teal)',
+                            maxHeight: 280,
+                            zIndex: 30,
+                        }}
                     >
-                        <VStack gap={0} align="stretch">
+                        <div className="flex flex-col">
                             {searchResults.map((obj) => (
-                                <Box
-                                    key={obj.id} px={4} py={2} cursor="pointer"
-                                    _hover={{ bg: "rgba(0, 240, 255, 0.15)" }}
+                                <div
+                                    key={obj.id}
+                                    className="flex items-center justify-between px-4 py-2 cursor-pointer"
+                                    style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+                                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0, 240, 255, 0.15)')}
+                                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                                     onClick={() => handleSelectResult(obj)}
-                                    display="flex" alignItems="center" justifyContent="space-between"
                                 >
-                                    <Box>
-                                        <Text color="white" fontWeight="bold" fontSize="sm">{obj.id} — {obj.name}</Text>
-                                        <Text color="gray.400" fontSize="xs">{obj.constellation} | {obj.type}</Text>
-                                    </Box>
-                                    <Badge colorScheme={obj.catalog === 'Messier' ? 'yellow' : 'blue'} fontSize="xs">
+                                    <div>
+                                        <p className="text-white font-bold text-sm">{obj.id} — {obj.name}</p>
+                                        <p className="text-xs" style={{ color: '#9ca3af' }}>{obj.constellation} | {obj.type}</p>
+                                    </div>
+                                    <span
+                                        className="text-xs px-2 py-0.5 rounded font-medium"
+                                        style={{
+                                            background: obj.catalog === 'Messier' ? 'rgba(234,179,8,0.2)' : 'rgba(59,130,246,0.2)',
+                                            color: obj.catalog === 'Messier' ? '#fbbf24' : '#60a5fa',
+                                            border: `1px solid ${obj.catalog === 'Messier' ? 'rgba(234,179,8,0.4)' : 'rgba(59,130,246,0.4)'}`,
+                                        }}
+                                    >
                                         {obj.catalog}
-                                    </Badge>
-                                </Box>
+                                    </span>
+                                </div>
                             ))}
-                        </VStack>
-                    </Box>
+                        </div>
+                    </div>
                 )}
-            </Box>
+            </div>
 
             {/* ── MAP AREA (flex:1, proper containing block for all overlays) ── */}
-            <Box ref={mapContainerRef} flex={1} position="relative" overflow="hidden" bg="#000510">
+            <div ref={mapContainerRef} className="flex-1 relative overflow-hidden" style={{ background: '#000510' }}>
 
             {/* Object Info - Bottom Center */}
             {selectedObject && (() => {
@@ -1307,119 +1349,146 @@ Génère une séquence de capture optimale au format JSON strict:
                 const visualLimit = alt > 10 && mag <= 12.5 && cloudCover < 80;
                 const photoOk = alt > 20 && mag <= 15 && cloudCover < 50;
                 const photoLimit = alt > 15 && mag <= 16 && cloudCover < 65;
-                const visualBadge = visualOk ? { label: 'OBSERVABLE', color: 'green' } : visualLimit ? { label: 'LIMITE', color: 'orange' } : { label: 'NON VISIBLE', color: 'red' };
-                const photoBadge = photoOk ? { label: 'PHOTO OK', color: 'green' } : photoLimit ? { label: 'PHOTO LIMITE', color: 'orange' } : { label: 'PHOTO NON', color: 'red' };
+                const visualBadge = visualOk
+                    ? { label: 'OBSERVABLE', bg: 'rgba(34,197,94,0.2)', color: '#4ade80', border: 'rgba(34,197,94,0.4)' }
+                    : visualLimit
+                    ? { label: 'LIMITE', bg: 'rgba(249,115,22,0.2)', color: '#fb923c', border: 'rgba(249,115,22,0.4)' }
+                    : { label: 'NON VISIBLE', bg: 'rgba(239,68,68,0.2)', color: '#f87171', border: 'rgba(239,68,68,0.4)' };
+                const photoBadge = photoOk
+                    ? { label: 'PHOTO OK', bg: 'rgba(34,197,94,0.2)', color: '#4ade80', border: 'rgba(34,197,94,0.4)' }
+                    : photoLimit
+                    ? { label: 'PHOTO LIMITE', bg: 'rgba(249,115,22,0.2)', color: '#fb923c', border: 'rgba(249,115,22,0.4)' }
+                    : { label: 'PHOTO NON', bg: 'rgba(239,68,68,0.2)', color: '#f87171', border: 'rgba(239,68,68,0.4)' };
+                const catalogBadgeStyle = {
+                    background: selectedObject.catalog === 'Messier' ? 'rgba(234,179,8,0.2)' : 'rgba(59,130,246,0.2)',
+                    color: selectedObject.catalog === 'Messier' ? '#fbbf24' : '#60a5fa',
+                    border: `1px solid ${selectedObject.catalog === 'Messier' ? 'rgba(234,179,8,0.4)' : 'rgba(59,130,246,0.4)'}`,
+                };
+                const difficultyStyle = selectedObject.difficulty === 'Easy'
+                    ? { background: 'rgba(34,197,94,0.2)', color: '#4ade80', border: 'rgba(34,197,94,0.4)' }
+                    : selectedObject.difficulty === 'Medium'
+                    ? { background: 'rgba(234,179,8,0.2)', color: '#fbbf24', border: 'rgba(234,179,8,0.4)' }
+                    : { background: 'rgba(239,68,68,0.2)', color: '#f87171', border: 'rgba(239,68,68,0.4)' };
                 return (
-                <Box
-                    position="absolute" bottom="20px" left="50%" transform="translateX(-50%)"
-                    zIndex={10}
-                    bg="rgba(10, 20, 40, 0.95)"
-                    borderRadius="lg"
-                    border="2px solid var(--astro-gold)"
-                    p={4}
-                    w="360px"
-                    boxShadow="0 8px 40px rgba(0,0,0,0.8)"
-                    backdropFilter="blur(10px)"
+                <div
+                    className="absolute rounded-lg p-4"
+                    style={{
+                        bottom: 20, left: '50%', transform: 'translateX(-50%)',
+                        zIndex: 10,
+                        background: 'rgba(10, 20, 40, 0.95)',
+                        border: '2px solid var(--astro-gold)',
+                        width: 360,
+                        boxShadow: '0 8px 40px rgba(0,0,0,0.8)',
+                        backdropFilter: 'blur(10px)',
+                    }}
                 >
-                    <HStack justify="space-between" mb={2}>
-                        <VStack align="start" gap={0}>
-                            <Text color="var(--astro-gold)" fontSize="lg" fontWeight="bold">
+                    <div className="flex items-start justify-between mb-2">
+                        <div className="flex flex-col gap-0">
+                            <p className="font-bold text-lg" style={{ color: 'var(--astro-gold)' }}>
                                 {selectedObject.id}
-                            </Text>
-                            <Text color="white" fontSize="sm" fontWeight="bold">
+                            </p>
+                            <p className="text-white text-sm font-bold">
                                 {selectedObject.name}
-                            </Text>
-                        </VStack>
-                        <VStack align="end" gap={1}>
-                            <Badge colorScheme={selectedObject.catalog === 'Messier' ? 'yellow' : 'blue'}>
+                            </p>
+                        </div>
+                        <div className="flex flex-col items-end gap-1">
+                            <span className="text-xs px-2 py-0.5 rounded font-medium" style={catalogBadgeStyle}>
                                 {selectedObject.catalog}
-                            </Badge>
-                            <HStack gap={1}>
-                                <Badge colorScheme={visualBadge.color as any} fontSize="9px">{visualBadge.label}</Badge>
-                                <Badge colorScheme={photoBadge.color as any} fontSize="9px">{photoBadge.label}</Badge>
-                            </HStack>
-                        </VStack>
-                    </HStack>
+                            </span>
+                            <div className="flex items-center gap-1">
+                                <span className="text-xs px-1.5 py-0.5 rounded font-medium" style={{ background: visualBadge.bg, color: visualBadge.color, border: `1px solid ${visualBadge.border}`, fontSize: 9 }}>{visualBadge.label}</span>
+                                <span className="text-xs px-1.5 py-0.5 rounded font-medium" style={{ background: photoBadge.bg, color: photoBadge.color, border: `1px solid ${photoBadge.border}`, fontSize: 9 }}>{photoBadge.label}</span>
+                            </div>
+                        </div>
+                    </div>
 
-                    <VStack align="start" gap={1} fontSize="xs" color="gray.300">
-                        <HStack><Text color="gray.500">Type:</Text><Text>{selectedObject.type}</Text></HStack>
-                        <HStack><Text color="gray.500">Constellation:</Text><Text>{selectedObject.constellation}</Text></HStack>
-                        <HStack><Text color="gray.500">Magnitude:</Text><Text color={selectedObject.magnitude < 6 ? 'cyan.300' : 'white'}>
-                            {selectedObject.magnitude}
-                        </Text></HStack>
-                        <HStack><Text color="gray.500">Taille:</Text><Text>{selectedObject.size_arcmin || 'N/A'}</Text></HStack>
-                        <HStack><Text color="gray.500">Difficulté:</Text>
-                            <Badge colorScheme={selectedObject.difficulty === 'Easy' ? 'green' : selectedObject.difficulty === 'Medium' ? 'yellow' : 'red'} size="sm">
+                    <div className="flex flex-col gap-1 text-xs" style={{ color: '#d1d5db' }}>
+                        <div className="flex items-center gap-1"><span style={{ color: '#6b7280' }}>Type:</span><span>{selectedObject.type}</span></div>
+                        <div className="flex items-center gap-1"><span style={{ color: '#6b7280' }}>Constellation:</span><span>{selectedObject.constellation}</span></div>
+                        <div className="flex items-center gap-1">
+                            <span style={{ color: '#6b7280' }}>Magnitude:</span>
+                            <span style={{ color: selectedObject.magnitude < 6 ? '#67e8f9' : 'white' }}>{selectedObject.magnitude}</span>
+                        </div>
+                        <div className="flex items-center gap-1"><span style={{ color: '#6b7280' }}>Taille:</span><span>{selectedObject.size_arcmin || 'N/A'}</span></div>
+                        <div className="flex items-center gap-1">
+                            <span style={{ color: '#6b7280' }}>Difficulté:</span>
+                            <span className="text-xs px-1.5 py-0.5 rounded font-medium" style={{ background: difficultyStyle.background, color: difficultyStyle.color, border: `1px solid ${difficultyStyle.border}` }}>
                                 {selectedObject.difficulty}
-                            </Badge>
-                        </HStack>
-                        <HStack><Text color="gray.500">Statut:</Text>
-                            <Text color={alt > 0 ? 'green.300' : 'gray.500'}>{alt > 0 ? 'En cours (au-dessus horizon)' : 'Indisponible'}</Text>
-                        </HStack>
-                    </VStack>
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                            <span style={{ color: '#6b7280' }}>Statut:</span>
+                            <span style={{ color: alt > 0 ? '#86efac' : '#6b7280' }}>{alt > 0 ? 'En cours (au-dessus horizon)' : 'Indisponible'}</span>
+                        </div>
+                    </div>
 
-                    <Box borderTop="1px solid rgba(255,255,255,0.1)" mt={2} pt={2}>
-                        <Text color="gray.400" fontSize="xs" mb={1}>Coordonnées (J2000)</Text>
-                        <HStack gap={4} fontSize="xs" fontFamily="mono">
-                            <VStack align="start" gap={0}>
-                                <Text color="gray.500">RA</Text>
-                                <Text color="var(--astro-teal)">{selectedObject.ra}</Text>
-                            </VStack>
-                            <VStack align="start" gap={0}>
-                                <Text color="gray.500">DEC</Text>
-                                <Text color="var(--astro-gold)">{selectedObject.dec}</Text>
-                            </VStack>
-                        </HStack>
-                    </Box>
+                    <div className="mt-2 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                        <p className="text-xs mb-1" style={{ color: '#9ca3af' }}>Coordonnées (J2000)</p>
+                        <div className="flex items-center gap-4 text-xs font-mono">
+                            <div className="flex flex-col gap-0">
+                                <span style={{ color: '#6b7280' }}>RA</span>
+                                <span style={{ color: 'var(--astro-teal)' }}>{selectedObject.ra}</span>
+                            </div>
+                            <div className="flex flex-col gap-0">
+                                <span style={{ color: '#6b7280' }}>DEC</span>
+                                <span style={{ color: 'var(--astro-gold)' }}>{selectedObject.dec}</span>
+                            </div>
+                        </div>
+                    </div>
 
                     {selectedObject.description && (
-                        <Box borderTop="1px solid rgba(255,255,255,0.1)" mt={2} pt={2}>
-                            <Text color="gray.400" fontSize="xs">{selectedObject.description}</Text>
-                        </Box>
+                        <div className="mt-2 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                            <p className="text-xs" style={{ color: '#9ca3af' }}>{selectedObject.description}</p>
+                        </div>
                     )}
 
                     {/* AI Sequence button */}
-                    <Button
-                        w="full" mt={3}
-                        bg="linear-gradient(135deg, #1a5c2a, #b8860b)"
-                        color="white" fontWeight="bold" fontSize="sm"
-                        _hover={{ opacity: 0.9 }}
+                    <button
+                        className="w-full mt-3 py-2 rounded text-white font-bold text-sm"
+                        style={{ background: 'linear-gradient(135deg, #1a5c2a, #b8860b)' }}
+                        onMouseEnter={e => (e.currentTarget.style.opacity = '0.9')}
+                        onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
                         onClick={launchSequenceAI}
                     >
                         🎬 LANCER LA SÉQUENCE IA
-                    </Button>
+                    </button>
 
-                    <HStack borderTop="1px solid rgba(255,255,255,0.1)" mt={3} pt={3}>
-                        <Button
-                            size="sm" flex={1} bg="var(--astro-gold)" color="black"
-                            _hover={{ bg: "yellow.400" }}
+                    <div className="flex items-center gap-2 mt-3 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                        <button
+                            className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded text-sm font-medium"
+                            style={{ background: 'var(--astro-gold)', color: 'black' }}
+                            onMouseEnter={e => (e.currentTarget.style.filter = 'brightness(1.1)')}
+                            onMouseLeave={e => (e.currentTarget.style.filter = 'none')}
                             onClick={() => {
                                 setGotoTarget({ ra: selectedObject.ra_deg, dec: selectedObject.dec_deg });
                                 setTrackMount(false);
                             }}
                         >
-                            <Icon as={Navigation} boxSize={3} mr={1} />
+                            <Navigation size={12} />
                             CENTER
-                        </Button>
-                        <Button
-                            size="sm" flex={1} bg="green.500" color="white"
-                            _hover={{ bg: "green.600" }}
+                        </button>
+                        <button
+                            className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded text-sm font-medium text-white"
+                            style={{ background: '#22c55e' }}
+                            onMouseEnter={e => (e.currentTarget.style.background = '#16a34a')}
+                            onMouseLeave={e => (e.currentTarget.style.background = '#22c55e')}
                             onClick={() => executeGoto(selectedObject.ra_deg, selectedObject.dec_deg, `GOTO ${selectedObject.id}`)}
                         >
-                            <Icon as={Target} boxSize={3} mr={1} />
+                            <Target size={12} />
                             GOTO
-                        </Button>
-                        <Button
-                            size="sm" variant="ghost" color="white"
+                        </button>
+                        <button
+                            className="py-1.5 px-3 rounded text-white text-sm"
+                            style={{ background: 'transparent' }}
                             onClick={() => {
                                 setSelectedObject(null);
                                 setSelectedObjectId(null);
                             }}
                         >
                             ✕
-                        </Button>
-                    </HStack>
-                </Box>
+                        </button>
+                    </div>
+                </div>
                 );
             })()}
 
@@ -1428,40 +1497,52 @@ Génère une séquence de capture optimale au format JSON strict:
             {/* Cardinal Directions — zIndex above Aladin (which sits at zIndex 2) */}
             {showCardinals && (
                 <>
-                    <Text position="absolute" top="16px" left="50%" transform="translateX(-50%)"
-                        color="var(--astro-teal)" fontSize="14px" fontWeight="bold" letterSpacing="0.15em"
-                        pointerEvents="none" zIndex={5} opacity={0.75}
-                        textShadow="0 0 8px rgba(0,240,255,0.6)">
-                        N
-                    </Text>
-                    <Text position="absolute" bottom="16px" left="50%" transform="translateX(-50%)"
-                        color="var(--astro-teal)" fontSize="14px" fontWeight="bold" letterSpacing="0.15em"
-                        pointerEvents="none" zIndex={5} opacity={0.75}
-                        textShadow="0 0 8px rgba(0,240,255,0.6)">
-                        S
-                    </Text>
-                    <Text position="absolute" left="16px" top="50%" transform="translateY(-50%)"
-                        color="var(--astro-teal)" fontSize="14px" fontWeight="bold" letterSpacing="0.15em"
-                        pointerEvents="none" zIndex={5} opacity={0.75}
-                        textShadow="0 0 8px rgba(0,240,255,0.6)">
-                        W
-                    </Text>
-                    <Text position="absolute" right="16px" top="50%" transform="translateY(-50%)"
-                        color="var(--astro-teal)" fontSize="14px" fontWeight="bold" letterSpacing="0.15em"
-                        pointerEvents="none" zIndex={5} opacity={0.75}
-                        textShadow="0 0 8px rgba(0,240,255,0.6)">
-                        E
-                    </Text>
+                    <span
+                        className="absolute font-bold"
+                        style={{
+                            top: 16, left: '50%', transform: 'translateX(-50%)',
+                            color: 'var(--astro-teal)', fontSize: 14, letterSpacing: '0.15em',
+                            pointerEvents: 'none', zIndex: 5, opacity: 0.75,
+                            textShadow: '0 0 8px rgba(0,240,255,0.6)'
+                        }}
+                    >N</span>
+                    <span
+                        className="absolute font-bold"
+                        style={{
+                            bottom: 16, left: '50%', transform: 'translateX(-50%)',
+                            color: 'var(--astro-teal)', fontSize: 14, letterSpacing: '0.15em',
+                            pointerEvents: 'none', zIndex: 5, opacity: 0.75,
+                            textShadow: '0 0 8px rgba(0,240,255,0.6)'
+                        }}
+                    >S</span>
+                    <span
+                        className="absolute font-bold"
+                        style={{
+                            left: 16, top: '50%', transform: 'translateY(-50%)',
+                            color: 'var(--astro-teal)', fontSize: 14, letterSpacing: '0.15em',
+                            pointerEvents: 'none', zIndex: 5, opacity: 0.75,
+                            textShadow: '0 0 8px rgba(0,240,255,0.6)'
+                        }}
+                    >W</span>
+                    <span
+                        className="absolute font-bold"
+                        style={{
+                            right: 16, top: '50%', transform: 'translateY(-50%)',
+                            color: 'var(--astro-teal)', fontSize: 14, letterSpacing: '0.15em',
+                            pointerEvents: 'none', zIndex: 5, opacity: 0.75,
+                            textShadow: '0 0 8px rgba(0,240,255,0.6)'
+                        }}
+                    >E</span>
                 </>
             )}
 
             {loading && (
-                <Center position="absolute" inset="0" zIndex={5} bg="black">
-                    <VStack gap={4}>
-                        <Spinner color="var(--astro-teal)" size="xl" borderWidth="4px" />
-                        <Text color="var(--astro-teal)" fontSize="12px" className="hud-font">INITIALIZING SKY ENGINE...</Text>
-                    </VStack>
-                </Center>
+                <div className="absolute inset-0 flex items-center justify-center" style={{ zIndex: 5, background: 'black' }}>
+                    <div className="flex flex-col items-center gap-4">
+                        <div className="w-12 h-12 border-4 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--astro-teal)', borderTopColor: 'transparent' }} />
+                        <p className="text-xs hud-font" style={{ color: 'var(--astro-teal)' }}>INITIALIZING SKY ENGINE...</p>
+                    </div>
+                </div>
             )}
 
             {/* Aladin Sky Map */}
@@ -1481,13 +1562,16 @@ Génère une séquence de capture optimale au format JSON strict:
                 gotoTarget={gotoTarget}
                 resetViewSignal={resetViewSignal}
             />
-            
+
             {/* Telrad finder circles */}
             {showTelrad && (
-                <Box 
-                    position="absolute" top="50%" left="50%" transform="translate(-50%, -50%)" 
-                    pointerEvents="none" zIndex={6}
-                    w="100%" h="100%"
+                <div
+                    className="absolute"
+                    style={{
+                        top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+                        pointerEvents: 'none', zIndex: 6,
+                        width: '100%', height: '100%',
+                    }}
                 >
                     <svg width="100%" height="100%" style={{ position: 'absolute', top: 0, left: 0 }}>
                         {(() => {
@@ -1512,41 +1596,49 @@ Génère une séquence de capture optimale au format JSON strict:
                         })()}
                     </svg>
                     {/* Label */}
-                    <Box position="absolute" bottom="calc(50% - 2deg * 1000 / 15 - 20px)" left="50%" transform="translateX(-50%)">
-                        <Text color="var(--astro-teal)" fontSize="10px" opacity={0.6} whiteSpace="nowrap">
+                    <div className="absolute" style={{ bottom: 'calc(50% - 2deg * 1000 / 15 - 20px)', left: '50%', transform: 'translateX(-50%)' }}>
+                        <span className="text-xs whitespace-nowrap" style={{ color: 'var(--astro-teal)', opacity: 0.6 }}>
                             {aladinSettings.fov}° FOV
-                        </Text>
-                    </Box>
-                </Box>
+                        </span>
+                    </div>
+                </div>
             )}
 
             {/* Subtle crosshair overlay */}
-            <Box position="absolute" top="50%" left="50%" transform="translate(-50%, -50%)" pointerEvents="none" zIndex={1}>
-                <Icon as={Crosshair} boxSize="80px" color="var(--astro-gold)" opacity={0.15} />
-            </Box>
-        </Box>{/* end map area */}
+            <div
+                className="absolute"
+                style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)', pointerEvents: 'none', zIndex: 1 }}
+            >
+                <Crosshair size={80} style={{ color: 'var(--astro-gold)', opacity: 0.15 }} />
+            </div>
+        </div>{/* end map area */}
 
         {/* Settings panel — position:fixed to cover the whole screen */}
         {showSettings && (
-            <Box
-                position="fixed" top="10%" left="50%" transform="translateX(-50%)"
-                w="90%" maxW="500px" maxH="80vh"
-                bg="rgba(10, 20, 40, 0.98)"
-                borderRadius="xl"
-                border="2px solid var(--astro-teal)"
-                p={6} zIndex={1000}
-                boxShadow="0 0 50px rgba(0, 240, 255, 0.5)"
-                overflowY="auto"
+            <div
+                className="fixed rounded-xl overflow-y-auto p-6"
+                style={{
+                    top: '10%', left: '50%', transform: 'translateX(-50%)',
+                    width: '90%', maxWidth: 500, maxHeight: '80vh',
+                    background: 'rgba(10, 20, 40, 0.98)',
+                    border: '2px solid var(--astro-teal)',
+                    zIndex: 1000,
+                    boxShadow: '0 0 50px rgba(0, 240, 255, 0.5)',
+                }}
             >
-                <HStack justify="space-between" mb={4}>
-                    <Text color="var(--astro-teal)" fontWeight="bold" fontSize="xl">
+                <div className="flex items-center justify-between mb-4">
+                    <p className="font-bold text-xl" style={{ color: 'var(--astro-teal)' }}>
                         {language === 'fr' ? 'Paramètres carte' : 'Map Settings'}
-                    </Text>
-                    <Button size="md" bg="red.500" color="white" onClick={() => setShowSettings(false)}>✕</Button>
-                </HStack>
-                <VStack gap={4} align="stretch">
-                    <Box>
-                        <Text color="gray.400" fontSize="xs" mb={1}>Survey</Text>
+                    </p>
+                    <button
+                        className="px-3 py-1 rounded text-white font-medium"
+                        style={{ background: '#ef4444' }}
+                        onClick={() => setShowSettings(false)}
+                    >✕</button>
+                </div>
+                <div className="flex flex-col gap-4">
+                    <div>
+                        <p className="text-xs mb-1" style={{ color: '#9ca3af' }}>Survey</p>
                         <select value={aladinSettings.survey} onChange={(e) => setAladinSettings({...aladinSettings, survey: e.target.value})}
                             style={{ width:'100%', background:'rgba(0,0,0,0.5)', color:'white', border:'1px solid #00f0ff', borderRadius:'4px', padding:'6px' }}>
                             <option value="P/DSS2/color">DSS Color</option>
@@ -1557,33 +1649,33 @@ Génère une séquence de capture optimale au format JSON strict:
                             <option value="P/SDSS9/i">SDSS i</option>
                             <option value="P/GLADE">GLADE</option>
                         </select>
-                    </Box>
-                    <Box>
-                        <Text color="gray.400" fontSize="xs" mb={1}>Field of View (°): {aladinSettings.fov}</Text>
+                    </div>
+                    <div>
+                        <p className="text-xs mb-1" style={{ color: '#9ca3af' }}>Field of View (°): {aladinSettings.fov}</p>
                         <input type="range" min="1" max="180" step="1" value={aladinSettings.fov}
                             onChange={(e) => setAladinSettings({...aladinSettings, fov: parseFloat(e.target.value)})}
                             style={{ width:'100%' }} />
-                    </Box>
-                    <Box>
-                        <Text color="gray.400" fontSize="xs" mb={1}>Object Size: {aladinSettings.sourceSize}px</Text>
+                    </div>
+                    <div>
+                        <p className="text-xs mb-1" style={{ color: '#9ca3af' }}>Object Size: {aladinSettings.sourceSize}px</p>
                         <input type="range" min="6" max="30" step="1" value={aladinSettings.sourceSize}
                             onChange={(e) => setAladinSettings({...aladinSettings, sourceSize: parseInt(e.target.value)})}
                             style={{ width:'100%' }} />
-                    </Box>
-                    <Box>
-                        <Text color="gray.400" fontSize="xs" mb={1}>Object Color</Text>
+                    </div>
+                    <div>
+                        <p className="text-xs mb-1" style={{ color: '#9ca3af' }}>Object Color</p>
                         <input type="color" value={aladinSettings.objectColor}
                             onChange={(e) => setAladinSettings({...aladinSettings, objectColor: e.target.value})}
                             style={{ width:'100%', height:'30px', border:'none' }} />
-                    </Box>
-                    <Box>
-                        <Text color="gray.400" fontSize="xs" mb={1}>Mount Marker Color</Text>
+                    </div>
+                    <div>
+                        <p className="text-xs mb-1" style={{ color: '#9ca3af' }}>Mount Marker Color</p>
                         <input type="color" value={aladinSettings.mountColor}
                             onChange={(e) => setAladinSettings({...aladinSettings, mountColor: e.target.value})}
                             style={{ width:'100%', height:'30px', border:'none' }} />
-                    </Box>
-                    <Box>
-                        <Text color="gray.400" fontSize="xs" mb={1}>Projection</Text>
+                    </div>
+                    <div>
+                        <p className="text-xs mb-1" style={{ color: '#9ca3af' }}>Projection</p>
                         <select value={aladinSettings.projection} onChange={(e) => setAladinSettings({...aladinSettings, projection: e.target.value})}
                             style={{ width:'100%', background:'rgba(0,0,0,0.5)', color:'white', border:'1px solid #00f0ff', borderRadius:'4px', padding:'6px' }}>
                             <option value="SIN">Orthographic (SIN)</option>
@@ -1592,70 +1684,82 @@ Génère une séquence de capture optimale au format JSON strict:
                             <option value="ZEA">Zenithal Equal Area</option>
                             <option value="MER">Mercator</option>
                         </select>
-                    </Box>
-                    <HStack justify="space-between">
-                        <Text color="gray.300" fontSize="sm">Show Reticle</Text>
+                    </div>
+                    <div className="flex items-center justify-between">
+                        <p className="text-sm" style={{ color: '#d1d5db' }}>Show Reticle</p>
                         <input type="checkbox" checked={aladinSettings.showReticle}
                             onChange={(e) => setAladinSettings({...aladinSettings, showReticle: e.target.checked})} />
-                    </HStack>
-                    <HStack justify="space-between">
-                        <Text color="gray.300" fontSize="sm">Show Zoom Control</Text>
+                    </div>
+                    <div className="flex items-center justify-between">
+                        <p className="text-sm" style={{ color: '#d1d5db' }}>Show Zoom Control</p>
                         <input type="checkbox" checked={aladinSettings.showZoom}
                             onChange={(e) => setAladinSettings({...aladinSettings, showZoom: e.target.checked})} />
-                    </HStack>
-                    <Button size="md" w="full" bg="var(--astro-teal)" color="black" onClick={() => setShowSettings(false)}>
+                    </div>
+                    <button
+                        className="w-full py-2 rounded font-medium"
+                        style={{ background: 'var(--astro-teal)', color: 'black' }}
+                        onClick={() => setShowSettings(false)}
+                    >
                         {language === 'fr' ? 'Fermer' : 'Close'}
-                    </Button>
-                </VStack>
-            </Box>
+                    </button>
+                </div>
+            </div>
         )}
 
         {/* Gemini Sequence Modal */}
         {showSequenceModal && (
-            <Box
-                position="fixed" inset="0" zIndex={500}
-                bg="rgba(0,0,0,0.7)" backdropFilter="blur(8px)"
-                display="flex" alignItems="center" justifyContent="center"
+            <div
+                className="fixed inset-0 flex items-center justify-center"
+                style={{ zIndex: 500, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}
                 onClick={(e) => { if (e.target === e.currentTarget) setShowSequenceModal(false); }}
             >
-                <Box
-                    bg="rgba(10, 20, 40, 0.98)"
-                    border="2px solid var(--astro-gold)"
-                    borderRadius="xl"
-                    p={6}
-                    w="90%" maxW="480px"
-                    boxShadow="0 0 50px rgba(255,179,71,0.3)"
+                <div
+                    className="rounded-xl p-6"
+                    style={{
+                        background: 'rgba(10, 20, 40, 0.98)',
+                        border: '2px solid var(--astro-gold)',
+                        width: '90%', maxWidth: 480,
+                        boxShadow: '0 0 50px rgba(255,179,71,0.3)',
+                    }}
                 >
-                    <HStack justify="space-between" mb={4}>
-                        <Text color="var(--astro-gold)" fontWeight="bold" fontSize="lg">
+                    <div className="flex items-center justify-between mb-4">
+                        <p className="font-bold text-lg" style={{ color: 'var(--astro-gold)' }}>
                             🎬 Séquence IA — {selectedObject?.id}
-                        </Text>
-                        <Button size="sm" variant="ghost" color="white" onClick={() => setShowSequenceModal(false)}>✕</Button>
-                    </HStack>
+                        </p>
+                        <button className="text-white px-2" style={{ background: 'transparent' }} onClick={() => setShowSequenceModal(false)}>✕</button>
+                    </div>
 
                     {sequenceLoading ? (
-                        <VStack gap={4} py={8}>
-                            <Spinner color="var(--astro-gold)" size="xl" borderWidth="4px" />
-                            <Text color="gray.300">Analyse IA en cours...</Text>
-                        </VStack>
+                        <div className="flex flex-col items-center gap-4 py-8">
+                            <div className="w-12 h-12 border-4 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--astro-gold)', borderTopColor: 'transparent' }} />
+                            <p style={{ color: '#d1d5db' }}>Analyse IA en cours...</p>
+                        </div>
                     ) : sequenceParams ? (
-                        <VStack gap={3} align="stretch">
-                            <HStack gap={4}>
-                                <VStack align="start" gap={1} flex={1}>
-                                    <Text color="gray.400" fontSize="xs">Lights</Text>
-                                    <HStack>
-                                        <Input size="sm" type="number" value={sequenceParams.lights.count}
+                        <div className="flex flex-col gap-3">
+                            <div className="flex items-start gap-4">
+                                <div className="flex flex-col gap-1 flex-1">
+                                    <p className="text-xs" style={{ color: '#9ca3af' }}>Lights</p>
+                                    <div className="flex items-center gap-1">
+                                        <input
+                                            type="number"
+                                            value={sequenceParams.lights.count}
                                             onChange={e => setSequenceParams(p => p ? {...p, lights: {...p.lights, count: +e.target.value}} : p)}
-                                            w="70px" bg="rgba(0,0,0,0.4)" color="white" border="1px solid rgba(255,255,255,0.2)" />
-                                        <Text color="gray.500" fontSize="xs">×</Text>
-                                        <Input size="sm" type="number" value={sequenceParams.lights.exposure}
+                                            className="text-white text-sm px-2 py-1 rounded"
+                                            style={{ width: 70, background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.2)' }}
+                                        />
+                                        <span className="text-xs" style={{ color: '#6b7280' }}>×</span>
+                                        <input
+                                            type="number"
+                                            value={sequenceParams.lights.exposure}
                                             onChange={e => setSequenceParams(p => p ? {...p, lights: {...p.lights, exposure: +e.target.value}} : p)}
-                                            w="70px" bg="rgba(0,0,0,0.4)" color="white" border="1px solid rgba(255,255,255,0.2)" />
-                                        <Text color="gray.500" fontSize="xs">s</Text>
-                                    </HStack>
-                                </VStack>
-                                <VStack align="start" gap={1}>
-                                    <Text color="gray.400" fontSize="xs">ISO</Text>
+                                            className="text-white text-sm px-2 py-1 rounded"
+                                            style={{ width: 70, background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.2)' }}
+                                        />
+                                        <span className="text-xs" style={{ color: '#6b7280' }}>s</span>
+                                    </div>
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                    <p className="text-xs" style={{ color: '#9ca3af' }}>ISO</p>
                                     <select
                                         value={sequenceParams.lights.iso}
                                         onChange={e => setSequenceParams(p => p ? {...p, lights: {...p.lights, iso: +e.target.value}} : p)}
@@ -1663,37 +1767,53 @@ Génère une séquence de capture optimale au format JSON strict:
                                     >
                                         {[100,200,400,800,1600,3200,6400].map(v => <option key={v} value={v}>{v}</option>)}
                                     </select>
-                                </VStack>
-                            </HStack>
-                            <HStack gap={4}>
-                                <VStack align="start" gap={1} flex={1}>
-                                    <Text color="gray.400" fontSize="xs">Darks × Exposure</Text>
-                                    <HStack>
-                                        <Input size="sm" type="number" value={sequenceParams.darks.count}
+                                </div>
+                            </div>
+                            <div className="flex items-start gap-4">
+                                <div className="flex flex-col gap-1 flex-1">
+                                    <p className="text-xs" style={{ color: '#9ca3af' }}>Darks × Exposure</p>
+                                    <div className="flex items-center gap-1">
+                                        <input
+                                            type="number"
+                                            value={sequenceParams.darks.count}
                                             onChange={e => setSequenceParams(p => p ? {...p, darks: {...p.darks, count: +e.target.value}} : p)}
-                                            w="70px" bg="rgba(0,0,0,0.4)" color="white" border="1px solid rgba(255,255,255,0.2)" />
-                                        <Text color="gray.500" fontSize="xs">×</Text>
-                                        <Input size="sm" type="number" value={sequenceParams.darks.exposure}
+                                            className="text-white text-sm px-2 py-1 rounded"
+                                            style={{ width: 70, background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.2)' }}
+                                        />
+                                        <span className="text-xs" style={{ color: '#6b7280' }}>×</span>
+                                        <input
+                                            type="number"
+                                            value={sequenceParams.darks.exposure}
                                             onChange={e => setSequenceParams(p => p ? {...p, darks: {...p.darks, exposure: +e.target.value}} : p)}
-                                            w="70px" bg="rgba(0,0,0,0.4)" color="white" border="1px solid rgba(255,255,255,0.2)" />
-                                        <Text color="gray.500" fontSize="xs">s</Text>
-                                    </HStack>
-                                </VStack>
-                                <VStack align="start" gap={1}>
-                                    <Text color="gray.400" fontSize="xs">Flats</Text>
-                                    <Input size="sm" type="number" value={sequenceParams.flats.count}
+                                            className="text-white text-sm px-2 py-1 rounded"
+                                            style={{ width: 70, background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.2)' }}
+                                        />
+                                        <span className="text-xs" style={{ color: '#6b7280' }}>s</span>
+                                    </div>
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                    <p className="text-xs" style={{ color: '#9ca3af' }}>Flats</p>
+                                    <input
+                                        type="number"
+                                        value={sequenceParams.flats.count}
                                         onChange={e => setSequenceParams(p => p ? {...p, flats: {...p.flats, count: +e.target.value}} : p)}
-                                        w="70px" bg="rgba(0,0,0,0.4)" color="white" border="1px solid rgba(255,255,255,0.2)" />
-                                </VStack>
-                                <VStack align="start" gap={1}>
-                                    <Text color="gray.400" fontSize="xs">Bias</Text>
-                                    <Input size="sm" type="number" value={sequenceParams.bias.count}
+                                        className="text-white text-sm px-2 py-1 rounded"
+                                        style={{ width: 70, background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.2)' }}
+                                    />
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                    <p className="text-xs" style={{ color: '#9ca3af' }}>Bias</p>
+                                    <input
+                                        type="number"
+                                        value={sequenceParams.bias.count}
                                         onChange={e => setSequenceParams(p => p ? {...p, bias: {count: +e.target.value}} : p)}
-                                        w="70px" bg="rgba(0,0,0,0.4)" color="white" border="1px solid rgba(255,255,255,0.2)" />
-                                </VStack>
-                            </HStack>
-                            <VStack align="start" gap={1}>
-                                <Text color="gray.400" fontSize="xs">Stacking</Text>
+                                        className="text-white text-sm px-2 py-1 rounded"
+                                        style={{ width: 70, background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.2)' }}
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex flex-col gap-1">
+                                <p className="text-xs" style={{ color: '#9ca3af' }}>Stacking</p>
                                 <select
                                     value={sequenceParams.stacking_method}
                                     onChange={e => setSequenceParams(p => p ? {...p, stacking_method: e.target.value} : p)}
@@ -1703,26 +1823,35 @@ Génère une séquence de capture optimale au format JSON strict:
                                     <option value="Median">Median</option>
                                     <option value="Average">Average</option>
                                 </select>
-                            </VStack>
+                            </div>
                             {sequenceParams.notes && (
-                                <Box bg="rgba(255,179,71,0.1)" border="1px solid rgba(255,179,71,0.3)" borderRadius="md" p={3}>
-                                    <Text color="var(--astro-gold)" fontSize="xs">{sequenceParams.notes}</Text>
-                                </Box>
+                                <div className="rounded-md p-3" style={{ background: 'rgba(255,179,71,0.1)', border: '1px solid rgba(255,179,71,0.3)' }}>
+                                    <p className="text-xs" style={{ color: 'var(--astro-gold)' }}>{sequenceParams.notes}</p>
+                                </div>
                             )}
-                            <HStack mt={2}>
-                                <Button flex={1} bg="green.500" color="white" _hover={{ bg: 'green.600' }} onClick={launchSequence}>
+                            <div className="flex items-center gap-2 mt-2">
+                                <button
+                                    className="flex-1 py-2 rounded text-white font-medium"
+                                    style={{ background: '#22c55e' }}
+                                    onMouseEnter={e => (e.currentTarget.style.background = '#16a34a')}
+                                    onMouseLeave={e => (e.currentTarget.style.background = '#22c55e')}
+                                    onClick={launchSequence}
+                                >
                                     ✅ LANCER
-                                </Button>
-                                <Button flex={1} variant="ghost" color="white" onClick={() => setShowSequenceModal(false)}>
+                                </button>
+                                <button
+                                    className="flex-1 py-2 rounded text-white font-medium"
+                                    style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.2)' }}
+                                    onClick={() => setShowSequenceModal(false)}
+                                >
                                     ✕ Annuler
-                                </Button>
-                            </HStack>
-                        </VStack>
+                                </button>
+                            </div>
+                        </div>
                     ) : null}
-                </Box>
-            </Box>
+                </div>
+            </div>
         )}
-        </Flex>
+        </div>
     );
 };
-

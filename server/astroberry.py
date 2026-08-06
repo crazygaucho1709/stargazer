@@ -222,8 +222,8 @@ def restart_indi() -> Dict[str, Any]:
     # user) and relaunch with verbose output redirected to a known log.
     # We also kill gvfs-gphoto2 to ensure the OS doesn't lock the camera.
     fallback_cmd = (
-        "pkill -9 indiserver; pkill -9 gvfs-gphoto2-volume-monitor; sleep 1; "
-        "nohup indiserver -vvv indi_celestron_gps indi_gphoto_ccd > /tmp/indiserver.log 2>&1 &"
+        "pkill -9 indiserver; pkill -9 -f gvfs-gphoto2-volume-monitor; rm -f /tmp/indiserver.log; sleep 1; "
+        "nohup indiserver -v indi_celestron_gps indi_gphoto_ccd > /tmp/indiserver.log 2>&1 &"
     )
     result = _run(fallback_cmd, timeout=15)
     if result.get("exit_code") == -1:
@@ -254,6 +254,58 @@ def restart_indi() -> Dict[str, Any]:
         f"indiserver restart result: running={running}, "
         f"verbose log at {log_path} on Astroberry"
     )
+    return {
+        "success": running,
+        "output": result.get("stdout", ""),
+        "error": result.get("stderr", ""),
+        "log_path": log_path,
+    }
+
+
+def stop_kstars() -> Dict[str, Any]:
+    """Arrête KStars sur le Pi et désactive son autostart GNOME/systemd.
+
+    KStars consomme 200-400 MB RAM + 100% CPU pendant le plate solving sur Pi 3+.
+    Cette fonction est idempotente : sans effet si KStars n'est pas en cours.
+    """
+    cmd = (
+        "pkill -9 kstars 2>/dev/null || true; "
+        "rm -f ~/.config/autostart/kstars.desktop 2>/dev/null || true; "
+        "sudo rm -f /etc/xdg/autostart/kstars.desktop 2>/dev/null || true; "
+        "sudo systemctl disable kstars 2>/dev/null || true; "
+        "echo OK"
+    )
+    result = _run(cmd, timeout=10)
+    if result.get("exit_code") == -1:
+        return {"success": False, "error": result.get("stderr") or "SSH failed"}
+    logger.info("stop_kstars: KStars arrêté et désactivé sur le Pi")
+    return {"success": True}
+
+
+def restart_indi_relay() -> Dict[str, Any]:
+    """Phase 2 — redémarre indiserver sur le Pi avec uniquement indi_gphoto_ccd.
+
+    À appeler après activation de la Phase 2 (indiserver + socat sur le M4).
+    La monture est alors gérée localement sur le M4 via ser2net ; le Pi ne sert
+    plus que de relais USB pour le Canon.
+    """
+    log_path = "/tmp/indiserver.log"
+    cmd = (
+        "pkill -9 indiserver; pkill -9 -f gvfs-gphoto2-volume-monitor; "
+        "rm -f /tmp/indiserver.log; sleep 1; "
+        "nohup indiserver -v indi_gphoto_ccd > /tmp/indiserver.log 2>&1 &"
+    )
+    result = _run(cmd, timeout=15)
+    if result.get("exit_code") == -1:
+        err = result.get("stderr") or "SSH failed"
+        logger.error("restart_indi_relay: %s", err)
+        return {"success": False, "error": err, "log_path": log_path}
+
+    time.sleep(2)
+    verify = _run("pgrep -x indiserver || echo DEAD")
+    out = (verify.get("stdout") or "").strip()
+    running = bool(out) and "DEAD" not in out
+    logger.info("restart_indi_relay: running=%s (Canon only, monture via M4 ser2net)", running)
     return {
         "success": running,
         "output": result.get("stdout", ""),

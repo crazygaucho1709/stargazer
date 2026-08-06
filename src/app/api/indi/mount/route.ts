@@ -1,10 +1,20 @@
 import { NextResponse } from 'next/server';
 import { BRIDGE_URL } from '@/lib/apiConfig';
+import { INDIErrorCode } from '@/lib/indiClient';
 
 export const dynamic = 'force-dynamic';
 
+function classifyBridgeError(message: string): INDIErrorCode {
+  const lower = message.toLowerCase();
+  if (lower.includes('timeout') || lower.includes('timed out')) return INDIErrorCode.TIMEOUT;
+  if (lower.includes('not connected') || lower.includes('bridge') || lower.includes('connection failed')) return INDIErrorCode.NOT_CONNECTED;
+  if (lower.includes('device not found') || lower.includes('no device') || lower.includes('driver')) return INDIErrorCode.DEVICE_NOT_FOUND;
+  if (lower.includes('limit') || lower.includes('slew cancelled') || lower.includes('slew annulé')) return INDIErrorCode.LIMIT_REACHED;
+  return INDIErrorCode.UNKNOWN;
+}
+
 // Proxy commands to Python bridge — always localhost, never mDNS
-async function sendToBridge(_bridgeIp: string, endpoint: string, data: any): Promise<any> {
+async function sendToBridge(_bridgeIp: string, endpoint: string, data: Record<string, unknown>): Promise<unknown> {
   const url = `${BRIDGE_URL}${endpoint}`;
 
   try {
@@ -14,27 +24,35 @@ async function sendToBridge(_bridgeIp: string, endpoint: string, data: any): Pro
       body: JSON.stringify(data || {}),
       next: { revalidate: 0 }
     });
-    
+
     const resText = await res.text();
     try {
       return JSON.parse(resText);
-    } catch (e) {
+    } catch {
       if (res.ok) return { success: true, message: resText || 'Action successful' };
       throw new Error(`HTTP ${res.status}: ${resText}`);
     }
-  } catch (error: any) {
-    throw new Error(`Bridge connection failed: ${error.message}`);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Bridge connection failed: ${message}`);
   }
 }
 
-function bridgeCommandFailed(response: unknown): string | null {
+function bridgeCommandFailed(response: unknown): { error: string; error_code: INDIErrorCode } | null {
   if (
     response &&
     typeof response === 'object' &&
     'success' in response &&
     (response as { success: unknown }).success === false
   ) {
-    return (response as { error?: string }).error || 'Bridge command failed';
+    const errorMessage = (response as { error?: string }).error || 'Bridge command failed';
+    // Propagate error_code from bridge if present, otherwise classify from message
+    const rawCode = (response as { error_code?: string }).error_code;
+    const error_code =
+      rawCode && Object.values(INDIErrorCode).includes(rawCode as INDIErrorCode)
+        ? (rawCode as INDIErrorCode)
+        : classifyBridgeError(errorMessage);
+    return { error: errorMessage, error_code };
   }
   return null;
 }
@@ -84,8 +102,19 @@ function parseDecToDegrees(coord: string | number): number {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    let { action, device = 'Celestron GPS', ra, dec, direction, state = 'start', duration = 0.5, ip, timestamp } = body;
+    const body = await request.json() as Record<string, unknown>;
+    let { action, device = 'Celestron GPS', ra, dec, direction, state = 'start', duration = 0.5, ip, timestamp, jog_id } = body as {
+      action?: string;
+      device?: string;
+      ra?: string | number;
+      dec?: string | number;
+      direction?: string;
+      state?: string;
+      duration?: number;
+      ip?: string;
+      timestamp?: string | number;
+      jog_id?: string;
+    };
     
     // Ensure we have a valid device name
     if (!device || device === 'undefined' || device === 'null') {
@@ -111,7 +140,7 @@ export async function POST(request: Request) {
         
       case 'jog':
         // Mouvement relatif (flèches directionnelles)
-        response = await sendToBridge(bridgeIp, '/mount/jog', { device, direction, state, duration, timestamp });
+        response = await sendToBridge(bridgeIp, '/mount/jog', { device, direction, state, duration, timestamp, jog_id });
         break;
         
       case 'slew':
@@ -129,30 +158,33 @@ export async function POST(request: Request) {
         response = await sendToBridge(bridgeIp, '/mount/sync', { device, ra: raHours, dec: decDegrees });
         break;
         
-      case 'sync_master':
+      case 'sync_master': {
         // Master sync with location and time
-        const { lat, lon, elev = 0, alt, az } = body;
-        response = await sendToBridge(bridgeIp, '/mount/sync_master', { 
-          lat, lon, elev, alt, az 
+        const { lat, lon, elev = 0, alt, az } = body as { lat: unknown; lon: unknown; elev?: unknown; alt: unknown; az: unknown };
+        response = await sendToBridge(bridgeIp, '/mount/sync_master', {
+          lat, lon, elev, alt, az
         });
         break;
-        
+      }
+
       case 'abort_all':
         // Abort all hardware processes
         response = await sendToBridge(bridgeIp, '/command', { action: 'abort_all' });
         break;
-        
-      case 'rate':
+
+      case 'rate': {
         // Changer la vitesse de mouvement (slider 1x - 9x)
-        const { rate } = body;
+        const { rate } = body as { rate: unknown };
         response = await sendToBridge(bridgeIp, '/mount/rate', { device, rate });
         break;
+      }
 
-      case 'track':
+      case 'track': {
         // Activer / désactiver le suivi sidéral
-        const enabled = body.enabled !== false; // default true = ON
+        const enabled = (body as { enabled?: unknown }).enabled !== false; // default true = ON
         response = await sendToBridge(bridgeIp, '/mount/track', { enabled });
         break;
+      }
 
       default:
         return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
@@ -161,11 +193,13 @@ export async function POST(request: Request) {
 
     const bridgeErr = bridgeCommandFailed(response);
     if (bridgeErr) {
-      return NextResponse.json({ success: false, error: bridgeErr });
+      return NextResponse.json({ success: false, error: bridgeErr.error, error_code: bridgeErr.error_code });
     }
 
     return NextResponse.json({ success: true, response });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    const error_code = classifyBridgeError(message);
+    return NextResponse.json({ success: false, error: message, error_code });
   }
 }

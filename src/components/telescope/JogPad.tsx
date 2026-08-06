@@ -1,63 +1,97 @@
+// src/components/telescope/JogPad.tsx
 "use client";
 
-import { Grid, Button, Icon, Box } from "@chakra-ui/react";
 import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from "lucide-react";
 import type { UseJogReturn, JogDirection } from "@/hooks/useJog";
+import { notification } from "@/lib/notificationService";
 
 interface JogPadProps {
   jog: UseJogReturn;
-  /** Taille des boutons : "sm" = 28px (défaut), "md" = 36px */
   size?: "sm" | "md";
 }
 
-export const JogPad = ({ jog, size = "sm" }: JogPadProps) => {
-  const btnSize = size === "md" ? "36px" : "28px";
-  const iconSize = size === "md" ? 4 : 3;
-  const { startJog, stopJog, activeDir } = jog;
+async function moveFocuser(direction: "in" | "out"): Promise<void> {
+  try {
+    const res = await fetch("/api/indi?endpoint=focuser/move", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ direction, steps: 50 }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      notification.error("Focuser: commande échouée", {
+        source: "JogPad",
+        description: (data as { error?: string }).error ?? `HTTP ${res.status}`,
+      });
+    }
+  } catch (e: unknown) {
+    notification.error("Focuser: connexion impossible", {
+      source: "JogPad",
+      description: e instanceof Error ? e.message : "Erreur réseau",
+    });
+  }
+}
 
-  const btn = (dir: JogDirection, IconComponent: React.ElementType) => {
-    const isActive = activeDir === dir;
-    return (
-      <Button
-        size="xs"
-        w={btnSize}
-        h={btnSize}
-        p={0}
-        bg={isActive ? "var(--astro-teal)" : "rgba(255,255,255,0.06)"}
-        color={isActive ? "black" : "whiteAlpha.700"}
-        boxShadow={isActive ? "0 0 10px rgba(0,255,209,0.5)" : "none"}
-        _hover={{ bg: isActive ? "var(--astro-teal)" : "rgba(255,255,255,0.12)" }}
-        borderRadius="5px"
-        border="1px solid rgba(255,255,255,0.08)"
-        style={{ touchAction: "none" }}
-        onPointerDown={(e) => {
-          e.preventDefault();
-          (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-          startJog(dir);
-        }}
-        onPointerUp={(e) => { e.preventDefault(); stopJog(); }}
-        onPointerCancel={(e) => { e.preventDefault(); stopJog(); }}
-      >
-        <Icon as={IconComponent} boxSize={iconSize} />
-      </Button>
-    );
-  };
+export const JogPad = ({ jog }: JogPadProps) => {
+  const { startJog, stopJog } = jog;
+
+  const btn = (dir: JogDirection, IconComponent: React.ElementType) => (
+    <button
+      className="w-10 h-10 flex items-center justify-center rounded-full text-[--astro-starlight] bg-white/5 transition-all duration-200 hover:bg-white/10 hover:scale-110 active:bg-[--astro-teal] active:text-black cursor-pointer"
+      style={{ touchAction: "none" }}
+      onPointerDown={(e) => {
+        e.preventDefault();
+        e.currentTarget.setPointerCapture(e.pointerId);
+        startJog(dir);
+      }}
+      onPointerUp={(e) => {
+        e.preventDefault();
+        if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
+        stopJog();
+      }}
+      onPointerCancel={(e) => {
+        e.preventDefault();
+        if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
+        stopJog();
+      }}
+    >
+      <IconComponent size={20} />
+    </button>
+  );
 
   return (
-    <Grid
-      templateColumns={`repeat(3, ${btnSize})`}
-      templateRows={`repeat(3, ${btnSize})`}
-      gap="2px"
-    >
-      <Box />
-      {btn("up", ArrowUp)}
-      <Box />
-      {btn("left", ArrowLeft)}
-      <Box bg="rgba(255,255,255,0.03)" borderRadius="4px" />
-      {btn("right", ArrowRight)}
-      <Box />
-      {btn("down", ArrowDown)}
-      <Box />
-    </Grid>
+    <div className="flex flex-col items-center gap-3">
+      {/* Directional pad */}
+      <div className="grid gap-[4px]" style={{ gridTemplateColumns: "repeat(3, 40px)", gridTemplateRows: "repeat(3, 40px)" }}>
+        <div />
+        {btn("up", ArrowUp)}
+        <div />
+        {btn("left", ArrowLeft)}
+        <div className="rounded-full bg-white/[0.03]" />
+        {btn("right", ArrowRight)}
+        <div />
+        {btn("down", ArrowDown)}
+        <div />
+      </div>
+
+      {/* Focuser controls */}
+      <div className="flex items-center gap-2 mt-1">
+        <span className="text-[9px] text-white/30 uppercase tracking-wider mr-1">FOC</span>
+        <button
+          onClick={() => moveFocuser("out")}
+          className="h-6 px-2.5 rounded text-[10px] font-mono font-medium text-white/60 bg-white/[0.04] border border-white/10 hover:bg-white/10 hover:text-white/90 transition-all duration-150 cursor-pointer"
+          title="Focuser OUT (−50 steps)"
+        >
+          FOC−
+        </button>
+        <button
+          onClick={() => moveFocuser("in")}
+          className="h-6 px-2.5 rounded text-[10px] font-mono font-medium text-white/60 bg-white/[0.04] border border-white/10 hover:bg-white/10 hover:text-white/90 transition-all duration-150 cursor-pointer"
+          title="Focuser IN (+50 steps)"
+        >
+          FOC+
+        </button>
+      </div>
+    </div>
   );
 };

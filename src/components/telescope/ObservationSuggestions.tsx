@@ -1,12 +1,13 @@
 // src/components/telescope/ObservationSuggestions.tsx
 "use client";
 
-import { Box, VStack, HStack, Text, Icon, Flex, Button } from "@chakra-ui/react";
 import { Target, ChevronRight, Sparkles } from "lucide-react";
 import { useStargazerStore } from "@/store/useStargazerStore";
+import { useState } from "react";
 
 export const ObservationSuggestions = () => {
     const { targets, setPosition, setSlewing } = useStargazerStore();
+    const [hoveredId, setHoveredId] = useState<string | null>(null);
 
     const handleSlew = (ra: string, dec: string) => {
         setSlewing(true);
@@ -17,38 +18,48 @@ export const ObservationSuggestions = () => {
     };
 
     return (
-        <VStack align="stretch" gap={3} w="full" px={2}>
-            <HStack px={2} mb={1}>
-                <Icon as={Sparkles} boxSize={3} color="#00F0FF" />
-                <Text fontSize="9px" color="whiteAlpha.600" letterSpacing="0.1em" fontWeight="bold">AI_SUGGESTIONS</Text>
-            </HStack>
+        <div className="flex flex-col gap-3 w-full px-2">
+            <div className="flex items-center gap-2 px-2 mb-1">
+                <Sparkles size={12} color="#00F0FF" />
+                <span style={{ fontSize: "9px", color: "rgba(255,255,255,0.6)", letterSpacing: "0.1em", fontWeight: "bold" }}>
+                    AI_SUGGESTIONS
+                </span>
+            </div>
 
-            <VStack align="stretch" gap={2} maxH="120px" overflowY="auto" className="custom-scrollbar" pr={2}>
+            <div
+                className="flex flex-col gap-2 overflow-y-auto custom-scrollbar pr-2"
+                style={{ maxHeight: "120px" }}
+            >
                 {targets.map((target) => (
-                    <Flex
+                    <div
                         key={target.id}
-                        p={2}
-                        bg="whiteAlpha.50"
-                        borderRadius="md"
-                        border="1px solid whiteAlpha.100"
-                        justify="space-between"
-                        align="center"
-                        transition="all 0.2s"
-                        _hover={{ bg: "whiteAlpha.100", borderColor: "rgba(0, 240, 255, 0.3)" }}
-                        cursor="pointer"
+                        className="flex items-center justify-between cursor-pointer rounded-md transition-all duration-200"
+                        style={{
+                            padding: "8px",
+                            background: hoveredId === target.id ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.05)",
+                            border: hoveredId === target.id
+                                ? "1px solid rgba(0, 240, 255, 0.3)"
+                                : "1px solid rgba(255,255,255,0.1)",
+                        }}
+                        onMouseEnter={() => setHoveredId(target.id)}
+                        onMouseLeave={() => setHoveredId(null)}
                         onClick={() => handleSlew(target.ra, target.dec)}
                     >
-                        <HStack gap={3}>
-                            <Icon as={Target} boxSize={3} color="whiteAlpha.400" />
-                            <VStack align="start" gap={0}>
-                                <Text fontSize="10px" fontWeight="bold" lineClamp={1}>{target.name}</Text>
-                                <Text fontSize="8px" color="whiteAlpha.400">{target.type}</Text>
-                            </VStack>
-                        </HStack>
-                        <Icon as={ChevronRight} boxSize={3} color="whiteAlpha.300" />
-                    </Flex>
+                        <div className="flex items-center gap-3">
+                            <Target size={12} color="rgba(255,255,255,0.4)" />
+                            <div className="flex flex-col gap-0">
+                                <span
+                                    style={{ fontSize: "10px", fontWeight: "bold", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                                >
+                                    {target.name}
+                                </span>
+                                <span style={{ fontSize: "8px", color: "rgba(255,255,255,0.4)" }}>{target.type}</span>
+                            </div>
+                        </div>
+                        <ChevronRight size={12} color="rgba(255,255,255,0.3)" />
+                    </div>
                 ))}
-            </VStack>
-        </VStack>
+            </div>
+        </div>
     );
 };

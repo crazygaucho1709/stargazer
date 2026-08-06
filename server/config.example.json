@@ -1,0 +1,9 @@
+{
+  "mountLimits": {
+    "minAlt": 0.0,
+    "maxAlt": 70.0,
+    "minAz": -85.0,
+    "maxAz": 85.0
+  },
+  "aiKey": ""
+}

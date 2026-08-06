@@ -13,12 +13,13 @@ export interface Notification {
   action?: { label: string; onClick: () => void };
   persistent?: boolean;
   timeout?: number;
+  retryFn?: () => void;
 }
 
 let notifications: Notification[] = [];
 let counter = 0;
 
-function notify(level: NotificationLevel, title: string, opts?: { description?: string; source?: string; action?: { label: string; onClick: () => void }; persistent?: boolean; timeout?: number }) {
+function notify(level: NotificationLevel, title: string, opts?: { description?: string; source?: string; action?: { label: string; onClick: () => void }; persistent?: boolean; timeout?: number; retryFn?: () => void }) {
   const id = `notif-${++counter}`;
   const n: Notification = {
     id,
@@ -28,8 +29,9 @@ function notify(level: NotificationLevel, title: string, opts?: { description?: 
     timestamp: Date.now(),
     source: opts?.source,
     action: opts?.action,
-    persistent: opts?.persistent ?? false,
-    timeout: opts?.timeout ?? (level === "error" || level === "critical" ? 15000 : 5000),
+    persistent: opts?.persistent ?? (level === "critical"),
+    timeout: opts?.timeout ?? (level === "critical" ? Infinity : level === "error" ? 15000 : 5000),
+    retryFn: opts?.retryFn,
   };
   notifications = [n, ...notifications].slice(0, 50);
   broadcast();

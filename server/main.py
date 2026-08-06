@@ -38,6 +38,35 @@ from concurrent.futures import ThreadPoolExecutor
 
 from log_config import setup_logging, JSONFormatter
 from metrics import metrics
+import mount_safety
+
+class _MemStats:
+    __slots__ = ("total", "used", "percent")
+    def __init__(self, total: int, used: int, percent: float):
+        self.total, self.used, self.percent = total, used, percent
+
+def _safe_virtual_memory() -> _MemStats:
+    """psutil.virtual_memory() panique sur ce Mac Mini M4 (Python 3.13/macOS) avec
+    RuntimeError host_statistics64(HOST_VM_INFO64): (ipc/mig) array not large enough —
+    incompatibilité connue entre le binding C psutil et la taille de struct macOS récente.
+    Repli sur `vm_stat` (page size fixe, toujours dispo sur macOS) pour ne jamais faire
+    échouer /health à cause d'une métrique secondaire."""
+    try:
+        mem = psutil.virtual_memory()
+        return _MemStats(mem.total, mem.used, mem.percent)
+    except RuntimeError:
+        import subprocess as _sp
+        out = _sp.run(["vm_stat"], capture_output=True, text=True, timeout=5).stdout
+        page_size = 16384
+        m = re.search(r"page size of (\d+) bytes", out)
+        if m:
+            page_size = int(m.group(1))
+        pages = {k: int(v) for k, v in re.findall(r"Pages (\w[\w ]*?):\s+(\d+)\.", out)}
+        total = int(_sp.run(["sysctl", "-n", "hw.memsize"], capture_output=True, text=True, timeout=5).stdout.strip() or 0)
+        used_pages = pages.get("active", 0) + pages.get("wired down", 0) + pages.get("occupied by compressor", 0)
+        used = used_pages * page_size
+        percent = round(used / total * 100, 1) if total else 0.0
+        return _MemStats(total, used, percent)
 
 # --- CACHE ---
 cached_astroberry_status = {"reachable": False, "error": "Initializing..."}
@@ -50,6 +79,10 @@ executor = ThreadPoolExecutor(max_workers=2)
 _jog_wd_lock = threading.Lock()
 _jog_wd_timer: Optional[threading.Timer] = None
 _jog_current_dir: Optional[str] = None
+_last_stop_time: float = 0.0
+_last_stop_dir: Optional[str] = None
+_stopped_jog_ids: set[str] = set()
+_jog_active_id: Optional[str] = None
 
 BACKEND_VERSION = "2026-05-17-V1"
 BACKEND_START_TIME = datetime.now(timezone.utc)
@@ -57,6 +90,10 @@ BACKEND_START_TIME = datetime.now(timezone.utc)
 # Configuration
 INDI_HOST = os.getenv("ASTROBERRY_HOST", os.getenv("INDI_HOST", "astroberry.local"))
 INDI_PORT = int(os.getenv("INDI_PORT", "7624"))
+
+# Noms de monture reconnus, tous drivers confondus. "AUX" et "Celestron" sont
+# indispensables depuis la bascule vers indi_celestron_aux ("Celestron AUX").
+MOUNT_DEVICE_KEYWORDS = ("GPS", "Mount", "NexStar", "Telescope", "AUX", "Celestron")
 STORAGE_PATH = os.getenv("STORAGE_PATH", "/Volumes/Data2/captures")
 THUMBNAIL_PATH = os.path.join(STORAGE_PATH, "thumbnails")
 
@@ -84,6 +121,12 @@ Path(STORAGE_PATH).mkdir(parents=True, exist_ok=True)
 Path(THUMBNAIL_PATH).mkdir(parents=True, exist_ok=True)
 
 app = FastAPI(title="Stargazer Backend")
+
+
+@app.on_event("startup")
+async def purge_thumbnails_on_start():
+    """Purge des thumbnails > 14 jours pour ne pas surcharger le stockage."""
+    threading.Thread(target=lambda: _purge_old_thumbnails(14), daemon=True).start()
 
 
 @app.on_event("startup")
@@ -117,6 +160,7 @@ async def disable_gvfs_gphoto_on_pi():
 
     loop = asyncio.get_event_loop()
     loop.run_in_executor(executor, _run)
+    indi._event_loop = loop
 
 
 # Import and include framing WebSocket router
@@ -144,7 +188,18 @@ async def metrics_middleware(request: Request, call_next):
         response.headers["X-Backend-Version"] = BACKEND_VERSION
 
         extra = {"path": path, "method": method, "latency_ms": round(latency * 1000, 1), "status_code": response.status_code}
-        logger.info(f"{method} {path} {response.status_code} in {latency*1000:.0f}ms", extra=extra)
+        # Endpoints de polling/streaming haute fréquence : silencieux sauf erreur
+        # ou lenteur anormale. Évite de noyer les logs utiles (mutations, erreurs).
+        is_routine = method == "GET" and any(
+            path.startswith(p) for p in (
+                "/health", "/coords", "/metrics", "/video_feed", "/logs",
+                "/phone-sensor", "/debug", "/ai/auth", "/api/config",
+            )
+        )
+        if is_routine and response.status_code < 400 and latency < 1.0:
+            pass  # routine OK et rapide → pas de log
+        else:
+            logger.info(f"{method} {path} {response.status_code} in {latency*1000:.0f}ms", extra=extra)
         return response
     except Exception as exc:
         latency = time.time() - start
@@ -199,39 +254,41 @@ async def save_config(config: AppConfig):
 class SlewRequest(BaseModel):
     ra: float
     dec: float
-    device: str = "Celestron GPS"
+    device: str = ""   # vide = device monture découvert dynamiquement
 
 class CaptureRequest(BaseModel):
     exposure: float
     device: str = None # Default to currently discovered device
+    preview: bool = True  # False = capture technique (autofocus...) : pas de modal preview côté UI
 
 class JogRequest(BaseModel):
     direction: str
     state: str = "start"
-    device: str = "Celestron GPS"
+    device: str = ""   # vide = device monture découvert dynamiquement
     duration: float = 0.5
     timestamp: float = 0.0
+    jog_id: Optional[str] = None
 
 class RateRequest(BaseModel):
     rate: int
-    device: str = "Celestron GPS"
+    device: str = ""   # vide = device monture découvert dynamiquement
 
 class SyncMasterRequest(BaseModel):
     lat: float
     lon: float
     alt: float
     az: float
-    device: str = "Celestron GPS"
+    device: str = ""   # vide = device monture découvert dynamiquement
 
 class InitStationRequest(BaseModel):
     lat: float
     lon: float
     elevation: float = 0.0
-    device: str = "Celestron GPS"
+    device: str = ""   # vide = device monture découvert dynamiquement
 
 class TrackingRateRequest(BaseModel):
     rate: str  # "SIDEREAL" | "LUNAR" | "SOLAR"
-    device: str = "Celestron GPS"
+    device: str = ""   # vide = device monture découvert dynamiquement
 
 class CaptureSequenceRequest(BaseModel):
     exposure: float = 30.0
@@ -242,8 +299,10 @@ class CaptureSequenceRequest(BaseModel):
 class CoordsRequest(BaseModel):
     ra: float = 0.0
     dec: float = 0.0
-    lat: float = -17.6333
-    lon: float = -149.6000
+    # NaN par défaut : lat/lon omis → résolution automatique du site
+    # (gpsd → monture → fallback) dans l'endpoint
+    lat: float = float("nan")
+    lon: float = float("nan")
 
 # --- INDI CLIENT ---
 # Helper for formatting coordinates
@@ -280,7 +339,11 @@ class INDIClient:
         self.latest_image_path = None
         self.sock = None
         self.socket_lock = threading.Lock()  # Lock for thread-safe socket access
-        self.device_mount = "Celestron GPS"
+        # Découvert dynamiquement : le nom dépend du driver chargé
+        # (indi_celestron_aux → "Celestron AUX", indi_celestron_gps → "Celestron GPS").
+        # Un nom codé en dur faisait croire à une panne matérielle après un
+        # changement de driver, déclenchant un pkill -9 indiserver en boucle.
+        self.device_mount = ""
         self.device_ccd = "Canon DSLR EOS 600D"
         self.frame_condition = threading.Condition()
         # Mount telemetry state
@@ -291,8 +354,16 @@ class INDIClient:
         self.ccd_connected: bool = False
         self.mount_slew_state: str = "Idle"
         self.ccd_exposure_state: str = "Idle"
+        self.live_view_active: bool = False
+        self._restore_live_view_after_capture: bool = False
+        self._event_loop: Optional[asyncio.AbstractEventLoop] = None
         self.lat: float = -17.6333 # Tahiti default
         self.lon: float = -149.6000 # Tahiti default
+        self.geo_received: bool = False  # True dès qu'un GEOGRAPHIC_COORD réel arrive de la monture
+        # Position encodeur brute (driver AUX) — base de la sécurité mécanique
+        self.encoder_az: float | None = None
+        self.encoder_alt: float | None = None
+        self.cordwrap_guard = mount_safety.CordWrapGuard()
         self.devices = {} # {device_name: {prop_name: [elements]}}
         self.discovery_time = {} # {device_name: first_seen_timestamp}
         self.thread = threading.Thread(target=self.run_loop)
@@ -347,18 +418,37 @@ class INDIClient:
                         logger.debug("Sending active heartbeat (getProperties)")
                         self.send('<getProperties version="1.7"/>')
                     
-                    # Periodic Auto-Recovery: Every 30s, if mount or camera is offline, try re-connecting it
-                    # This handles cases where hardware was power-cycled but INDI server stayed up
-                    if not hasattr(self, '_last_recovery_check'): self._last_recovery_check = 0
-                    if now - self._last_recovery_check > 30:
-                        self._last_recovery_check = now
-                        if not self.mount_connected and self.device_mount:
-                            logger.info(f"Auto-Recovery: Re-triggering connect for Mount ({self.device_mount})")
-                            self._safe_connect_device(self.device_mount)
-                        if not self.ccd_connected and self.device_ccd:
-                            logger.info(f"Auto-Recovery: Re-triggering connect for Camera ({self.device_ccd})")
-                            self._safe_connect_device(self.device_ccd)
-                            
+                    # Auto-Recovery avec backoff exponentiel par appareil (plafond 5 min) : gère le cas
+                    # où le matériel a été coupé/rebranché pendant qu'INDI restait up. Sans ce plafond,
+                    # une panne physique permanente (câble débranché, port occupé) fait retenter la
+                    # reconnexion toutes les 30s indéfiniment, sans jamais progresser ni le signaler.
+                    if not hasattr(self, '_recovery_backoff'):
+                        self._recovery_backoff = {"mount": 30, "ccd": 30}
+                        self._recovery_next = {"mount": 0.0, "ccd": 0.0}
+                        self._recovery_stuck_since = {"mount": None, "ccd": None}
+                    RECOVERY_MAX_DELAY = 300
+
+                    def _try_recover(dev_key: str, device_name: str, is_connected: bool):
+                        if is_connected:
+                            self._recovery_backoff[dev_key] = 30
+                            self._recovery_stuck_since[dev_key] = None
+                            return
+                        if not device_name or now < self._recovery_next[dev_key]:
+                            return
+                        if self._recovery_stuck_since[dev_key] is None:
+                            self._recovery_stuck_since[dev_key] = now
+                        stuck_min = int((now - self._recovery_stuck_since[dev_key]) / 60)
+                        logger.info(
+                            f"Auto-Recovery: Re-triggering connect for {dev_key} ({device_name}) "
+                            f"— hors ligne depuis {stuck_min}min, prochain essai dans {min(self._recovery_backoff[dev_key] * 2, RECOVERY_MAX_DELAY)}s"
+                        )
+                        self._safe_connect_device(device_name)
+                        self._recovery_next[dev_key] = now + self._recovery_backoff[dev_key]
+                        self._recovery_backoff[dev_key] = min(self._recovery_backoff[dev_key] * 2, RECOVERY_MAX_DELAY)
+
+                    _try_recover("mount", self.device_mount, self.mount_connected)
+                    _try_recover("ccd", self.device_ccd, self.ccd_connected)
+
                     time.sleep(10)
             except Exception as e:
                 logger.error(f"INDI Loop error: {e}")
@@ -382,7 +472,12 @@ class INDIClient:
                 self.sock = None
 
     def _resolve_host(self):
-        """Probe candidates with a short TCP connect (DNS + route + port 7624 open)."""
+        """Probe candidates with a real INDI handshake, not just a TCP connect.
+
+        Piège : le tunnel SSH (-L 7624) accepte la connexion TCP localement même
+        quand son canal distant est mort (tunnel zombie après une coupure du Pi).
+        Un connect() réussi ne prouve donc rien — on envoie getProperties et on
+        exige des octets en retour avant de valider le candidat."""
         raw = [self.host, "astroberry.local", "astroberry", "localhost", "127.0.0.1"]
         candidates: list[str] = []
         for c in raw:
@@ -391,12 +486,17 @@ class INDIClient:
         last_exc: BaseException | None = None
         for candidate in candidates:
             try:
-                with socket.create_connection((candidate, self.port), timeout=2):
-                    logger.info(f"INDI host reachable: {candidate}:{self.port}")
+                with socket.create_connection((candidate, self.port), timeout=2) as probe:
+                    probe.settimeout(3.0)
+                    probe.sendall(b'<getProperties version="1.7"/>\r\n')
+                    data = probe.recv(64)
+                    if not data:
+                        raise ConnectionError("socket ouverte mais aucune donnée INDI (tunnel zombie ?)")
+                    logger.info(f"INDI host reachable (handshake OK): {candidate}:{self.port}")
                     return candidate
             except Exception as e:
                 last_exc = e
-                logger.warning(f"INDI TCP probe failed {candidate}:{self.port} — {e!r}")
+                logger.warning(f"INDI probe failed {candidate}:{self.port} — {e!r}")
                 continue
         logger.error(
             "No INDI server reachable on port %s (tried %s). Last error: %s — "
@@ -407,7 +507,7 @@ class INDIClient:
         )
         return None
 
-    def reconnect(self, restart_remote: bool = True):
+    def reconnect(self, restart_remote: bool = False):
         """Force a full reconnect of the INDI bridge.
 
         Closes the local socket and, by default, also asks the Astroberry
@@ -423,9 +523,15 @@ class INDIClient:
         self.mount_connected = False
         self.ccd_connected = False
 
+        # ATTENTION : redémarrer indiserver tue TOUTES les sessions en cours
+        # (auto-align, capture, tracking) et remet le driver à zéro. Le 6 août,
+        # un nom de device périmé a fait boucler cette branche : pkill -9
+        # indiserver toutes les ~60 s, matériel injoignable en permanence.
+        # Désormais opt-in explicite uniquement (bouton UI), jamais en auto.
         if restart_remote:
             try:
-                logger.info("Triggering remote indiserver restart on Astroberry...")
+                logger.warning("Redémarrage distant d'indiserver demandé explicitement — "
+                               "toutes les sessions en cours vont être interrompues")
                 result = raspi.restart_indi()
                 if result.get("success"):
                     logger.info("Remote indiserver restart succeeded; bridge will reconnect on next loop tick")
@@ -452,7 +558,7 @@ class INDIClient:
             self.send(f'<enableBLOB device="{device}">Also</enableBLOB>')
             
             # 3. Optimized Upload Mode for DSLRs (avoid memory issues on RPi)
-            if any(kw in device for kw in ["Canon", "Nikon", "DSLR", "EOS"]):
+            if any(kw in device for kw in ["Canon", "Nikon", "DSLR", "EOS", "GPhoto"]):
                 self.send(
                     f'<newSwitchVector device="{device}" name="UPLOAD_MODE">'
                     f'<oneSwitch name="UPLOAD_CLIENT">On</oneSwitch>'
@@ -468,7 +574,7 @@ class INDIClient:
             is_mount = any(kw in device for kw in ["Celestron", "GPS", "NexStar", "Mount"])
             if is_mount:
                 self.send(f'<newNumberVector device="{device}" name="POLLING_PERIOD">'
-                          f'<oneNumber name="PERIOD">2.0</oneNumber></newNumberVector>')
+                          f'<oneNumber name="PERIOD_MS">5000</oneNumber></newNumberVector>')
 
             # 5. THE FINAL SWITCH: Trigger the actual connection
             self.send(
@@ -534,7 +640,12 @@ class INDIClient:
                 if device:
                     self._safe_connect_device(device)
         except Exception as e:
-            logger.error(f"Connection failed: {e}")
+            # Rate-limit : quand le Pi est injoignable, la boucle de reconnexion
+            # spamme sinon ce log toutes les 5-10 s pendant des heures.
+            now = time.time()
+            if now - getattr(self, "_last_conn_err_log", 0) > 60:
+                self._last_conn_err_log = now
+                logger.error(f"Connection failed: {e} (log limité à 1/min)")
             self._close_socket()
             self.connected = False
 
@@ -597,20 +708,37 @@ class INDIClient:
                 if dev_match:
                     dev_name = dev_match.group(1)
                     logger.debug(f"INDI Connection Update: {dev_name} (Connected={is_connected})")
-                    if any(kw in dev_name for kw in ["GPS", "Mount", "NexStar", "Telescope"]):
+                    if any(kw in dev_name for kw in MOUNT_DEVICE_KEYWORDS):
                         self.device_mount = dev_name
                         self.mount_connected = is_connected
                         if is_connected: logger.info(f"✅ Mount Online: {dev_name}")
-                    elif any(kw in dev_name for kw in ["CCD", "Camera", "DSLR", "EOS"]):
+                    elif any(kw in dev_name for kw in ["CCD", "Camera", "DSLR", "EOS", "GPhoto"]):
                         if self.device_ccd != dev_name:
                             logger.info(f"Detected new CCD device name: {dev_name}")
                             self.device_ccd = dev_name
                             # Autoconnect discovered camera once
                             if not is_connected:
                                 self._safe_connect_device(dev_name)
-                        
+
+                        prev_connected = self.ccd_connected
                         self.ccd_connected = is_connected
-                        if is_connected: logger.info(f"✅ Camera Online: {dev_name}")
+                        if is_connected:
+                            logger.info(f"✅ Camera Online: {dev_name}")
+                            if not prev_connected and any(kw in dev_name for kw in ["GPhoto", "Canon", "DSLR", "EOS"]):
+                                # indi_gphoto_ccd initialise CCD_INFO à zéro au démarrage
+                                # ce qui bloque toute exposition. On pousse les valeurs Canon 600D.
+                                time.sleep(1.0)
+                                logger.info(f"[CCD] Init CCD_INFO Canon 600D → 5184×3456, 4.3µm, 14bit")
+                                self.send(
+                                    f'<newNumberVector device="{dev_name}" name="CCD_INFO">'
+                                    f'<oneNumber name="CCD_MAX_X">5184</oneNumber>'
+                                    f'<oneNumber name="CCD_MAX_Y">3456</oneNumber>'
+                                    f'<oneNumber name="CCD_PIXEL_SIZE">4.3</oneNumber>'
+                                    f'<oneNumber name="CCD_PIXEL_SIZE_X">4.3</oneNumber>'
+                                    f'<oneNumber name="CCD_PIXEL_SIZE_Y">4.3</oneNumber>'
+                                    f'<oneNumber name="CCD_BITSPERPIXEL">14</oneNumber>'
+                                    f'</newNumberVector>'
+                                )
                         elif not is_connected and dev_name not in self.discovery_time:
                             # Also try connecting if we just saw it for the first time
                             self.discovery_time[dev_name] = time.time()
@@ -635,15 +763,39 @@ class INDIClient:
                 elif state == "Ok": self.mount_slew_state = "Idle"
                 elif state == "Alert": self.mount_slew_state = "Error"
 
+            # 2.4 Encodeurs bruts (driver celestron_aux) — référentiel MONTURE.
+            # Seule source fiable pour la sécurité mécanique : contrairement à
+            # HORIZONTAL_COORD, ces valeurs ne passent pas par le modèle
+            # d'alignement (donc ni fausses avant alignement, ni mouvantes après
+            # chaque sync). Zéro posé à la mise sous tension.
+            if 'TELESCOPE_ENCODER_ANGLES' in xml_str:
+                m_az = re.search(r'name="AXIS_AZ"[^>]*>\s*([-\d.]+)', xml_str)
+                m_alt = re.search(r'name="AXIS_ALT"[^>]*>\s*([-\d.]+)', xml_str)
+                if m_az:
+                    try:
+                        self.encoder_az = float(m_az.group(1))
+                        self.cordwrap_guard.update(self.encoder_az)
+                    except ValueError:
+                        pass
+                if m_alt:
+                    try:
+                        self.encoder_alt = float(m_alt.group(1))
+                    except ValueError:
+                        pass
+
             # 2.5 GPS / Geographic updates
             if 'GEOGRAPHIC_COORD' in xml_str:
                 lat_match = re.search(r'name="LAT"[^>]*>([\d\.\-\s\n]+)<', xml_str)
                 lon_match = re.search(r'name="LONG"[^>]*>([\d\.\-\s\n]+)<', xml_str)
                 if lat_match:
-                    try: self.lat = float(lat_match.group(1).strip())
+                    try:
+                        self.lat = float(lat_match.group(1).strip())
+                        self.geo_received = True
                     except: pass
                 if lon_match:
-                    try: self.lon = float(lon_match.group(1).strip())
+                    try:
+                        self.lon = float(lon_match.group(1).strip())
+                        self.geo_received = True
                     except: pass
 
             # 3. Hardware state updates
@@ -806,6 +958,15 @@ class INDIClient:
             fmt_match = re.search(rb'format="([^"]+)"', blob_tag)
             if fmt_match:
                 fmt = fmt_match.group(1).decode('utf-8', errors='ignore').strip('.')
+
+            # Taille déclarée par le driver INDI (octets bruts, avant base64) —
+            # comparée après décodage pour détecter un transfert tronqué (tunnel
+            # SSH/réseau coupé en cours de route) avant d'écrire un fichier
+            # corrompu qui ferait planter astropy/rawpy plus tard silencieusement.
+            declared_size = None
+            size_match = re.search(rb'size="(\d+)"', blob_tag)
+            if size_match:
+                declared_size = int(size_match.group(1))
             
             # content_start_idx was calculated above as the byte after the '>' of the opening tag
             # content_end_idx was calculated above as the start of '</oneBLOB>'
@@ -815,7 +976,26 @@ class INDIClient:
             clean_content = blob_content.replace(b'\n', b'').replace(b'\r', b'')
             try:
                 raw_bytes = base64.b64decode(clean_content)
-                
+
+                is_viewfinder_frame = (
+                    "viewfinder" in prop_name.lower() or
+                    "stream" in prop_name.lower() or
+                    "stream" in fmt.lower() or
+                    "ccd_force_blob" in prop_name.lower() or
+                    prop_name == "unknown"
+                )
+                if declared_size is not None and len(raw_bytes) < declared_size:
+                    msg = (f"Image tronquée : {len(raw_bytes)}/{declared_size} octets reçus "
+                           f"({len(raw_bytes)*100//max(declared_size,1)}%) — transfert coupé (tunnel SSH/réseau)")
+                    logger.error(f"[Capture] ❌ {msg}")
+                    if not is_viewfinder_frame:
+                        with _capture_lock:
+                            _capture_state["phase"] = "error"
+                            _capture_state["error"] = msg
+                            _capture_state["preview_label"] = ""
+                            _capture_state["capture_started"] = None
+                    return
+
                 # Update latest frame first for real-time display
                 with self.frame_condition:
                     self.latest_frame = raw_bytes
@@ -837,12 +1017,25 @@ class INDIClient:
                     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
                     filename = f"capture_{ts}.{fmt.lower()}"
                     filepath = os.path.join(STORAGE_PATH, filename)
-                    
+
+                    with _capture_lock:
+                        _capture_state["preview_label"] = "Sauvegarde de l'image..."
+
                     with open(filepath, 'wb') as f:
                         f.write(raw_bytes)
-                    
-                    logger.info(f"Image saved: {filepath} (Property: {prop_name}, Format: {fmt})")
+
+                    with _capture_lock:
+                        _capture_state["last_file"] = filename
+                        _capture_state["preview_label"] = "Génération de l'aperçu..."
+
+                    size_kb = len(raw_bytes) // 1024
+                    logger.info(f"[Capture] ✅ Image reçue — {size_kb} ko, format {fmt.upper()}, fichier : {filename}")
                     self.generate_thumb(filepath, ts)
+
+                    if self._restore_live_view_after_capture and self._event_loop:
+                        self._restore_live_view_after_capture = False
+                        dev = (self.device_ccd or "GPhoto CCD").strip()
+                        asyncio.run_coroutine_threadsafe(_restore_live_view(dev), self._event_loop)
                 else:
                     # Log stream frame reception occasionally
                     if random.random() < 0.01: # Reduce log spam even more
@@ -854,6 +1047,67 @@ class INDIClient:
             logger.error(f"Blob error: {e}")
 
 
+    @staticmethod
+    def _compute_frame_stats(img_bgr, exposure_s: float | None) -> dict:
+        """Histogramme + saturation + suggestion d'exposition sur le preview 8 bits."""
+        gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
+        total = gray.size
+        saturated_pct = round(float(np.count_nonzero(gray >= 250)) / total * 100, 1)
+        under_pct = round(float(np.count_nonzero(gray <= 5)) / total * 100, 1)
+        mean = float(gray.mean())
+        hist = np.histogram(gray, bins=32, range=(0, 256))[0]
+        hist_norm = (hist / max(1, hist.max()) * 100).round(1).tolist()
+
+        verdict, suggestion = "ok", None
+        if saturated_pct > 5:
+            verdict = "overexposed"
+            if exposure_s:
+                factor = max(2.0, mean / 90.0)
+                suggestion = f"Surexposé ({saturated_pct}% saturé) — réessayez vers {max(0.001, exposure_s / factor):.3g}s"
+            else:
+                suggestion = f"Surexposé ({saturated_pct}% de pixels saturés) — réduisez l'exposition"
+        elif mean < 15 and under_pct > 60:
+            verdict = "underexposed"
+            if exposure_s:
+                factor = min(16.0, 70.0 / max(mean, 1.0))
+                suggestion = f"Sous-exposé (moyenne {mean:.0f}/255) — réessayez vers {exposure_s * factor:.3g}s"
+            else:
+                suggestion = f"Sous-exposé (moyenne {mean:.0f}/255) — augmentez l'exposition"
+        return {"saturated_pct": saturated_pct, "under_pct": under_pct,
+                "mean": round(mean, 1), "verdict": verdict,
+                "suggestion": suggestion, "histogram": hist_norm}
+
+    @staticmethod
+    def _compute_hfr(img_bgr) -> float | None:
+        """HFR moyen (px) sur les ~20 étoiles les plus brillantes du preview.
+        Retourne None si aucune étoile détectable (plein jour, image saturée)."""
+        gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY).astype(np.float32)
+        med, sigma = float(np.median(gray)), float(gray.std())
+        if sigma < 1e-3 or med > 200:  # image uniforme ou cramée : pas d'étoiles
+            return None
+        _, mask = cv2.threshold(gray, med + 4 * sigma, 255, cv2.THRESH_BINARY)
+        contours, _ = cv2.findContours(mask.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        candidates = [c for c in contours if 2 <= cv2.contourArea(c) <= 400]
+        if not candidates:
+            return None
+        hfrs = []
+        for c in sorted(candidates, key=cv2.contourArea, reverse=True)[:20]:
+            x, y, w, h = cv2.boundingRect(c)
+            pad = 4
+            sub = gray[max(0, y - pad):y + h + pad, max(0, x - pad):x + w + pad] - med
+            sub = np.clip(sub, 0, None)
+            flux = sub.sum()
+            if flux <= 0:
+                continue
+            ys, xs = np.indices(sub.shape)
+            cy, cx = (ys * sub).sum() / flux, (xs * sub).sum() / flux
+            r = np.sqrt((ys - cy) ** 2 + (xs - cx) ** 2)
+            order = np.argsort(r.ravel())
+            cumflux = np.cumsum(sub.ravel()[order])
+            half_idx = int(np.searchsorted(cumflux, flux / 2))
+            hfrs.append(float(r.ravel()[order][min(half_idx, len(order) - 1)]))
+        return round(float(np.median(hfrs)), 2) if hfrs else None
+
     def generate_thumb(self, path, ts):
         thumb_name = f"thumb_{ts}.jpg"
         thumb_path = os.path.join(THUMBNAIL_PATH, thumb_name)
@@ -862,13 +1116,96 @@ class INDIClient:
                 with rawpy.imread(path) as raw:
                     rgb = raw.postprocess(use_camera_wb=True, no_auto_bright=True, bright=1.0)
                     imageio.imsave(thumb_path, rgb)
+            elif path.lower().endswith((".fits", ".fit", ".fits.fz")):
+                # FITS : dématriçage Bayer (BAYERPAT) puis étirement percentile vers 8 bits
+                from astropy.io import fits as _fits
+                with _fits.open(path) as hdul:
+                    hdu = next((h for h in hdul if h.data is not None), None)
+                    data = hdu.data if hdu is not None else None
+                    bayer = str(hdu.header.get("BAYERPAT", "")).strip().upper() if hdu is not None else ""
+                if data is None:
+                    raise ValueError("FITS sans données image")
+                arr = np.asarray(data)
+                if arr.ndim == 3:
+                    # (3,H,W) → (H,W,3) ; sinon on prend le premier plan
+                    arr = np.moveaxis(arr, 0, -1) if arr.shape[0] in (1, 3) else arr[..., 0]
+                    if arr.ndim == 3 and arr.shape[-1] == 1:
+                        arr = arr[..., 0]
+                # Convention : motif FITS → code OpenCV inversé (cv2 nomme le 2x2 opposé)
+                _BAYER_CV = {"RGGB": cv2.COLOR_BayerBG2BGR, "BGGR": cv2.COLOR_BayerRG2BGR,
+                             "GRBG": cv2.COLOR_BayerGB2BGR, "GBRG": cv2.COLOR_BayerGR2BGR}
+                if arr.ndim == 2 and bayer in _BAYER_CV:
+                    arr = cv2.cvtColor(np.ascontiguousarray(arr, dtype=np.uint16), _BAYER_CV[bayer])
+                # Réduire AVANT la conversion float : sur un capteur 36 Mpx, étirer en
+                # float32 pleine résolution fait des pics à plusieurs Go et PM2 tue le
+                # backend (max_memory_restart) → "connexion INDI perdue" post-capture.
+                h0, w0 = arr.shape[:2]
+                scale0 = min(1.0, 1200.0 / max(h0, w0))
+                if scale0 < 1.0:
+                    arr = cv2.resize(arr, (int(w0 * scale0), int(h0 * scale0)), interpolation=cv2.INTER_AREA)
+                arr = arr.astype(np.float32)
+                # Balance des blancs gray-world : égalise les moyennes des canaux
+                # (le debayer brut donne une dominante turquoise/verte sinon)
+                if arr.ndim == 3 and arr.shape[-1] == 3:
+                    means = arr.reshape(-1, 3).mean(axis=0)
+                    gmean = float(means.mean())
+                    if gmean > 0 and all(m > 0 for m in means):
+                        arr *= (gmean / means)
+                lo, hi = np.percentile(arr, (1.0, 99.5))
+                if hi - lo < 16:
+                    # Frame quasi uniforme (bouchon, bias) : ne pas amplifier le bruit
+                    mid = (hi + lo) / 2
+                    lo, hi = mid - 128, mid + 128
+                arr = np.clip((arr - lo) / max(hi - lo, 1e-6), 0.0, 1.0)
+                cv2.imwrite(thumb_path, (arr * 255).astype(np.uint8))
             else:
-                # Basic copy if it's already a JPG or similar
                 with open(path, 'rb') as src, open(thumb_path, 'wb') as dst:
                     dst.write(src.read())
             self.latest_image_path = thumb_name
+
+            # Redimensionner et pousser en base64 dans le SSE capture/progress
+            img = cv2.imread(thumb_path)
+            if img is not None:
+                h, w = img.shape[:2]
+                scale = min(1.0, 600 / max(h, w))
+                preview = cv2.resize(img, (int(w * scale), int(h * scale)))
+                # Focus numérique de session : netteté calibrée appliquée au preview
+                preview = _apply_focus_profile(preview)
+                _, buf = cv2.imencode(".jpg", preview, [cv2.IMWRITE_JPEG_QUALITY, 82])
+                b64 = base64.b64encode(buf).decode()
+                with _capture_lock:
+                    expo = _capture_state.get("exposure_s") or None
+                try:
+                    stats = self._compute_frame_stats(preview, expo)
+                except Exception as e:
+                    logger.error(f"Stats error: {e}")
+                    stats = None
+                try:
+                    hfr = self._compute_hfr(preview)
+                except Exception as e:
+                    logger.error(f"HFR error: {e}")
+                    hfr = None
+                with _capture_lock:
+                    _capture_state["last_thumbnail"] = f"data:image/jpeg;base64,{b64}"
+                    _capture_state["preview_label"] = ""
+                    _capture_state["stats"] = stats
+                    if hfr is not None:
+                        _capture_state["hfr"] = hfr
+                    # Marquer la capture unique comme terminée (la séquence écrase ceci)
+                    if not _capture_state.get("running"):
+                        _capture_state["phase"] = "complete"
         except Exception as e:
             logger.error(f"Thumb error: {e}")
+            # Sans ceci, l'UI restait bloquée sur "capturing"/"Téléchargement..."
+            # jusqu'au faux timeout de 45s du watchdog SSE, qui affichait alors
+            # "image jamais reçue" alors que l'image était bien arrivée mais que
+            # son traitement (debayer/FITS) avait planté — message trompeur.
+            with _capture_lock:
+                if not _capture_state.get("running"):
+                    _capture_state["phase"] = "error"
+                    _capture_state["error"] = f"Traitement de l'image échoué : {e}"
+                    _capture_state["preview_label"] = ""
+                    _capture_state["capture_started"] = None
 
 indi = INDIClient()
 
@@ -909,7 +1246,7 @@ def _device_summary() -> dict:
 @app.get("/health")
 async def health():
     ccd_port = _extract_prop_value(indi.device_ccd, "DEVICE_PORT", "PORT") if hasattr(indi, "device_ccd") else ""
-    mem = psutil.virtual_memory()
+    mem = _safe_virtual_memory()
     uptime_seconds = (datetime.now(timezone.utc) - BACKEND_START_TIME).total_seconds()
     return {
         "status": "ok",
@@ -1005,21 +1342,56 @@ async def debug_properties():
         "properties": indi.devices if hasattr(indi, "devices") else {}
     }
 
+def _jog_shares_component(dir1: str, dir2: str) -> bool:
+    if not dir1 or not dir2:
+        return False
+    parts1 = set(dir1.split("-"))
+    parts2 = set(dir2.split("-"))
+    return not parts1.isdisjoint(parts2)
+
+
 def _jog_send_stop(device: str) -> None:
     """Hard-stop the mount. Called from watchdog thread or stop request.
 
-    Uses TELESCOPE_ABORT_MOTION (same as /mount/abort): the Celestron GPS
-    driver processes it immediately, whereas MOTION_NS/WE Off can be
-    deferred for several seconds while a motion pulse is in flight."""
-    global indi
+    Sends TELESCOPE_MOTION Off commands only for the axes that were actually moving,
+    avoiding redundant commands and avoiding the heavy TELESCOPE_ABORT_MOTION."""
+    global indi, _jog_current_dir, _jog_active_id
+    
     if not (indi and indi.connected):
+        _jog_current_dir = None
+        _jog_active_id = None
         return
-    logger.info("JOG STOP → ABORT_MOTION")
-    indi.send(
-        f'<newSwitchVector device="{device}" name="TELESCOPE_ABORT_MOTION">'
-        f'<oneSwitch name="ABORT">On</oneSwitch>'
-        f'</newSwitchVector>'
-    )
+
+    # Determine which axes need to be stopped based on the last active direction
+    active_dir = _jog_current_dir
+    _jog_current_dir = None
+    _jog_active_id = None
+
+    stop_ns = True
+    stop_we = True
+
+    if active_dir:
+        directions = active_dir.split("-")
+        stop_ns = any(d in ["up", "down"] for d in directions)
+        stop_we = any(d in ["left", "right"] for d in directions)
+
+    logger.info(f"JOG STOP → NS={stop_ns}, WE={stop_we} (last dir: {active_dir})")
+
+    if stop_ns:
+        indi.send(
+            f'<newSwitchVector device="{device}" name="TELESCOPE_MOTION_NS">'
+            f'<oneSwitch name="MOTION_NORTH">Off</oneSwitch>'
+            f'<oneSwitch name="MOTION_SOUTH">Off</oneSwitch>'
+            f'</newSwitchVector>'
+        )
+
+    if stop_we:
+        indi.send(
+            f'<newSwitchVector device="{device}" name="TELESCOPE_MOTION_WE">'
+            f'<oneSwitch name="MOTION_EAST">Off</oneSwitch>'
+            f'<oneSwitch name="MOTION_WEST">Off</oneSwitch>'
+            f'</newSwitchVector>'
+        )
 
 
 def _jog_arm_watchdog(device: str, timeout: float = 1.5) -> None:
@@ -1057,51 +1429,117 @@ async def mount_jog(req: JogRequest):
       Frontend sends START pulses every 800ms to keep the watchdog alive.
     - STOP: always processed immediately, directly on executor, no waiting.
     """
-    global indi, _jog_current_dir
+    global indi, _jog_current_dir, _last_stop_time, _last_stop_dir, _stopped_jog_ids, _jog_active_id
     try:
         if not indi or not indi.connected:
             return {"success": False, "error": "Matériel déconnecté"}
-        device = indi.device_mount if indi.device_mount else "Celestron GPS"
+        device = indi.device_mount
         loop = asyncio.get_running_loop()
 
         # ── STOP ──────────────────────────────────────────────────────────────
         if req.state == "stop":
-            _jog_cancel_watchdog()
-            _jog_current_dir = None
-            await loop.run_in_executor(None, _jog_send_stop, device)
+            # Only process STOP if it's from the active session or if no ID is specified
+            is_active = (not req.jog_id) or (req.jog_id == _jog_active_id)
+            if is_active:
+                _jog_cancel_watchdog()
+                _last_stop_time = time.time()
+                _last_stop_dir = req.direction
+                if req.jog_id:
+                    _stopped_jog_ids.add(req.jog_id)
+                    if len(_stopped_jog_ids) > 100:
+                        _stopped_jog_ids.pop()
+                await loop.run_in_executor(None, _jog_send_stop, device)
+            else:
+                logger.warning(
+                    f"Ignoring out-of-order STOP request for {req.direction} "
+                    f"(jog_id {req.jog_id} is not active; active is {_jog_active_id})"
+                )
             return {"success": True}
 
         # ── START / HEARTBEAT ─────────────────────────────────────────────────
+        # Filter out delayed heartbeat pulses that arrive after a stop was already processed
+        if req.jog_id and req.jog_id in _stopped_jog_ids:
+            logger.warning(
+                f"Ignoring delayed start/heartbeat request for {req.direction} "
+                f"(jog_id {req.jog_id} is already stopped)"
+            )
+            return {"success": True}
+
+        # Fallback to cooldown if no jog_id is provided
+        if not req.jog_id and _last_stop_dir and (time.time() - _last_stop_time < 1.2):
+            if _jog_shares_component(req.direction, _last_stop_dir):
+                logger.warning(
+                    f"Ignoring delayed start/heartbeat request for {req.direction} without jog_id "
+                    f"(shares component with {_last_stop_dir} stopped {time.time() - _last_stop_time:.2f}s ago)"
+                )
+                return {"success": True}
+
+        # Track the active session ID
+        if req.jog_id:
+            _jog_active_id = req.jog_id
+
         is_new_direction = (_jog_current_dir != req.direction)
+        prev_dir = _jog_current_dir
         _jog_current_dir = req.direction
 
         if is_new_direction:
-            # Send INDI motion command only when direction actually changes
-            directions = req.direction.split("-")
+            # Parse directions
+            prev_parts = set(prev_dir.split("-")) if prev_dir else set()
+            new_parts = set(req.direction.split("-")) if req.direction else set()
+
+            # Determine components
+            prev_ns = any(d in ["up", "down"] for d in prev_parts)
+            prev_we = any(d in ["left", "right"] for d in prev_parts)
+            new_ns = any(d in ["up", "down"] for d in new_parts)
+            new_we = any(d in ["left", "right"] for d in new_parts)
+
             xmls: list[str] = []
-            for d in directions:
-                if d == "up":
-                    prop, val, opp = "TELESCOPE_MOTION_NS", "MOTION_SOUTH", "MOTION_NORTH"
-                elif d == "down":
-                    prop, val, opp = "TELESCOPE_MOTION_NS", "MOTION_NORTH", "MOTION_SOUTH"
-                elif d == "left":
-                    prop, val, opp = "TELESCOPE_MOTION_WE", "MOTION_EAST", "MOTION_WEST"
-                elif d == "right":
-                    prop, val, opp = "TELESCOPE_MOTION_WE", "MOTION_WEST", "MOTION_EAST"
-                else:
-                    continue
+
+            # 1. NS Axis
+            if new_ns:
+                new_ns_dir = "up" if "up" in new_parts else "down"
+                prev_ns_dir = "up" if "up" in prev_parts else ("down" if "down" in prev_parts else None)
+                if new_ns_dir != prev_ns_dir:
+                    val = "MOTION_SOUTH" if new_ns_dir == "up" else "MOTION_NORTH"
+                    opp = "MOTION_NORTH" if new_ns_dir == "up" else "MOTION_SOUTH"
+                    xmls.append(
+                        f'<newSwitchVector device="{device}" name="TELESCOPE_MOTION_NS">'
+                        f'<oneSwitch name="{val}">On</oneSwitch>'
+                        f'<oneSwitch name="{opp}">Off</oneSwitch>'
+                        f'</newSwitchVector>'
+                    )
+            elif prev_ns:
                 xmls.append(
-                    f'<newSwitchVector device="{device}" name="{prop}">'
-                    f'<oneSwitch name="{val}">On</oneSwitch>'
-                    f'<oneSwitch name="{opp}">Off</oneSwitch>'
+                    f'<newSwitchVector device="{device}" name="TELESCOPE_MOTION_NS">'
+                    f'<oneSwitch name="MOTION_NORTH">Off</oneSwitch>'
+                    f'<oneSwitch name="MOTION_SOUTH">Off</oneSwitch>'
                     f'</newSwitchVector>'
                 )
 
-            if not xmls:
-                return {"success": False, "error": f"Invalid direction: {req.direction}"}
+            # 2. WE Axis
+            if new_we:
+                new_we_dir = "left" if "left" in new_parts else "right"
+                prev_we_dir = "left" if "left" in prev_parts else ("right" if "right" in prev_parts else None)
+                if new_we_dir != prev_we_dir:
+                    val = "MOTION_EAST" if new_we_dir == "left" else "MOTION_WEST"
+                    opp = "MOTION_WEST" if new_we_dir == "left" else "MOTION_EAST"
+                    xmls.append(
+                        f'<newSwitchVector device="{device}" name="TELESCOPE_MOTION_WE">'
+                        f'<oneSwitch name="{val}">On</oneSwitch>'
+                        f'<oneSwitch name="{opp}">Off</oneSwitch>'
+                        f'</newSwitchVector>'
+                    )
+            elif prev_we:
+                xmls.append(
+                    f'<newSwitchVector device="{device}" name="TELESCOPE_MOTION_WE">'
+                    f'<oneSwitch name="MOTION_EAST">Off</oneSwitch>'
+                    f'<oneSwitch name="MOTION_WEST">Off</oneSwitch>'
+                    f'</newSwitchVector>'
+                )
 
-            indi_ref = indi
-            await loop.run_in_executor(None, lambda: [indi_ref.send(x) for x in xmls])
+            if xmls:
+                indi_ref = indi
+                await loop.run_in_executor(None, lambda: [indi_ref.send(x) for x in xmls])
 
         # Always reset the watchdog (both new direction and heartbeat pulse)
         _jog_arm_watchdog(device, timeout=1.5)
@@ -1114,7 +1552,7 @@ async def mount_jog(req: JogRequest):
 @app.post("/mount/rate")
 async def mount_rate(req: RateRequest):
     device = req.device
-    if device == "Celestron GPS" and indi.device_mount and indi.device_mount != "Celestron GPS":
+    if not device or (indi.device_mount and device != indi.device_mount):
         device = indi.device_mount
     if not indi.connected:
         return {"success": False, "error": "INDI bridge not connected"}
@@ -1137,6 +1575,9 @@ async def mount_slew_internal(device: str, ra: float, dec: float, sync: bool = F
     """
     if not device or device == "":
         device = indi.device_mount
+    if not device:
+        logger.error("Slew refusé : aucune monture découverte sur INDI")
+        return {"success": False, "error": "Aucune monture détectée sur INDI — vérifiez le driver"}
 
     if not indi.connected:
         logger.error("Slew failed: INDI not connected")
@@ -1161,6 +1602,34 @@ async def mount_slew_internal(device: str, ra: float, dec: float, sync: bool = F
         logger.warning(f"Mount {device} is parked. Attempting to unpark before slew.")
         indi.send(f'<newSwitchVector device="{device}" name="TELESCOPE_PARK"><oneSwitch name="UNPARK">On</oneSwitch></newSwitchVector>')
         await asyncio.sleep(1.0) # More time for unparking mechanics
+
+    # ── GARDE-FOU MÉCANIQUE ──────────────────────────────────────────────────
+    # Vérifié AVANT tout envoi INDI, sur les encodeurs bruts (jamais sur
+    # HORIZONTAL_COORD qui dépend du modèle d'alignement). Protège des deux
+    # incidents du 5-6 août : collision Canon/fourche et enroulement du câble.
+    if not sync:
+        try:
+            site = await _get_site_location(indi, INDI_HOST)
+            target_alt, target_az = _radec_to_altaz(ra_hours, dec, site["lat"], site["lon"])
+            cur_alt, cur_az = indi.encoder_alt, indi.encoder_az
+            if cur_alt is not None and cur_az is not None:
+                # Décalage cible/courant en coordonnées ciel, appliqué aux encodeurs
+                sky_alt_now, sky_az_now = _radec_to_altaz(
+                    indi.mount_ra / 15.0, indi.mount_dec, site["lat"], site["lon"])
+                enc_target_alt = mount_safety.signed_angle(cur_alt) + (target_alt - sky_alt_now)
+                d_az = mount_safety.shortest_delta(sky_az_now, target_az)
+                ok, reason = mount_safety.check_altitude(enc_target_alt, ConfigService.load_config())
+                if ok:
+                    ok, reason = indi.cordwrap_guard.check_delta(d_az)
+                if not ok:
+                    logger.error(f"GoTo REFUSÉ par le garde-fou mécanique : {reason}")
+                    return {"success": False, "error": f"Mouvement refusé — {reason}"}
+            else:
+                logger.warning("Encodeurs indisponibles : garde-fou mécanique inactif "
+                               "(seules les limites du driver protègent)")
+        except Exception as e:
+            logger.error(f"Garde-fou mécanique en erreur ({e}) — GoTo refusé par précaution")
+            return {"success": False, "error": f"Vérification de sécurité impossible : {e}"}
 
     # ABORT before every GoTo (unconditional).
     # The NexStar firmware queues GoTo commands internally — sending Abort first
@@ -1423,7 +1892,7 @@ def launch_ekos():
 
 
 
-async def ccd_capture_internal(device: str, exposure: float):
+async def ccd_capture_internal(device: str, exposure: float, preview: bool = True):
     # Use detected device if provided one is generic or empty
     if not device or device == "Canon" or device == "Canon DSLR EOS 600D":
         device = indi.device_ccd or "Canon DSLR EOS 600D"
@@ -1431,47 +1900,61 @@ async def ccd_capture_internal(device: str, exposure: float):
     if not indi.connected:
         return {"success": False, "error": "Hardware offline"}
 
-    is_canon = any(kw in device for kw in ["Canon", "EOS", "DSLR"])
-    logger.info(f"EXEC CAPTURE -> {device} | Exp: {exposure}s | Canon={is_canon}")
+    was_live = indi.live_view_active
+    logger.info(f"[Capture] Début — {device} | Exp: {exposure}s | LiveView: {was_live}")
 
-    # ── Step 0: Hard BLOB reset ──────────────────────────────────────────────
-    # Flush any stuck driver state left from a previous session or restart.
-    indi.send(f'<enableBLOB device="{device}">Never</enableBLOB>')
-    await asyncio.sleep(0.4)
-
-    if is_canon:
-        # ── Step 1: Ensure mirror is down (live-view off) ────────────────────
-        # If the backend restarted while live-view was active, the mirror stays
-        # up. A stuck mirror prevents the shutter from firing entirely.
+    # ── Branche A : live view actif → arrêt propre avant capture ─────────────
+    if was_live:
+        logger.info("[Capture] Arrêt du flux live view...")
+        indi.live_view_active = False
         indi.send(f'<newSwitchVector device="{device}" name="CCD_VIDEO_STREAM">'
                   f'<oneSwitch name="STREAM_OFF">On</oneSwitch></newSwitchVector>')
-        await asyncio.sleep(0.2)
+        await asyncio.sleep(0.4)
+        logger.info("[Capture] Miroir en descente (attente ~1.5s)...")
         indi.send(f'<newSwitchVector device="{device}" name="viewfinder">'
                   f'<oneSwitch name="viewfinder1">On</oneSwitch></newSwitchVector>')
-        await asyncio.sleep(1.2)  # mirror takes ~1s to physically lower
+        await asyncio.sleep(1.5)
+    else:
+        # ── Branche B : pas de live view → sécurité miroir bas ───────────────
+        logger.info("[Capture] Vérification miroir (pas de live view actif)...")
+        indi.send(f'<newSwitchVector device="{device}" name="CCD_VIDEO_STREAM">'
+                  f'<oneSwitch name="STREAM_OFF">On</oneSwitch></newSwitchVector>')
+        indi.send(f'<newSwitchVector device="{device}" name="viewfinder">'
+                  f'<oneSwitch name="viewfinder1">On</oneSwitch></newSwitchVector>')
+        await asyncio.sleep(0.5)
 
-    # ── Step 2: Re-enable BLOBs ──────────────────────────────────────────────
+    # ── Reset BLOB + configuration driver ────────────────────────────────────
+    indi.send(f'<enableBLOB device="{device}">Never</enableBLOB>')
+    await asyncio.sleep(0.3)
     indi.send(f'<enableBLOB device="{device}">Also</enableBLOB>')
-    await asyncio.sleep(0.2)
-
-    # ── Step 3: Upload mode = CLIENT (driver sends frame to us over INDI) ────
-    # UPLOAD_BOTH can fail if the remote storage path doesn't exist after restart.
     indi.send(f'<newSwitchVector device="{device}" name="UPLOAD_MODE">'
               f'<oneSwitch name="UPLOAD_CLIENT">On</oneSwitch></newSwitchVector>')
-
-    # ── Step 4: Capture target = RAM ─────────────────────────────────────────
+    # indi_gphoto_ccd : switch "RAM" (≠ "CCD_CAPTURE_RAM" de l'ancien indi_canon_ccd)
     indi.send(f'<newSwitchVector device="{device}" name="CCD_CAPTURE_TARGET">'
-              f'<oneSwitch name="CCD_CAPTURE_RAM">On</oneSwitch></newSwitchVector>')
-
-    # ── Step 5: Wait for driver to acknowledge settings ──────────────────────
+              f'<oneSwitch name="RAM">On</oneSwitch></newSwitchVector>')
     await asyncio.sleep(0.4)
 
-    # ── Step 6: Trigger exposure ─────────────────────────────────────────────
+    # ── Déclenchement ─────────────────────────────────────────────────────────
+    logger.info(f"[Capture] ⏱ Ouverture obturateur — exposition {exposure}s...")
+    with _capture_lock:
+        # Repasser par "idle" pour garantir la transition idle→capturing côté SSE
+        _capture_state["phase"] = "idle"
+        _capture_state["last_thumbnail"] = None
+    with _capture_lock:
+        _capture_state["phase"] = "capturing"
+        _capture_state["preview_label"] = f"Exposition en cours — {exposure}s"
+        _capture_state["exposure_s"] = float(exposure)
+        _capture_state["capture_started"] = time.time()
+        _capture_state["elapsed_s"] = 0.0
+        _capture_state["eta_s"] = float(exposure)
+        _capture_state["preview_suppressed"] = not preview
+        _capture_state["error"] = None
     indi.ccd_exposure_state = "Busy"
+    indi._restore_live_view_after_capture = was_live
     indi.send(f'<newNumberVector device="{device}" name="CCD_EXPOSURE">'
               f'<oneNumber name="CCD_EXPOSURE_VALUE">{exposure}</oneNumber></newNumberVector>')
 
-    return {"success": True, "message": f"Exposure of {exposure}s started on {device}", "state": "Busy"}
+    return {"success": True, "message": f"Exposition {exposure}s lancée sur {device}", "state": "Busy"}
 
 async def ccd_focus_internal(device: str, direction: str, steps: int):
     logger.info(f"Focusing {device}: {direction} {steps} steps")
@@ -1483,7 +1966,13 @@ async def ccd_focus_internal(device: str, direction: str, steps: int):
 
 @app.post("/ccd/capture")
 async def ccd_capture(req: CaptureRequest):
-    return await ccd_capture_internal(req.device, req.exposure)
+    # La session d'auto-align possède la caméra : une capture manuelle simultanée
+    # vole la frame FITS de la session et sature le bus USB (saccades + timeouts).
+    if _autoalign_session is not None and _autoalign_session.running:
+        return {"success": False,
+                "error": "Session d'auto-alignement en cours — la caméra est occupée. "
+                         "Arrêtez la session (ou attendez la fin) avant de capturer."}
+    return await ccd_capture_internal(req.device, req.exposure, preview=req.preview)
 
 @app.post("/ccd/focus")
 async def ccd_focus(req: Request):
@@ -1519,9 +2008,9 @@ async def ccd_focus_metric():
         return {"success": False, "metric": 0, "error": str(e)}
 
 # ── Calcul Alt/Az sans astropy IERS (précision ~0.1° — suffisant pour alt-az) ──────────────
-def _lst_deg(lon_deg: float) -> float:
-    """Local Sidereal Time en degrés à partir de l'heure UTC courante et de la longitude."""
-    now = datetime.utcnow()
+def _lst_deg(lon_deg: float, when: datetime | None = None) -> float:
+    """Local Sidereal Time en degrés à partir de l'heure UTC (courante par défaut) et de la longitude."""
+    now = (when or datetime.now(timezone.utc)).replace(tzinfo=None)
     # Julian Day Number
     y, mo, d = now.year, now.month, now.day
     h = now.hour + now.minute / 60.0 + now.second / 3600.0
@@ -1570,8 +2059,11 @@ def _altaz_to_radec(alt_deg: float, az_deg: float, lat_deg: float, lon_deg: floa
 async def get_astro_coords(req: CoordsRequest):
     """RA/Dec → Alt/Az. Calcul purement local (pas de IERS, pas de réseau)."""
     try:
-        lat = req.lat if not (math.isnan(req.lat) or math.isinf(req.lat)) else -17.6333
-        lon = req.lon if not (math.isnan(req.lon) or math.isinf(req.lon)) else -149.6000
+        if math.isnan(req.lat) or math.isinf(req.lat) or math.isnan(req.lon) or math.isinf(req.lon):
+            site = await _get_site_location(indi, INDI_HOST)
+            lat, lon = site["lat"], site["lon"]
+        else:
+            lat, lon = req.lat, req.lon
         ra  = req.ra  if not (math.isnan(req.ra)  or math.isinf(req.ra))  else 0.0
         dec = req.dec if not (math.isnan(req.dec) or math.isinf(req.dec)) else 0.0
         alt, az = _radec_to_altaz(ra, dec, lat, lon)
@@ -1584,8 +2076,9 @@ async def get_astro_coords(req: CoordsRequest):
 class AltAzToRaDecRequest(BaseModel):
     alt: float = 0.0
     az:  float = 0.0
-    lat: float = -17.6333
-    lon: float = -149.6000
+    # NaN par défaut : lat/lon omis → résolution automatique du site
+    lat: float = float("nan")
+    lon: float = float("nan")
     height: float = 0.0
 
 
@@ -1593,8 +2086,11 @@ class AltAzToRaDecRequest(BaseModel):
 async def altaz_to_radec(req: AltAzToRaDecRequest):
     """Alt/Az → RA/Dec. Calcul purement local (pas de IERS, pas de réseau)."""
     try:
-        lat = req.lat if not (math.isnan(req.lat) or math.isinf(req.lat)) else -17.6333
-        lon = req.lon if not (math.isnan(req.lon) or math.isinf(req.lon)) else -149.6000
+        if math.isnan(req.lat) or math.isinf(req.lat) or math.isnan(req.lon) or math.isinf(req.lon):
+            site = await _get_site_location(indi, INDI_HOST)
+            lat, lon = site["lat"], site["lon"]
+        else:
+            lat, lon = req.lat, req.lon
         alt = req.alt if not (math.isnan(req.alt) or math.isinf(req.alt)) else 0.0
         az  = req.az  if not (math.isnan(req.az)  or math.isinf(req.az))  else 0.0
         ra_hours, dec = _altaz_to_radec(alt, az, lat, lon)
@@ -1692,10 +2188,13 @@ async def get_phone_sensor_state():
 
 # --- STREAMING ---
 async def mjpeg_generator():
-    """Yield frames as fast as the camera delivers them using frame_condition."""
-    # Initialiser au frame_count courant — évite de servir la dernière capture
-    # comme si c'était un frame live (indi.frame_count part à 0, -1 causerait
-    # un yield immédiat de l'ancienne image dès la première itération).
+    """Yield frames as fast as the camera delivers them using frame_condition.
+
+    Design: run_in_executor blocks a thread pool worker on the Condition wait,
+    freeing the asyncio event loop between frames. The notify_all() in
+    process_blobs() wakes the thread immediately — latency = INDI socket
+    transit time only, no polling delay.
+    """
     last_frame_count = indi.frame_count
     loop = asyncio.get_event_loop()
 
@@ -1703,13 +2202,14 @@ async def mjpeg_generator():
         if not indi.connected:
             break
 
-        # Block in a thread until a new frame arrives (frame_condition.wait with 1s timeout).
-        # This wakes up immediately when process_blobs() notifies, giving near-zero latency.
+        # Capture current count in closure to avoid race with outer scope reassignment.
+        current_count = last_frame_count
+
         def wait_for_frame():
             with indi.frame_condition:
                 return indi.frame_condition.wait_for(
-                    lambda: indi.frame_count != last_frame_count or not indi.connected,
-                    timeout=1.0
+                    lambda: indi.frame_count != current_count or not indi.connected,
+                    timeout=0.5   # 0.5s — détecte déconnexion rapidement, sans polling actif
                 )
 
         got_new = await loop.run_in_executor(None, wait_for_frame)
@@ -1722,14 +2222,24 @@ async def mjpeg_generator():
             last_frame_count = indi.frame_count
             if frame:
                 yield (b'--frame\r\n'
-                       b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-
-        # Yield control to the event loop so other coroutines can run.
-        await asyncio.sleep(0)
+                       b'Content-Type: image/jpeg\r\n'
+                       b'Content-Length: ' + str(len(frame)).encode() + b'\r\n\r\n'
+                       + frame + b'\r\n')
+        # No asyncio.sleep(0) — run_in_executor already yields the event loop.
 
 @app.get("/video_feed")
 async def video_feed():
-    return StreamingResponse(mjpeg_generator(), media_type="multipart/x-mixed-replace; boundary=frame")
+    return StreamingResponse(
+        mjpeg_generator(),
+        media_type="multipart/x-mixed-replace; boundary=frame",
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0",
+            "X-Accel-Buffering": "no",   # Disable nginx/Caddy proxy buffering
+            "Access-Control-Allow-Origin": "*",  # CORS pour accès direct browser
+        },
+    )
 
 @app.post("/ccd/reconnect")
 async def ccd_reconnect():
@@ -1793,7 +2303,23 @@ async def ccd_reconnect():
     }
 
 
+async def _restore_live_view(dev: str):
+    """Restaure le live view après une capture. Appelé depuis le thread BLOB via run_coroutine_threadsafe."""
+    logger.info(f"[Capture] Reprise du live view sur {dev}...")
+    indi.send(f'<newSwitchVector device="{dev}" name="viewfinder"><oneSwitch name="viewfinder0">On</oneSwitch></newSwitchVector>')
+    await asyncio.sleep(2.5)
+    indi.send(f'<newSwitchVector device="{dev}" name="CCD_VIDEO_STREAM"><oneSwitch name="STREAM_ON">On</oneSwitch></newSwitchVector>')
+    indi.live_view_active = True
+    logger.info(f"[Capture] Live view restauré.")
+
+
 @app.post("/ccd/stream/start")
+async def ccd_stream_start_endpoint():
+    if _autoalign_session is not None and _autoalign_session.running:
+        return {"success": False,
+                "error": "Session d'auto-alignement en cours — le live view est piloté par la session."}
+    return await ccd_stream_start()
+
 async def ccd_stream_start():
     dev = (indi.device_ccd or "Canon DSLR EOS 600D").strip()
     if not indi.connected:
@@ -1840,14 +2366,22 @@ async def ccd_stream_start():
     # ── Step 7: Start stream ─────────────────────────────────────────────────
     indi.send(f'<newSwitchVector device="{dev}" name="CCD_VIDEO_STREAM"><oneSwitch name="STREAM_ON">On</oneSwitch></newSwitchVector>')
 
+    indi.live_view_active = True
     logger.info(f"[LiveView] STREAM_ON sent to {dev}")
     return {"success": True}
 
 @app.post("/ccd/stream/stop")
+async def ccd_stream_stop_endpoint():
+    if _autoalign_session is not None and _autoalign_session.running:
+        return {"success": False,
+                "error": "Session d'auto-alignement en cours — le live view est piloté par la session."}
+    return await ccd_stream_stop()
+
 async def ccd_stream_stop():
     dev = (indi.device_ccd or "Canon DSLR EOS 600D").strip()
     if not indi.connected:
         return {"success": False, "error": "INDI bridge not connected"}
+    indi.live_view_active = False
     # Stop stream first, then lower mirror — order matters for the 600D
     indi.send(f'<newSwitchVector device="{dev}" name="CCD_VIDEO_STREAM"><oneSwitch name="STREAM_OFF">On</oneSwitch></newSwitchVector>')
     await asyncio.sleep(0.5)
@@ -1943,7 +2477,7 @@ async def health_full():
 
     # --- Mac Mini stats ---
     cpu = psutil.cpu_percent(interval=0.5)
-    mem = psutil.virtual_memory()
+    mem = _safe_virtual_memory()
     disk = psutil.disk_usage('/')
     pm2_apps = []
     try:
@@ -2065,7 +2599,7 @@ def mount_track(req: TrackRequest):
 @app.post("/mount/init-station")
 async def mount_init_station(req: InitStationRequest):
     """Étape 2 du wizard mise en station: envoie GPS+UTC à INDI et active le suivi sidéral."""
-    device = req.device or indi.device_mount or "Celestron GPS"
+    device = req.device or indi.device_mount
     now_utc = datetime.utcnow()
     logger.info(f"Init station: device={device} lat={req.lat} lon={req.lon} elev={req.elevation}")
 
@@ -2111,7 +2645,7 @@ async def mount_init_station(req: InitStationRequest):
 @app.post("/mount/tracking-rate")
 async def mount_tracking_rate(req: TrackingRateRequest):
     """Définit le mode de suivi: SIDEREAL, LUNAR ou SOLAR."""
-    device = req.device or indi.device_mount or "Celestron GPS"
+    device = req.device or indi.device_mount
     rate = req.rate.upper()
     if rate not in ("SIDEREAL", "LUNAR", "SOLAR"):
         return {"success": False, "error": f"Rate invalide: {rate}"}
@@ -2147,7 +2681,13 @@ _capture_state: dict = {
     "hfr": None,
     "snr": None,
     "stack_count": 0,
-    "last_thumbnail": None,   # base64 jpeg thumbnail of latest stack
+    "last_thumbnail": None,   # base64 jpeg thumbnail of latest capture/stack
+    "last_file": None,        # nom du dernier fichier capturé (pour save/delete UI)
+    "stats": None,            # histogramme/saturation/suggestion d'expo du dernier preview
+    "preview_suppressed": False,  # True = capture technique (autofocus) : l'UI n'ouvre pas le modal
+    "preview_label": "",      # texte affiché dans la barre de chargement preview
+    "exposure_s": 0.0,        # durée d'exposition de la capture unique en cours
+    "capture_started": None,  # epoch du début d'exposition (interne, sert au calcul elapsed/eta)
     "log": [],                # list of {time, msg, type}
     "error": None,
 }
@@ -2169,7 +2709,25 @@ async def capture_progress(request: Request):
             if await request.is_disconnected():
                 break
             with _capture_lock:
-                payload = json.dumps(_capture_state)
+                # Capture unique : elapsed/eta calculés en direct + bascule du label
+                # "Exposition" → "Téléchargement" quand l'obturateur est refermé.
+                if (_capture_state["phase"] == "capturing"
+                        and not _capture_state["running"]
+                        and _capture_state["capture_started"]):
+                    elapsed = time.time() - _capture_state["capture_started"]
+                    expo = _capture_state["exposure_s"] or 0.0
+                    _capture_state["elapsed_s"] = round(elapsed, 1)
+                    _capture_state["eta_s"] = round(max(0.0, expo - elapsed), 1)
+                    if elapsed > expo + 0.5 and _capture_state["preview_label"].startswith("Exposition"):
+                        _capture_state["preview_label"] = "Téléchargement depuis l'appareil..."
+                    # Watchdog : si l'image n'arrive jamais (mauvais device, driver muet),
+                    # ne pas rester bloqué sur "Téléchargement..." indéfiniment.
+                    if elapsed > expo + 45:
+                        _capture_state["phase"] = "error"
+                        _capture_state["error"] = "Image jamais reçue de l'appareil (timeout 45s) — vérifiez le device et l'obturation"
+                        _capture_state["preview_label"] = ""
+                        _capture_state["capture_started"] = None
+                payload = json.dumps({k: v for k, v in _capture_state.items() if k != "capture_started"})
             yield f"data: {payload}\n\n"
             await asyncio.sleep(0.8)
 
@@ -2181,6 +2739,362 @@ async def capture_progress(request: Request):
             "X-Accel-Buffering": "no",
         }
     )
+
+
+@app.post("/capture/discard")
+async def capture_discard():
+    """Supprime définitivement le dernier fichier capturé + son thumbnail (preview non désirée)."""
+    with _capture_lock:
+        filename = _capture_state["last_file"]
+    if not filename:
+        return {"success": False, "error": "Aucune capture récente à supprimer"}
+    # Sécurité : nom de fichier simple uniquement, pas de traversée de chemin
+    if os.path.basename(filename) != filename or ".." in filename:
+        raise HTTPException(status_code=400, detail="Nom de fichier invalide")
+
+    deleted = []
+    filepath = os.path.join(STORAGE_PATH, filename)
+    if os.path.isfile(filepath):
+        os.remove(filepath)
+        deleted.append(filename)
+    # Thumbnail associé : capture_TS.ext → thumb_TS.jpg
+    m = re.match(r"capture_(\d{8}_\d{6})\.", filename)
+    if m:
+        thumb = f"thumb_{m.group(1)}.jpg"
+        thumb_path = os.path.join(THUMBNAIL_PATH, thumb)
+        if os.path.isfile(thumb_path):
+            os.remove(thumb_path)
+            deleted.append(thumb)
+
+    with _capture_lock:
+        _capture_state["last_file"] = None
+        _capture_state["last_thumbnail"] = None
+        _capture_state["phase"] = "idle"
+        _capture_state["preview_label"] = ""
+    logger.info(f"[Capture] 🗑 Supprimé : {', '.join(deleted) or 'rien (fichier déjà absent)'}")
+    return {"success": True, "deleted": deleted}
+
+
+# ─── Focus numérique de session ────────────────────────────────────────────────
+# Principe : l'utilisateur fait la mise au point manuellement UNE fois sur une
+# étoile, puis calibre. On mesure le HFR de référence et Gemini Vision propose
+# des paramètres de netteté (unsharp/denoise) appliqués automatiquement à
+# toutes les captures suivantes de la session.
+
+_FOCUS_PROFILE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "focus_profile.json")
+_focus_profile: dict = {"active": False}
+
+
+def _load_focus_profile():
+    global _focus_profile
+    try:
+        if os.path.isfile(_FOCUS_PROFILE_PATH):
+            _focus_profile = json.loads(open(_FOCUS_PROFILE_PATH).read())
+            if _focus_profile.get("active"):
+                logger.info(f"[Focus] Profil numérique rechargé : {_focus_profile.get('comment', '')}")
+    except Exception as e:
+        logger.error(f"[Focus] Lecture profil échouée: {e}")
+        _focus_profile = {"active": False}
+
+
+def _save_focus_profile():
+    try:
+        with open(_FOCUS_PROFILE_PATH, "w") as f:
+            json.dump(_focus_profile, f, indent=2)
+    except Exception as e:
+        logger.error(f"[Focus] Sauvegarde profil échouée: {e}")
+
+
+def _apply_focus_profile(img):
+    """Applique le profil de netteté numérique de session à un preview BGR 8 bits."""
+    if not _focus_profile.get("active"):
+        return img
+    try:
+        radius = float(_focus_profile.get("sharpen_radius", 2.0))
+        amount = float(_focus_profile.get("sharpen_amount", 0.8))
+        denoise = int(_focus_profile.get("denoise_strength", 3))
+        out = img
+        if denoise > 0:
+            out = cv2.fastNlMeansDenoisingColored(out, None, denoise, denoise, 7, 21)
+        if amount > 0 and radius > 0:
+            k = max(3, int(radius * 3) | 1)  # noyau impair ≈ 3σ
+            blurred = cv2.GaussianBlur(out, (k, k), radius)
+            out = cv2.addWeighted(out, 1.0 + amount, blurred, -amount, 0)
+        return out
+    except Exception as e:
+        logger.error(f"[Focus] Application profil échouée: {e}")
+        return img
+
+
+def _call_gemini_vision(prompt: str, jpeg_b64: str) -> dict:
+    """Variante vision de _call_gemini : envoie le prompt + une image JPEG base64."""
+    token = _get_gemini_token()
+    if not token:
+        raise ValueError("Gemini indisponible — vérifiez server/firebase-adminsdk.json")
+    body = json.dumps({
+        "contents": [{"parts": [
+            {"text": prompt},
+            {"inline_data": {"mime_type": "image/jpeg", "data": jpeg_b64}},
+        ]}],
+        "generationConfig": {"temperature": 0.2, "maxOutputTokens": 512, "responseMimeType": "application/json"},
+    }).encode()
+    req = _urllib_request.Request(
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent",
+        data=body,
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        method="POST",
+    )
+    with _urllib_request.urlopen(req, timeout=45) as resp:
+        data = json.loads(resp.read())
+    content = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+    m = re.search(r'\{[\s\S]*?\}', content)
+    if not m:
+        raise ValueError(f"JSON introuvable dans la réponse Gemini: {content[:200]}")
+    return json.loads(m.group())
+
+
+@app.post("/focus/calibrate")
+async def focus_calibrate():
+    """Calibre le focus numérique de session à partir de la dernière capture (étoile
+    mise au point manuellement). Mesure le HFR de référence, demande à Gemini Vision
+    des paramètres de netteté, sauvegarde le profil appliqué aux captures suivantes."""
+    global _focus_profile
+    thumb_name = indi.latest_image_path
+    if not thumb_name:
+        return {"success": False, "error": "Aucune capture récente — capturez d'abord l'étoile mise au point"}
+    thumb_path = os.path.join(THUMBNAIL_PATH, os.path.basename(thumb_name))
+    if not os.path.isfile(thumb_path):
+        return {"success": False, "error": f"Aperçu introuvable : {thumb_name}"}
+
+    def _calibrate():
+        img = cv2.imread(thumb_path)
+        if img is None:
+            raise ValueError("Aperçu illisible")
+        hfr = INDIClient._compute_hfr(img)
+        stats = INDIClient._compute_frame_stats(img, None)
+
+        # Paramètres par défaut dérivés du HFR mesuré (fallback sans IA)
+        base_radius = max(1.0, min(6.0, (hfr or 3.0) * 0.8))
+        params = {"sharpen_radius": round(base_radius, 1), "sharpen_amount": 0.8,
+                  "denoise_strength": 3, "comment": "Paramètres dérivés du HFR mesuré (sans IA)"}
+
+        # Gemini Vision affine les paramètres si disponible
+        ai_used = False
+        if _gemini_available():
+            _, buf = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, 85])
+            b64 = base64.b64encode(buf).decode()
+            prompt = (
+                "Tu es un expert en traitement d'images astronomiques. Cette image est une capture "
+                f"d'étoile(s) après mise au point manuelle d'un télescope (HFR mesuré: {hfr}, "
+                f"luminosité moyenne: {stats['mean']}/255, pixels saturés: {stats['saturated_pct']}%). "
+                "Propose des paramètres de netteté numérique (unsharp mask gaussien + débruitage NlMeans) "
+                "à appliquer aux captures suivantes de la session pour compenser le flou résiduel. "
+                "Réponds UNIQUEMENT en JSON: {\"sharpen_radius\": <1.0-6.0 px>, \"sharpen_amount\": <0.3-1.5>, "
+                "\"denoise_strength\": <0-8>, \"comment\": \"<diagnostic bref en français>\"}"
+            )
+            try:
+                ai_params = _call_gemini_vision(prompt, b64)
+                params.update({k: ai_params[k] for k in ("sharpen_radius", "sharpen_amount", "denoise_strength", "comment") if k in ai_params})
+                ai_used = True
+            except Exception as e:
+                logger.warning(f"[Focus] Gemini indisponible, fallback HFR: {e}")
+
+        # Aperçu avant/après pour l'UI
+        after = _apply_focus_profile_params(img, params)
+        _, buf_after = cv2.imencode(".jpg", after, [cv2.IMWRITE_JPEG_QUALITY, 85])
+        return hfr, params, ai_used, base64.b64encode(buf_after).decode()
+
+    try:
+        loop = asyncio.get_event_loop()
+        hfr, params, ai_used, after_b64 = await loop.run_in_executor(None, _calibrate)
+        _focus_profile = {
+            "active": True, "hfr_ref": hfr, "ai_used": ai_used,
+            "calibrated_at": datetime.now().isoformat(timespec="seconds"),
+            "source_thumb": os.path.basename(thumb_name), **params,
+        }
+        _save_focus_profile()
+        logger.info(f"[Focus] ✅ Profil numérique calibré (HFR ref {hfr}, IA: {ai_used}): {params}")
+        return {"success": True, "profile": _focus_profile, "preview_after": f"data:image/jpeg;base64,{after_b64}"}
+    except Exception as e:
+        logger.error(f"[Focus] Calibration échouée: {e}")
+        return {"success": False, "error": str(e)}
+
+
+def _apply_focus_profile_params(img, params: dict):
+    saved = dict(_focus_profile)
+    try:
+        _focus_profile.update({"active": True, **params})
+        return _apply_focus_profile(img)
+    finally:
+        _focus_profile.clear()
+        _focus_profile.update(saved)
+
+
+@app.get("/focus/profile")
+async def focus_profile_get():
+    return {"success": True, "profile": _focus_profile}
+
+
+@app.post("/focus/reset")
+async def focus_profile_reset():
+    global _focus_profile
+    _focus_profile = {"active": False}
+    _save_focus_profile()
+    logger.info("[Focus] Profil numérique désactivé")
+    return {"success": True}
+
+
+_load_focus_profile()
+
+
+@app.get("/capture/state")
+async def capture_state_snapshot():
+    """Snapshot ponctuel de l'état capture (pour les wizards qui pollent sans SSE)."""
+    with _capture_lock:
+        return {k: v for k, v in _capture_state.items() if k not in ("capture_started", "last_thumbnail", "log")}
+
+
+@app.post("/capture/enhance")
+async def capture_enhance():
+    """Amélioration automatique du dernier preview : débruitage, étirement asinh,
+    balance des blancs, CLAHE et boost de saturation. Retourne le base64 amélioré."""
+    with _capture_lock:
+        thumb_name = indi.latest_image_path
+    if not thumb_name:
+        # Après un redémarrage backend, retomber sur le thumbnail le plus récent du disque
+        try:
+            thumbs = sorted(
+                (f for f in os.listdir(THUMBNAIL_PATH) if f.startswith("thumb_") and f.endswith(".jpg")),
+                reverse=True,
+            )
+            thumb_name = thumbs[0] if thumbs else None
+        except FileNotFoundError:
+            thumb_name = None
+    if not thumb_name:
+        return {"success": False, "error": "Aucune capture récente à améliorer"}
+    thumb_path = os.path.join(THUMBNAIL_PATH, os.path.basename(thumb_name))
+    if not os.path.isfile(thumb_path):
+        return {"success": False, "error": f"Aperçu introuvable : {thumb_name}"}
+
+    def _enhance():
+        img = cv2.imread(thumb_path)
+        if img is None:
+            raise ValueError("Aperçu illisible")
+        h, w = img.shape[:2]
+        scale = min(1.0, 1200.0 / max(h, w))
+        if scale < 1.0:
+            img = cv2.resize(img, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA)
+        # 1. Débruitage (préserve les étoiles ponctuelles)
+        img = cv2.fastNlMeansDenoisingColored(img, None, 5, 5, 7, 21)
+        # 2. Balance des blancs gray-world
+        f = img.astype(np.float32)
+        means = f.reshape(-1, 3).mean(axis=0)
+        gmean = float(means.mean())
+        if gmean > 0 and all(m > 0 for m in means):
+            f *= (gmean / means)
+        f = np.clip(f, 0, 255)
+        # 3. Étirement asinh (rehausse les faibles luminosités sans cramer les hautes)
+        norm = f / 255.0
+        stretched = np.arcsinh(norm * 10.0) / np.arcsinh(10.0)
+        img = np.clip(stretched * 255.0, 0, 255).astype(np.uint8)
+        # 4. CLAHE sur la luminance
+        lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
+        lab[..., 0] = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8)).apply(lab[..., 0])
+        img = cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
+        # 5. Boost léger de saturation
+        hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV).astype(np.float32)
+        hsv[..., 1] = np.clip(hsv[..., 1] * 1.25, 0, 255)
+        img = cv2.cvtColor(hsv.astype(np.uint8), cv2.COLOR_HSV2BGR)
+        _, buf = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, 88])
+        return base64.b64encode(buf).decode()
+
+    try:
+        loop = asyncio.get_event_loop()
+        b64 = await loop.run_in_executor(None, _enhance)
+        return {"success": True, "image": f"data:image/jpeg;base64,{b64}"}
+    except Exception as e:
+        logger.error(f"Enhance error: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/capture/gallery")
+async def capture_gallery():
+    """Liste les aperçus de la session (thumbnails), plus récents en premier."""
+    items = []
+    try:
+        for name in os.listdir(THUMBNAIL_PATH):
+            if not name.startswith("thumb_") or not name.endswith(".jpg"):
+                continue
+            fp = os.path.join(THUMBNAIL_PATH, name)
+            ts = name.removeprefix("thumb_").removesuffix(".jpg")
+            # Fichier capture associé (peut avoir été supprimé)
+            capture_file = None
+            for f in os.listdir(STORAGE_PATH):
+                if f.startswith(f"capture_{ts}."):
+                    capture_file = f
+                    break
+            items.append({
+                "thumb": name, "ts": ts, "capture_file": capture_file,
+                "size_kb": os.path.getsize(fp) // 1024,
+                "capture_size_mb": round(os.path.getsize(os.path.join(STORAGE_PATH, capture_file)) / 1e6, 1) if capture_file else None,
+            })
+    except FileNotFoundError:
+        pass
+    items.sort(key=lambda x: x["ts"], reverse=True)
+    return {"success": True, "items": items[:200]}
+
+
+@app.get("/capture/gallery/thumb/{name}")
+async def capture_gallery_thumb(name: str):
+    if os.path.basename(name) != name or not name.startswith("thumb_"):
+        raise HTTPException(status_code=400, detail="Nom invalide")
+    fp = os.path.join(THUMBNAIL_PATH, name)
+    if not os.path.isfile(fp):
+        raise HTTPException(status_code=404, detail="Introuvable")
+    with open(fp, "rb") as f:
+        return Response(f.read(), media_type="image/jpeg")
+
+
+class GalleryDeleteRequest(BaseModel):
+    thumbs: list[str]
+
+
+@app.post("/capture/gallery/delete")
+async def capture_gallery_delete(req: GalleryDeleteRequest):
+    """Suppression en lot : thumbnails + fichiers capture associés."""
+    deleted = []
+    for name in req.thumbs[:200]:
+        if os.path.basename(name) != name or not name.startswith("thumb_"):
+            continue
+        ts = name.removeprefix("thumb_").removesuffix(".jpg")
+        fp = os.path.join(THUMBNAIL_PATH, name)
+        if os.path.isfile(fp):
+            os.remove(fp)
+            deleted.append(name)
+        for f in os.listdir(STORAGE_PATH):
+            if f.startswith(f"capture_{ts}."):
+                os.remove(os.path.join(STORAGE_PATH, f))
+                deleted.append(f)
+    logger.info(f"[Gallery] 🗑 {len(deleted)} fichiers supprimés")
+    return {"success": True, "deleted": deleted}
+
+
+def _purge_old_thumbnails(max_age_days: int = 14):
+    """Purge les thumbnails plus vieux que max_age_days (les captures restent)."""
+    try:
+        cutoff = time.time() - max_age_days * 86400
+        removed = 0
+        for name in os.listdir(THUMBNAIL_PATH):
+            fp = os.path.join(THUMBNAIL_PATH, name)
+            if os.path.isfile(fp) and os.path.getmtime(fp) < cutoff:
+                os.remove(fp)
+                removed += 1
+        if removed:
+            logger.info(f"[Gallery] Purge : {removed} thumbnails > {max_age_days}j supprimés")
+    except FileNotFoundError:
+        pass
+    except Exception as e:
+        logger.error(f"Purge thumbnails error: {e}")
 
 
 @app.post("/capture/sequence/start")
@@ -2200,6 +3114,7 @@ async def capture_sequence_start(req: CaptureSequenceRequest):
             "snr": None,
             "stack_count": 0,
             "last_thumbnail": None,
+            "preview_label": f"Démarrage — {req.count} × {req.exposure}s",
             "log": [],
             "error": None,
         })
@@ -2210,72 +3125,96 @@ async def capture_sequence_start(req: CaptureSequenceRequest):
         import time as _time
         start = _time.time()
         frames = []
+        capture_dir = STORAGE_PATH if os.path.isdir(STORAGE_PATH) else os.path.join(os.path.dirname(__file__), "captures")
+        IMG_EXTS = ["*.jpg", "*.jpeg", "*.cr2", "*.cr3", "*.fit", "*.fits"]
 
         _cap_log(f"Démarrage: {req.count} frames × {req.exposure}s — {device}", "info")
+
+        # Désactiver la restauration du live view pendant toute la séquence
+        was_live = indi.live_view_active
+        indi._restore_live_view_after_capture = False
 
         for i in range(req.count):
             with _capture_lock:
                 if not _capture_state["running"]:
                     _cap_log("Séquence annulée", "warn")
-                    return
+                    break
+                _capture_state["phase"] = "capturing"
                 _capture_state["current_frame"] = i + 1
-                elapsed = _time.time() - start
-                _capture_state["elapsed_s"] = round(elapsed, 1)
-                remaining = req.count - i
-                _capture_state["eta_s"] = round(remaining * req.exposure, 1)
+                _capture_state["elapsed_s"] = round(_time.time() - start, 1)
+                _capture_state["eta_s"] = round((req.count - i) * req.exposure, 1)
+                _capture_state["preview_label"] = f"Exposition {i+1}/{req.count} — {req.exposure}s"
 
             _cap_log(f"Frame {i+1}/{req.count} — exposition {req.exposure}s")
 
-            # Trigger INDI CCD exposure
-            indi.send(
-                f'<newNumberVector device="{device}" name="CCD_EXPOSURE">'
-                f'<oneNumber name="CCD_EXPOSURE_VALUE">{req.exposure}</oneNumber>'
-                f'</newNumberVector>'
-            )
+            # ── Déclencher via le chemin unique (miroir, UPLOAD_MODE, RAM, etc.) ─
+            pre_ts = _time.time()
+            if indi._event_loop:
+                future = asyncio.run_coroutine_threadsafe(
+                    ccd_capture_internal(device, req.exposure),
+                    indi._event_loop,
+                )
+                try:
+                    result = future.result(timeout=req.exposure + 10.0)
+                    if not result.get("success"):
+                        _cap_log(f"Frame {i+1}: déclenchement échoué — {result.get('error','?')}", "error")
+                        continue
+                except Exception as exc:
+                    _cap_log(f"Frame {i+1}: exception déclenchement — {exc}", "error")
+                    continue
+            else:
+                _cap_log("Boucle asyncio non disponible — envoi INDI direct", "warn")
+                indi.send(
+                    f'<newNumberVector device="{device}" name="CCD_EXPOSURE">'
+                    f'<oneNumber name="CCD_EXPOSURE_VALUE">{req.exposure}</oneNumber>'
+                    f'</newNumberVector>'
+                )
 
-            # Wait for exposure to complete (poll ccd_exposure_state)
-            deadline = _time.time() + req.exposure + 15.0
+            # ── Attendre l'apparition d'un NOUVEAU fichier sur disque ───────────
+            with _capture_lock:
+                _capture_state["preview_label"] = f"Attente image {i+1}/{req.count}..."
+            deadline = _time.time() + req.exposure + 30.0
+            latest = None
             while _time.time() < deadline:
-                _time.sleep(0.5)
-                if indi.ccd_exposure_state not in ("Busy", "Ok"):
-                    break
-                if indi.ccd_exposure_state == "Ok":
+                _time.sleep(1.0)
+                new_files = sorted(
+                    [f for ext in IMG_EXTS for f in Path(capture_dir).glob(ext)
+                     if os.path.getmtime(str(f)) > pre_ts],
+                    key=os.path.getmtime,
+                )
+                if new_files:
+                    latest = str(new_files[-1])
                     break
 
-            # Retrieve latest captured file path
-            capture_dir = STORAGE_PATH if os.path.isdir(STORAGE_PATH) else os.path.join(os.path.dirname(__file__), "captures")
-            files = sorted(Path(capture_dir).glob("*.jpg"), key=os.path.getmtime)
-            if files:
-                latest = str(files[-1])
+            if latest:
                 frames.append(latest)
                 _cap_log(f"Frame {i+1} capturée: {os.path.basename(latest)}", "success")
-
-                # Generate thumbnail from latest frame
-                try:
-                    img = cv2.imread(latest)
-                    if img is not None:
-                        h, w = img.shape[:2]
-                        scale = 200 / max(h, w)
-                        thumb = cv2.resize(img, (int(w * scale), int(h * scale)))
-                        _, buf = cv2.imencode(".jpg", thumb, [cv2.IMWRITE_JPEG_QUALITY, 70])
-                        b64 = base64.b64encode(buf).decode()
-                        with _capture_lock:
-                            _capture_state["last_thumbnail"] = f"data:image/jpeg;base64,{b64}"
-                except Exception as e:
-                    logger.warning(f"Thumbnail error: {e}")
+                with _capture_lock:
+                    _capture_state["preview_label"] = f"Génération aperçu {i+1}..."
+                # Réutilise generate_thumb qui pousse aussi dans _capture_state
+                ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+                indi.generate_thumb(latest, ts)
+                with _capture_lock:
+                    _capture_state["stack_count"] = len(frames)
+                    if len(frames) > 1:
+                        _capture_state["phase"] = "stacking"
+                        _capture_state["preview_label"] = f"Empilement {len(frames)} frames..."
             else:
-                _cap_log(f"Frame {i+1}: aucun fichier trouvé", "warn")
+                _cap_log(f"Frame {i+1}: timeout — aucun fichier reçu dans {int(req.exposure)+30}s", "error")
 
-            # Basic stacking: update stack count
-            with _capture_lock:
-                _capture_state["stack_count"] = len(frames)
+        # ── Fin de séquence ───────────────────────────────────────────────────
+        # Restaurer le live view si actif avant la séquence
+        if was_live and indi._event_loop:
+            asyncio.run_coroutine_threadsafe(
+                _restore_live_view(device), indi._event_loop
+            )
 
-        # Done
         with _capture_lock:
             _capture_state["running"] = False
             _capture_state["phase"] = "complete"
             _capture_state["elapsed_s"] = round(_time.time() - start, 1)
             _capture_state["eta_s"] = 0.0
+            _capture_state["preview_label"] = ""
 
         _cap_log(f"Séquence terminée — {len(frames)} frames capturées", "success")
 
@@ -2415,6 +3354,69 @@ async def astroberry_reboot(req: MountActionRequest):
     return await loop.run_in_executor(executor, raspi.reboot, req.confirm)
 
 
+@app.post("/reset-all")
+async def reset_all():
+    """Graded recovery of the full INDI/hardware stack.
+
+    Runs the cheapest fixes first and escalates only if needed. Returns a
+    step-by-step log so the UI can show exactly what was done and what failed.
+    Never reboots the Pi (that stays an explicit, separate action).
+    """
+    loop = asyncio.get_event_loop()
+    steps: list[dict] = []
+
+    def step(name: str, ok: bool, detail: str = ""):
+        steps.append({"step": name, "ok": bool(ok), "detail": detail})
+        logger.info(f"[ResetAll] {name}: {'OK' if ok else 'FAIL'} {detail}")
+
+    # 1 — Bridge INDI socket
+    if indi.connected:
+        step("Bridge INDI", True, "déjà connecté")
+    else:
+        ok = await loop.run_in_executor(executor, indi.connect)
+        step("Bridge INDI", ok, "reconnecté" if ok else "échec — tunnel SSH ou Pi injoignable")
+
+    # 2 — Escalade : redémarrage indiserver distant si déconnecté ou si le matériel est hors ligne
+    if not indi.connected or not indi.mount_connected or not indi.ccd_connected:
+        await loop.run_in_executor(executor, raspi.restart_indi)
+        await asyncio.sleep(3.0)
+        ok = await loop.run_in_executor(executor, indi.connect)
+        step("Redémarrage INDI distant", ok, "indiserver relancé" if ok else "Pi injoignable")
+
+    # 3 — Connexion matériel (monture + caméra)
+    if indi.connected:
+        try:
+            indi.send('<getProperties version="1.7"/>')
+            await asyncio.sleep(0.5)
+            indi._safe_connect_device(indi.device_mount)
+            indi._safe_connect_device(indi.device_ccd)
+            await asyncio.sleep(2.0)
+            step("Connexion matériel", True, f"{indi.device_mount} + {indi.device_ccd}")
+        except Exception as e:
+            step("Connexion matériel", False, str(e))
+    else:
+        step("Connexion matériel", False, "bridge non connecté")
+
+    # 4 — Caméra Canon : libération du verrou USB si toujours déconnectée
+    if indi.connected and indi.mount_connected and not indi.ccd_connected:
+        try:
+            res = await ccd_reconnect()
+            step("Verrou USB Canon", res.get("success", False), res.get("message") or res.get("error", ""))
+        except Exception as e:
+            step("Verrou USB Canon", False, str(e))
+
+    overall = indi.connected and indi.mount_connected and indi.ccd_connected
+    return {
+        "success": overall,
+        "steps": steps,
+        "health": {
+            "bridge": indi.connected,
+            "mount": indi.mount_connected,
+            "ccd": indi.ccd_connected,
+        },
+    }
+
+
 # --- Log stream (SSE) ---
 
 @app.get("/logs/stream")
@@ -2439,89 +3441,177 @@ async def logs_stream():
 
 # ── AUTO-ALIGN / PLATE SOLVE ────────────────────────────────────────────────
 
-class AutoAlignSolveRequest(BaseModel):
-    image_b64: str          # JPEG image encoded as base64
-    scale_low: float = 0.1  # field width lower bound in degrees
-    scale_high: float = 5.0 # field width upper bound in degrees
+def _debayer_fits_to_jpeg(fits_bytes: bytes) -> bytes:
+    """Parse un FITS minimal (BLOB CCD INDI), dématrice si BAYERPAT présent, et
+    étire vers un JPEG 8 bits. solve-field sur une mosaïque Bayer brute prend le
+    damier CFA pour de fausses étoiles et ne matche jamais d'astérisme réel."""
+    pos = 0
+    header_bytes = b""
+    while True:
+        block = fits_bytes[pos:pos + 2880]
+        if not block:
+            raise ValueError("Truncated FITS header")
+        header_bytes += block
+        pos += 2880
+        if block.rstrip().endswith(b"END"):
+            break
+    cards = [header_bytes[i:i + 80].decode("ascii", "ignore") for i in range(0, len(header_bytes), 80)]
+    keys = {}
+    for c in cards:
+        if "=" in c:
+            k, v = c.split("=", 1)
+            keys[k.strip()] = v.split("/")[0].strip().strip("'").strip()
 
-@app.post("/autoalign/solve")
-async def autoalign_solve(req: AutoAlignSolveRequest):
-    """
-    Plate-solve a JPEG image using solve-field (astrometry.net CLI) on Astroberry.
-    Receives the image as a base64-encoded JPEG blob, copies it to Astroberry via
-    SSH, invokes solve-field, parses the WCS result, and returns RA/DEC in decimal.
+    naxis1 = int(keys.get("NAXIS1", 0))
+    naxis2 = int(keys.get("NAXIS2", 0))
+    bzero = float(keys.get("BZERO", 0))
+    bayerpat = keys.get("BAYERPAT", "").strip()
+
+    if not naxis1 or not naxis2:
+        raise ValueError("Not a recognizable FITS image (missing NAXIS1/2)")
+
+    raw = fits_bytes[pos: pos + naxis1 * naxis2 * 2]
+    arr = np.frombuffer(raw, dtype=">i2").reshape(naxis2, naxis1).astype(np.int32)
+    arr = arr + int(bzero)
+    arr = np.clip(arr, 0, 65535).astype(np.uint16)
+
+    bayer_map = {
+        "RGGB": cv2.COLOR_BayerBG2GRAY,
+        "BGGR": cv2.COLOR_BayerRG2GRAY,
+        "GRBG": cv2.COLOR_BayerGB2GRAY,
+        "GBRG": cv2.COLOR_BayerGR2GRAY,
+    }
+    code = bayer_map.get(bayerpat)
+    gray16 = cv2.cvtColor(arr, code) if code is not None else arr
+
+    # hi=99.95% (pas 99.5%) : écrêter 0.5% des pixels transforme le bruit de fond
+    # en centaines de faux points saturés — l'extracteur d'étoiles (le nôtre comme
+    # celui de solve-field) les prend pour des étoiles. Les vraies étoiles restent
+    # bien au-dessus du 99.95e percentile d'un champ normal.
+    lo, hi = np.percentile(gray16, [1.0, 99.95])
+    if hi <= lo:
+        hi = lo + 1
+    stretched = np.clip((gray16.astype(np.float32) - lo) / (hi - lo) * 255.0, 0, 255).astype(np.uint8)
+
+    ok, buf = cv2.imencode(".jpg", stretched, [cv2.IMWRITE_JPEG_QUALITY, 95])
+    if not ok:
+        raise RuntimeError("JPEG encode failed")
+    return buf.tobytes()
+
+
+def _solve_frame(image_bytes: bytes,
+                 ra_hint_h: float | None = None,
+                 dec_hint: float | None = None,
+                 radius_deg: float | None = None,
+                 scale_low: float = 0.4,
+                 scale_high: float = 1.6) -> dict:
+    """Plate-solve une image (JPEG ou FITS brut) via solve-field sur Astroberry.
+
+    SYNCHRONE (SCP + subprocess) — appeler via asyncio.to_thread depuis l'event loop.
+    Bornes d'échelle par défaut resserrées sur le FOV réel du setup
+    (NexStar 4SE 1350mm + APS-C ≈ 0.95°×0.63°).
 
     Returns:
-        { success: True, ra: float (decimal hours), dec: float (decimal degrees) }
+        { success: True, ra: float (heures décimales), dec: float (degrés) }
         { success: False, error: str }
     """
-    import subprocess, tempfile, struct
+    import subprocess, tempfile, shutil
 
-    astroberry_host = INDI_HOST  # e.g. "astroberry.local"
+    # Solveur local (Mac Mini M4, ~50× plus rapide que le Pi 3B) si installé,
+    # sinon repli SSH direct vers le Pi en LAN (pas le tunnel 2222 qui flappe).
+    local_solver = shutil.which("solve-field") or (
+        "/opt/homebrew/bin/solve-field" if os.path.exists("/opt/homebrew/bin/solve-field") else None)
+
+    if INDI_HOST in ("127.0.0.1", "localhost"):
+        astroberry_host = os.getenv("ASTROBERRY_DIRECT_HOST", "astroberry.local")
+        ssh_port = "22"
+    else:
+        astroberry_host = INDI_HOST
+        ssh_port = os.getenv("ASTROBERRY_PORT", "22")
     ssh_user = os.getenv("ASTROBERRY_USER", "astroberry")
-    ssh_key  = os.getenv("ASTROBERRY_SSH_KEY", "")   # optional path to private key
+    ssh_key  = os.getenv("ASTROBERRY_SSH_KEY", "")
 
+    local_path = None
     try:
-        # --- 1. Decode the incoming JPEG ---
-        try:
-            img_bytes = base64.b64decode(req.image_b64)
-        except Exception as e:
-            return {"success": False, "error": f"base64 decode failed: {e}"}
-
-        if len(img_bytes) < 100:
+        if len(image_bytes) < 100:
             return {"success": False, "error": "Image too small — capture may have failed"}
 
-        # --- 2. Write image to a local temp file ---
+        # Dématriçage si FITS Bayer brut (sinon solve-field voit le damier CFA)
+        if image_bytes[:6] == b"SIMPLE":
+            try:
+                image_bytes = _debayer_fits_to_jpeg(image_bytes)
+            except Exception as e:
+                logger.warning(f"Debayer failed, falling back to raw bytes: {e}")
+
+        # Downsample adaptatif : accélère l'extraction de sources 5-10× sans
+        # perte de précision astrométrique utile à ce FOV.
+        try:
+            _probe = cv2.imdecode(np.frombuffer(image_bytes, np.uint8), cv2.IMREAD_GRAYSCALE)
+            img_w = _probe.shape[1] if _probe is not None else 0
+        except Exception:
+            img_w = 0
+        downsample = 4 if img_w > 3000 else 2
+
         with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp:
-            tmp.write(img_bytes)
+            tmp.write(image_bytes)
             local_path = tmp.name
 
-        remote_dir  = "/tmp/stargazer_solve"
-        remote_img  = f"{remote_dir}/solve_input.jpg"
-        remote_wcs  = f"{remote_dir}/solve_input.wcs"
-        remote_base = f"{remote_dir}/solve_input"
+        # Hint RA/DEC : réduit drastiquement l'espace de recherche des index
+        hint = ""
+        if ra_hint_h is not None and dec_hint is not None and radius_deg is not None:
+            hint = f"--ra {ra_hint_h * 15.0:.4f} --dec {dec_hint:.4f} --radius {radius_deg:.1f} "
 
-        ssh_base = ["ssh", "-o", "StrictHostKeyChecking=no",
-                    "-o", "ConnectTimeout=10"]
-        if ssh_key:
-            ssh_base += ["-i", ssh_key]
-        ssh_base.append(f"{ssh_user}@{astroberry_host}")
-
-        # --- 3. Ensure remote directory exists ---
-        subprocess.run(ssh_base + [f"mkdir -p {remote_dir}"], timeout=10, check=True)
-
-        # --- 4. Upload the image ---
-        scp_cmd = ["scp", "-o", "StrictHostKeyChecking=no",
-                   "-o", "ConnectTimeout=10"]
-        if ssh_key:
-            scp_cmd += ["-i", ssh_key]
-        scp_cmd += [local_path, f"{ssh_user}@{astroberry_host}:{remote_img}"]
-        subprocess.run(scp_cmd, timeout=15, check=True)
-
-        # --- 5. Check that solve-field is installed ---
-        check = subprocess.run(
-            ssh_base + ["which solve-field"],
-            capture_output=True, text=True, timeout=10
+        common_flags = (
+            f"--no-plots --overwrite --scale-units degwidth "
+            f"--scale-low {scale_low} --scale-high {scale_high} "
+            f"{hint}"
+            f"--downsample {downsample} --depth 40 --cpulimit 90 "
         )
-        if check.returncode != 0:
-            logger.warning("solve-field not found on Astroberry — plate solve unavailable")
-            return {"success": False, "error": "solve-field not installed on Astroberry. Install astrometry.net: sudo apt-get install astrometry.net"}
 
-        # --- 6. Run solve-field ---
-        solve_cmd = (
-            f"solve-field --no-plots --overwrite "
-            f"--scale-units degwidth "
-            f"--scale-low {req.scale_low} --scale-high {req.scale_high} "
-            f"--dir {remote_dir} "
-            f"--out solve_input "
-            f"{remote_img} "
-            f"2>&1"
-        )
-        logger.info(f"Running solve-field on Astroberry: {solve_cmd}")
-        result = subprocess.run(
-            ssh_base + [solve_cmd],
-            capture_output=True, text=True, timeout=120
-        )
+        if local_solver:
+            solve_dir = "/tmp/stargazer_solve"
+            os.makedirs(solve_dir, exist_ok=True)
+            solve_cmd = (f"{local_solver} {common_flags}"
+                         f"--dir {solve_dir} --out solve_input {local_path}")
+            logger.info(f"Running LOCAL solve-field: {solve_cmd}")
+            # PATH : solve-field appelle jpegtopnm (netpbm, /opt/homebrew/bin) —
+            # absent du PATH du process PM2, la conversion JPEG échoue sinon.
+            env = {**os.environ, "PATH": f"/opt/homebrew/bin:{os.environ.get('PATH', '')}"}
+            result = subprocess.run(["bash", "-c", solve_cmd + " 2>&1"],
+                                    capture_output=True, text=True, timeout=120, env=env)
+        else:
+            remote_dir = "/tmp/stargazer_solve"
+            remote_img = f"{remote_dir}/solve_input.jpg"
+
+            ssh_base = ["ssh", "-p", ssh_port, "-o", "StrictHostKeyChecking=no",
+                        "-o", "ConnectTimeout=10"]
+            if ssh_key:
+                ssh_base += ["-i", ssh_key]
+            ssh_base.append(f"{ssh_user}@{astroberry_host}")
+
+            subprocess.run(ssh_base + [f"mkdir -p {remote_dir}"], timeout=10, check=True)
+
+            scp_cmd = ["scp", "-P", ssh_port, "-o", "StrictHostKeyChecking=no",
+                       "-o", "ConnectTimeout=10"]
+            if ssh_key:
+                scp_cmd += ["-i", ssh_key]
+            scp_cmd += [local_path, f"{ssh_user}@{astroberry_host}:{remote_img}"]
+            subprocess.run(scp_cmd, timeout=90, check=True)  # RAW ~35MB → 35-40s sur le LAN Pi
+
+            check = subprocess.run(ssh_base + ["which solve-field"],
+                                   capture_output=True, text=True, timeout=10)
+            if check.returncode == 255:
+                # 255 = échec de connexion SSH, pas un outil manquant
+                return {"success": False, "error": f"SSH vers le Pi injoignable ({astroberry_host}:{ssh_port}) — {check.stderr.strip()[:200]}"}
+            if check.returncode != 0:
+                logger.warning("solve-field not found on Astroberry — plate solve unavailable")
+                return {"success": False, "error": "solve-field not installed on Astroberry. Install astrometry.net: sudo apt-get install astrometry.net"}
+
+            solve_cmd = (f"solve-field {common_flags}"
+                         f"--dir {remote_dir} --out solve_input {remote_img} 2>&1")
+            logger.info(f"Running solve-field on Astroberry: {solve_cmd}")
+            result = subprocess.run(ssh_base + [solve_cmd],
+                                    capture_output=True, text=True, timeout=180)
         logger.info(f"solve-field stdout: {result.stdout[-2000:]}")
 
         if "Field center: (RA H:M:S, Dec D:M:S)" not in result.stdout \
@@ -2529,17 +3619,13 @@ async def autoalign_solve(req: AutoAlignSolveRequest):
             logger.warning(f"solve-field failed or timed out. Output: {result.stdout[-500:]}")
             return {"success": False, "error": "solve-field could not find a solution. Check star visibility and scale bounds."}
 
-        # --- 7. Parse RA/DEC from stdout ---
         ra_deg, dec_deg = None, None
-
-        # Pattern: "Field center: (RA,Dec) = (123.456, -45.678) deg."
         m = re.search(r"Field center.*?RA,Dec\).*?\(([+-]?\d+\.?\d*),\s*([+-]?\d+\.?\d*)\)", result.stdout)
         if m:
             ra_deg  = float(m.group(1))
             dec_deg = float(m.group(2))
 
         if ra_deg is None:
-            # Pattern: "Field center: (RA H:M:S, Dec D:M:S) = (06:23:45.67, -52:41:23.4)"
             m2 = re.search(
                 r"Field center.*?RA H:M:S.*?=\s*\((\d+):(\d+):([\d.]+),\s*([+-]?\d+):(\d+):([\d.]+)\)",
                 result.stdout
@@ -2557,17 +3643,462 @@ async def autoalign_solve(req: AutoAlignSolveRequest):
         return {"success": True, "ra": ra_hours, "dec": dec_deg}
 
     except subprocess.TimeoutExpired:
-        return {"success": False, "error": "solve-field timed out (>120s). Try shorter exposure or brighter field."}
+        return {"success": False, "error": "solve-field timed out (>180s). Try shorter exposure or brighter field."}
     except subprocess.CalledProcessError as e:
         return {"success": False, "error": f"SSH/SCP command failed: {e}"}
     except Exception as e:
-        logger.error(f"autoalign_solve error: {e}", exc_info=True)
+        logger.error(f"_solve_frame error: {e}", exc_info=True)
         return {"success": False, "error": str(e)}
     finally:
+        if local_path:
+            try:
+                os.unlink(local_path)
+            except Exception:
+                pass
+
+
+class AutoAlignSolveRequest(BaseModel):
+    image_b64: str            # image (JPEG ou FITS) encodée en base64
+    scale_low: float = 0.4    # borne basse largeur de champ (degrés)
+    scale_high: float = 1.6   # borne haute largeur de champ (degrés)
+
+@app.post("/autoalign/solve")
+async def autoalign_solve(req: AutoAlignSolveRequest):
+    """Wrapper HTTP de _solve_frame (compat UI existante)."""
+    try:
+        img_bytes = base64.b64decode(req.image_b64)
+    except Exception as e:
+        return {"success": False, "error": f"base64 decode failed: {e}"}
+    return await asyncio.to_thread(
+        _solve_frame, img_bytes, None, None, None, req.scale_low, req.scale_high)
+
+
+# ── AUTO-ALIGN v2 — Session de scan continu ─────────────────────────────────
+
+from autoalign_session import AutoAlignSession, get_site_location as _get_site_location
+
+_autoalign_session: AutoAlignSession | None = None
+
+def _get_autoalign_session() -> AutoAlignSession:
+    global _autoalign_session
+    if _autoalign_session is None:
+        _autoalign_session = AutoAlignSession(
+            indi=indi,
+            slew=mount_slew_internal,
+            capture=ccd_capture_internal,
+            solve=_solve_frame,
+            altaz_to_radec=_altaz_to_radec,
+            debayer_fits=_debayer_fits_to_jpeg,
+            start_live_view=ccd_stream_start,
+            stop_live_view=ccd_stream_stop,
+            logger=logger,
+            gpsd_host=INDI_HOST,
+            reconnect_ccd=ccd_reconnect,
+        )
+    return _autoalign_session
+
+
+class AutoAlignZone(BaseModel):
+    altMin: float
+    altMax: float
+    azMin: float
+    azMax: float
+
+class AutoAlignSessionStartRequest(BaseModel):
+    zone: AutoAlignZone
+    target_pairs: int = 3
+    preview_exposure: float = 1.0
+    solve_exposure: float = 4.0
+    max_duration_s: int = 1800
+    use_ai: bool = False
+    dry_run: bool = False
+    lat: float | None = None
+    lon: float | None = None
+
+@app.post("/autoalign/session/start")
+async def autoalign_session_start(req: AutoAlignSessionStartRequest):
+    session = _get_autoalign_session()
+    if session.running:
+        raise HTTPException(status_code=409, detail="Une session d'auto-alignement est déjà en cours")
+    if not indi.mount_connected:
+        return {"success": False, "error": "Monture hors ligne"}
+    if not indi.ccd_connected and not req.dry_run:
+        return {"success": False, "error": "Caméra hors ligne"}
+    sid = session.start(
+        req.zone.model_dump(),
+        target_pairs=req.target_pairs,
+        preview_exposure=req.preview_exposure,
+        solve_exposure=req.solve_exposure,
+        max_duration_s=req.max_duration_s,
+        use_ai=req.use_ai,
+        dry_run=req.dry_run,
+        config_lat=req.lat,
+        config_lon=req.lon,
+    )
+    return {"success": True, "session_id": sid}
+
+@app.post("/autoalign/session/stop")
+async def autoalign_session_stop():
+    session = _get_autoalign_session()
+    if not session.running:
+        return {"success": True, "message": "Aucune session en cours"}
+    await session.stop()
+    return {"success": True, "message": "Session arrêtée"}
+
+@app.get("/autoalign/session/status")
+async def autoalign_session_status():
+    session = _get_autoalign_session()
+    return {"running": session.running, **session.snapshot()}
+
+@app.get("/autoalign/session/stream")
+async def autoalign_session_stream(request: Request):
+    """SSE — événements temps réel de la session (state, cell, pair, log, done)."""
+    session = _get_autoalign_session()
+    q = session.subscribe()
+
+    async def event_generator():
+        # Snapshot initial pour permettre la reconnexion en cours de session
+        yield f"data: {json.dumps({'event': 'snapshot', 'data': session.snapshot()})}\n\n"
         try:
-            os.unlink(local_path)
+            while True:
+                if await request.is_disconnected():
+                    break
+                try:
+                    payload = await asyncio.wait_for(q.get(), timeout=15.0)
+                    yield f"data: {json.dumps(payload)}\n\n"
+                except asyncio.TimeoutError:
+                    yield ": keepalive\n\n"
+        finally:
+            session.unsubscribe(q)
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+@app.get("/autoalign/site")
+async def autoalign_site():
+    """Position du site résolue via la chaîne gpsd → monture → fallback."""
+    site = await _get_site_location(indi, INDI_HOST)
+    return {"success": True, **site}
+
+
+# ── SKYSAFARI — pont NexStar/TCP (recherche d'objets + GoTo depuis l'iPhone) ─
+
+from skysafari_bridge import SkySafariBridge
+
+_skysafari_bridge: SkySafariBridge | None = None
+
+@app.on_event("startup")
+async def start_skysafari_bridge():
+    global _skysafari_bridge
+    port = int(os.getenv("SKYSAFARI_PORT", "4030"))
+    _skysafari_bridge = SkySafariBridge(indi=indi, slew=mount_slew_internal,
+                                        logger=logger, port=port)
+    try:
+        await _skysafari_bridge.start()
+    except OSError as e:
+        logger.error(f"[SkySafari] Impossible d'écouter sur le port {port}: {e}")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# AI — credentials from local CLIs, no key stored in the browser
+# ─────────────────────────────────────────────────────────────────────────────
+
+import urllib.request as _urllib_request
+import urllib.parse as _urllib_parse
+
+# ── Google Service Account JWT auth (RS256, no external deps) ──────────────
+_SA_TOKEN_CACHE: dict = {"token": None, "expires_at": 0.0}
+_SA_FILE = Path(__file__).parent / "firebase-adminsdk.json"
+_GEMINI_SCOPE = "https://www.googleapis.com/auth/generative-language"
+
+def _b64url(data: bytes) -> str:
+    return base64.urlsafe_b64encode(data).rstrip(b"=").decode()
+
+def _sa_sign_jwt(sa: dict) -> str:
+    """Build and sign a JWT assertion for the service account."""
+    from cryptography.hazmat.primitives import serialization, hashes
+    from cryptography.hazmat.primitives.asymmetric import padding as _pad
+    now = int(time.time())
+    header = _b64url(json.dumps({"alg": "RS256", "typ": "JWT"}).encode())
+    claims = _b64url(json.dumps({
+        "iss": sa["client_email"],
+        "scope": _GEMINI_SCOPE,
+        "aud": sa["token_uri"],
+        "exp": now + 3600,
+        "iat": now,
+    }).encode())
+    signing_input = f"{header}.{claims}".encode()
+    key = serialization.load_pem_private_key(sa["private_key"].encode(), password=None)
+    sig = key.sign(signing_input, _pad.PKCS1v15(), hashes.SHA256())
+    return f"{header}.{claims}.{_b64url(sig)}"
+
+def _get_gemini_token() -> str | None:
+    """Return a valid Google access token for the Generative Language API."""
+    global _SA_TOKEN_CACHE
+    if _SA_TOKEN_CACHE["token"] and time.time() < _SA_TOKEN_CACHE["expires_at"] - 60:
+        return _SA_TOKEN_CACHE["token"]
+    if not _SA_FILE.exists():
+        logger.warning("[AI] firebase-adminsdk.json not found — Gemini unavailable")
+        return None
+    try:
+        sa = json.loads(_SA_FILE.read_text())
+        jwt_assertion = _sa_sign_jwt(sa)
+        data = _urllib_parse.urlencode({
+            "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+            "assertion": jwt_assertion,
+        }).encode()
+        req = _urllib_request.Request(
+            sa["token_uri"],
+            data=data,
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            method="POST",
+        )
+        with _urllib_request.urlopen(req, timeout=10) as resp:
+            result = json.loads(resp.read())
+        token = result["access_token"]
+        _SA_TOKEN_CACHE = {"token": token, "expires_at": time.time() + result.get("expires_in", 3600)}
+        logger.info("[AI] Gemini service-account token refreshed")
+        return token
+    except Exception as e:
+        logger.error(f"[AI] Gemini service-account token error: {e}")
+        return None
+
+def _gemini_available() -> bool:
+    return _SA_FILE.exists() and json.loads(_SA_FILE.read_text()).get("type") == "service_account"
+
+def _call_gemini(prompt: str) -> dict:
+    token = _get_gemini_token()
+    if not token:
+        raise ValueError("Gemini indisponible — vérifiez server/firebase-adminsdk.json")
+    body = json.dumps({
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {"temperature": 0.2, "maxOutputTokens": 512, "responseMimeType": "application/json"},
+    }).encode()
+    req = _urllib_request.Request(
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent",
+        data=body,
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        method="POST",
+    )
+    with _urllib_request.urlopen(req, timeout=30) as resp:
+        data = json.loads(resp.read())
+    content = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+    m = re.search(r'\{[\s\S]*?\}', content)
+    if not m:
+        raise ValueError(f"JSON introuvable dans la réponse Gemini: {content[:200]}")
+    return json.loads(m.group())
+
+def _call_claude(prompt: str) -> dict:
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        raise ValueError("ANTHROPIC_API_KEY non défini — exportez-le dans l'env du backend")
+    body = json.dumps({
+        "model": "claude-haiku-4-5-20251001",
+        "max_tokens": 512,
+        "messages": [{"role": "user", "content": prompt}],
+    }).encode()
+    req = _urllib_request.Request(
+        "https://api.anthropic.com/v1/messages",
+        data=body,
+        headers={
+            "x-api-key": api_key,
+            "anthropic-version": "2023-06-01",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    with _urllib_request.urlopen(req, timeout=30) as resp:
+        data = json.loads(resp.read())
+    content = data["content"][0]["text"].strip()
+    m = re.search(r'\{[\s\S]*?\}', content)
+    if not m:
+        raise ValueError(f"JSON introuvable dans la réponse Claude: {content[:200]}")
+    return json.loads(m.group())
+
+def _ai_call(prompt: str, provider: str | None = None) -> dict:
+    """Call the best available AI provider, avec bascule automatique sur l'autre en cas d'échec."""
+    if not provider:
+        provider = "claude" if os.getenv("ANTHROPIC_API_KEY") else "gemini"
+    if provider not in ("claude", "gemini"):
+        raise ValueError(f"Provider inconnu: {provider}")
+
+    primary, fallback_name = (
+        (_call_claude, "gemini") if provider == "claude" else (_call_gemini, "claude")
+    )
+    fallback_available = _gemini_available() if fallback_name == "gemini" else bool(os.getenv("ANTHROPIC_API_KEY"))
+    fallback_call = _call_gemini if fallback_name == "gemini" else _call_claude
+
+    try:
+        return primary(prompt)
+    except Exception as e:
+        logger.warning(f"[AI] {provider} a échoué ({e}), bascule automatique sur {fallback_name}...")
+        if not fallback_available:
+            raise e
+        return fallback_call(prompt)
+
+@app.get("/ai/auth/status")
+async def ai_auth_status():
+    """Return which AI providers are available."""
+    claude_ok = bool(os.getenv("ANTHROPIC_API_KEY"))
+    gemini_ok = _gemini_available()
+    provider = "claude" if claude_ok else ("gemini" if gemini_ok else None)
+    sa_email = None
+    if gemini_ok:
+        try:
+            sa_email = json.loads(_SA_FILE.read_text()).get("client_email")
         except Exception:
             pass
+    return {"claude": claude_ok, "gemini": gemini_ok, "provider": provider, "gemini_sa": sa_email}
+
+class ClaudeKeyRequest(BaseModel):
+    apiKey: str
+
+@app.post("/ai/claude/key")
+async def set_claude_key(req: ClaudeKeyRequest):
+    """Store Anthropic API key in server/.env (never returned to client)."""
+    key = req.apiKey.strip()
+    if not key.startswith("sk-ant-"):
+        raise HTTPException(status_code=400, detail="Clé Anthropic invalide (doit commencer par sk-ant-)")
+    env_path = Path(__file__).parent / ".env"
+    lines = env_path.read_text().splitlines() if env_path.exists() else []
+    updated = [l for l in lines if not l.startswith("ANTHROPIC_API_KEY=")]
+    updated.append(f"ANTHROPIC_API_KEY={key}")
+    env_path.write_text("\n".join(updated) + "\n")
+    os.environ["ANTHROPIC_API_KEY"] = key
+    return {"ok": True}
+
+@app.delete("/ai/claude/key")
+async def delete_claude_key():
+    """Remove Anthropic API key from server/.env."""
+    env_path = Path(__file__).parent / ".env"
+    if env_path.exists():
+        lines = [l for l in env_path.read_text().splitlines() if not l.startswith("ANTHROPIC_API_KEY=")]
+        env_path.write_text("\n".join(lines) + "\n")
+    os.environ.pop("ANTHROPIC_API_KEY", None)
+    return {"ok": True}
+
+class AiSequenceRequest(BaseModel):
+    targetName: str
+    provider: str | None = None
+
+@app.post("/ai/sequence")
+async def ai_sequence(req: AiSequenceRequest):
+    """Generate optimal capture sequence for a DSO target."""
+    prompt = (
+        f'I am an astrophotographer using a Celestron NexStar 4SE (focal length 1350mm, aperture 90mm, '
+        f'Alt-Azimuth mount) and a Canon EOS 600D (APS-C sensor).\n'
+        f'I want to photograph: "{req.targetName}".\n'
+        f'Provide the optimal live-stacking capture sequence. Consider Alt-Az mount limitations '
+        f'(field rotation — max ~15s per sub before star trails).\n'
+        f'Reply ONLY with valid JSON, no markdown:\n'
+        f'{{"exposureTime": <seconds>, "isoGain": "<ISO string>", "frameCount": <count>}}'
+    )
+    loop = asyncio.get_event_loop()
+    try:
+        result = await loop.run_in_executor(None, lambda: _ai_call(prompt, req.provider))
+        return result
+    except Exception as e:
+        logger.error(f"[AI] sequence error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+class AiSkyRequest(BaseModel):
+    prompt: str
+    provider: str | None = None
+
+@app.post("/ai/sky")
+async def ai_sky(req: AiSkyRequest):
+    """Free-form sky/observation planning AI call (used by SkyMap)."""
+    loop = asyncio.get_event_loop()
+    try:
+        result = await loop.run_in_executor(None, lambda: _ai_call(req.prompt, req.provider))
+        return result
+    except Exception as e:
+        logger.error(f"[AI] sky error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+class AiPlateSolveRequest(BaseModel):
+    imageBase64: str  # JPEG base64 without data: prefix
+    provider: str | None = None
+
+@app.post("/ai/platesolve")
+async def ai_platesolve(req: AiPlateSolveRequest):
+    """AI vision fallback plate-solving via Claude or Gemini."""
+    loop = asyncio.get_event_loop()
+
+    def _solve():
+        provider = req.provider or ("claude" if os.getenv("ANTHROPIC_API_KEY") else "gemini")
+        vision_prompt = (
+            "This is an astronomical image taken through a telescope. "
+            "Identify the star patterns and estimate the center coordinates in J2000 equatorial. "
+            "Reply ONLY with valid JSON: "
+            '{"ra": <decimal_hours_0_to_24>, "dec": <decimal_degrees_-90_to_90>} '
+            "or {\"ra\": null, \"dec\": null} if you cannot determine coordinates."
+        )
+        if provider == "claude":
+            api_key = os.getenv("ANTHROPIC_API_KEY")
+            if not api_key:
+                raise ValueError("ANTHROPIC_API_KEY non défini")
+            body = json.dumps({
+                "model": "claude-haiku-4-5-20251001",
+                "max_tokens": 128,
+                "messages": [{
+                    "role": "user",
+                    "content": [
+                        {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": req.imageBase64}},
+                        {"type": "text", "text": vision_prompt},
+                    ]
+                }],
+            }).encode()
+            http_req = _urllib_request.Request(
+                "https://api.anthropic.com/v1/messages",
+                data=body,
+                headers={"x-api-key": api_key, "anthropic-version": "2023-06-01", "Content-Type": "application/json"},
+                method="POST",
+            )
+            with _urllib_request.urlopen(http_req, timeout=30) as resp:
+                data = json.loads(resp.read())
+            content = data["content"][0]["text"].strip()
+        elif provider == "gemini":
+            token = _get_gemini_token()
+            if not token:
+                raise ValueError("Gemini token unavailable")
+            body = json.dumps({
+                "contents": [{"parts": [
+                    {"inlineData": {"mimeType": "image/jpeg", "data": req.imageBase64}},
+                    {"text": vision_prompt},
+                ]}],
+                "generationConfig": {"temperature": 0, "maxOutputTokens": 128, "responseMimeType": "application/json"},
+            }).encode()
+            http_req = _urllib_request.Request(
+                "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent",
+                data=body,
+                headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+                method="POST",
+            )
+            with _urllib_request.urlopen(http_req, timeout=30) as resp:
+                data = json.loads(resp.read())
+            content = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+        else:
+            raise ValueError("No AI provider available for plate solving")
+
+        m = re.search(r'\{[^}]+\}', content)
+        if not m:
+            raise ValueError(f"No JSON in AI response: {content[:200]}")
+        parsed = json.loads(m.group())
+        if parsed.get("ra") is None or parsed.get("dec") is None:
+            return {"success": False, "ra": None, "dec": None}
+        return {"success": True, "ra": float(parsed["ra"]), "dec": float(parsed["dec"])}
+
+    try:
+        result = await loop.run_in_executor(None, _solve)
+        return result
+    except Exception as e:
+        logger.error(f"[AI] platesolve error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # --- Backend self-restart ---
@@ -2590,4 +4121,6 @@ async def backend_restart():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=5005)
+    # access_log=False : coupe le flood de logs par-requête + l'ouverture/fermeture
+    # WebSocket. Le middleware metrics_middleware loggue déjà l'essentiel.
+    uvicorn.run(app, host="0.0.0.0", port=5005, access_log=False)

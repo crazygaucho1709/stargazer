@@ -1,6 +1,7 @@
 // src/app/layout.tsx
 import type { Metadata } from "next";
 import { Provider } from "@/components/Provider";
+import { ConnectionStatusBar } from "@/components/ui/ConnectionStatusBar";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -11,7 +12,7 @@ export const metadata: Metadata = {
 export const viewport = {
     width: "device-width",
     initialScale: 1,
-    viewportFit: "cover",          // lets dvh reach behind Safari notch/toolbar
+    viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -20,21 +21,11 @@ export default function RootLayout({
     children: React.ReactNode;
 }) {
     return (
-        <html lang="fr" suppressHydrationWarning style={{ height: "100%", margin: 0, padding: 0 }}>
-            <body
-                suppressHydrationWarning
-                style={{
-                    height: "100%",
-                    minHeight: "100vh",
-                    margin: 0,
-                    padding: 0,
-                    backgroundColor: "#000000",
-                    position: "relative",
-                    fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif"
-                }}
-            >
+        <html lang="fr" suppressHydrationWarning>
+            <body suppressHydrationWarning className="min-h-screen bg-[#030509] text-[#E2E8F0] font-sans antialiased">
                 <Provider>
-                    <main style={{ minHeight: "100vh", width: "100%" }}>
+                    <ConnectionStatusBar />
+                    <main className="min-h-screen w-full">
                         {children}
                     </main>
                 </Provider>

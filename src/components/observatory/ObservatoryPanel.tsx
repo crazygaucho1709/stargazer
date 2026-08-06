@@ -1,17 +1,20 @@
+// src/components/observatory/ObservatoryPanel.tsx
 "use client";
 
-import { VStack, Text, Heading, Box, HStack, Icon, Grid, Badge, Button, Spinner } from "@chakra-ui/react";
 import { Radio, Activity, Terminal, ShieldCheck, AlertTriangle, Power, RefreshCw, Rocket, Cpu, BatteryWarning, Sun, Telescope, Camera } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { InfrastructureStatus } from "./InfrastructureStatus";
+import { DiagnosticsPanel } from "./DiagnosticsPanel";
 import { ActionButtons } from "./ActionButtons";
 import { LogStream } from "./LogStream";
 import { PhoneSensorWidget } from "./PhoneSensorWidget";
 import { TelescopeControls } from "@/components/telescope/TelescopeControls";
 import { useStargazerStore } from "@/store/useStargazerStore";
+import { useHealthFull } from "@/hooks/useHealthFull";
 import { OBSERVATORY_LABELS, OBSERVATORY_COLORS, SubsystemHealth, SubsystemId, canObservatoryTransition, ObservatoryEvent } from "@/lib/observatoryMachine";
+import { SkeletonCard } from "@/components/ui/Skeleton";
 
-const SUBSYSTEM_ICONS: Record<SubsystemId, typeof Activity> = {
+const SUBSYSTEM_ICONS: Record<SubsystemId, React.ElementType> = {
   mount: Telescope,
   ccd: Camera,
   indi_bridge: Cpu,
@@ -20,67 +23,109 @@ const SUBSYSTEM_ICONS: Record<SubsystemId, typeof Activity> = {
   power: BatteryWarning,
 };
 
-const STATUS_BADGE = {
-  nominal: { color: "green", label: "OK" },
-  degraded: { color: "yellow", label: "DÉGRADÉ" },
-  failed: { color: "red", label: "PANNE" },
-  recovering: { color: "cyan", label: "RECOVERY" },
-  offline: { color: "whiteAlpha", label: "OFFLINE" },
+const STATUS_BADGE: Record<string, { color: string; bg: string; border: string; label: string }> = {
+  nominal:    { color: "#4ade80", bg: "rgba(74,222,128,0.1)",  border: "rgba(74,222,128,0.4)",  label: "OK" },
+  degraded:   { color: "#facc15", bg: "rgba(250,204,21,0.1)", border: "rgba(250,204,21,0.4)", label: "DÉGRADÉ" },
+  failed:     { color: "#f87171", bg: "rgba(248,113,113,0.1)",border: "rgba(248,113,113,0.4)",label: "PANNE" },
+  recovering: { color: "#22d3ee", bg: "rgba(34,211,238,0.1)", border: "rgba(34,211,238,0.4)", label: "RECOVERY" },
+  offline:    { color: "rgba(255,255,255,0.3)", bg: "rgba(255,255,255,0.05)", border: "rgba(255,255,255,0.15)", label: "OFFLINE" },
 };
+
+function Spinner({ size = 16, color = "white" }: { size?: number; color?: string }) {
+  return (
+    <div
+      style={{ width: size, height: size, borderColor: `${color}33`, borderTopColor: color }}
+      className="rounded-full border-2 animate-spin"
+    />
+  );
+}
+
+function iconColor(status: string): string {
+  switch (status) {
+    case "failed":    return "#f87171";
+    case "recovering":return "#22d3ee";
+    case "offline":   return "rgba(255,255,255,0.3)";
+    case "degraded":  return "#facc15";
+    default:          return "#4ade80";
+  }
+}
 
 const SubsystemCard = ({ sub }: { sub: SubsystemHealth }) => {
   const IconComp = SUBSYSTEM_ICONS[sub.id];
-  const badge = STATUS_BADGE[sub.status];
+  const unequipped = sub.id === "weather" || sub.id === "power";
+  const badge = unequipped
+    ? { color: "rgba(255,255,255,0.3)", bg: "rgba(255,255,255,0.04)", border: "rgba(255,255,255,0.1)", label: "N/A" }
+    : STATUS_BADGE[sub.status] ?? STATUS_BADGE.offline;
+  const borderColor = sub.status === "failed" ? "rgba(248,113,113,0.4)" : sub.status === "recovering" ? "rgba(34,211,238,0.4)" : "rgba(255,255,255,0.08)";
 
   return (
-    <Box
-      p={3} borderRadius="md"
-      bg="rgba(0,0,0,0.3)" border="1px solid"
-      borderColor={sub.status === "failed" ? "red.800" : sub.status === "recovering" ? "cyan.800" : "rgba(255,255,255,0.08)"}
-      opacity={sub.status === "offline" ? 0.65 : 1}
+    <div
+      style={{
+        background: "rgba(0,0,0,0.3)",
+        border: `1px solid ${borderColor}`,
+        borderRadius: 8,
+        padding: 12,
+        opacity: sub.status === "offline" ? 0.65 : 1,
+      }}
     >
-      <HStack justify="space-between" mb={2}>
-        <HStack gap={2}>
-          <Icon as={IconComp} boxSize={4} color={sub.status === "failed" ? "red.400" : sub.status === "recovering" ? "cyan.400" : sub.status === "offline" ? "whiteAlpha.500" : sub.status === "degraded" ? "yellow.400" : "green.400"} />
-          <Text fontSize="11px" fontWeight="bold" color="white">{sub.label}</Text>
-        </HStack>
-        <Badge colorScheme={badge.color} variant="outline" fontSize="8px">
-          {sub.status === "recovering" ? <Spinner size="xs" mr={1} /> : null}
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <IconComp size={16} color={iconColor(sub.status)} />
+          <span style={{ fontSize: 11, fontWeight: "bold", color: "white" }}>{sub.label}</span>
+        </div>
+        <div
+          style={{
+            fontSize: 8,
+            color: badge.color,
+            background: badge.bg,
+            border: `1px solid ${badge.border}`,
+            borderRadius: 4,
+            padding: "2px 6px",
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+          }}
+        >
+          {sub.status === "recovering" && <Spinner size={8} color={badge.color} />}
           {badge.label}
-        </Badge>
-      </HStack>
+        </div>
+      </div>
       {sub.errorCount > 0 && (
-        <Text fontSize="9px" color="red.300" fontFamily="mono">
+        <p style={{ fontSize: 9, color: "#fca5a5", fontFamily: "monospace", margin: 0 }}>
           {sub.errorCount} erreur{sub.errorCount > 1 ? "s" : ""}
           {sub.lastError ? `: ${sub.lastError.slice(0, 60)}` : ""}
-        </Text>
+        </p>
       )}
       {sub.status === "recovering" && (
-        <HStack gap={1} mt={1}>
-          <Icon as={RefreshCw} boxSize={3} color="cyan.400" className="spin" />
-          <Text fontSize="9px" color="cyan.400">Tentative {sub.recoveryAttempts + 1}/3</Text>
-        </HStack>
+        <div className="flex items-center gap-1 mt-1">
+          <RefreshCw size={12} color="#22d3ee" className="animate-spin" />
+          <span style={{ fontSize: 9, color: "#22d3ee" }}>Tentative {sub.recoveryAttempts + 1}/3</span>
+        </div>
       )}
       {sub.status === "failed" && (
-        <Text fontSize="9px" color="gray.500" mt={1} fontStyle="italic">
+        <p style={{ fontSize: 9, color: "rgba(255,255,255,0.4)", marginTop: 4, fontStyle: "italic" }}>
           Actions: {sub.recoveryActions.join(", ")}
-        </Text>
+        </p>
       )}
-    </Box>
+    </div>
   );
 };
 
+// Capteurs non équipés sur cette installation — exclus du calcul de santé
+// pour ne pas plafonner artificiellement le pourcentage.
+const UNEQUIPPED: SubsystemId[] = ["weather", "power"];
+
 function getHealthPct(subsystems: Record<SubsystemId, SubsystemHealth>): number {
-  const values = Object.values(subsystems);
-  const nom = values.filter((s) => s.status === "nominal").length;
-  return Math.round((nom / values.length) * 100);
+  const core = (Object.values(subsystems) as SubsystemHealth[]).filter((s) => !UNEQUIPPED.includes(s.id));
+  if (core.length === 0) return 0;
+  const nom = core.filter((s) => s.status === "nominal").length;
+  return Math.round((nom / core.length) * 100);
 }
 
 export default function ObservatoryPanel() {
   const language = useStargazerStore((s) => s.language);
   const obsState = useStargazerStore((s) => s.observatoryState);
   const subsystems = useStargazerStore((s) => s.subsystems);
-  const updateSubsystem = useStargazerStore((s) => s.updateSubsystem);
   const sendObservatoryEvent = useStargazerStore((s) => s.sendObservatoryEvent);
   const lang = language === "fr" ? "fr" : "en";
   const label = OBSERVATORY_LABELS[obsState][lang];
@@ -90,238 +135,310 @@ export default function ObservatoryPanel() {
   const isStarting = obsState === "STARTING" || obsState.includes("CONNECTING");
   const isCritical = obsState === "CRITICAL";
 
-  useEffect(() => {
-    const checkConnection = async () => {
-      try {
-        const res = await fetch(`/api/indi?endpoint=health`, { cache: 'no-store' });
-        if (res.ok) {
-          const data = await res.json();
-          if (Array.isArray(data) && data.length > 0) {
-            const health = data[0];
-            if (health.status === "True") {
-              const store = useStargazerStore.getState();
-              if (health.indi_connected) store.updateSubsystem("indi_bridge", { status: "nominal" });
-              if (health.mount_connected) store.updateSubsystem("mount", { status: "nominal" });
-              if (health.ccd_connected) store.updateSubsystem("ccd", { status: "nominal" });
-              if (store.observatoryState === "OFFLINE") store.sendObservatoryEvent("START");
-              const events: { check: boolean; event: ObservatoryEvent }[] = [
-                { check: health.indi_connected, event: "INDI_READY" },
-                { check: health.mount_connected, event: "MOUNT_CONNECTED" },
-                { check: health.ccd_connected, event: "CCD_CONNECTED" },
-                { check: !!(health.indi_connected && health.mount_connected && health.ccd_connected), event: "WEATHER_CONNECTED" },
-              ];
-              for (const { check, event } of events) {
-                if (check) {
-                  const s = useStargazerStore.getState();
-                  if (canObservatoryTransition(s.observatoryState, event)) s.sendObservatoryEvent(event);
-                }
-              }
-            }
-          }
-        }
-      } catch {
-        // Backend unreachable
-      }
-    };
-    checkConnection();
-    const interval = setInterval(checkConnection, 2000);
-    return () => clearInterval(interval);
-  }, []);
+  const healthColor = healthPct > 80 ? "#4ade80" : healthPct > 50 ? "#facc15" : "#f87171";
 
-  const handleRecovery = () => {
-    sendObservatoryEvent("START_RECOVERY");
-  };
+  const [initializing, setInitializing] = useState(true);
+
+  // Réagit au snapshot santé partagé (un seul poller pour toute l'app)
+  const { raw: healthRaw, loading: healthLoading } = useHealthFull();
+  useEffect(() => {
+    if (healthLoading) return;
+    setInitializing(false);
+    const raw = healthRaw ?? {};
+    const indiOk = !!raw.indi_bridge?.connected;
+    const mountOk = !!raw.mount?.connected;
+    const ccdOk = !!raw.camera?.connected;
+    const astroOk = !!raw.astroberry?.reachable;
+
+    const store = useStargazerStore.getState();
+    store.updateSubsystem("indi_bridge", { status: indiOk ? "nominal" : "failed" });
+    store.updateSubsystem("mount", { status: mountOk ? "nominal" : "failed" });
+    store.updateSubsystem("ccd", { status: ccdOk ? "nominal" : "failed" });
+    store.updateSubsystem("astroberry", { status: astroOk ? "nominal" : "failed" });
+
+    if (store.observatoryState === "OFFLINE" && (indiOk || astroOk)) store.sendObservatoryEvent("START");
+    const events: { check: boolean; event: ObservatoryEvent }[] = [
+      { check: indiOk, event: "INDI_READY" },
+      { check: mountOk, event: "MOUNT_CONNECTED" },
+      { check: ccdOk, event: "CCD_CONNECTED" },
+      { check: !!(indiOk && mountOk && ccdOk), event: "WEATHER_CONNECTED" },
+    ];
+    for (const { check, event } of events) {
+      if (check) {
+        const s = useStargazerStore.getState();
+        if (canObservatoryTransition(s.observatoryState, event)) s.sendObservatoryEvent(event);
+      }
+    }
+  }, [healthRaw, healthLoading]);
+
+  if (initializing) {
+    return (
+      <div className="flex flex-col gap-6 h-full w-full max-w-[1200px] mx-auto pb-10">
+        <SkeletonCard height="200px" />
+        <SkeletonCard height="120px" />
+        <SkeletonCard height="160px" />
+      </div>
+    );
+  }
 
   return (
-    <VStack align="stretch" gap={6} h="full" w="full" maxW="1200px" mx="auto" pb={10}>
+    <div className="flex flex-col gap-6 h-full w-full max-w-[1200px] mx-auto pb-10">
       {/* Header with Observatory State */}
-      <VStack align="start" gap={2}>
-        <HStack w="full" justify="space-between">
-          <HStack>
-            <Icon as={Radio} color={color} boxSize={6} />
-            <Heading size="md" color="white" letterSpacing="0.1em">REMOTE OBSERVATORY CENTER</Heading>
-          </HStack>
-          <HStack gap={3}>
-            <Box
-              px={3} py={1} borderRadius="full"
-              bg={`${color}15`} border={`1px solid ${color}`}
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center justify-between w-full">
+          <div className="flex items-center gap-2">
+            <Radio size={24} style={{ color }} />
+            <h2 style={{ fontSize: 16, fontWeight: "bold", color: "white", letterSpacing: "0.1em", margin: 0 }}>
+              REMOTE OBSERVATORY CENTER
+            </h2>
+          </div>
+          <div className="flex items-center gap-3">
+            <div
+              style={{
+                padding: "4px 12px",
+                borderRadius: 9999,
+                background: `${color}15`,
+                border: `1px solid ${color}`,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+              }}
             >
-              <HStack gap={2}>
-                <Box w="6px" h="6px" borderRadius="full" bg={color}
-                  className={isStarting || isCritical ? "ping-slow" : ""} />
-                <Text fontSize="11px" fontWeight="bold" color={color} className="hud-font">
-                  {label}
-                </Text>
-              </HStack>
-            </Box>
-            <Badge colorScheme={healthPct > 80 ? "green" : healthPct > 50 ? "yellow" : "red"} fontSize="sm">
+              <div
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: "50%",
+                  background: color,
+                }}
+                className={isStarting || isCritical ? "animate-ping" : ""}
+              />
+              <span style={{ fontSize: 11, fontWeight: "bold", color }} className="hud-font">
+                {label}
+              </span>
+            </div>
+            <div
+              style={{
+                fontSize: 13,
+                color: healthColor,
+                background: `${healthColor}15`,
+                border: `1px solid ${healthColor}`,
+                borderRadius: 6,
+                padding: "3px 10px",
+              }}
+            >
               {healthPct}% HEALTH
-            </Badge>
-          </HStack>
-        </HStack>
-        <Text fontSize="13px" color="whiteAlpha.600">
+            </div>
+          </div>
+        </div>
+        <p style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", margin: 0 }}>
           {language === "fr"
             ? "Contrôle complet de l'infrastructure : Mac Mini M4, Astroberry Pi, NexStar 4SE."
             : "Full control of Stargazer infrastructure: Mac Mini M4, Astroberry Pi, and NexStar 4SE."}
-        </Text>
-      </VStack>
+        </p>
+      </div>
 
-      <Box h="1px" bg="whiteAlpha.100" w="full" />
+      <div style={{ height: 1, background: "rgba(255,255,255,0.1)", width: "100%" }} />
 
       {/* Startup Sequence */}
       {isStarting && (
-        <Box p={4} borderRadius="lg" bg="rgba(255, 179, 71, 0.08)" border="1px solid rgba(255, 179, 71, 0.3)">
-          <HStack gap={3} mb={3}>
-            <Icon as={Rocket} color="var(--astro-gold)" boxSize={5} className="ping-slow" />
-            <Text fontSize="13px" fontWeight="bold" color="var(--astro-gold)">
+        <div style={{ padding: 16, borderRadius: 12, background: "rgba(255,179,71,0.08)", border: "1px solid rgba(255,179,71,0.3)" }}>
+          <div className="flex items-center gap-3 mb-3">
+            <Rocket size={20} color="var(--astro-gold)" className="animate-ping" />
+            <span style={{ fontSize: 13, fontWeight: "bold", color: "var(--astro-gold)" }}>
               {language === "fr" ? "SÉQUENCE DE DÉMARRAGE" : "STARTUP SEQUENCE"}
-            </Text>
-          </HStack>
-          <VStack align="stretch" gap={2}>
+            </span>
+          </div>
+          <div className="flex flex-col gap-2">
             {(["indi_bridge", "mount", "ccd", "weather"] as SubsystemId[]).map((id) => {
               const sub = subsystems[id];
               const isDone = sub.status === "nominal";
               const isActive = sub.status === "recovering" || (sub.status === "offline" && id === getActiveId(subsystems));
               return (
-                <HStack key={id} gap={3} opacity={isDone ? 0.7 : 1}>
-                  <Box
-                    w="20px" h="20px" borderRadius="full"
-                    bg={isDone ? "green.500" : isActive ? "var(--astro-gold)" : "gray.700"}
-                    display="flex" alignItems="center" justifyContent="center"
+                <div key={id} className="flex items-center gap-3" style={{ opacity: isDone ? 0.7 : 1 }}>
+                  <div
+                    style={{
+                      width: 20,
+                      height: 20,
+                      borderRadius: "50%",
+                      background: isDone ? "#22c55e" : isActive ? "var(--astro-gold)" : "#374151",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
                   >
                     {isDone ? (
-                      <Icon as={ShieldCheck} boxSize={3} color="black" />
+                      <ShieldCheck size={12} color="black" />
                     ) : isActive ? (
-                      <Spinner size="xs" color="black" />
+                      <Spinner size={10} color="black" />
                     ) : (
-                      <Text fontSize="9px" color="gray.400">{getIndex(id)}</Text>
+                      <span style={{ fontSize: 9, color: "rgba(255,255,255,0.4)" }}>{getIndex(id)}</span>
                     )}
-                  </Box>
-                  <Text fontSize="11px" color={isDone ? "gray.400" : isActive ? "var(--astro-gold)" : "gray.500"}>
+                  </div>
+                  <span style={{ fontSize: 11, color: isDone ? "rgba(255,255,255,0.4)" : isActive ? "var(--astro-gold)" : "rgba(255,255,255,0.3)" }}>
                     {sub.label}
-                  </Text>
+                  </span>
                   {isActive && (
-                    <Text fontSize="9px" color="var(--astro-gold)" fontStyle="italic">
+                    <span style={{ fontSize: 9, color: "var(--astro-gold)", fontStyle: "italic" }}>
                       {language === "fr" ? "Connexion..." : "Connecting..."}
-                    </Text>
+                    </span>
                   )}
-                  {isDone && (
-                    <Icon as={ShieldCheck} boxSize={3} color="green.400" />
-                  )}
-                </HStack>
+                  {isDone && <ShieldCheck size={12} color="#4ade80" />}
+                </div>
               );
             })}
-          </VStack>
-        </Box>
+          </div>
+        </div>
       )}
 
       {/* Critical Warning */}
       {isCritical && (
-        <Box p={4} borderRadius="lg" bg="rgba(255, 0, 0, 0.1)" border="1px solid red.500">
-          <HStack gap={3}>
-            <Icon as={AlertTriangle} color="red.400" boxSize={6} className="ping-slow" />
-            <VStack align="start" gap={0}>
-              <Text fontSize="13px" fontWeight="bold" color="red.400">
+        <div style={{ padding: 16, borderRadius: 12, background: "rgba(255,0,0,0.1)", border: "1px solid rgba(248,113,113,0.6)" }}>
+          <div className="flex items-center gap-3">
+            <AlertTriangle size={24} color="#f87171" className="animate-ping" />
+            <div className="flex flex-col gap-0 flex-1">
+              <span style={{ fontSize: 13, fontWeight: "bold", color: "#f87171" }}>
                 {language === "fr" ? "ÉTAT CRITIQUE" : "CRITICAL STATE"}
-              </Text>
-              <Text fontSize="10px" color="red.200">
+              </span>
+              <span style={{ fontSize: 10, color: "#fca5a5" }}>
                 {language === "fr"
                   ? "Un ou plusieurs sous-systèmes critiques sont en panne. Intervention requise."
                   : "One or more critical subsystems have failed. Intervention required."}
-              </Text>
-            </VStack>
-            <Button size="sm" bg="red.600" color="white" ml="auto" onClick={() => sendObservatoryEvent("RESET")}>
-              <Icon as={Power} boxSize={3} mr={1} />
+              </span>
+            </div>
+            <button
+              onClick={() => sendObservatoryEvent("RESET")}
+              style={{
+                background: "#dc2626",
+                color: "white",
+                border: "none",
+                borderRadius: 6,
+                padding: "6px 12px",
+                fontSize: 12,
+                fontWeight: "bold",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+              }}
+            >
+              <Power size={12} />
               RESET
-            </Button>
-          </HStack>
-        </Box>
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Subsystems Grid */}
-      <Box>
-        <HStack mb={3} justify="space-between">
-          <HStack gap={2}>
-            <Icon as={Activity} color="green.400" boxSize={4} />
-            <Text fontSize="12px" fontWeight="bold" letterSpacing="0.1em" color="whiteAlpha.800">
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Activity size={16} color="#4ade80" />
+            <span style={{ fontSize: 12, fontWeight: "bold", letterSpacing: "0.1em", color: "rgba(255,255,255,0.8)" }}>
               {language === "fr" ? "SOUS-SYSTÈMES" : "SUBSYSTEMS"}
-            </Text>
-          </HStack>
+            </span>
+          </div>
           {isOnline && (
-            <Button size="xs" variant="ghost" color="cyan.400" onClick={() => sendObservatoryEvent("SHUTDOWN")}>
-              <Icon as={Power} boxSize={3} mr={1} />
+            <button
+              onClick={() => sendObservatoryEvent("SHUTDOWN")}
+              style={{
+                background: "transparent",
+                border: "none",
+                color: "#22d3ee",
+                fontSize: 11,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+              }}
+            >
+              <Power size={12} />
               SHUTDOWN
-            </Button>
+            </button>
           )}
           {!isOnline && !isStarting && !isCritical && (
-            <Button size="xs" variant="ghost" color="green.400" onClick={() => sendObservatoryEvent("START")}>
-              <Icon as={Rocket} boxSize={3} mr={1} />
+            <button
+              onClick={() => sendObservatoryEvent("START")}
+              style={{
+                background: "transparent",
+                border: "none",
+                color: "#4ade80",
+                fontSize: 11,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+              }}
+            >
+              <Rocket size={12} />
               START
-            </Button>
+            </button>
           )}
-        </HStack>
-        <Grid templateColumns="repeat(3, 1fr)" gap={3}>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
           {(Object.values(subsystems) as SubsystemHealth[]).map((sub) => (
             <SubsystemCard key={sub.id} sub={sub} />
           ))}
-        </Grid>
-      </Box>
+        </div>
+      </div>
 
-      {/* Recovery button */}
-      {obsState === "DEGRADED" && (
-        <Box p={3} borderRadius="lg" bg="rgba(255, 179, 71, 0.06)" border="1px solid rgba(255, 179, 71, 0.2)">
-          <HStack gap={3}>
-            <Icon as={AlertTriangle} color="var(--astro-gold)" boxSize={5} />
-            <Text fontSize="11px" color="gray.300" flex={1}>
-              {language === "fr"
-                ? "Sous-systèmes dégradés. Lancer la procédure de récupération automatique ?"
-                : "Degraded subsystems. Launch automatic recovery procedure?"}
-            </Text>
-            <Button size="sm" bg="var(--astro-gold)" color="black" onClick={handleRecovery}>
-              <Icon as={RefreshCw} boxSize={3} mr={1} />
-              RECOVERY
-            </Button>
-          </HStack>
-        </Box>
-      )}
+      {/* Diagnostic précis + Reset All */}
+      <DiagnosticsPanel />
 
       {/* Health Section */}
-      <Box>
+      <div>
         <InfrastructureStatus />
-      </Box>
+      </div>
 
       {/* Phone Sensor + Mount control side by side */}
-      <Grid templateColumns={{ base: "1fr", md: "1fr 200px" }} gap={4} alignItems="start">
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 200px", gap: 16, alignItems: "start" }}
+        className="max-md:grid-cols-1"
+      >
         <PhoneSensorWidget />
-        <Box
-          bg="rgba(255,255,255,0.02)"
-          border="1px solid rgba(255,255,255,0.07)"
-          borderRadius="xl"
-          p={4}
+        <div
+          style={{
+            background: "rgba(255,255,255,0.02)",
+            border: "1px solid rgba(255,255,255,0.07)",
+            borderRadius: 12,
+            padding: 16,
+          }}
         >
-          <Text fontSize="9px" color="whiteAlpha.500" letterSpacing="0.15em" mb={3}>RAQUETTE</Text>
+          <p style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: "0.15em", marginBottom: 12, margin: "0 0 12px" }}>RAQUETTE</p>
           <TelescopeControls variant="pad" />
-        </Box>
-      </Grid>
+        </div>
+      </div>
 
       {/* Main Content: Actions & Logs */}
-      <Grid templateColumns={{ base: "1fr", xl: "350px 1fr" }} gap={8} alignItems="start">
-        <Box bg="rgba(255,255,255,0.02)" p={6} borderRadius="2xl" border="1px solid rgba(255,255,255,0.05)">
+      <div style={{ display: "grid", gridTemplateColumns: "350px 1fr", gap: 32, alignItems: "start" }}
+        className="max-xl:grid-cols-1"
+      >
+        <div style={{ background: "rgba(255,255,255,0.02)", padding: 24, borderRadius: 16, border: "1px solid rgba(255,255,255,0.05)" }}>
           <ActionButtons />
-        </Box>
-        <Box h="full">
+        </div>
+        <div className="h-full">
           <LogStream />
-        </Box>
-      </Grid>
+        </div>
+      </div>
 
       {/* Safety Footer */}
-      <HStack bg="red.900" p={3} borderRadius="lg" border="1px solid" borderColor="red.700" gap={3}>
-        <Icon as={Terminal} color="red.200" />
-        <Text fontSize="11px" color="red.100" fontWeight="bold">
+      <div
+        style={{
+          background: "rgba(127,29,29,0.8)",
+          padding: 12,
+          borderRadius: 10,
+          border: "1px solid rgba(185,28,28,0.7)",
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+        }}
+      >
+        <Terminal size={16} color="#fecaca" />
+        <span style={{ fontSize: 11, color: "#fee2e2", fontWeight: "bold" }}>
           SAFETY NOTE: Always ensure the telescope is balanced and cables are free before remote slewing. In case of emergency, use &quot;ABORT ALL&quot;.
-        </Text>
-      </HStack>
-    </VStack>
+        </span>
+      </div>
+    </div>
   );
 }
 

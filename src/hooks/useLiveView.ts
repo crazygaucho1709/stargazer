@@ -12,7 +12,7 @@
 
 import { useState, useCallback, useRef } from "react";
 import { notification } from "@/lib/notificationService";
-import { clientApiUrl } from "@/lib/clientApi";
+import { clientApiUrl, getClientBridgeUrl } from "@/lib/clientApi";
 
 export interface UseLiveViewReturn {
   start: () => Promise<void>;
@@ -69,8 +69,8 @@ export function useLiveView(): UseLiveViewReturn {
         return;
       }
 
-      // URL stable sans timestamp — ne jamais ajouter ?t=... ici
-      const url = clientApiUrl("/api/indi/stream");
+      // URL directe vers FastAPI — bypass complet du proxy Next.js pour latence minimale
+      const url = `${getClientBridgeUrl()}/video_feed`;
       setStreamUrl(url);
       setIsLive(true);
       setStatus("LIVE");
