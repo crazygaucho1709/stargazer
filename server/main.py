@@ -3912,6 +3912,28 @@ async def start_skysafari_bridge():
 # ─────────────────────────────────────────────────────────────────────────────
 
 import urllib.request as _urllib_request
+import urllib.error as _urllib_error
+
+
+def _http_error_detail(e) -> str:
+    """Extrait le message utile du corps d'une HTTPError d'API.
+
+    urllib n'expose que le code dans str(e) ; le motif réel (géo-restriction,
+    quota, argument invalide, clé révoquée) n'est que dans le corps, qu'il faut
+    lire avant que la réponse ne soit fermée.
+    """
+    try:
+        raw = e.read().decode("utf-8", errors="replace")
+    except Exception:
+        return e.reason or "corps de réponse illisible"
+    try:
+        payload = json.loads(raw)
+    except json.JSONDecodeError:
+        return raw[:300].strip()
+    err = payload.get("error")
+    if isinstance(err, dict):
+        return err.get("message") or json.dumps(err)[:300]
+    return raw[:300].strip()
 import urllib.parse as _urllib_parse
 
 # ── Google Service Account JWT auth (RS256, no external deps) ──────────────
@@ -3980,7 +4002,18 @@ def _call_gemini(prompt: str) -> dict:
         raise ValueError("Gemini indisponible — vérifiez server/firebase-adminsdk.json")
     body = json.dumps({
         "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.2, "maxOutputTokens": 512, "responseMimeType": "application/json"},
+        "generationConfig": {
+            "temperature": 0.2,
+            # gemini-flash-latest raisonne avant de répondre, et les tokens de
+            # réflexion sont décomptés de ce budget : à 512 la réponse était
+            # coupée en plein JSON, d'où des "JSON introuvable" trompeurs.
+            # (thinkingConfig serait plus direct mais l'endpoint v1beta le
+            # rejette en INVALID_ARGUMENT — on élargit le budget à la place.)
+            # 8192 : /ai/sky demande une liste d'objets avec coordonnées, que
+            # 2048 tronquait une fois la réflexion déduite.
+            "maxOutputTokens": 8192,
+            "responseMimeType": "application/json",
+        },
     }).encode()
     req = _urllib_request.Request(
         "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent",
@@ -3988,13 +4021,40 @@ def _call_gemini(prompt: str) -> dict:
         headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
         method="POST",
     )
-    with _urllib_request.urlopen(req, timeout=30) as resp:
-        data = json.loads(resp.read())
-    content = data["candidates"][0]["content"]["parts"][0]["text"].strip()
-    m = re.search(r'\{[\s\S]*?\}', content)
-    if not m:
-        raise ValueError(f"JSON introuvable dans la réponse Gemini: {content[:200]}")
-    return json.loads(m.group())
+    try:
+        with _urllib_request.urlopen(req, timeout=30) as resp:
+            data = json.loads(resp.read())
+    except _urllib_error.HTTPError as e:
+        # Sans le corps de la réponse, un 400 Gemini est indiagnostiquable :
+        # géo-restriction, quota et argument invalide sortent tous en "400".
+        raise ValueError(f"Gemini HTTP {e.code} : {_http_error_detail(e)}") from e
+
+    candidate = (data.get("candidates") or [{}])[0]
+    finish = candidate.get("finishReason")
+    if finish and finish not in ("STOP", "MAX_TOKENS"):
+        raise ValueError(f"Gemini a interrompu la génération ({finish})")
+
+    parts = candidate.get("content", {}).get("parts") or []
+    content = "".join(p.get("text", "") for p in parts).strip()
+    if not content:
+        raise ValueError(f"Réponse Gemini vide (finishReason={finish})")
+    if finish == "MAX_TOKENS":
+        raise ValueError(
+            "Réponse Gemini tronquée (budget de tokens atteint) — "
+            "augmentez maxOutputTokens"
+        )
+
+    # responseMimeType=application/json : le corps entier est censé être du
+    # JSON. Le repli par recherche reste utile si le modèle encadre malgré
+    # tout sa réponse ; il doit être gourmand, sinon un objet imbriqué se
+    # ferait couper à la première accolade fermante.
+    try:
+        return json.loads(content)
+    except json.JSONDecodeError:
+        m = re.search(r'\{[\s\S]*\}', content)
+        if not m:
+            raise ValueError(f"JSON introuvable dans la réponse Gemini: {content[:200]}")
+        return json.loads(m.group())
 
 def _call_claude(prompt: str) -> dict:
     api_key = os.getenv("ANTHROPIC_API_KEY")
@@ -4015,13 +4075,30 @@ def _call_claude(prompt: str) -> dict:
         },
         method="POST",
     )
-    with _urllib_request.urlopen(req, timeout=30) as resp:
-        data = json.loads(resp.read())
-    content = data["content"][0]["text"].strip()
-    m = re.search(r'\{[\s\S]*?\}', content)
-    if not m:
-        raise ValueError(f"JSON introuvable dans la réponse Claude: {content[:200]}")
-    return json.loads(m.group())
+    try:
+        with _urllib_request.urlopen(req, timeout=30) as resp:
+            data = json.loads(resp.read())
+    except _urllib_error.HTTPError as e:
+        # "401 Unauthorized" seul ne distingue pas une clé absente d'une clé
+        # révoquée ou d'un crédit épuisé — le corps le dit, lui.
+        raise ValueError(f"Claude HTTP {e.code} : {_http_error_detail(e)}") from e
+
+    if data.get("stop_reason") == "max_tokens":
+        raise ValueError("Réponse Claude tronquée (max_tokens atteint)")
+    content = "".join(
+        b.get("text", "") for b in data.get("content", []) if b.get("type") == "text"
+    ).strip()
+    if not content:
+        raise ValueError("Réponse Claude vide")
+    try:
+        return json.loads(content)
+    except json.JSONDecodeError:
+        # Gourmand : un motif paresseux couperait à la première accolade
+        # fermante et casserait tout objet imbriqué.
+        m = re.search(r'\{[\s\S]*\}', content)
+        if not m:
+            raise ValueError(f"JSON introuvable dans la réponse Claude: {content[:200]}")
+        return json.loads(m.group())
 
 def _ai_call(prompt: str, provider: str | None = None) -> dict:
     """Call the best available AI provider, avec bascule automatique sur l'autre en cas d'échec."""
