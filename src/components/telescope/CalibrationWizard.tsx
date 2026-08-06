@@ -149,21 +149,29 @@ export const CalibrationWizard = () => {
         }, "SYNC PARK POSITION");
     };
 
-    const getCurrentAlt = async (): Promise<number> => {
-        try {
-            const res = await fetch('/api/mount/status', { cache: 'no-store' });
-            if (res.ok) { const data = await res.json(); if (typeof data.alt === 'number') return data.alt; }
-        } catch { /* fallback */ }
-        return useStargazerStore.getState().alt;
+    /** Lit une position ENCODEUR sur la monture.
+     *
+     *  Route /api/indi/mount/status et non /api/mount/status : cette derniere
+     *  n'expose qu'un handler POST, un GET y renvoyait donc 405. Le repli
+     *  silencieux sur le store masquait l'echec et enregistrait la position
+     *  du modele de ciel — les deux etapes azimut y lisaient la meme valeur,
+     *  produisant des limites degenerees minAz == maxAz.
+     *
+     *  Pas de repli ici : une limite mecanique enregistree a partir d'une
+     *  valeur inventee est pire que pas de limite du tout.
+     */
+    const readEncoder = async (axis: 'alt' | 'az'): Promise<number> => {
+        const res = await fetch('/api/indi/mount/status', { cache: 'no-store' });
+        if (!res.ok) throw new Error(`Monture injoignable (HTTP ${res.status})`);
+        const data = await res.json();
+        if (typeof data?.[axis] !== 'number') {
+            throw new Error(`Position ${axis.toUpperCase()} indisponible — encodeurs non lus`);
+        }
+        return data[axis];
     };
 
-    const getCurrentAz = async (): Promise<number> => {
-        try {
-            const res = await fetch('/api/mount/status', { cache: 'no-store' });
-            if (res.ok) { const data = await res.json(); if (typeof data.az === 'number') return data.az; }
-        } catch { /* fallback */ }
-        return useStargazerStore.getState().az;
-    };
+    const getCurrentAlt = () => readEncoder('alt');
+    const getCurrentAz = () => readEncoder('az');
 
     const saveMaxAlt = async () => { const v = await getCurrentAlt(); setMountLimits({ ...mountLimits, maxAlt: v }); setRecordedInSession(p => new Set(p).add('maxAlt')); setStep({ step: 'limits-alt-min', isWaitingUser: true, message: language === 'fr' ? 'Altitude Min' : 'Min Altitude', instruction: language === 'fr' ? 'Descendez au minimum.' : 'Lower to minimum.' }); };
     const saveMinAlt = async () => { const v = await getCurrentAlt(); setMountLimits({ ...mountLimits, minAlt: v }); setRecordedInSession(p => new Set(p).add('minAlt')); setStep({ step: 'limits-az-max', isWaitingUser: true, message: language === 'fr' ? 'Azimut Max' : 'Max Azimuth', instruction: language === 'fr' ? 'Tournez vers l\'Est.' : 'Rotate East.' }); };
