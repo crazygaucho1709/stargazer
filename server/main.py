@@ -843,6 +843,7 @@ class INDIClient:
             if 'TELESCOPE_ENCODER_ANGLES' in xml_str:
                 m_az = re.search(r'name="AXIS_AZ"[^>]*>\s*([-\d.]+)', xml_str)
                 m_alt = re.search(r'name="AXIS_ALT"[^>]*>\s*([-\d.]+)', xml_str)
+                prev_az, prev_alt = self.encoder_az, self.encoder_alt
                 if m_az:
                     try:
                         self.encoder_az = float(m_az.group(1))
@@ -856,6 +857,16 @@ class INDIClient:
                         self.encoder_last_update = time.time()
                     except ValueError:
                         pass
+                # Distinguer « trame reçue » de « valeur changée ». Le driver
+                # republie sa dernière position connue même quand la liaison
+                # série est morte : seul un changement effectif prouve que les
+                # encodeurs sont réellement lus.
+                if ((prev_az is not None and self.encoder_az != prev_az)
+                        or (prev_alt is not None and self.encoder_alt != prev_alt)):
+                    self.encoder_last_change = time.time()
+                    if self.link_suspect:
+                        logger.info("🔗 Liaison monture rétablie — position à nouveau vivante")
+                        self.link_suspect = False
 
             # 2.4b Paliers ISO exposés par le driver appareil photo.
             # Les noms de switch (ISO0..ISO7) n'ont pas de sémantique fixe : seul
@@ -1548,6 +1559,45 @@ def _jog_cancel_watchdog() -> None:
 
 JOG_DEFAULT_RATE = 5
 
+# Vérificateur de liaison : armé à chaque commande de mouvement, il contrôle
+# que la position a effectivement bougé. Sans lui, une liaison série morte
+# laisse le driver accepter les commandes, répondre « Ok », et la monture
+# tourner sans qu'aucune borne ne puisse l'arrêter — les limites du driver
+# comparent la consigne à une position lue qui ne change plus.
+_motion_verify_timer: Optional[threading.Timer] = None
+_motion_verify_lock = threading.Lock()
+
+
+def _motion_verify_cancel() -> None:
+    global _motion_verify_timer
+    with _motion_verify_lock:
+        if _motion_verify_timer:
+            _motion_verify_timer.cancel()
+            _motion_verify_timer = None
+
+
+def _motion_verify_arm(device: str, origin: tuple[float, float]) -> None:
+    """Vérifie après MOTION_PROOF_S que le mouvement a produit un déplacement."""
+    def _check():
+        if mount_safety.motion_proven(origin, indi.encoder_az, indi.encoder_alt):
+            return
+        indi.link_suspect = True
+        logger.error(
+            f"⛔ Mouvement commandé sans déplacement mesuré en "
+            f"{mount_safety.MOTION_PROOF_S}s — liaison monture présumée morte. "
+            f"Arrêt d'urgence, tout mouvement refusé jusqu'à reprise des encodeurs.")
+        _jog_send_stop(device)
+        _emergency_all_stop("position figée pendant un mouvement commandé")
+
+    global _motion_verify_timer
+    with _motion_verify_lock:
+        if _motion_verify_timer:
+            _motion_verify_timer.cancel()
+        t = threading.Timer(mount_safety.MOTION_PROOF_S, _check)
+        t.daemon = True
+        t.start()
+        _motion_verify_timer = t
+
 
 def _jog_rate_name() -> str:
     """Rang de vitesse à appliquer aux jogs manuels, borné au domaine 1..9.
@@ -1599,6 +1649,7 @@ async def mount_jog(req: JogRequest):
         # Un STOP ignoré est un défaut de sécurité, jamais une optimisation.
         if req.state == "stop":
             _jog_cancel_watchdog()
+            _motion_verify_cancel()
             _last_stop_time = time.time()
             _last_stop_dir = req.direction
             if req.jog_id:
@@ -1614,6 +1665,18 @@ async def mount_jog(req: JogRequest):
         # Refuser AVANT tout mouvement si les encodeurs ne se rafraîchissent
         # plus : les limites du driver comparent la consigne à la position lue,
         # donc une position gelée les rend inopérantes sans rien signaler.
+        #
+        # Deux contrôles, pas un. Le premier vérifie que le driver PARLE ; le
+        # second, posé par le vérificateur de mouvement, qu'il dit quelque
+        # chose de vrai. Le premier seul avait laissé partir un mouvement le
+        # 5 août : le driver republiait sa dernière position à l'infini.
+        if indi.link_suspect:
+            msg = ("Liaison monture présumée morte : un mouvement précédent n'a "
+                   "produit aucun déplacement mesuré. Reconnectez le driver "
+                   "(ou coupez puis rallumez la monture) avant toute manœuvre.")
+            logger.error(f"⛔ Jog refusé — {msg}")
+            return {"success": False, "error": msg}
+
         fresh, why = mount_safety.check_encoder_fresh(indi.encoder_last_update, time.time())
         if not fresh:
             logger.error(f"⛔ Jog refusé — {why}")
@@ -1729,7 +1792,13 @@ async def mount_jog(req: JogRequest):
 
             if xmls:
                 indi_ref = indi
+                origin = (indi.encoder_az, indi.encoder_alt)
                 await loop.run_in_executor(None, lambda: [indi_ref.send(x) for x in xmls])
+                # Armé UNIQUEMENT sur un vrai départ de mouvement, jamais sur
+                # une impulsion de maintien : celles-ci n'envoient rien à la
+                # monture et ne prouvent donc rien.
+                if origin[0] is not None and origin[1] is not None:
+                    _motion_verify_arm(device, origin)
 
         # Always reset the watchdog (both new direction and heartbeat pulse)
         _jog_arm_watchdog(device, timeout=1.5)
@@ -1778,6 +1847,12 @@ async def mount_slew_internal(device: str, ra: float, dec: float, sync: bool = F
     # ne peuvent l'arrêter. On refuse avant d'envoyer quoi que ce soit.
     # Ne pas assouplir : c'est ce point exact qui a laissé passer 260° de course
     # le 5 août 2026, limites d'axes pourtant actives.
+    if indi.link_suspect and not sync:
+        msg = ("Liaison monture présumée morte : un mouvement précédent n'a "
+               "produit aucun déplacement mesuré. GoTo refusé.")
+        logger.error(f"⛔ Slew refusé — {msg}")
+        return {"success": False, "error": msg}
+
     fresh, why = mount_safety.check_encoder_fresh(indi.encoder_last_update, time.time())
     if not fresh and not sync:
         logger.error(f"⛔ Slew refusé — {why}")
@@ -2385,6 +2460,9 @@ _phone_sensor: dict = {
     "timestamp": None,
 }
 _phone_sensor_lock = threading.Lock()
+# Horloge murale de la dernière trame reçue, pour distinguer une donnée
+# courante d'un reliquat servi après déconnexion du téléphone.
+_phone_sensor_last_update: float = 0.0
 
 active_phone_sensor_ws = set()
 
@@ -2399,9 +2477,11 @@ async def phone_sensor_ws(ws: WebSocket):
         while True:
             data = await ws.receive_json()
             with _phone_sensor_lock:
+                global _phone_sensor_last_update
                 _phone_sensor.update({k: v for k, v in data.items() if k in _phone_sensor})
                 _phone_sensor["connected"] = True
                 _phone_sensor["timestamp"] = datetime.now(timezone.utc).isoformat()
+                _phone_sensor_last_update = time.time()
                 current_state = _phone_sensor.copy()
             
             # Broadcast the updated state to other connected WebSockets (e.g. desktop wizard)
@@ -2421,10 +2501,26 @@ async def phone_sensor_ws(ws: WebSocket):
             if not active_phone_sensor_ws:
                 _phone_sensor["connected"] = False
 
+PHONE_SENSOR_STALE_S = 5.0
+
+
 @app.get("/phone-sensor/state")
 async def get_phone_sensor_state():
+    """État du capteur téléphone, AVEC son âge.
+
+    Sans marqueur de fraîcheur, les dernières valeurs reçues étaient resservies
+    indéfiniment après la déconnexion du téléphone, comme si elles étaient
+    courantes — même piège que la position encodeur figée du 5 août. Un
+    consommateur doit pouvoir distinguer « le téléphone dit 180° » de « le
+    téléphone disait 180° il y a dix minutes ».
+    """
     with _phone_sensor_lock:
-        return _phone_sensor.copy()
+        state = _phone_sensor.copy()
+        last = _phone_sensor_last_update
+    age = (time.time() - last) if last else None
+    state["age_s"] = round(age, 1) if age is not None else None
+    state["stale"] = (age is None) or (age > PHONE_SENSOR_STALE_S)
+    return state
 
 # --- STREAMING ---
 async def mjpeg_generator():
