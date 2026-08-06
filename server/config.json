@@ -1,8 +1,0 @@
-{
-  "mountLimits": {
-    "maxAlt": 45.2,
-    "minAlt": 45.2,
-    "maxAz": 180.5,
-    "minAz": 180.5
-  }
-}

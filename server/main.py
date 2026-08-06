@@ -260,6 +260,7 @@ class CaptureRequest(BaseModel):
     exposure: float
     device: str = None # Default to currently discovered device
     preview: bool = True  # False = capture technique (autofocus...) : pas de modal preview côté UI
+    iso: str | int | None = None  # None = conserver le réglage courant du boîtier
 
 class JogRequest(BaseModel):
     direction: str
@@ -364,6 +365,9 @@ class INDIClient:
         self.encoder_az: float | None = None
         self.encoder_alt: float | None = None
         self.cordwrap_guard = mount_safety.CordWrapGuard()
+        # {label ISO ("100", "1600", "Auto") : nom du switch ("ISO1"...)},
+        # rempli à la découverte de CCD_ISO — voir process_message.
+        self.ccd_iso_options: dict[str, str] = {}
         self.devices = {} # {device_name: {prop_name: [elements]}}
         self.discovery_time = {} # {device_name: first_seen_timestamp}
         self.thread = threading.Thread(target=self.run_loop)
@@ -828,6 +832,20 @@ class INDIClient:
                         self.encoder_alt = float(m_alt.group(1))
                     except ValueError:
                         pass
+
+            # 2.4b Paliers ISO exposés par le driver appareil photo.
+            # Les noms de switch (ISO0..ISO7) n'ont pas de sémantique fixe : seul
+            # le label porte la valeur réelle, et l'ordre change d'un boîtier à
+            # l'autre. On mémorise donc la correspondance label→switch au vol
+            # plutôt que de coder en dur une table propre au 600D.
+            if 'name="CCD_ISO"' in xml_str and 'defSwitchVector' in xml_str:
+                opts = {}
+                for sw_name, label in re.findall(
+                        r'<defSwitch name="([^"]+)"\s+label="([^"]*)"', xml_str):
+                    opts[label.strip()] = sw_name
+                if opts:
+                    self.ccd_iso_options = opts
+                    logger.info(f"[CCD] Paliers ISO disponibles : {', '.join(opts)}")
 
             # 2.5 GPS / Geographic updates
             if 'GEOGRAPHIC_COORD' in xml_str:
@@ -1938,7 +1956,39 @@ def launch_ekos():
 
 
 
-async def ccd_capture_internal(device: str, exposure: float, preview: bool = True):
+def _apply_iso(device: str, iso) -> None:
+    """Sélectionne le palier ISO sur le boîtier avant l'exposition.
+
+    Sans ceci le driver garde le dernier ISO réglé (200 en pratique), ce qui
+    sous-expose massivement en ciel profond. Le mapping vient des labels
+    annoncés par le driver, pas d'une table codée en dur.
+    """
+    if iso is None:
+        return
+    wanted = str(iso).strip()
+    opts = indi.ccd_iso_options
+    if not opts:
+        raise ValueError(
+            "Paliers ISO inconnus — le driver n'a pas encore publié CCD_ISO. "
+            "Reconnectez l'appareil photo puis réessayez."
+        )
+    switch = opts.get(wanted)
+    if switch is None:
+        # Tolère "ISO 1600", "1600.0" et compagnie avant d'abandonner.
+        digits = re.sub(r"[^\d]", "", wanted)
+        switch = opts.get(digits) if digits else None
+    if switch is None:
+        raise ValueError(
+            f"ISO {wanted} non supporté par l'appareil. "
+            f"Valeurs disponibles : {', '.join(opts)}"
+        )
+    indi.send(f'<newSwitchVector device="{device}" name="CCD_ISO">'
+              f'<oneSwitch name="{switch}">On</oneSwitch></newSwitchVector>')
+    logger.info(f"[Capture] ISO {wanted} sélectionné ({switch})")
+
+
+async def ccd_capture_internal(device: str, exposure: float, preview: bool = True,
+                               iso=None):
     # Use detected device if provided one is generic or empty
     if not device or device == "Canon" or device == "Canon DSLR EOS 600D":
         device = indi.device_ccd or "Canon DSLR EOS 600D"
@@ -1978,6 +2028,7 @@ async def ccd_capture_internal(device: str, exposure: float, preview: bool = Tru
     # indi_gphoto_ccd : switch "RAM" (≠ "CCD_CAPTURE_RAM" de l'ancien indi_canon_ccd)
     indi.send(f'<newSwitchVector device="{device}" name="CCD_CAPTURE_TARGET">'
               f'<oneSwitch name="RAM">On</oneSwitch></newSwitchVector>')
+    _apply_iso(device, iso)
     await asyncio.sleep(0.4)
 
     # ── Déclenchement ─────────────────────────────────────────────────────────
@@ -2018,7 +2069,14 @@ async def ccd_capture(req: CaptureRequest):
         return {"success": False,
                 "error": "Session d'auto-alignement en cours — la caméra est occupée. "
                          "Arrêtez la session (ou attendez la fin) avant de capturer."}
-    return await ccd_capture_internal(req.device, req.exposure, preview=req.preview)
+    try:
+        return await ccd_capture_internal(req.device, req.exposure,
+                                          preview=req.preview, iso=req.iso)
+    except ValueError as e:
+        # ISO refusé par le boîtier : erreur explicite plutôt qu'une exposition
+        # silencieusement lancée au mauvais réglage.
+        logger.error(f"[Capture] ISO refusé : {e}")
+        raise HTTPException(status_code=400, detail=str(e))
 
 @app.post("/ccd/focus")
 async def ccd_focus(req: Request):
