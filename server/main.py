@@ -2930,31 +2930,13 @@ def _apply_focus_profile(img):
         return img
 
 
-def _call_gemini_vision(prompt: str, jpeg_b64: str) -> dict:
-    """Variante vision de _call_gemini : envoie le prompt + une image JPEG base64."""
-    token = _get_gemini_token()
-    if not token:
-        raise ValueError("Gemini indisponible — vérifiez server/firebase-adminsdk.json")
-    body = json.dumps({
-        "contents": [{"parts": [
-            {"text": prompt},
-            {"inline_data": {"mime_type": "image/jpeg", "data": jpeg_b64}},
-        ]}],
-        "generationConfig": {"temperature": 0.2, "maxOutputTokens": 512, "responseMimeType": "application/json"},
-    }).encode()
-    req = _urllib_request.Request(
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent",
-        data=body,
-        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
-        method="POST",
+def _call_gemini_vision(prompt: str, jpeg_b64: str, temperature: float = 0.2) -> dict:
+    """Variante vision : prompt + image JPEG base64. Voir _gemini_generate."""
+    return _gemini_generate(
+        [{"text": prompt},
+         {"inline_data": {"mime_type": "image/jpeg", "data": jpeg_b64}}],
+        temperature=temperature,
     )
-    with _urllib_request.urlopen(req, timeout=45) as resp:
-        data = json.loads(resp.read())
-    content = data["candidates"][0]["content"]["parts"][0]["text"].strip()
-    m = re.search(r'\{[\s\S]*?\}', content)
-    if not m:
-        raise ValueError(f"JSON introuvable dans la réponse Gemini: {content[:200]}")
-    return json.loads(m.group())
 
 
 @app.post("/focus/calibrate")
@@ -3996,33 +3978,48 @@ def _get_gemini_token() -> str | None:
 def _gemini_available() -> bool:
     return _SA_FILE.exists() and json.loads(_SA_FILE.read_text()).get("type") == "service_account"
 
-def _call_gemini(prompt: str) -> dict:
+# Modèle unique pour tous les appels Gemini (texte et vision). Surchargeable
+# sans redéploiement via GEMINI_MODEL dans server/.env.
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
+
+# Aucun plafond de sortie par défaut : le champ est omis de la requête, donc
+# le modèle utilise sa propre limite (65 536 tokens sur gemini-3.6-flash).
+# Les modèles Flash récents raisonnent avant de répondre et décomptent ces
+# tokens du budget ; les anciennes valeurs par site d'appel (512 pour
+# l'autofocus, 128 pour le plate-solve) étaient consommées par la réflexion
+# seule, et la réponse revenait tronquée sous la forme trompeuse d'un
+# "JSON introuvable" désignant le parsing plutôt que la génération.
+# GEMINI_MAX_OUTPUT_TOKENS permet de replafonner si besoin.
+_max_out = (os.getenv("GEMINI_MAX_OUTPUT_TOKENS") or "").strip()
+GEMINI_MAX_OUTPUT_TOKENS: int | None = int(_max_out) if _max_out.isdigit() else None
+
+
+def _gemini_generate(parts: list[dict], temperature: float = 0.2) -> dict:
+    """Appelle Gemini avec une liste de parts (texte et/ou image) et rend le JSON.
+
+    Point de passage unique : le modèle, le budget de tokens, la détection de
+    troncature et la remontée d'erreur y sont définis une seule fois. Trois
+    implémentations divergentes coexistaient auparavant, et deux d'entre elles
+    ont gardé le bug de troncature après correction de la troisième.
+    """
     token = _get_gemini_token()
     if not token:
         raise ValueError("Gemini indisponible — vérifiez server/firebase-adminsdk.json")
+    gen_config = {"temperature": temperature, "responseMimeType": "application/json"}
+    if GEMINI_MAX_OUTPUT_TOKENS is not None:
+        gen_config["maxOutputTokens"] = GEMINI_MAX_OUTPUT_TOKENS
     body = json.dumps({
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {
-            "temperature": 0.2,
-            # gemini-flash-latest raisonne avant de répondre, et les tokens de
-            # réflexion sont décomptés de ce budget : à 512 la réponse était
-            # coupée en plein JSON, d'où des "JSON introuvable" trompeurs.
-            # (thinkingConfig serait plus direct mais l'endpoint v1beta le
-            # rejette en INVALID_ARGUMENT — on élargit le budget à la place.)
-            # 8192 : /ai/sky demande une liste d'objets avec coordonnées, que
-            # 2048 tronquait une fois la réflexion déduite.
-            "maxOutputTokens": 8192,
-            "responseMimeType": "application/json",
-        },
+        "contents": [{"parts": parts}],
+        "generationConfig": gen_config,
     }).encode()
     req = _urllib_request.Request(
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent",
+        f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent",
         data=body,
         headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
         method="POST",
     )
     try:
-        with _urllib_request.urlopen(req, timeout=30) as resp:
+        with _urllib_request.urlopen(req, timeout=60) as resp:
             data = json.loads(resp.read())
     except _urllib_error.HTTPError as e:
         # Sans le corps de la réponse, un 400 Gemini est indiagnostiquable :
@@ -4034,15 +4031,14 @@ def _call_gemini(prompt: str) -> dict:
     if finish and finish not in ("STOP", "MAX_TOKENS"):
         raise ValueError(f"Gemini a interrompu la génération ({finish})")
 
-    parts = candidate.get("content", {}).get("parts") or []
-    content = "".join(p.get("text", "") for p in parts).strip()
+    content = "".join(
+        p.get("text", "") for p in (candidate.get("content", {}).get("parts") or [])
+    ).strip()
+    if finish == "MAX_TOKENS":
+        cap = GEMINI_MAX_OUTPUT_TOKENS or "limite du modèle"
+        raise ValueError(f"Réponse Gemini tronquée ({cap} tokens atteints)")
     if not content:
         raise ValueError(f"Réponse Gemini vide (finishReason={finish})")
-    if finish == "MAX_TOKENS":
-        raise ValueError(
-            "Réponse Gemini tronquée (budget de tokens atteint) — "
-            "augmentez maxOutputTokens"
-        )
 
     # responseMimeType=application/json : le corps entier est censé être du
     # JSON. Le repli par recherche reste utile si le modèle encadre malgré
@@ -4055,6 +4051,10 @@ def _call_gemini(prompt: str) -> dict:
         if not m:
             raise ValueError(f"JSON introuvable dans la réponse Gemini: {content[:200]}")
         return json.loads(m.group())
+
+
+def _call_gemini(prompt: str) -> dict:
+    return _gemini_generate([{"text": prompt}])
 
 def _call_claude(prompt: str) -> dict:
     api_key = os.getenv("ANTHROPIC_API_KEY")
@@ -4100,8 +4100,25 @@ def _call_claude(prompt: str) -> dict:
             raise ValueError(f"JSON introuvable dans la réponse Claude: {content[:200]}")
         return json.loads(m.group())
 
+def _pinned_provider() -> str | None:
+    """Provider imposé par AI_PROVIDER, ou None si le choix reste automatique."""
+    pinned = (os.getenv("AI_PROVIDER") or "").strip().lower()
+    return pinned if pinned in ("claude", "gemini") else None
+
+
 def _ai_call(prompt: str, provider: str | None = None) -> dict:
-    """Call the best available AI provider, avec bascule automatique sur l'autre en cas d'échec."""
+    """Appelle le fournisseur IA.
+
+    Si AI_PROVIDER est défini, il s'impose et il n'y a AUCUNE bascule : une
+    panne remonte telle quelle. C'est voulu — un compte Anthropic sans crédit
+    faisait échouer puis rebasculer chaque appel, ajoutant un aller-retour
+    perdu et masquant la cause réelle derrière un succès apparent.
+    """
+    pinned = _pinned_provider()
+    if pinned:
+        call = _call_claude if pinned == "claude" else _call_gemini
+        return call(prompt)
+
     if not provider:
         provider = "claude" if os.getenv("ANTHROPIC_API_KEY") else "gemini"
     if provider not in ("claude", "gemini"):
@@ -4126,14 +4143,19 @@ async def ai_auth_status():
     """Return which AI providers are available."""
     claude_ok = bool(os.getenv("ANTHROPIC_API_KEY"))
     gemini_ok = _gemini_available()
-    provider = "claude" if claude_ok else ("gemini" if gemini_ok else None)
+    pinned = _pinned_provider()
+    provider = pinned or ("claude" if claude_ok else ("gemini" if gemini_ok else None))
     sa_email = None
     if gemini_ok:
         try:
             sa_email = json.loads(_SA_FILE.read_text()).get("client_email")
         except Exception:
             pass
-    return {"claude": claude_ok, "gemini": gemini_ok, "provider": provider, "gemini_sa": sa_email}
+    # "claude"/"gemini" signalent une clé/un compte de service présents, pas
+    # utilisables : seul un appel réel le dirait. "pinned" indique qu'aucune
+    # bascule n'aura lieu, pour que l'UI n'annonce pas un secours inexistant.
+    return {"claude": claude_ok, "gemini": gemini_ok, "provider": provider,
+            "pinned": pinned is not None, "gemini_sa": sa_email}
 
 class ClaudeKeyRequest(BaseModel):
     apiKey: str
@@ -4211,7 +4233,8 @@ async def ai_platesolve(req: AiPlateSolveRequest):
     loop = asyncio.get_event_loop()
 
     def _solve():
-        provider = req.provider or ("claude" if os.getenv("ANTHROPIC_API_KEY") else "gemini")
+        provider = _pinned_provider() or req.provider or (
+            "claude" if os.getenv("ANTHROPIC_API_KEY") else "gemini")
         vision_prompt = (
             "This is an astronomical image taken through a telescope. "
             "Identify the star patterns and estimate the center coordinates in J2000 equatorial. "
@@ -4244,32 +4267,18 @@ async def ai_platesolve(req: AiPlateSolveRequest):
                 data = json.loads(resp.read())
             content = data["content"][0]["text"].strip()
         elif provider == "gemini":
-            token = _get_gemini_token()
-            if not token:
-                raise ValueError("Gemini token unavailable")
-            body = json.dumps({
-                "contents": [{"parts": [
-                    {"inlineData": {"mimeType": "image/jpeg", "data": req.imageBase64}},
-                    {"text": vision_prompt},
-                ]}],
-                "generationConfig": {"temperature": 0, "maxOutputTokens": 128, "responseMimeType": "application/json"},
-            }).encode()
-            http_req = _urllib_request.Request(
-                "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent",
-                data=body,
-                headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
-                method="POST",
-            )
-            with _urllib_request.urlopen(http_req, timeout=30) as resp:
-                data = json.loads(resp.read())
-            content = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+            # temperature 0 : on veut une lecture déterministe du champ, pas
+            # une variation créative sur des coordonnées.
+            parsed = _call_gemini_vision(vision_prompt, req.imageBase64, temperature=0.0)
+            content = None
         else:
             raise ValueError("No AI provider available for plate solving")
 
-        m = re.search(r'\{[^}]+\}', content)
-        if not m:
-            raise ValueError(f"No JSON in AI response: {content[:200]}")
-        parsed = json.loads(m.group())
+        if content is not None:
+            m = re.search(r'\{[\s\S]*\}', content)
+            if not m:
+                raise ValueError(f"No JSON in AI response: {content[:200]}")
+            parsed = json.loads(m.group())
         if parsed.get("ra") is None or parsed.get("dec") is None:
             return {"success": False, "ra": None, "dec": None}
         return {"success": True, "ra": float(parsed["ra"]), "dec": float(parsed["dec"])}
