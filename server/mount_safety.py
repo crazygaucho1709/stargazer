@@ -106,6 +106,36 @@ def load_alt_limits(config: Optional[dict]) -> Tuple[float, float]:
     return lo, hi
 
 
+ENCODER_STALE_S = 4.0
+"""Au-delà de ce délai sans mise à jour d'encodeur, la position est réputée
+inconnue et tout mouvement est refusé."""
+
+JOG_MAX_TRAVEL_DEG = 25.0
+"""Course maximale d'un jog continu avant coupure automatique."""
+
+
+def check_encoder_fresh(last_update_ts: Optional[float], now_ts: float,
+                        max_age_s: float = ENCODER_STALE_S) -> Tuple[bool, Optional[str]]:
+    """Vérifie que la position encodeur est encore rafraîchie.
+
+    Incident du 5 août 2026 : la liaison série du Pi a décroché et le driver a
+    cessé de publier TELESCOPE_ENCODER_ANGLES tout en continuant d'exécuter les
+    commandes moteur. AXIS1_LIMIT était actif mais compare la consigne à la
+    position LUE : gelée, elle laissait passer n'importe quelle course. Le tube
+    a parcouru 260° « dans les bornes ». Une position qui ne se rafraîchit plus
+    doit donc bloquer le mouvement, jamais l'autoriser par défaut.
+    """
+    if last_update_ts is None or last_update_ts <= 0:
+        return False, ("Position encodeur jamais reçue — mouvement refusé "
+                       "(driver monture muet)")
+    age = now_ts - last_update_ts
+    if age > max_age_s:
+        return False, (f"Position encodeur figée depuis {age:.0f}s — mouvement "
+                       f"refusé. Liaison monture perdue : coupez l'alimentation "
+                       f"avant toute manœuvre.")
+    return True, None
+
+
 def load_az_limits(config: Optional[dict]) -> Tuple[float, float]:
     """Limites d'azimut ENCODEUR signé (0 = repère trépied) depuis la config.
 

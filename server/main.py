@@ -364,6 +364,11 @@ class INDIClient:
         # Position encodeur brute (driver AUX) — base de la sécurité mécanique
         self.encoder_az: float | None = None
         self.encoder_alt: float | None = None
+        # Horodatage de la dernière trame TELESCOPE_ENCODER_ANGLES réellement
+        # reçue. Sert de preuve de vie de la liaison monture : sans elle, la
+        # position affichée peut être gelée depuis des minutes sans que rien ne
+        # le signale (cf. mount_safety.check_encoder_fresh).
+        self.encoder_last_update: float = 0.0
         self.cordwrap_guard = mount_safety.CordWrapGuard()
         # {label ISO ("100", "1600", "Auto") : nom du switch ("ISO1"...)},
         # rempli à la découverte de CCD_ISO — voir process_message.
@@ -829,11 +834,13 @@ class INDIClient:
                     try:
                         self.encoder_az = float(m_az.group(1))
                         self.cordwrap_guard.update(self.encoder_az)
+                        self.encoder_last_update = time.time()
                     except ValueError:
                         pass
                 if m_alt:
                     try:
                         self.encoder_alt = float(m_alt.group(1))
+                        self.encoder_last_update = time.time()
                     except ValueError:
                         pass
 
@@ -1482,6 +1489,51 @@ def _jog_cancel_watchdog() -> None:
             _jog_wd_timer = None
 
 
+JOG_DEFAULT_RATE = 5
+
+# Position encodeur au démarrage du jog courant, pour borner la course totale.
+_jog_origin: tuple[float, float] | None = None
+
+
+def _jog_rate_name() -> str:
+    """Rang de vitesse à appliquer aux jogs manuels, borné au domaine 1..9.
+
+    Lu dans la config (slewSpeed) pour rester réglable depuis l'UI.
+
+    Le driver démarre avec TELESCOPE_SLEW_RATE vide : une commande MOTION_*
+    est alors acceptée puis exécutée à vitesse nulle, l'API répond success et
+    le tube ne bouge pas. Il faut donc toujours en imposer un.
+    """
+    try:
+        raw = (ConfigService.load_config() or {}).get("slewSpeed", JOG_DEFAULT_RATE)
+        rate = int(float(raw))
+    except (TypeError, ValueError):
+        rate = JOG_DEFAULT_RATE
+    return f"{max(1, min(9, rate))}x"
+
+
+def _jog_check_travel(device: str) -> None:
+    """Coupe le jog si la course dépasse la limite, quelle qu'en soit la cause.
+
+    Le watchdog temporel ne suffit pas : tant que des impulsions de maintien
+    arrivent, il est réarmé indéfiniment. Le 5 août 2026, des appuis brefs se
+    sont ainsi enchaînés en une course de 260°. Ce garde-fou borne la course
+    réelle mesurée, indépendamment du nombre d'impulsions reçues.
+    """
+    global _jog_origin
+    if _jog_origin is None or indi.encoder_az is None or indi.encoder_alt is None:
+        return
+    az0, alt0 = _jog_origin
+    d_az = abs(mount_safety.shortest_delta(az0, indi.encoder_az))
+    d_alt = abs(mount_safety.shortest_delta(alt0, indi.encoder_alt))
+    travel = max(d_az, d_alt)
+    if travel >= mount_safety.JOG_MAX_TRAVEL_DEG:
+        logger.error(f"⛔ Jog coupé : course de {travel:.1f}° atteinte "
+                     f"(limite {mount_safety.JOG_MAX_TRAVEL_DEG}°)")
+        _jog_send_stop(device)
+        _jog_origin = None
+
+
 @app.post("/mount/jog")
 async def mount_jog(req: JogRequest):
     """
@@ -1497,7 +1549,7 @@ async def mount_jog(req: JogRequest):
       Frontend sends START pulses every 800ms to keep the watchdog alive.
     - STOP: always processed immediately, directly on executor, no waiting.
     """
-    global indi, _jog_current_dir, _last_stop_time, _last_stop_dir, _stopped_jog_ids, _jog_active_id
+    global indi, _jog_current_dir, _last_stop_time, _last_stop_dir, _stopped_jog_ids, _jog_active_id, _jog_origin
     try:
         if not indi or not indi.connected:
             return {"success": False, "error": "Matériel déconnecté"}
@@ -1522,7 +1574,24 @@ async def mount_jog(req: JogRequest):
                     f"Ignoring out-of-order STOP request for {req.direction} "
                     f"(jog_id {req.jog_id} is not active; active is {_jog_active_id})"
                 )
+            _jog_origin = None
             return {"success": True}
+
+        # ── Preuve de vie de la position ──────────────────────────────────────
+        # Refuser AVANT tout mouvement si les encodeurs ne se rafraîchissent
+        # plus : les limites du driver comparent la consigne à la position lue,
+        # donc une position gelée les rend inopérantes sans rien signaler.
+        fresh, why = mount_safety.check_encoder_fresh(indi.encoder_last_update, time.time())
+        if not fresh:
+            logger.error(f"⛔ Jog refusé — {why}")
+            return {"success": False, "error": why}
+
+        # Origine de la course, posée au premier appui (pas aux impulsions
+        # de maintien qui suivent), pour borner le déplacement total.
+        if _jog_active_id != req.jog_id or _jog_origin is None:
+            if indi.encoder_az is not None and indi.encoder_alt is not None:
+                _jog_origin = (indi.encoder_az, indi.encoder_alt)
+        _jog_check_travel(device)
 
         # ── START / HEARTBEAT ─────────────────────────────────────────────────
         # Filter out delayed heartbeat pulses that arrive after a stop was already processed
@@ -1562,6 +1631,19 @@ async def mount_jog(req: JogRequest):
             new_we = any(d in ["left", "right"] for d in new_parts)
 
             xmls: list[str] = []
+
+            # 0. Vitesse de déplacement — indispensable AVANT toute commande de
+            # mouvement. Le driver démarre avec TELESCOPE_SLEW_RATE vide, et une
+            # commande MOTION_* sans vitesse sélectionnée est acceptée puis
+            # exécutée à vitesse nulle : l'API répond success, les logs montrent
+            # le bon XML, et le tube ne bouge pas d'un pas moteur.
+            # L'échelle n'est pas linéaire : les rangs bas sont des vitesses de
+            # guidage (~0,004 °/s, invisibles), le pointage ne commence que vers
+            # 7x (~0,27 °/s). D'où un défaut élevé plutôt que médian.
+            xmls.append(
+                f'<newSwitchVector device="{device}" name="TELESCOPE_SLEW_RATE">'
+                f'<oneSwitch name="{_jog_rate_name()}">On</oneSwitch></newSwitchVector>'
+            )
 
             # 1. NS Axis
             if new_ns:
@@ -1661,6 +1743,16 @@ async def mount_slew_internal(device: str, ra: float, dec: float, sync: bool = F
     if not indi.connected:
         logger.error("Slew failed: INDI not connected")
         return {"success": False, "error": "Hardware offline"}
+
+    # Un GoTo est un mouvement long et non surveillé : si la position encodeur
+    # est figée, ni les limites du driver ni le garde-fou mécanique ci-dessous
+    # ne peuvent l'arrêter. On refuse avant d'envoyer quoi que ce soit.
+    # Ne pas assouplir : c'est ce point exact qui a laissé passer 260° de course
+    # le 5 août 2026, limites d'axes pourtant actives.
+    fresh, why = mount_safety.check_encoder_fresh(indi.encoder_last_update, time.time())
+    if not fresh and not sync:
+        logger.error(f"⛔ Slew refusé — {why}")
+        return {"success": False, "error": why}
 
     # RA is now always in decimal hours from the Next.js proxy (/api/indi/mount converts deg→hours).
     # This ensures we don't double-convert.
