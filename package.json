@@ -9,15 +9,22 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@chakra-ui/react": "latest",
-    "@emotion/react": "latest",
-    "@emotion/styled": "latest",
+    "@fontsource-variable/space-grotesk": "^5.2.10",
+    "@fontsource/jetbrains-mono": "^5.2.8",
+    "@tailwindcss/postcss": "^4.3.1",
+    "autoprefixer": "^10.5.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "framer-motion": "latest",
     "lucide-react": "latest",
     "next": "14.2.0",
     "next-themes": "latest",
+    "postcss": "^8.5.15",
     "react": "^18",
     "react-dom": "^18",
+    "sonner": "^2.0.7",
+    "tailwind-merge": "^3.6.0",
+    "tailwindcss": "^4.3.1",
     "zustand": "latest"
   },
   "devDependencies": {
