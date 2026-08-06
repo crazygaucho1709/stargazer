@@ -167,10 +167,13 @@ export const CalibrationWizard = () => {
 
     const saveMaxAlt = async () => { const v = await getCurrentAlt(); setMountLimits({ ...mountLimits, maxAlt: v }); setRecordedInSession(p => new Set(p).add('maxAlt')); setStep({ step: 'limits-alt-min', isWaitingUser: true, message: language === 'fr' ? 'Altitude Min' : 'Min Altitude', instruction: language === 'fr' ? 'Descendez au minimum.' : 'Lower to minimum.' }); };
     const saveMinAlt = async () => { const v = await getCurrentAlt(); setMountLimits({ ...mountLimits, minAlt: v }); setRecordedInSession(p => new Set(p).add('minAlt')); setStep({ step: 'limits-az-max', isWaitingUser: true, message: language === 'fr' ? 'Azimut Max' : 'Max Azimuth', instruction: language === 'fr' ? 'Tournez vers l\'Est.' : 'Rotate East.' }); };
-    const saveMaxAz  = async () => { const v = await getCurrentAz(); setMountLimits({ ...mountLimits, maxAz: v });  setRecordedInSession(p => new Set(p).add('maxAz'));  setStep({ step: 'limits-az-min', isWaitingUser: true, message: language === 'fr' ? 'Azimut Min' : 'Min Azimuth', instruction: language === 'fr' ? 'Tournez vers l\'Ouest.' : 'Rotate West.' }); };
+    // L'azimut encodeur croît vers l'OUEST (repère trépied = 0 = plein sud),
+    // donc l'ouest est la borne MAX et l'est la borne MIN. L'étape « Est »
+    // enregistrait maxAz et l'étape « Ouest » minAz : bornes inversées.
+    const saveMaxAz  = async () => { const v = await getCurrentAz(); setMountLimits({ ...mountLimits, minAz: v });  setRecordedInSession(p => new Set(p).add('minAz'));  setStep({ step: 'limits-az-min', isWaitingUser: true, message: language === 'fr' ? 'Azimut Max' : 'Max Azimuth', instruction: language === 'fr' ? 'Tournez vers l\'Ouest.' : 'Rotate West.' }); };
     const saveMinAz  = async () => {
-        const v = await getCurrentAz(); const finalLimits = { ...mountLimits, minAz: v };
-        setMountLimits(finalLimits); setRecordedInSession(p => new Set(p).add('minAz'));
+        const v = await getCurrentAz(); const finalLimits = { ...mountLimits, maxAz: v };
+        setMountLimits(finalLimits); setRecordedInSession(p => new Set(p).add('maxAz'));
         fetch('/api/indi/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mountLimits: finalLimits }) }).catch((err: Error) => notification.error("Sauvegarde limites échouée", { description: err?.message || "Impossible d'écrire config.json", source: "Calibration" }));
         setStep({ step: 'camera-test', isWaitingUser: true, message: language === 'fr' ? 'Test caméra' : 'Camera test', instruction: 'Testez la capture.' });
     };

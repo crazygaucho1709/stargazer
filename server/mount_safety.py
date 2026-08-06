@@ -19,10 +19,23 @@ RÉFÉRENTIELS — le point clé de ce module :
     tube, monture de niveau) — vérifié empiriquement : tube à l'horizontale →
     encodeur 359.85° = -0.15°. Les limites d'altitude sont donc ABSOLUES et
     persistantes d'une session à l'autre.
-  * Axe AZ : zéro arbitraire, fixé à la mise sous tension (trépied posé au
-    hasard). Aucune limite absolue possible → protection par budget de rotation
-    cumulée depuis l'allumage. Le masque ciel sud→ouest ne peut s'appliquer
-    qu'une fois le nord connu (boussole du téléphone ou plate-solve).
+  * Axe AZ : zéro fixé à la mise sous tension. Il est arbitraire tant que le
+    trépied est posé au hasard — d'où le repli par budget de rotation cumulée.
+    MAIS dès lors que le trépied a des repères au sol et qu'on l'y repose,
+    ce zéro devient reproductible et absolu.
+
+    Site de Matt, vérifié le 5 août 2026 : tube sur le repère → encodeur 0
+    (angle driver 180°) = PLEIN SUD, confirmé par la boussole du téléphone
+    (encodeur 179,5°→168,5° pendant que le téléphone lisait 180°→167°).
+    L'azimut encodeur suit donc l'azimut boussole au degré près, et le masque
+    ciel sud→ouest s'exprime directement en 0° → +90°.
+
+  * SENS DES COMMANDES — le driver nomme ses axes à l'envers sur cette monture
+    alt-az déclarée EQ_GEM (TELESCOPE_MOUNT_TYPE est en lecture seule) :
+        MOTION_NORTH → l'altitude MONTE
+        MOTION_EAST  → l'azimut CROÎT → va vers l'OUEST
+        MOTION_WEST  → l'azimut DÉCROÎT → va vers l'EST
+    Mesuré, pas déduit. Ne pas « corriger » sans remesurer.
 """
 
 from typing import Optional, Tuple
@@ -57,6 +70,23 @@ def signed_angle(deg: float) -> float:
     return a - 360.0 if a > 180.0 else a
 
 
+AZ_DRIVER_OFFSET_DEG = 180.0
+"""Décalage de l'axe AZ entre l'angle publié par le driver et le référentiel
+des compteurs (celui de LIMIT_POS). Au repère trépied le driver annonce
+AXIS_AZ = 180° pour des compteurs à zéro. L'axe ALT n'a pas ce décalage."""
+
+
+def encoder_az_signed(driver_az_deg: Optional[float]) -> Optional[float]:
+    """Azimut encodeur signé (repère trépied = 0, ouest positif).
+
+    Appliquer signed_angle() directement sur l'angle du driver donnerait -177°
+    au repère au lieu de 0° — et donc une comparaison fausse avec les bornes.
+    """
+    if driver_az_deg is None:
+        return None
+    return signed_angle(driver_az_deg - AZ_DRIVER_OFFSET_DEG)
+
+
 def shortest_delta(from_deg: float, to_deg: float) -> float:
     """Écart signé le plus court entre deux azimuts (-180..180)."""
     return (to_deg - from_deg + 540.0) % 360.0 - 180.0
@@ -73,6 +103,31 @@ def load_alt_limits(config: Optional[dict]) -> Tuple[float, float]:
         lo, hi = DEFAULT_ALT_MIN, DEFAULT_ALT_MAX
     if lo >= hi:
         lo, hi = DEFAULT_ALT_MIN, DEFAULT_ALT_MAX
+    return lo, hi
+
+
+def load_az_limits(config: Optional[dict]) -> Tuple[float, float]:
+    """Limites d'azimut ENCODEUR signé (0 = repère trépied) depuis la config.
+
+    Contrairement à l'altitude, la fenêtre azimutale est asymétrique : à Tahiti
+    le champ utile va du sud (0°) à l'ouest (+90°), le côté est étant fermé par
+    la maison. Un repli symétrique ±budget rouvrirait le mauvais côté, donc on
+    ne l'utilise que faute de config exploitable.
+    """
+    raw = (config or {}).get("mountLimits") or {}
+    try:
+        lo = float(raw["minAz"])
+        hi = float(raw["maxAz"])
+    except (TypeError, ValueError, KeyError):
+        return -DEFAULT_AZ_BUDGET_DEG, DEFAULT_AZ_BUDGET_DEG
+    # Une config jamais renseignée par le wizard donne min == max (les deux
+    # étapes ayant lu la même valeur) : inexploitable, on retombe sur le budget.
+    if lo >= hi:
+        return -DEFAULT_AZ_BUDGET_DEG, DEFAULT_AZ_BUDGET_DEG
+    # Bornes hors du domaine accepté par LIMIT_POS (±180) : le driver rejette
+    # la commande entière, mieux vaut le voir ici.
+    if not (-180.0 <= lo and hi <= 180.0):
+        return -DEFAULT_AZ_BUDGET_DEG, DEFAULT_AZ_BUDGET_DEG
     return lo, hi
 
 
