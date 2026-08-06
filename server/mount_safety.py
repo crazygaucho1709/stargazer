@@ -110,9 +110,6 @@ ENCODER_STALE_S = 4.0
 """Au-delà de ce délai sans mise à jour d'encodeur, la position est réputée
 inconnue et tout mouvement est refusé."""
 
-JOG_MAX_TRAVEL_DEG = 25.0
-"""Course maximale d'un jog continu avant coupure automatique."""
-
 
 def check_encoder_fresh(last_update_ts: Optional[float], now_ts: float,
                         max_age_s: float = ENCODER_STALE_S) -> Tuple[bool, Optional[str]]:

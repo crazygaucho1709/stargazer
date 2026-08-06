@@ -98,6 +98,32 @@ src/
 
 Ces règles s'appliquent à toute modification du code. Les vérifier **avant** de commencer à coder, pas après.
 
+### Jog manuel — règle ABSOLUE, au-dessus de toutes les autres
+
+**Hors GoTo autonome, aucun slew ne doit exister sans un doigt sur une touche de déplacement.**
+Appui = la monture bouge. Relâchement = elle s'arrête. Rien d'autre.
+
+C'est la régression qui revient à presque chaque nouvelle implémentation depuis
+le début du projet. Elle a coûté une course de 260° le 5 août 2026, limites
+d'axes pourtant actives.
+
+Interdits, sans exception ni circonstance atténuante :
+- **STOP conditionnel.** Un ordre d'arrêt est TOUJOURS exécuté et transmis à la
+  monture, quel que soit son `jog_id`, son horodatage, ou l'état interne du
+  backend. C'est la cause exacte de l'incident : `Ignoring out-of-order STOP
+  request ... jog_id is not active`. Le filtrage par identifiant ne sert qu'à la
+  comptabilité, jamais à supprimer l'arrêt.
+- **Sémantique par impulsions ou par course** : pulses de maintien qui
+  réémettent le mouvement, plafonds de déplacement, temporisations qui
+  entretiennent le slew. Le maintien ne doit jamais *produire* du mouvement,
+  seulement l'autoriser à continuer.
+- Un watchdog est admis **uniquement** comme filet en cas de client mort. Jamais
+  comme mécanisme d'entretien du mouvement.
+
+Avant toute modification du chemin de jog, vérifier que (1) le relâchement
+produit un arrêt inconditionnel, (2) aucune logique ne peut réémettre un
+mouvement après un relâchement.
+
 ### Hooks — source unique de vérité
 - Toute logique réseau partagée entre ≥ 2 composants → hook dans `src/hooks/`
 - Hooks existants à réutiliser obligatoirement : `useJog`, `useGoTo`, `useLiveView`, `useCapture`, `useMountCoords`

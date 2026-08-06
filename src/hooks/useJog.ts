@@ -37,6 +37,7 @@ export function useJog(): UseJogReturn {
   const intervalRef     = useRef<NodeJS.Timeout | null>(null);
   const startAbortRef   = useRef<AbortController | null>(null);
   const jogIdRef        = useRef<string | null>(null);
+  const jogStartedRef   = useRef(false);
 
   useEffect(() => {
     return () => {
@@ -92,6 +93,12 @@ export function useJog(): UseJogReturn {
 
       const jogId = `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
       jogIdRef.current = jogId;
+      // Armé au démarrage, désarmé seulement une fois l'arrêt émis. Sert de
+      // garde pour les coupures globales (blur, onglet masqué, démontage) afin
+      // qu'elles n'émettent pas un STOP à chaque clic de l'application. Il est
+      // volontairement indépendant de activeDirRef : c'est cette variable-là
+      // qui, en se vidant trop tôt, faisait sauter l'arrêt.
+      jogStartedRef.current = true;
 
       activeDirRef.current = direction;
       setActiveDir(direction);
@@ -120,7 +127,12 @@ export function useJog(): UseJogReturn {
 
     const dir = activeDirRef.current;
     const jogId = jogIdRef.current;
-    if (!dir) return;
+    // Rien à couper si aucun jog n'a été démarré depuis le dernier arrêt.
+    // La garde porte sur ce drapeau et NON sur la direction : c'est
+    // `if (!dir) return` qui laissait passer des relâchements sans arrêt dès
+    // que l'état local avait déjà été nettoyé.
+    if (!jogStartedRef.current) return;
+    jogStartedRef.current = false;
     activeDirRef.current = null;
     jogIdRef.current = null;
     setActiveDir(null);
@@ -138,7 +150,7 @@ export function useJog(): UseJogReturn {
     fetch(clientApiUrl("/api/indi/mount"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "jog", direction: dir, state: "stop", device, ip: bridgeIp, jog_id: jogId }),
+      body: JSON.stringify({ action: "jog", direction: dir ?? "unknown", state: "stop", device, ip: bridgeIp, jog_id: jogId }),
     })
       .then(async (res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
@@ -156,6 +168,31 @@ export function useJog(): UseJogReturn {
         setSlewing(false);
       });
   }, [getParams, setSlewing]);
+
+  // Règle absolue : hors GoTo, aucun mouvement ne survit à l'absence de doigt
+  // sur une touche. Le relâchement du pointeur est le cas nominal, mais il peut
+  // ne jamais arriver — onglet masqué, fenêtre qui perd le focus, composant
+  // démonté par une navigation. Chacun de ces cas doit couper.
+  const stopJogRef = useRef(stopJog);
+  stopJogRef.current = stopJog;
+
+  useEffect(() => {
+    const cut = () => stopJogRef.current();
+    const onVisibility = () => { if (document.hidden) cut(); };
+
+    window.addEventListener("blur", cut);
+    window.addEventListener("pointerup", cut);
+    window.addEventListener("pointercancel", cut);
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      window.removeEventListener("blur", cut);
+      window.removeEventListener("pointerup", cut);
+      window.removeEventListener("pointercancel", cut);
+      document.removeEventListener("visibilitychange", onVisibility);
+      cut();   // démontage : on ne laisse jamais la monture en mouvement
+    };
+  }, []);
 
   return { startJog, stopJog, activeDir, isMoving };
 }
