@@ -560,13 +560,17 @@ class INDIClient:
         try:
             cfg = ConfigService.load_config()
             alt_min, alt_max = mount_safety.load_alt_limits(cfg)
-            az_budget = self.cordwrap_guard.budget_deg
+            # La fenêtre azimutale est ASYMÉTRIQUE (sud→ouest, l'est est fermé
+            # par la maison). Utiliser le budget symétrique du garde cord-wrap
+            # rouvrait le côté dangereux à chaque reconnexion, annulant en
+            # silence les bornes posées à la main.
+            az_min, az_max = mount_safety.load_az_limits(cfg)
             time.sleep(2.0)  # laisse le driver finir sa séquence de connexion
 
             self.send(
                 f'<newNumberVector device="{device}" name="LIMIT_POS">'
-                f'<oneNumber name="SLEW_LIMIT_AXIS1_MIN">{-az_budget}</oneNumber>'
-                f'<oneNumber name="SLEW_LIMIT_AXIS1_MAX">{az_budget}</oneNumber>'
+                f'<oneNumber name="SLEW_LIMIT_AXIS1_MIN">{az_min}</oneNumber>'
+                f'<oneNumber name="SLEW_LIMIT_AXIS1_MAX">{az_max}</oneNumber>'
                 f'<oneNumber name="SLEW_LIMIT_AXIS2_MIN">{alt_min - 2.0}</oneNumber>'
                 f'<oneNumber name="SLEW_LIMIT_AXIS2_MAX">{alt_max}</oneNumber>'
                 f'</newNumberVector>')
@@ -577,7 +581,7 @@ class INDIClient:
                           f'<oneSwitch name="INDI_DISABLED">Off</oneSwitch></newSwitchVector>')
                 time.sleep(0.6)
             logger.info(f"🛡 Limites mécaniques appliquées sur {device} : "
-                        f"az ±{az_budget}°, alt {alt_min - 2.0}→{alt_max}° (référentiel encodeur)")
+                        f"az {az_min}→{az_max}°, alt {alt_min - 2.0}→{alt_max}° (référentiel encodeur)")
         except Exception as e:
             logger.error(f"Échec d'application des limites mécaniques sur {device} : {e} — "
                          f"la monture n'est PAS protégée, mouvements à éviter")
@@ -1564,8 +1568,14 @@ async def mount_jog(req: JogRequest):
                 new_ns_dir = "up" if "up" in new_parts else "down"
                 prev_ns_dir = "up" if "up" in prev_parts else ("down" if "down" in prev_parts else None)
                 if new_ns_dir != prev_ns_dir:
-                    val = "MOTION_SOUTH" if new_ns_dir == "up" else "MOTION_NORTH"
-                    opp = "MOTION_NORTH" if new_ns_dir == "up" else "MOTION_SOUTH"
+                    # Mesuré le 5 août 2026 sur indi_celestron_aux :
+                    # MOTION_NORTH fait MONTER l'altitude (+0,012° en 3 s à 3x).
+                    # Le mapping précédent envoyait SOUTH pour "up" : le tube
+                    # descendait, et près de l'horizon le garde-fou ne protège
+                    # que la direction "bas" — un "haut" inversé passait donc
+                    # au travers.
+                    val = "MOTION_NORTH" if new_ns_dir == "up" else "MOTION_SOUTH"
+                    opp = "MOTION_SOUTH" if new_ns_dir == "up" else "MOTION_NORTH"
                     xmls.append(
                         f'<newSwitchVector device="{device}" name="TELESCOPE_MOTION_NS">'
                         f'<oneSwitch name="{val}">On</oneSwitch>'
@@ -1585,8 +1595,13 @@ async def mount_jog(req: JogRequest):
                 new_we_dir = "left" if "left" in new_parts else "right"
                 prev_we_dir = "left" if "left" in prev_parts else ("right" if "right" in prev_parts else None)
                 if new_we_dir != prev_we_dir:
-                    val = "MOTION_EAST" if new_we_dir == "left" else "MOTION_WEST"
-                    opp = "MOTION_WEST" if new_we_dir == "left" else "MOTION_EAST"
+                    # Mesuré le 5 août 2026, boussole du téléphone à l'appui :
+                    # MOTION_WEST fait DÉCROÎTRE l'azimut, donc tourne vers
+                    # l'EST (côté maison) ; MOTION_EAST tourne vers l'OUEST.
+                    # Le nommage du driver est inversé sur cette alt-az
+                    # déclarée EQ_GEM. "left" = vers la maison = MOTION_WEST.
+                    val = "MOTION_WEST" if new_we_dir == "left" else "MOTION_EAST"
+                    opp = "MOTION_EAST" if new_we_dir == "left" else "MOTION_WEST"
                     xmls.append(
                         f'<newSwitchVector device="{device}" name="TELESCOPE_MOTION_WE">'
                         f'<oneSwitch name="{val}">On</oneSwitch>'
@@ -3320,10 +3335,24 @@ def capture_sequence_stop():
 
 @app.get("/mount/status")
 def mount_status():
+    # az/alt sont les ENCODEURS, en degrés signés autour du repère trépied.
+    # Ils manquaient totalement, si bien que le wizard de calibration lisait un
+    # champ inexistant, retombait en silence sur l'azimut du store (issu du
+    # modèle de ciel) et enregistrait deux fois la même valeur — d'où les
+    # limites dégénérées minAz == maxAz relevées en config.
+    # Ne pas remplacer par HORIZONTAL_COORD : celui-ci passe par le modèle
+    # d'alignement et devient faux à chaque sync.
+    # L'axe AZ porte un décalage de 180° que l'axe ALT n'a pas : au repère
+    # trépied le driver annonce AXIS_AZ = 180° et AXIS_ALT = 0°. C'est le
+    # référentiel de LIMIT_POS, il faut donc retrancher 180 sur AZ seulement.
+    az = mount_safety.encoder_az_signed(indi.encoder_az)
+    alt = mount_safety.signed_angle(indi.encoder_alt) if indi.encoder_alt is not None else None
     return {
         "connected": indi.mount_connected,
         "ra": indi.mount_ra,
         "dec": indi.mount_dec,
+        "az": az,
+        "alt": alt,
         "parked": indi.mount_parked,
         "tracking": indi.mount_tracking,
         "slew_state": indi.mount_slew_state,
