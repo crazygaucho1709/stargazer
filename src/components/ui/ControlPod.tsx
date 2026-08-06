@@ -1,8 +1,6 @@
 // src/components/ui/ControlPod.tsx
 "use client";
 
-import { Box, VStack, Text } from "@chakra-ui/react";
-
 interface ControlPodProps {
     title?: string;
     children: React.ReactNode;
@@ -11,89 +9,88 @@ interface ControlPodProps {
     accentColor?: string;
 }
 
-export const ControlPod = ({ title, children, size = "180px", glowColor = "rgba(0, 240, 255, 0.3)", accentColor = "#00F0FF" }: ControlPodProps) => {
+export const ControlPod = ({
+    title,
+    children,
+    size = "180px",
+    glowColor = "rgba(0, 240, 255, 0.3)",
+    accentColor = "#00F0FF",
+}: ControlPodProps) => {
     return (
-        <VStack gap={4} position="relative">
+        <div className="flex flex-col items-center gap-4 relative">
             {title && (
-                <Box position="relative">
-                    <Text
-                        className="hud-font"
-                        fontSize="9px"
-                        fontWeight="900"
-                        letterSpacing="0.4em"
-                        color="whiteAlpha.700"
-                        bg="rgba(0,0,0,0.6)"
-                        px={4}
-                        py={1}
-                        borderRadius="full"
-                        border="1px solid"
-                        borderColor="whiteAlpha.200"
-                        backdropFilter="blur(10px)"
-                        boxShadow={`0 0 10px ${glowColor}`}
+                <div className="relative">
+                    <span
+                        className="hud-font text-[9px] font-black tracking-[0.4em] px-4 py-1 rounded-full"
+                        style={{
+                            color: "rgba(255,255,255,0.7)",
+                            background: "rgba(0,0,0,0.6)",
+                            border: "1px solid rgba(255,255,255,0.2)",
+                            backdropFilter: "blur(10px)",
+                            boxShadow: `0 0 10px ${glowColor}`,
+                            display: "inline-block",
+                        }}
                     >
                         {title.toUpperCase()}
-                    </Text>
-                </Box>
+                    </span>
+                </div>
             )}
-            <Box
-                w={size}
-                h={size}
-                borderRadius="full"
-                position="relative"
-                className="glass-panel"
-                display="flex"
-                alignItems="center"
-                justifyContent="center"
-                transition="all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275)"
-                border="1px solid"
-                borderColor="whiteAlpha.200"
-                _hover={{
-                    transform: "scale(1.08)",
-                    boxShadow: `0 0 40px ${glowColor}, inset 0 0 25px rgba(0,0,0,0.6)`,
-                    borderColor: accentColor
+
+            <div
+                className="glass-panel relative flex items-center justify-center transition-all duration-[600ms]"
+                style={{
+                    width: size,
+                    height: size,
+                    borderRadius: "9999px",
+                    border: "1px solid rgba(255,255,255,0.2)",
+                }}
+                onMouseEnter={e => {
+                    const el = e.currentTarget as HTMLElement;
+                    el.style.transform = "scale(1.08)";
+                    el.style.boxShadow = `0 0 40px ${glowColor}, inset 0 0 25px rgba(0,0,0,0.6)`;
+                    el.style.borderColor = accentColor;
+                }}
+                onMouseLeave={e => {
+                    const el = e.currentTarget as HTMLElement;
+                    el.style.transform = "";
+                    el.style.boxShadow = "";
+                    el.style.borderColor = "rgba(255,255,255,0.2)";
                 }}
             >
-                {/* HUD Decorative Arcs */}
-                <Box className="hud-arc hud-arc-top" inset="-8px" borderColor={accentColor} borderWidth="2px" opacity={0.4} style={{ animation: "spin 12s linear infinite" }} />
-                <Box className="hud-arc hud-arc-bottom" inset="-15px" borderColor={accentColor} borderWidth="1px" opacity={0.2} style={{ animation: "spin 25s linear infinite reverse" }} />
+                {/* HUD arcs */}
+                <div
+                    className="absolute rounded-full border-2 opacity-40"
+                    style={{ inset: "-8px", borderColor: accentColor, animation: "spin 12s linear infinite" }}
+                />
+                <div
+                    className="absolute rounded-full border opacity-20"
+                    style={{ inset: "-15px", borderColor: accentColor, animation: "spin 25s linear infinite reverse" }}
+                />
 
                 {/* Static HUD guides */}
-                <Box position="absolute" inset="0" borderRadius="full" border="1px solid" borderColor="whiteAlpha.100" pointerEvents="none" />
-                <Box position="absolute" inset="15%" borderRadius="full" border="1px dashed" borderColor="whiteAlpha.50" pointerEvents="none" />
+                <div className="absolute inset-0 rounded-full border border-white/10 pointer-events-none" />
+                <div className="absolute rounded-full border border-dashed border-white/5 pointer-events-none" style={{ inset: "15%" }} />
 
                 {/* Rotating accent ring */}
-                <Box
-                    position="absolute"
-                    inset="-4px"
-                    borderRadius="full"
-                    border="2px solid transparent"
-                    borderTopColor={accentColor}
-                    borderRightColor={accentColor}
-                    opacity={0.3}
-                    style={{ animation: "spin 15s cubic-bezier(0.4, 0, 0.2, 1) infinite" }}
+                <div
+                    className="absolute rounded-full opacity-30"
+                    style={{
+                        inset: "-4px",
+                        border: "2px solid transparent",
+                        borderTopColor: accentColor,
+                        borderRightColor: accentColor,
+                        animation: "spin 15s cubic-bezier(0.4, 0, 0.2, 1) infinite",
+                    }}
                 />
 
-                {/* Inner Ambient Glow */}
-                <Box
-                    position="absolute"
-                    inset="0"
-                    borderRadius="full"
-                    bg={`radial-gradient(circle, ${glowColor} 0%, transparent 75%)`}
-                    opacity={0.2}
-                    pointerEvents="none"
+                {/* Inner ambient glow */}
+                <div
+                    className="absolute inset-0 rounded-full pointer-events-none opacity-20"
+                    style={{ background: `radial-gradient(circle, ${glowColor} 0%, transparent 75%)` }}
                 />
 
-                <Box zIndex={1}>
-                    {children}
-                </Box>
-            </Box>
-
-            <style jsx global>{`
-                @keyframes spin {
-                    from { transform: rotate(0deg); }
-                    to { transform: rotate(360deg); }
-                }
-            `}</style>
-        </VStack>
+                <div className="z-[1]">{children}</div>
+            </div>
+        </div>
     );
 };

@@ -86,7 +86,6 @@ export function useFramingStream(options: UseFramingStreamOptions = {}): UseFram
             wsRef.current = ws;
             
             ws.onopen = () => {
-                console.log('[Framing] WebSocket connected');
                 setIsConnected(true);
                 setError(null);
                 reconnectCountRef.current = 0;
@@ -98,7 +97,6 @@ export function useFramingStream(options: UseFramingStreamOptions = {}): UseFram
                     
                     switch (message.action) {
                         case 'welcome':
-                            console.log('[Framing] Welcome:', message.message);
                             break;
                             
                         case 'frame':
@@ -131,25 +129,21 @@ export function useFramingStream(options: UseFramingStreamOptions = {}): UseFram
                         default:
                             break;
                     }
-                } catch (e) {
-                    console.error('[Framing] Parse error:', e);
+                } catch {
+                    /* parse error silencieux — message malformé ignoré */
                 }
             };
             
-            ws.onerror = (event) => {
-                console.error('[Framing] WebSocket error:', event);
+            ws.onerror = () => {
                 setError('Connection error');
             };
             
             ws.onclose = () => {
-                console.log('[Framing] WebSocket closed');
                 setIsConnected(false);
                 setIsActive(false);
-                
-                // Auto-reconnect logic
+
                 if (reconnectCountRef.current < maxReconnectAttempts) {
                     reconnectCountRef.current++;
-                    console.log(`[Framing] Reconnecting... attempt ${reconnectCountRef.current}`);
                     reconnectTimeoutRef.current = setTimeout(() => {
                         connect();
                     }, reconnectDelay);
@@ -158,8 +152,7 @@ export function useFramingStream(options: UseFramingStreamOptions = {}): UseFram
                 }
             };
             
-        } catch (e) {
-            console.error('[Framing] Connection failed:', e);
+        } catch {
             setError('Failed to connect');
         }
     }, [reconnectDelay, maxReconnectAttempts]);

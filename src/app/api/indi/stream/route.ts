@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server';
 import http from 'http';
 import { BRIDGE_URL } from '@/lib/apiConfig';
 
@@ -8,10 +7,11 @@ export async function GET() {
   const url = `${BRIDGE_URL}/video_feed`;
   let activeRequest: http.ClientRequest | null = null;
 
+  // highWaterMark: 0 — pas de buffering interne, chaque chunk envoyé immédiatement au client
   const stream = new ReadableStream({
     start(controller) {
       const request = http.get(url, {
-        timeout: 30000
+        timeout: 30000,
       }, (res) => {
         if (!res || res.statusCode !== 200) {
           controller.error(new Error(`Backend returned ${res?.statusCode}`));
@@ -51,7 +51,7 @@ export async function GET() {
         activeRequest.destroy();
       }
     }
-  });
+  }, { highWaterMark: 0 });
 
   return new Response(stream, {
     headers: {

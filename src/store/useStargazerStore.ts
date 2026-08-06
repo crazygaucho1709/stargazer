@@ -13,7 +13,6 @@ interface Target {
 }
 
 interface Config {
-    aiKey: string;
     astroberryUrl: string;
     driverInstance: string;
     baudRate: string;
@@ -117,7 +116,6 @@ export const useStargazerStore = create<StargazerState>()(
             zoom: 1,
             liveViewMode: "NASA",
             config: {
-                aiKey: "",
                 astroberryUrl: "http://macmini.local:5005",
                 driverInstance: "Celestron GPS",
                 baudRate: "9600",
@@ -222,7 +220,7 @@ export const useStargazerStore = create<StargazerState>()(
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(newConfig)
-                        }).catch(e => console.error("Failed to sync config to server", e));
+                        }).catch(() => { /* sync échoue silencieusement — pas critique */ });
                     }
                     return { config: merged };
                 });

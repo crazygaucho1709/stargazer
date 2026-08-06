@@ -1,235 +1,312 @@
+// src/components/telescope/AutofocusWizard.tsx
 "use client";
 
+/**
+ * Focus numérique de session (pas de focuser motorisé : le 600D est monté en
+ * bague T directe sur le tube).
+ *
+ * Flux :
+ *  1. L'utilisateur pointe une étoile brillante et fait la mise au point à la
+ *     molette du télescope (une seule fois).
+ *  2. Le wizard capture une image technique (preview supprimé), attend sa
+ *     réception réelle, puis appelle POST /focus/calibrate : mesure du HFR de
+ *     référence + paramètres de netteté proposés par Gemini Vision (fallback
+ *     dérivé du HFR si l'IA est indisponible).
+ *  3. Le profil est sauvegardé côté backend et appliqué automatiquement à
+ *     toutes les captures suivantes de la session.
+ */
+
 import React, { useState, useEffect, useRef } from "react";
-import { Box, VStack, HStack, Text, Button, Icon, Portal, Progress } from "@chakra-ui/react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Target, Zap, CheckCircle2, AlertCircle, X, ChevronRight, Activity } from "lucide-react";
+import { motion } from "framer-motion";
+import { Activity, X, Sparkles, Focus, RotateCcw } from "lucide-react";
 import { useStargazerStore } from "@/store/useStargazerStore";
+import { notification } from "@/lib/notificationService";
 
-const MotionBox = motion.create(Box);
+function Spinner() {
+    return <div className="w-4 h-4 rounded-full border-2 border-white/20 border-t-white animate-spin" />;
+}
 
-export const AutofocusWizard = ({ onClose, autoStart, onComplete }: { onClose: () => void, autoStart?: boolean, onComplete?: () => void }) => {
-    const { language, config } = useStargazerStore();
-    const [phase, setPhase] = useState<"idle" | "scanning" | "analyzing" | "moving_to_best" | "done" | "error">("idle");
-    const [logs, setLogs] = useState<{ msg: string, type: "info" | "success" | "error" }[]>([]);
-    const [scanData, setScanData] = useState<{ step: number, hfr: number }[]>([]);
-    const [currentHfr, setCurrentHfr] = useState<number>(0);
-    const [bestHfr, setBestHfr] = useState<number>(999);
+const MotionDiv = motion.div;
+
+interface FocusProfile {
+    active: boolean;
+    hfr_ref?: number | null;
+    ai_used?: boolean;
+    calibrated_at?: string;
+    sharpen_radius?: number;
+    sharpen_amount?: number;
+    denoise_strength?: number;
+    comment?: string;
+}
+
+type Phase = "idle" | "capturing" | "calibrating" | "done" | "error";
+
+export const AutofocusWizard = ({
+    onClose,
+    autoStart,
+    onComplete,
+}: {
+    onClose: () => void;
+    autoStart?: boolean;
+    onComplete?: () => void;
+}) => {
+    const { language } = useStargazerStore();
+    const [phase, setPhase] = useState<Phase>("idle");
+    const [logs, setLogs] = useState<{ msg: string; type: "info" | "success" | "error" }[]>([]);
+    const [profile, setProfile] = useState<FocusProfile | null>(null);
+    const [previewAfter, setPreviewAfter] = useState<string | null>(null);
     const abortRef = useRef(false);
     const logsEndRef = useRef<HTMLDivElement>(null);
 
-    const L = (fr: string, en: string) => language === "fr" ? fr : en;
-    const log = (msg: string, type: "info" | "success" | "error" = "info") => setLogs(p => [...p, { msg, type }]);
+    const L = (fr: string, en: string) => (language === "fr" ? fr : en);
+    const log = (msg: string, type: "info" | "success" | "error" = "info") =>
+        setLogs((p) => [...p, { msg, type }]);
 
     useEffect(() => {
         if (logsEndRef.current) logsEndRef.current.scrollIntoView({ behavior: "smooth" });
     }, [logs]);
 
-    // Cleanup on unmount
     useEffect(() => {
         return () => { abortRef.current = true; };
     }, []);
 
+    // Charger le profil existant à l'ouverture
     useEffect(() => {
-        if (autoStart) {
-            runAutofocus();
-        }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        (async () => {
+            try {
+                const res = await fetch("/api/indi?endpoint=focus/profile", { cache: "no-store" });
+                const raw = await res.json();
+                // Le proxy GET /api/indi enveloppe la réponse dans un tableau
+                const data = Array.isArray(raw) ? raw[0] : raw;
+                if (data?.success && data.profile?.active) {
+                    setProfile(data.profile);
+                    setPhase("done");
+                }
+            } catch {
+                // backend injoignable — l'état idle avec instructions reste correct
+            }
+        })();
+    }, []);
+
+    useEffect(() => {
+        if (autoStart) runCalibration();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [autoStart]);
 
-    const sendFocusCommand = async (direction: "IN" | "OUT", steps: number) => {
-        try {
-            await fetch('/api/indi', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ endpoint: 'ccd/focus', device: config.driverInstance, direction, steps })
-            });
-        } catch (e) {
-            console.error("Focus command failed", e);
-        }
-    };
-
-    const runAutofocus = async () => {
+    const runCalibration = async () => {
         abortRef.current = false;
         setLogs([]);
-        setScanData([]);
-        setPhase("scanning");
-        log(L("🚀 Lancement de l'Autofocus IA (V-Curve)", "🚀 Starting AI Autofocus (V-Curve)"));
-        
-        // 1. Move OUT to start position
-        log(L("Déplacement du focuser vers la limite extérieure...", "Moving focuser to outer limit..."));
-        await sendFocusCommand("OUT", 100);
-        await new Promise(r => setTimeout(r, 2000));
-        
-        // 2. Scan points
-        let minHfr = 999;
-        let bestStep = 0;
-        const totalSteps = 6;
-        const stepSize = 30;
+        setPreviewAfter(null);
+        setPhase("capturing");
+        log(L("📷 Capture de l'étoile de référence (2s)...", "📷 Capturing reference star (2s)..."));
 
-        for (let i = 0; i < totalSteps; i++) {
-            if (abortRef.current) return;
-            setPhase("scanning");
-            
-            // Move IN
-            await sendFocusCommand("IN", stepSize);
-            log(L(`Mesure au point ${i + 1}/${totalSteps}...`, `Measuring at point ${i + 1}/${totalSteps}...`));
-            
-            // Wait for movement and settle
-            await new Promise(r => setTimeout(r, 1500));
-            
-            // Capture a short image for focus calculation
-            await fetch('/api/indi', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ endpoint: 'ccd/capture', device: config.driverInstance, exposure: 1.0 })
+        try {
+            // 1. Capture technique (pas de modal preview).
+            // IMPORTANT : endpoint en query string — le proxy /api/indi ne lit pas
+            // le champ endpoint du body, et le dispatcher générique /command du
+            // backend perdrait le flag preview:false.
+            const capRes = await fetch("/api/indi?endpoint=ccd/capture", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ exposure: 2.0, preview: false }),
             });
-            
-            // Read focus metric (Laplace variance)
-            const metricRes = await fetch('/api/indi?endpoint=ccd/focus-metric');
-            const metricData = await metricRes.json();
-            const measuredHfr = metricData.success ? metricData.metric : 999;
-            
-            setCurrentHfr(measuredHfr);
-            setScanData(prev => [...prev, { step: i, hfr: measuredHfr }]);
+            const capData = await capRes.json();
+            if (!capData.success) throw new Error(capData.error ?? L("Capture refusée", "Capture refused"));
 
-            if (measuredHfr < minHfr) {
-                minHfr = measuredHfr;
-                bestStep = i;
+            // 2. Attendre la réception réelle de l'image (max 60s)
+            let captured = false;
+            for (let i = 0; i < 60; i++) {
+                await new Promise((r) => setTimeout(r, 1000));
+                if (abortRef.current) return;
+                const stRes = await fetch("/api/indi?endpoint=capture/state", { cache: "no-store" });
+                const stRaw = await stRes.json();
+                const st = Array.isArray(stRaw) ? stRaw[0] : stRaw;
+                if (st?.phase === "complete") { captured = true; break; }
+                if (st?.phase === "error") throw new Error(st.error ?? L("Capture échouée", "Capture failed"));
             }
+            if (!captured) throw new Error(L("Image jamais reçue (timeout)", "Image never received (timeout)"));
+            log(L("✅ Image reçue — analyse en cours...", "✅ Image received — analyzing..."), "success");
+
+            // 3. Calibration backend (HFR + Gemini Vision)
+            setPhase("calibrating");
+            log(L("🤖 Mesure HFR + analyse Gemini Vision...", "🤖 HFR measurement + Gemini Vision analysis..."));
+            const calRes = await fetch("/api/indi?endpoint=focus/calibrate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({}),
+            });
+            const cal = await calRes.json();
+            if (!cal.success) throw new Error(cal.error ?? L("Calibration échouée", "Calibration failed"));
+
+            setProfile(cal.profile as FocusProfile);
+            setPreviewAfter(cal.preview_after ?? null);
+            setPhase("done");
+            log(
+                L(
+                    `✅ Focus numérique calibré — HFR réf ${cal.profile.hfr_ref ?? "n/a"}, netteté r=${cal.profile.sharpen_radius}px ×${cal.profile.sharpen_amount}${cal.profile.ai_used ? " (Gemini)" : " (fallback HFR)"}`,
+                    `✅ Numerical focus calibrated — ref HFR ${cal.profile.hfr_ref ?? "n/a"}, sharpen r=${cal.profile.sharpen_radius}px ×${cal.profile.sharpen_amount}${cal.profile.ai_used ? " (Gemini)" : " (HFR fallback)"}`
+                ),
+                "success"
+            );
+            if (cal.profile.comment) log(`💬 ${cal.profile.comment}`);
+            log(L("Le profil s'applique désormais à toutes les captures de la session.", "The profile now applies to every capture this session."), "success");
+            notification.success(L("Focus numérique actif", "Numerical focus active"), {
+                description: cal.profile.comment, source: "Autofocus",
+            });
+            if (onComplete) onComplete();
+        } catch (e: any) {
+            setPhase("error");
+            log(`❌ ${e.message ?? L("Erreur inconnue", "Unknown error")}`, "error");
+            notification.error(L("Calibration du focus échouée", "Focus calibration failed"), {
+                description: e.message, source: "Autofocus",
+            });
         }
-
-        if (abortRef.current) return;
-        
-        setPhase("analyzing");
-        setBestHfr(minHfr);
-        log(L(`Analyse V-Curve terminée. Meilleur HFR: ${minHfr.toFixed(2)}`, `V-Curve analysis complete. Best HFR: ${minHfr.toFixed(2)}`), "success");
-        await new Promise(r => setTimeout(r, 1000));
-
-        // 3. Move back to best step
-        setPhase("moving_to_best");
-        log(L("Application du focus optimal...", "Applying optimal focus..."));
-        
-        const stepsBack = totalSteps - 1 - bestStep;
-        if (stepsBack > 0) {
-            await sendFocusCommand("OUT", stepsBack * stepSize);
-            await new Promise(r => setTimeout(r, 2000));
-        }
-
-        if (abortRef.current) return;
-        setPhase("done");
-        log(L("✅ Focus Numérique IA Parfait atteint !", "✅ Perfect AI Numerical Focus achieved!"), "success");
-        if (onComplete) onComplete();
     };
 
+    const resetProfile = async () => {
+        try {
+            await fetch("/api/indi?endpoint=focus/reset", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({}),
+            });
+            setProfile(null);
+            setPreviewAfter(null);
+            setPhase("idle");
+            setLogs([]);
+            notification.info(L("Profil de focus numérique désactivé", "Numerical focus profile disabled"), { source: "Autofocus" });
+        } catch (e: any) {
+            notification.error(L("Réinitialisation échouée", "Reset failed"), { description: e.message, source: "Autofocus" });
+        }
+    };
+
+    const busy = phase === "capturing" || phase === "calibrating";
+
     return (
-        <Portal>
-            <Box position="fixed" inset={0} bg="rgba(0,0,0,0.8)" backdropFilter="blur(8px)" zIndex={10000} display="flex" alignItems="center" justifyItems="center" onClick={onClose}>
-                <MotionBox
-                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                    onClick={(e) => e.stopPropagation()}
-                    bg="rgba(10, 15, 30, 0.95)"
-                    w="450px"
-                    borderRadius="xl"
-                    border="1px solid var(--astro-teal)"
-                    boxShadow="0 25px 50px -12px rgba(0,240,255,0.25)"
-                    overflow="hidden"
-                    mx="auto" // fallback for horizontal center
-                    mt="10vh" // push down to center
-                >
-                    {/* Header */}
-                    <HStack justify="space-between" p={4} borderBottom="1px solid rgba(255,255,255,0.1)" bg="rgba(0,240,255,0.05)">
-                        <HStack>
-                            <Icon as={Activity} color="var(--astro-teal)" boxSize={5} />
-                            <Text color="white" fontWeight="bold" letterSpacing="0.05em">
-                                {L("AUTOFOCUS NUMÉRIQUE IA", "AI NUMERICAL AUTOFOCUS")}
-                            </Text>
-                        </HStack>
-                        <Button size="xs" variant="ghost" color="gray.400" _hover={{ color: "white" }} onClick={onClose}>
-                            <Icon as={X} boxSize={4} />
-                        </Button>
-                    </HStack>
+        <div
+            className="fixed inset-0 z-[10000] flex items-center justify-center"
+            style={{ background: "rgba(0,0,0,0.8)", backdropFilter: "blur(8px)" }}
+            onClick={onClose}
+        >
+            <MotionDiv
+                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                onClick={(e) => e.stopPropagation()}
+                className="w-[480px] mx-auto rounded-xl overflow-hidden"
+                style={{
+                    background: "rgba(10, 15, 30, 0.95)",
+                    border: "1px solid var(--astro-teal)",
+                    boxShadow: "0 25px 50px -12px rgba(0,240,255,0.25)",
+                }}
+            >
+                {/* Header */}
+                <div className="flex items-center justify-between px-4 py-3"
+                    style={{ borderBottom: "1px solid rgba(255,255,255,0.1)", background: "rgba(0,240,255,0.05)" }}>
+                    <div className="flex items-center gap-2">
+                        <Activity size={20} style={{ color: "var(--astro-teal)" }} />
+                        <span className="text-white font-bold tracking-[0.05em]">
+                            {L("FOCUS NUMÉRIQUE IA", "AI NUMERICAL FOCUS")}
+                        </span>
+                    </div>
+                    <button className="text-gray-400 hover:text-white transition-colors p-1 rounded" onClick={onClose}>
+                        <X size={16} />
+                    </button>
+                </div>
 
-                    <Box p={5}>
-                        {/* V-Curve Chart Visualization */}
-                        <Box h="120px" w="full" bg="blackAlpha.500" borderRadius="md" border="1px solid rgba(255,255,255,0.05)" position="relative" mb={5} overflow="hidden">
-                            <Text position="absolute" top={2} left={2} fontSize="10px" color="gray.500">HFR V-CURVE</Text>
-                            
-                            <HStack position="absolute" bottom={0} left={0} right={0} h="full" align="flex-end" justify="space-between" px={4} pb={2}>
-                                {scanData.map((d, idx) => {
-                                    // Normalize display height relative to minHfr to make variations visible
-                                    const h = Math.min(100, Math.max(10, (1000 / (d.hfr + 1)) * 100));
-                                    const isBest = phase === "done" && d.hfr === bestHfr;
-                                    
-                                    return (
-                                        <VStack key={idx} justify="flex-end" h="full" gap={1}>
-                                            <Text fontSize="8px" color={isBest ? "var(--astro-teal)" : "gray.500"}>{d.hfr.toFixed(0)}</Text>
-                                            <Box w="20px" h={`${h}%`} bg={isBest ? "var(--astro-teal)" : "var(--astro-gold)"} opacity={isBest ? 1 : 0.5} borderRadius="sm" transition="all 0.3s" />
-                                        </VStack>
-                                    );
-                                })}
-                            </HStack>
-                            
-                            {phase === "scanning" && (
-                                <Box position="absolute" top={0} left={0} w="full" h="full" background="linear-gradient(90deg, transparent, rgba(0,240,255,0.1), transparent)" className="scan-animation" />
-                            )}
-                        </Box>
+                <div className="p-5 flex flex-col gap-4">
+                    {/* Instructions */}
+                    {phase === "idle" && (
+                        <div className="rounded-md p-3 text-sm text-gray-300 leading-relaxed"
+                            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                            <p className="font-semibold text-white mb-2">{L("Avant de calibrer :", "Before calibrating:")}</p>
+                            <ol className="list-decimal ml-4 space-y-1">
+                                <li>{L("Pointez une étoile brillante (GoTo depuis la carte du ciel).", "Point a bright star (GoTo from the sky map).")}</li>
+                                <li>{L("Faites la mise au point manuellement à la molette du télescope, en vous aidant du live view.", "Focus manually with the telescope knob, using live view.")}</li>
+                                <li>{L("Lancez la calibration : le HFR de référence est mesuré et Gemini calcule le traitement de netteté appliqué à toutes les captures de la session.", "Run calibration: the reference HFR is measured and Gemini computes the sharpening applied to all session captures.")}</li>
+                            </ol>
+                        </div>
+                    )}
 
-                        {/* Status indicators */}
-                        <HStack justify="space-between" mb={4}>
-                            <VStack align="start" gap={0}>
-                                <Text fontSize="10px" color="gray.400">STATUS</Text>
-                                <Text fontSize="12px" color="white" fontWeight="bold">
-                                    {phase === "idle" && L("Prêt", "Ready")}
-                                    {phase === "scanning" && L("Acquisition points...", "Acquiring points...")}
-                                    {phase === "analyzing" && L("Calcul du minimum...", "Calculating minimum...")}
-                                    {phase === "moving_to_best" && L("Ajustement final...", "Final adjustment...")}
-                                    {phase === "done" && L("Focus Optimal", "Optimal Focus")}
-                                </Text>
-                            </VStack>
-                            <VStack align="end" gap={0}>
-                                <Text fontSize="10px" color="gray.400">CURRENT HFR</Text>
-                                <Text fontSize="16px" color="var(--astro-teal)" fontWeight="bold" style={{ fontVariantNumeric: "tabular-nums" }}>
-                                    {currentHfr > 0 ? currentHfr.toFixed(0) : "--"}
-                                </Text>
-                            </VStack>
-                        </HStack>
+                    {/* Profil actif */}
+                    {profile?.active && phase === "done" && (
+                        <div className="rounded-md p-3 text-xs"
+                            style={{ background: "rgba(72,187,120,0.08)", border: "1px solid rgba(72,187,120,0.3)" }}>
+                            <div className="flex items-center gap-2 mb-2">
+                                <Sparkles size={13} style={{ color: "#48BB78" }} />
+                                <span className="font-semibold text-sm" style={{ color: "#48BB78" }}>
+                                    {L("Focus numérique actif", "Numerical focus active")}
+                                    {profile.ai_used ? " · Gemini" : ` · ${L("fallback HFR", "HFR fallback")}`}
+                                </span>
+                            </div>
+                            <div className="grid grid-cols-3 gap-2 text-gray-300 font-mono">
+                                <span>HFR réf : {profile.hfr_ref ?? "n/a"}</span>
+                                <span>Netteté : r{profile.sharpen_radius}px ×{profile.sharpen_amount}</span>
+                                <span>{L("Débruitage", "Denoise")} : {profile.denoise_strength}</span>
+                            </div>
+                            {profile.comment && <p className="mt-2 text-gray-400 italic">💬 {profile.comment}</p>}
+                            {profile.calibrated_at && <p className="mt-1 text-gray-500">{L("Calibré à", "Calibrated at")} {profile.calibrated_at}</p>}
+                        </div>
+                    )}
 
-                        {/* Logs */}
-                        <Box bg="rgba(0,0,0,0.4)" borderRadius="md" p={3} h="100px" overflowY="auto" className="custom-scrollbar" mb={5} border="1px solid rgba(255,255,255,0.05)">
+                    {/* Aperçu après traitement */}
+                    {previewAfter && (
+                        <div className="rounded-md overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.1)" }}>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={previewAfter} alt="Aperçu après traitement" style={{ width: "100%", display: "block" }} />
+                            <div className="px-2 py-1 text-[10px] text-gray-400" style={{ background: "rgba(0,0,0,0.6)" }}>
+                                {L("Aperçu avec le profil appliqué", "Preview with profile applied")}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Logs */}
+                    {logs.length > 0 && (
+                        <div className="rounded-md p-3 max-h-[140px] overflow-y-auto font-mono text-[11px] space-y-1"
+                            style={{ background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.08)" }}>
                             {logs.map((l, i) => (
-                                <Text key={i} fontSize="11px" color={l.type === "error" ? "red.400" : l.type === "success" ? "green.400" : "gray.300"} fontFamily="monospace" mb={1}>
+                                <div key={i} style={{ color: l.type === "success" ? "#48BB78" : l.type === "error" ? "#FC8181" : "#A0AEC0" }}>
                                     {l.msg}
-                                </Text>
+                                </div>
                             ))}
                             <div ref={logsEndRef} />
-                        </Box>
+                        </div>
+                    )}
 
-                        {/* Actions */}
-                        {phase === "idle" || phase === "done" ? (
-                            <Button w="full" bg="var(--astro-teal)" color="black" _hover={{ bg: "cyan.300" }} onClick={runAutofocus}>
-                                <Icon as={Zap} boxSize={4} mr={2} />
-                                {phase === "done" ? L("Relancer Autofocus", "Rerun Autofocus") : L("Démarrer Autofocus", "Start Autofocus")}
-                            </Button>
-                        ) : (
-                            <Button w="full" colorScheme="red" variant="outline" onClick={() => { abortRef.current = true; setPhase("idle"); }}>
-                                {L("Annuler", "Cancel")}
-                            </Button>
+                    {/* Actions */}
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={runCalibration}
+                            disabled={busy}
+                            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md font-semibold text-sm cursor-pointer transition-colors"
+                            style={{
+                                background: busy ? "rgba(0,240,255,0.08)" : "rgba(0,240,255,0.15)",
+                                border: "1px solid var(--astro-teal)",
+                                color: "var(--astro-teal)",
+                                opacity: busy ? 0.6 : 1,
+                            }}
+                        >
+                            {busy ? <Spinner /> : <Focus size={15} />}
+                            {phase === "capturing" ? L("Capture en cours...", "Capturing...")
+                                : phase === "calibrating" ? L("Analyse IA...", "AI analysis...")
+                                : profile?.active ? L("Recalibrer", "Recalibrate")
+                                : L("Calibrer le focus numérique", "Calibrate numerical focus")}
+                        </button>
+                        {profile?.active && !busy && (
+                            <button
+                                onClick={resetProfile}
+                                className="flex items-center gap-1.5 px-3 py-2.5 rounded-md text-sm cursor-pointer"
+                                style={{ background: "rgba(252,165,165,0.1)", border: "1px solid rgba(252,165,165,0.3)", color: "#FCA5A5" }}
+                                title={L("Désactiver le profil", "Disable profile")}
+                            >
+                                <RotateCcw size={14} />
+                            </button>
                         )}
-                    </Box>
-                    <style jsx global>{`
-                        .scan-animation {
-                            animation: scan 2s linear infinite;
-                        }
-                        @keyframes scan {
-                            from { transform: translateX(-100%); }
-                            to { transform: translateX(100%); }
-                        }
-                    `}</style>
-                </MotionBox>
-            </Box>
-        </Portal>
+                    </div>
+                </div>
+            </MotionDiv>
+        </div>
     );
 };
+
+export default AutofocusWizard;

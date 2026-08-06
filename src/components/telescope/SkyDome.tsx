@@ -1,5 +1,5 @@
+// src/components/telescope/SkyDome.tsx
 import React from 'react';
-import { Box, Text } from '@chakra-ui/react';
 
 interface LimitPoint {
   alt: number;
@@ -38,10 +38,17 @@ const toXY = (alt: number, az: number) => {
 
 export const SkyDome: React.FC<{ limits: TelescopeLimits; liveAlt?: number; liveAz?: number }> = ({ limits, liveAlt, liveAz }) => {
   return (
-    <Box bg="rgba(0,0,0,0.5)" borderRadius="8px" border="1px solid rgba(255,255,255,0.06)" p={2}>
-      <Text fontSize="8px" color="whiteAlpha.400" mb={1} letterSpacing="0.08em">
+    <div
+      style={{
+        background: "rgba(0,0,0,0.5)",
+        borderRadius: "8px",
+        border: "1px solid rgba(255,255,255,0.06)",
+        padding: "8px",
+      }}
+    >
+      <p style={{ fontSize: "8px", color: "rgba(255,255,255,0.4)", marginBottom: "4px", letterSpacing: "0.08em" }}>
         CARTE CIEL
-      </Text>
+      </p>
       <svg width={200} height={100} style={{ display: 'block', margin: '0 auto' }}>
         {/* Horizon line */}
         <path d="M 14 92 A 86 86 0 0 1 186 92" fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
@@ -102,6 +109,6 @@ export const SkyDome: React.FC<{ limits: TelescopeLimits; liveAlt?: number; live
           O
         </text>
       </svg>
-    </Box>
+    </div>
   );
 };

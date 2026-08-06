@@ -14,6 +14,7 @@
 import { useRef, useState, useEffect, useCallback } from "react";
 import { useStargazerStore } from "@/store/useStargazerStore";
 import { notification } from "@/lib/notificationService";
+import { clientApiUrl } from "@/lib/clientApi";
 
 export type JogDirection =
   | "up" | "down" | "left" | "right"
@@ -35,6 +36,7 @@ export function useJog(): UseJogReturn {
   const activeDirRef    = useRef<JogDirection | null>(null);
   const intervalRef     = useRef<NodeJS.Timeout | null>(null);
   const startAbortRef   = useRef<AbortController | null>(null);
+  const jogIdRef        = useRef<string | null>(null);
 
   useEffect(() => {
     return () => {
@@ -53,13 +55,13 @@ export function useJog(): UseJogReturn {
 
   /** Envoie un pulse START (fire-and-forget, ignoré si AbortSignal révoqué). */
   const sendStart = useCallback(
-    (direction: JogDirection, signal: AbortSignal) => {
+    (direction: JogDirection, jogId: string, signal: AbortSignal) => {
       const { bridgeIp, device } = getParams();
-      fetch("/api/indi/mount", {
+      fetch(clientApiUrl("/api/indi/mount"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         signal,
-        body: JSON.stringify({ action: "jog", direction, state: "start", device, ip: bridgeIp }),
+        body: JSON.stringify({ action: "jog", direction, state: "start", device, ip: bridgeIp, jog_id: jogId }),
       })
         .then(async (res) => {
           if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
@@ -87,18 +89,22 @@ export function useJog(): UseJogReturn {
 
       const controller = new AbortController();
       startAbortRef.current = controller;
+
+      const jogId = `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+      jogIdRef.current = jogId;
+
       activeDirRef.current = direction;
       setActiveDir(direction);
       setIsMoving(true);
       setSlewing(true);
 
       // Premier pulse immédiat
-      sendStart(direction, controller.signal);
+      sendStart(direction, jogId, controller.signal);
 
       // Pulses suivants toutes les 800ms (< watchdog 1.5s) pour maintenir le mouvement
       intervalRef.current = setInterval(() => {
         if (activeDirRef.current === direction) {
-          sendStart(direction, controller.signal);
+          sendStart(direction, jogId, controller.signal);
         }
       }, 800);
     },
@@ -113,21 +119,26 @@ export function useJog(): UseJogReturn {
     }
 
     const dir = activeDirRef.current;
+    const jogId = jogIdRef.current;
     if (!dir) return;
     activeDirRef.current = null;
+    jogIdRef.current = null;
     setActiveDir(null);
 
-    // 2. Annuler les pulses en vol (le backend les ignore de toute façon car STOP arrive après)
-    startAbortRef.current?.abort();
+    // 2. NE PAS abort le START en vol : sur un tap rapide (pointerdown+up quasi
+    //    simultanés) l'abort tuait le START avant qu'il n'atteigne le backend
+    //    (net::ERR_ABORTED) → la monture ne recevait jamais l'ordre de mouvement.
+    //    Le backend ignore déjà les pulses tardifs via jog_id/_stopped_jog_ids,
+    //    et le STOP ci-dessous arrête le mouvement. On laisse donc le START finir.
     startAbortRef.current = null;
 
     const { bridgeIp, device } = getParams();
 
     // 3. STOP — pas de signal abort, doit arriver coûte que coûte
-    fetch("/api/indi/mount", {
+    fetch(clientApiUrl("/api/indi/mount"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "jog", direction: dir, state: "stop", device, ip: bridgeIp }),
+      body: JSON.stringify({ action: "jog", direction: dir, state: "stop", device, ip: bridgeIp, jog_id: jogId }),
     })
       .then(async (res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);

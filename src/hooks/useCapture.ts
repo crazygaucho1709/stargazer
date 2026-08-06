@@ -16,6 +16,15 @@ import { notification } from "@/lib/notificationService";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+export interface FrameStats {
+  saturated_pct: number;
+  under_pct: number;
+  mean: number;
+  verdict: "ok" | "overexposed" | "underexposed";
+  suggestion: string | null;
+  histogram: number[];
+}
+
 export interface CaptureState {
   running: boolean;
   phase: "idle" | "capturing" | "stacking" | "complete" | "error";
@@ -27,6 +36,11 @@ export interface CaptureState {
   snr: number | null;
   stack_count: number;
   last_thumbnail: string | null;
+  last_file: string | null;
+  preview_label: string;
+  exposure_s: number;
+  stats: FrameStats | null;
+  preview_suppressed: boolean;
   log: { time: string; msg: string; type: "info" | "success" | "error" | "warn" }[];
   error: string | null;
 }
@@ -42,6 +56,10 @@ export interface UseCaptureReturn {
   state: CaptureState;
   start: (params: StartParams) => Promise<void>;
   stop: () => Promise<void>;
+  /** Supprime définitivement la dernière capture + son thumbnail côté serveur */
+  discard: () => Promise<boolean>;
+  /** Amélioration auto (débruitage, asinh, WB, CLAHE) — retourne le base64 amélioré */
+  enhance: () => Promise<string | null>;
   /** true pendant le POST /capture/sequence/start */
   starting: boolean;
   /** Message d'erreur si le démarrage a échoué */
@@ -59,6 +77,11 @@ const INITIAL_STATE: CaptureState = {
   snr: null,
   stack_count: 0,
   last_thumbnail: null,
+  last_file: null,
+  preview_label: "",
+  exposure_s: 0,
+  stats: null,
+  preview_suppressed: false,
   log: [],
   error: null,
 };
@@ -156,5 +179,51 @@ export function useCapture(): UseCaptureReturn {
     }
   }, [baseUrl]);
 
-  return { state, start, stop, starting, startError };
+  const discard = useCallback(async (): Promise<boolean> => {
+    try {
+      const res = await fetch(`${baseUrl}/capture/discard`, { method: "POST" });
+      const data = await res.json();
+      if (!data.success) {
+        notification.error("Suppression de la capture échouée", {
+          description: data.error ?? `HTTP ${res.status}`,
+          source: "Capture",
+        });
+        return false;
+      }
+      notification.success("Capture supprimée", {
+        description: (data.deleted as string[] | undefined)?.join(", "),
+        source: "Capture",
+      });
+      return true;
+    } catch (e: any) {
+      notification.error("Suppression de la capture échouée", {
+        description: e.message ?? "Connexion échouée",
+        source: "Capture",
+      });
+      return false;
+    }
+  }, [baseUrl]);
+
+  const enhance = useCallback(async (): Promise<string | null> => {
+    try {
+      const res = await fetch(`${baseUrl}/capture/enhance`, { method: "POST", signal: AbortSignal.timeout(60_000) });
+      const data = await res.json();
+      if (!data.success) {
+        notification.error("Amélioration auto échouée", {
+          description: data.error ?? `HTTP ${res.status}`,
+          source: "Capture",
+        });
+        return null;
+      }
+      return data.image as string;
+    } catch (e: any) {
+      notification.error("Amélioration auto échouée", {
+        description: e.message ?? "Connexion échouée",
+        source: "Capture",
+      });
+      return null;
+    }
+  }, [baseUrl]);
+
+  return { state, start, stop, discard, enhance, starting, startError };
 }

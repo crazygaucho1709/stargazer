@@ -1,3 +1,4 @@
+// src/hooks/useMountCoords.ts
 "use client";
 
 /**
@@ -5,16 +6,18 @@
  *
  * Remplace le polling HTTP /health pour RA/DEC :
  *  - Connexion SSE persistante sur /api/indi/coords/stream
- *  - Reconnexion auto après 3s si le stream se coupe
+ *  - Reconnexion auto avec backoff exponentiel (via useSSE)
  *  - Met à jour le store Zustand (setPosition) à chaque push backend (500ms)
  *  - Expose mount_slew_state pour le tracking de slew
+ *  - Expose isConnected, reconnectCount, latencyMs pour le status bar
  *
  * Usage : appeler une seule fois dans page.tsx — le hook gère son propre cycle de vie.
  */
 
-import { useEffect, useRef } from "react";
+import { useCallback } from "react";
 import { useStargazerStore } from "@/store/useStargazerStore";
 import { clientApiUrl } from "@/lib/clientApi";
+import { useSSE, SSEState } from "@/hooks/useSSE";
 
 interface CoordsPayload {
   ra: string;
@@ -25,55 +28,31 @@ interface CoordsPayload {
   error?: string;
 }
 
-export function useMountCoords() {
+export function useMountCoords(): SSEState {
   const { setPosition, isConnected } = useStargazerStore();
-  const esRef = useRef<EventSource | null>(null);
-  const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    // Ne pas ouvrir le stream si on n'est pas connecté au backend
-    if (!isConnected) return;
-
-    const connect = () => {
-      if (esRef.current) return; // déjà connecté
-
-      const es = new EventSource(clientApiUrl("/api/indi/coords/stream"));
-      esRef.current = es;
-
-      es.onmessage = (evt) => {
-        try {
-          const data: CoordsPayload = JSON.parse(evt.data);
-          if (data.error) return; // backend temporairement indispo — ignorer
-          if (data.ra && data.dec) {
-            setPosition(data.ra, data.dec);
-          }
-          // Sync l'état de slew dans le store si disponible
-          if (data.mount_slew_state) {
-            const store = useStargazerStore.getState();
-            const nowSlewing = data.mount_slew_state === "Busy";
-            if (store.isSlewing !== nowSlewing) {
-              store.setSlewing?.(nowSlewing);
-            }
-          }
-        } catch {
-          // Donnée SSE malformée — ignorer
+  const handleMessage = useCallback(
+    (data: CoordsPayload) => {
+      if (data.error) return; // backend temporairement indispo — ignorer
+      if (data.ra && data.dec) {
+        setPosition(data.ra, data.dec);
+      }
+      if (data.mount_slew_state) {
+        const store = useStargazerStore.getState();
+        const nowSlewing = data.mount_slew_state === "Busy";
+        if (store.isSlewing !== nowSlewing) {
+          store.setSlewing?.(nowSlewing);
         }
-      };
+      }
+    },
+    [setPosition]
+  );
 
-      es.onerror = () => {
-        es.close();
-        esRef.current = null;
-        // Reconnexion dans 3s
-        reconnectTimer.current = setTimeout(connect, 3_000);
-      };
-    };
-
-    connect();
-
-    return () => {
-      esRef.current?.close();
-      esRef.current = null;
-      if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
-    };
-  }, [isConnected, setPosition]);
+  return useSSE<CoordsPayload>({
+    url: clientApiUrl("/api/indi/coords/stream"),
+    onMessage: handleMessage,
+    enabled: isConnected,
+    reconnectDelay: 2_000,
+    maxReconnectDelay: 30_000,
+  });
 }

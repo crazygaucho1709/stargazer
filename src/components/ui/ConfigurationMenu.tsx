@@ -1,12 +1,11 @@
+// src/components/ui/ConfigurationMenu.tsx
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
 import {
-    Box, IconButton, VStack, HStack, Text, Input, Button, Heading, Icon, Flex, Grid, Portal, Spinner
-} from "@chakra-ui/react";
-import {
-    Settings, Cpu, Radio, Zap, ShieldCheck, X, Camera, Telescope, Gamepad2, Compass, Layers, Wand2, Power, Globe, LocateFixed, Activity, RefreshCw
+    Settings, Cpu, Radio, Zap, ShieldCheck, X, Camera, Telescope, Gamepad2, Compass, Layers, Wand2, Power, Globe, LocateFixed, Activity, RefreshCw, CheckCircle, XCircle, Loader
 } from "lucide-react";
+import { useAiAuth } from "@/hooks/useAiAuth";
 import { useStargazerStore } from "@/store/useStargazerStore";
 import { t } from "@/i18n/translations";
 import { useEnvironmentData } from "@/hooks/useEnvironmentData";
@@ -20,532 +19,689 @@ import { AutofocusWizard } from "@/components/telescope/AutofocusWizard";
 import ObservatoryPanel from "@/components/observatory/ObservatoryPanel";
 import { notification } from "@/lib/notificationService";
 import { validateUrl, validateRequired, validateLatitude, validateLongitude, validatePositiveInt, validateMinAlt, validateMaxAlt } from "@/lib/validation";
+import { createPortal } from "react-dom";
 
+function Spinner() {
+    return <div className="w-4 h-4 rounded-full border-2 border-white/20 border-t-white animate-spin" />;
+}
+
+function Field({ label, error, children }: { label: string; error?: string | null; children: React.ReactNode }) {
+    return (
+        <div className="w-full">
+            <p className="text-[10px] mb-2" style={{ color: "rgba(255,255,255,0.7)" }}>{label}</p>
+            {children}
+            {error && <p className="text-[10px] mt-1" style={{ color: "#FC8181" }}>{error}</p>}
+        </div>
+    );
+}
+
+const INPUT_CLS = "w-full px-3 py-2 rounded text-white text-sm outline-none transition-colors";
+const INPUT_STYLE = { background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.2)" };
+const SELECT_STYLE: React.CSSProperties = { width: "100%", background: "rgba(0,0,0,0.5)", border: "1px solid rgba(255,255,255,0.2)", color: "white", padding: "8px", borderRadius: "4px" };
 
 export const ConfigurationMenu = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [activeTab, setActiveTab] = useState("hardware");
-    
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => { setMounted(true); }, []);
+
     const { config, updateConfig, language, setLanguage, setConfigMenuOpen } = useStargazerStore();
 
-    const onOpen = () => {
-        setIsOpen(true);
-        setConfigMenuOpen(true);
-    };
-    const onClose = () => {
-        setIsOpen(false);
-        setConfigMenuOpen(false);
-    };
+    const onOpen = () => { setIsOpen(true); setConfigMenuOpen(true); };
+    const onClose = () => { setIsOpen(false); setConfigMenuOpen(false); };
 
-    useEffect(() => {
-        return () => {
-            setConfigMenuOpen(false);
-        };
-    }, [setConfigMenuOpen]);
+    useEffect(() => () => { setConfigMenuOpen(false); }, [setConfigMenuOpen]);
 
     const tabs = [
-        { id: "autoalign", label: language === 'fr' ? "AUTO-ALIGN IA" : "AUTO-ALIGN AI", icon: LocateFixed },
-        { id: "wizard", label: t("TAB_WIZARD", language), icon: Wand2 },
-        { id: "hardware", label: t("TAB_HARDWARE", language), icon: Cpu },
-        { id: "mount", label: t("TAB_MOUNT", language), icon: Telescope },
-        { id: "camera", label: t("TAB_CAMERA", language), icon: Camera },
-        { id: "objects", label: language === 'fr' ? "CATALOGUE" : "CATALOG", icon: Compass },
-        { id: "capture", label: t("TAB_CAPTURE", language), icon: Layers },
-        { id: "gamepad", label: t("TAB_GAMEPAD", language), icon: Gamepad2 },
-        { id: "system", label: t("TAB_SYSTEM", language), icon: Globe },
-        { id: "bridge", label: language === 'fr' ? "RÉSEAU & LOGS" : "NETWORK & LOGS", icon: Activity },
-        { id: "observatory", label: language === 'fr' ? "OBSERVATOIRE" : "OBSERVATORY", icon: Radio },
+        { id: "autoalign",   label: language === 'fr' ? "ALIGNEMENT & CALIBRATION" : "ALIGNMENT & CALIBRATION", icon: LocateFixed },
+        { id: "hardware",    label: t("TAB_HARDWARE", language),                               icon: Cpu },
+        { id: "mount",       label: t("TAB_MOUNT", language),                                  icon: Telescope },
+        { id: "camera",      label: t("TAB_CAMERA", language),                                 icon: Camera },
+        { id: "objects",     label: language === 'fr' ? "CATALOGUE" : "CATALOG",              icon: Compass },
+        { id: "capture",     label: t("TAB_CAPTURE", language),                                icon: Layers },
+        { id: "gamepad",     label: t("TAB_GAMEPAD", language),                                icon: Gamepad2 },
+        { id: "system",      label: t("TAB_SYSTEM", language),                                 icon: Globe },
+        { id: "bridge",      label: language === 'fr' ? "RÉSEAU & LOGS" : "NETWORK & LOGS",  icon: Activity },
+        { id: "observatory", label: language === 'fr' ? "OBSERVATOIRE" : "OBSERVATORY",       icon: Radio },
     ];
 
     return (
         <>
-            <IconButton
+            <button
                 aria-label="Configuration"
-                variant="ghost"
-                color="var(--astro-teal)"
-                _hover={{ bg: "rgba(0, 240, 255, 0.1)", transform: "rotate(90deg)" }}
-                transition="all 0.4s"
+                className="p-2 rounded transition-all duration-[400ms] cursor-pointer"
+                style={{ color: "var(--astro-teal)" }}
+                onMouseEnter={e => {
+                    (e.currentTarget as HTMLElement).style.background = "rgba(0, 240, 255, 0.1)";
+                    (e.currentTarget as HTMLElement).style.transform = "rotate(90deg)";
+                }}
+                onMouseLeave={e => {
+                    (e.currentTarget as HTMLElement).style.background = "";
+                    (e.currentTarget as HTMLElement).style.transform = "";
+                }}
                 onClick={onOpen}
             >
                 <Settings size={22} />
-            </IconButton>
+            </button>
 
-            {/* Render Backdrop and Panel inside a Portal to escape local stacking context */}
-            <Portal>
-                {/* Backdrop */}
-                {isOpen && (
-                    <Box 
-                        position="fixed" inset={0} bg="rgba(0,0,0,0.8)" 
-                        backdropFilter="blur(20px)" zIndex={9998} onClick={onClose}
-                    />
-                )}
+            {mounted && createPortal(
+                <>
+                    {/* Backdrop */}
+                    {isOpen && (
+                        <div
+                            className="fixed inset-0 z-[9998]"
+                            style={{ background: "rgba(0,0,0,0.8)", backdropFilter: "blur(20px)" }}
+                            onClick={onClose}
+                        />
+                    )}
 
-                {/* Sliding Full/Large Panel */}
-                <Box
-                    position="fixed" top="5%" right={isOpen ? "5%" : "-100%"}
-                    h="90vh" w="90vw" maxW="1200px"
-                    bg="rgba(5, 5, 10, 0.95)" color="white"
-                    border="1px solid rgba(0, 240, 255, 0.2)"
-                    borderRadius="16px"
-                    transition="right 0.4s cubic-bezier(0.4, 0, 0.2, 1)"
-                    zIndex={9999}
-                    boxShadow="-5px 0 50px rgba(0,240,255,0.1)"
-                    overflow="hidden"
-                    display="flex"
-                    flexDirection="column"
-                >
-                {/* Header */}
-                <Box p={6} borderBottomWidth="1px" borderColor="whiteAlpha.100" position="relative" bg="rgba(255,255,255,0.02)">
-                    <HStack gap={4}>
-                        <Icon as={Wand2} color="#00F0FF" boxSize={6} />
-                        <VStack align="start" gap={0}>
-                            <Heading size="md" className="hud-font" letterSpacing="0.1em">{t("CONFIG_TITLE", language)}</Heading>
-                            <Text fontSize="10px" color="whiteAlpha.500" letterSpacing="0.2em">{t("CONFIG_SUBTITLE", language)}</Text>
-                        </VStack>
-                    </HStack>
-                    <IconButton
-                        aria-label="Close" position="absolute" top={6} right={6} variant="ghost" color="whiteAlpha.600"
-                        _hover={{ bg: "rgba(255,51,51,0.2)", color: "var(--astro-gold)" }} onClick={onClose}
+                    {/* Sliding Panel */}
+                    <div
+                        className="fixed top-[5%] h-[90vh] w-[90vw] max-w-[1200px] flex flex-col overflow-hidden z-[9999] text-white transition-all duration-[400ms]"
+                        style={{
+                            right: isOpen ? "5%" : "-100%",
+                            background: "rgba(5, 5, 10, 0.95)",
+                            border: "1px solid rgba(0, 240, 255, 0.2)",
+                            borderRadius: "16px",
+                            boxShadow: "-5px 0 50px rgba(0,240,255,0.1)",
+                            transitionTimingFunction: "cubic-bezier(0.4, 0, 0.2, 1)",
+                        }}
                     >
-                        <X size={24} />
-                    </IconButton>
-                </Box>
-
-                {/* Body (Sidebar + Content) */}
-                <Flex flex={1} overflow="hidden">
-                    {/* Sidebar Tabs */}
-                    <VStack w="280px" borderRight="1px solid rgba(255,255,255,0.05)" p={4} align="stretch" gap={2} bg="rgba(0,0,0,0.2)">
-                        {tabs.map(tab => (
-                            <Button
-                                key={tab.id}
-                                variant="ghost"
-                                justifyContent="flex-start"
-                                w="full"
-                                py={6}
-                                bg={activeTab === tab.id ? "rgba(0, 240, 255, 0.1)" : "transparent"}
-                                color={activeTab === tab.id ? "#00F0FF" : "whiteAlpha.700"}
-                                borderLeft={activeTab === tab.id ? "3px solid #00F0FF" : "3px solid transparent"}
-                                _hover={{ bg: "rgba(255,255,255,0.05)" }}
-                                onClick={() => setActiveTab(tab.id)}
+                        {/* Header */}
+                        <div
+                            className="relative flex items-center gap-4 p-6"
+                            style={{ borderBottom: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.02)" }}
+                        >
+                            <Wand2 size={24} style={{ color: "#00F0FF" }} />
+                            <div className="flex flex-col gap-0">
+                                <h2 className="hud-font font-bold tracking-[0.1em] text-lg">{t("CONFIG_TITLE", language)}</h2>
+                                <span className="text-[10px] tracking-[0.2em]" style={{ color: "rgba(255,255,255,0.5)" }}>{t("CONFIG_SUBTITLE", language)}</span>
+                            </div>
+                            <button
+                                className="absolute top-6 right-6 p-2 rounded transition-colors cursor-pointer"
+                                style={{ color: "rgba(255,255,255,0.6)" }}
+                                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(255,51,51,0.2)"; (e.currentTarget as HTMLElement).style.color = "var(--astro-gold)"; }}
+                                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ""; (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.6)"; }}
+                                onClick={onClose}
                             >
-                                <HStack gap={3}>
-                                    <Icon as={tab.icon} boxSize={5} />
-                                    <Text fontSize="12px" fontWeight="bold" letterSpacing="0.05em">{tab.label.toUpperCase()}</Text>
-                                </HStack>
-                            </Button>
-                        ))}
-                    </VStack>
+                                <X size={24} />
+                            </button>
+                        </div>
 
-                    {/* Content Area */}
-                    <Box flex={1} p={8} overflowY="auto" className="custom-scrollbar">
-                        {activeTab === "autoalign" && <AutoAlignWizardWrapper language={language} />}
-                        {activeTab === "wizard" && <CalibrationWizardWrapper language={language} setActiveTab={setActiveTab} onClose={onClose} />}
-                        {activeTab === "hardware" && <HardwareTab config={config} updateConfig={updateConfig} language={language} />}
-                        {activeTab === "mount" && <MountTab config={config} updateConfig={updateConfig} language={language} />}
-                        {activeTab === "camera" && <CameraTab config={config} updateConfig={updateConfig} language={language} />}
-                        {activeTab === "objects" && <ObjectsTab language={language} />}
-                        {activeTab === "capture" && <CaptureAndStack />}
-                        {activeTab === "gamepad" && <GamepadTab language={language} />}
-                        {activeTab === "system" && <SystemTab config={config} updateConfig={updateConfig} language={language} setLanguage={setLanguage} />}
-                        {activeTab === "bridge" && <BridgeTab config={config} language={language} />}
-                        {activeTab === "observatory" && <ObservatoryPanel />}
-                    </Box>
-                </Flex>
-            </Box>
-            </Portal>
+                        {/* Body */}
+                        <div className="flex flex-1 overflow-hidden">
+                            {/* Sidebar */}
+                            <div className="flex flex-col gap-2 w-[280px] p-4 overflow-y-auto" style={{ borderRight: "1px solid rgba(255,255,255,0.05)", background: "rgba(0,0,0,0.2)" }}>
+                                {tabs.map(tab => {
+                                    const active = activeTab === tab.id;
+                                    const Ico = tab.icon;
+                                    return (
+                                        <button
+                                            key={tab.id}
+                                            className="flex items-center gap-3 w-full py-3 px-3 rounded text-left transition-colors cursor-pointer"
+                                            style={{
+                                                background: active ? "rgba(0, 240, 255, 0.1)" : "transparent",
+                                                color: active ? "#00F0FF" : "rgba(255,255,255,0.7)",
+                                                borderLeft: active ? "3px solid #00F0FF" : "3px solid transparent",
+                                            }}
+                                            onMouseEnter={e => { if (!active) (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.05)"; }}
+                                            onMouseLeave={e => { if (!active) (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+                                            onClick={() => setActiveTab(tab.id)}
+                                        >
+                                            <Ico size={20} />
+                                            <span className="text-[12px] font-bold tracking-[0.05em]">{tab.label.toUpperCase()}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Content */}
+                            <div className="flex-1 p-8 overflow-y-auto custom-scrollbar">
+                                {activeTab === "autoalign"   && <AlignmentTab language={language} />}
+                                {activeTab === "hardware"    && <HardwareTab config={config} updateConfig={updateConfig} language={language} />}
+                                {activeTab === "mount"       && <MountTab config={config} updateConfig={updateConfig} language={language} />}
+                                {activeTab === "camera"      && <CameraTab config={config} updateConfig={updateConfig} language={language} />}
+                                {activeTab === "objects"     && <ObjectsTab language={language} />}
+                                {activeTab === "capture"     && <CaptureAndStack />}
+                                {activeTab === "gamepad"     && <GamepadTab language={language} />}
+                                {activeTab === "system"      && <SystemTab config={config} updateConfig={updateConfig} language={language} setLanguage={setLanguage} />}
+                                {activeTab === "bridge"      && <BridgeTab config={config} language={language} />}
+                                {activeTab === "observatory" && <ObservatoryPanel />}
+                            </div>
+                        </div>
+                    </div>
+                </>,
+                document.body
+            )}
         </>
     );
 };
 
-/* --- TAB COMPONENTS --- */
+/* ─── Tab wrappers ─────────────────────────────────────────────────────────── */
 
-const AutoAlignWizardWrapper = ({ language }: { language: string }) => (
-    <VStack align="stretch" gap={8}>
-        <Box bg="rgba(0,255,209,0.04)" p={6} borderRadius="8px" border="1px solid rgba(0,255,209,0.18)">
-            <HStack mb={4} gap={3}>
-                <Icon as={LocateFixed} color="var(--astro-teal)" boxSize={6} />
-                <VStack align="start" gap={0}>
-                    <Heading size="sm" color="white">
-                        {language === 'fr' ? 'Auto-Alignement IA' : 'Auto-Align AI'}
-                    </Heading>
-                    <Text fontSize="10px" color="whiteAlpha.500" letterSpacing="0.08em">
-                        {language === 'fr'
-                            ? 'Localisation autonome par plate solving — 3 captures — triangulation'
-                            : 'Autonomous localization via plate solving — 3 captures — triangulation'}
-                    </Text>
-                </VStack>
-            </HStack>
-            <AutoAlignWizard />
-        </Box>
-    </VStack>
-);
+/**
+ * AlignmentTab — fusion Auto-Align IA + Calibration manuelle.
+ * Deux modes sous un seul onglet : l'auto-alignement autonome (plate solving)
+ * et la calibration manuelle guidée (limites alt/az, park, alignement étoile).
+ */
+const AlignmentTab = ({ language }: { language: string }) => {
+    const [mode, setMode] = useState<"auto" | "manual">("auto");
+    const fr = language === "fr";
 
-const CalibrationWizardWrapper = ({ language, setActiveTab, onClose }: any) => {
+    const modes: Array<{ id: "auto" | "manual"; label: string; icon: React.ElementType }> = [
+        { id: "auto",   label: fr ? "Auto IA" : "Auto AI",                icon: LocateFixed },
+        { id: "manual", label: fr ? "Calibration manuelle" : "Manual calibration", icon: Wand2 },
+    ];
+
     return (
-        <VStack align="stretch" gap={8}>
-            <Box bg="rgba(0, 240, 255, 0.05)" p={6} borderRadius="8px" border="1px solid rgba(0, 240, 255, 0.2)">
-                <HStack mb={4} gap={3}>
-                    <Icon as={Wand2} color="#00F0FF" boxSize={6} />
-                    <Heading size="sm" color="white">
-                        {language === 'fr' ? 'Assistant de Calibration' : 'Calibration Assistant'}
-                    </Heading>
-                </HStack>
-                <CalibrationWizard />
-            </Box>
-        </VStack>
-    );
-};
+        <div className="flex flex-col gap-6">
+            {/* Mode toggle */}
+            <div className="flex gap-2 p-1 rounded-lg w-fit" style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                {modes.map(({ id, label, icon: Ico }) => {
+                    const active = mode === id;
+                    return (
+                        <button
+                            key={id}
+                            onClick={() => setMode(id)}
+                            className="flex items-center gap-2 px-4 py-2 rounded-md text-[12px] font-bold transition-colors cursor-pointer"
+                            style={{
+                                background: active ? "rgba(0,240,255,0.12)" : "transparent",
+                                color: active ? "#00F0FF" : "rgba(255,255,255,0.55)",
+                                border: active ? "1px solid rgba(0,240,255,0.4)" : "1px solid transparent",
+                            }}
+                        >
+                            <Ico size={15} />
+                            {label}
+                        </button>
+                    );
+                })}
+            </div>
 
-
-
-
-const WizardStep = ({ step, title, status, desc, action, language }: any) => {
-    const isDone = status === "DONE";
-    const isActive = status === "ACTIVE";
-    return (
-        <Box p={5} borderRadius="8px" border="1px solid" borderColor={isActive ? "#00F0FF" : "whiteAlpha.100"} bg={isActive ? "rgba(0, 240, 255, 0.05)" : "rgba(0,0,0,0.3)"}>
-            <HStack justify="space-between" mb={3}>
-                <HStack gap={3}>
-                    <Box w="24px" h="24px" borderRadius="full" bg={isDone ? "green.500" : isActive ? "#00F0FF" : "whiteAlpha.200"} color={isDone || isActive ? "black" : "white"} display="flex" alignItems="center" justifyContent="center" fontSize="12px" fontWeight="bold">
-                        {step}
-                    </Box>
-                    <Text fontSize="12px" fontWeight="bold" color={isActive ? "#00F0FF" : "white"}>{title}</Text>
-                </HStack>
-                {isDone && <Icon as={ShieldCheck} color="green.500" />}
-            </HStack>
-            <Text fontSize="11px" color="whiteAlpha.600" mb={isActive ? 4 : 0}>{desc}</Text>
-            {isActive && action && (
-                <Button size="sm" w="full" variant="outline" borderColor="#00F0FF" color="#00F0FF" fontSize="10px">
-                    {action}
-                </Button>
+            {mode === "auto" ? (
+                <div className="p-6 rounded-lg" style={{ background: "rgba(0,255,209,0.04)", border: "1px solid rgba(0,255,209,0.18)" }}>
+                    <div className="flex items-center gap-3 mb-4">
+                        <LocateFixed size={24} style={{ color: "var(--astro-teal)" }} />
+                        <div className="flex flex-col gap-0">
+                            <h3 className="text-white font-bold">{fr ? 'Auto-Alignement IA' : 'Auto-Align AI'}</h3>
+                            <span className="text-[10px] tracking-[0.08em]" style={{ color: "rgba(255,255,255,0.5)" }}>
+                                {fr
+                                    ? 'Localisation autonome par plate solving — 3 captures — triangulation'
+                                    : 'Autonomous localization via plate solving — 3 captures — triangulation'}
+                            </span>
+                        </div>
+                    </div>
+                    <AutoAlignWizard />
+                </div>
+            ) : (
+                <div className="p-6 rounded-lg" style={{ background: "rgba(0, 240, 255, 0.05)", border: "1px solid rgba(0, 240, 255, 0.2)" }}>
+                    <div className="flex items-center gap-3 mb-4">
+                        <Wand2 size={24} style={{ color: "#00F0FF" }} />
+                        <div className="flex flex-col gap-0">
+                            <h3 className="text-white font-bold">{fr ? 'Calibration manuelle' : 'Manual calibration'}</h3>
+                            <span className="text-[10px] tracking-[0.08em]" style={{ color: "rgba(255,255,255,0.5)" }}>
+                                {fr
+                                    ? 'Séquence guidée — limites alt/az, park, test caméra, alignement étoile'
+                                    : 'Guided sequence — alt/az limits, park, camera test, star alignment'}
+                            </span>
+                        </div>
+                    </div>
+                    <CalibrationWizard />
+                </div>
             )}
-        </Box>
+        </div>
     );
 };
+
+/* ─── Hardware Tab ─────────────────────────────────────────────────────────── */
 
 const HardwareTab = ({ config, updateConfig, language }: any) => {
     const { execute, isPending } = useAstroAction();
     const [errors, setErrors] = useState<Record<string, string | null>>({});
-
-    const setError = (field: string, msg: string | null) => {
-        setErrors((prev) => ({ ...prev, [field]: msg }));
-    };
+    const setError = (field: string, msg: string | null) => setErrors(p => ({ ...p, [field]: msg }));
 
     const handleTest = async () => {
         const urlErr = validateUrl(config.astroberryUrl);
         const drvErr = validateRequired(config.driverInstance);
         setError("astroberryUrl", urlErr);
         setError("driverInstance", drvErr);
-        if (urlErr || drvErr) {
-            notification.warning("Corrigez les erreurs avant de tester", { source: "Configuration" });
-            return;
-        }
+        if (urlErr || drvErr) { notification.warning("Corrigez les erreurs avant de tester", { source: "Configuration" }); return; }
         await execute(
-            async () => {
-                const res = await fetch('/api/indi/health-full');
-                return res.json();
-            },
+            async () => { const res = await fetch('/api/indi/health-full'); return res.json(); },
             language === 'fr' ? "TEST DE CONNEXION" : "CONNECTION TEST",
             { loadingMessage: language === 'fr' ? "VÉRIFICATION DE LA LIAISON..." : "VERIFYING LINK..." }
         );
     };
 
     return (
-        <VStack align="stretch" gap={8}>
-            <Text fontSize="sm" color="whiteAlpha.600">{t("HW_DESC", language)}</Text>
-            
-            <Box>
-                <HStack mb={4} gap={2}><Icon as={Radio} boxSize={4} color="#00F0FF" /><Text fontSize="12px" fontWeight="bold" letterSpacing="0.1em">{t("HW_ASTROBERRY", language)}</Text></HStack>
-                <VStack gap={4}>
-                    <Box w="full">
-                        <Text fontSize="10px" color="whiteAlpha.700" mb={2}>{t("HW_SERVER_URL", language)}</Text>
-                        <Input
-                            bg="rgba(0,0,0,0.3)"
-                            borderColor={errors.astroberryUrl ? "red.400" : "whiteAlpha.200"}
+        <div className="flex flex-col gap-8">
+            <p className="text-sm" style={{ color: "rgba(255,255,255,0.6)" }}>{t("HW_DESC", language)}</p>
+
+            <div>
+                <div className="flex items-center gap-2 mb-4">
+                    <Radio size={16} style={{ color: "#00F0FF" }} />
+                    <span className="text-[12px] font-bold tracking-[0.1em]">{t("HW_ASTROBERRY", language)}</span>
+                </div>
+                <div className="flex flex-col gap-4">
+                    <Field label={t("HW_SERVER_URL", language)} error={errors.astroberryUrl}>
+                        <input
+                            className={INPUT_CLS}
+                            style={{ ...INPUT_STYLE, borderColor: errors.astroberryUrl ? "#FC8181" : "rgba(255,255,255,0.2)" }}
                             value={config.astroberryUrl}
-                            onChange={(e) => { updateConfig({ astroberryUrl: e.target.value }); setError("astroberryUrl", null); }}
+                            onChange={e => { updateConfig({ astroberryUrl: e.target.value }); setError("astroberryUrl", null); }}
                             onBlur={() => setError("astroberryUrl", validateUrl(config.astroberryUrl))}
                         />
-                        {errors.astroberryUrl && <Text fontSize="10px" color="red.400" mt={1}>{errors.astroberryUrl}</Text>}
-                    </Box>
-                    <HStack w="full" gap={4}>
-                        <Box flex={1}>
-                            <Text fontSize="10px" color="whiteAlpha.700" mb={2}>{t("HW_DRIVER", language)}</Text>
-                            <Input
-                                bg="rgba(0,0,0,0.3)"
-                                borderColor={errors.driverInstance ? "red.400" : "whiteAlpha.200"}
+                    </Field>
+                    <div className="flex gap-4 w-full">
+                        <Field label={t("HW_DRIVER", language)} error={errors.driverInstance}>
+                            <input
+                                className={INPUT_CLS}
+                                style={{ ...INPUT_STYLE, borderColor: errors.driverInstance ? "#FC8181" : "rgba(255,255,255,0.2)" }}
                                 value={config.driverInstance}
-                                onChange={(e) => { updateConfig({ driverInstance: e.target.value }); setError("driverInstance", null); }}
+                                onChange={e => { updateConfig({ driverInstance: e.target.value }); setError("driverInstance", null); }}
                                 onBlur={() => setError("driverInstance", validateRequired(config.driverInstance))}
                             />
-                            {errors.driverInstance && <Text fontSize="10px" color="red.400" mt={1}>{errors.driverInstance}</Text>}
-                        </Box>
-                        <Box flex={1}>
-                            <Text fontSize="10px" color="whiteAlpha.700" mb={2}>{t("HW_BAUD", language)}</Text>
-                            <select value={config.baudRate} onChange={(e) => updateConfig({ baudRate: e.target.value })} style={{ width: "100%", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.2)", color: "white", padding: "8px", borderRadius: "4px" }}>
+                        </Field>
+                        <Field label={t("HW_BAUD", language)}>
+                            <select value={config.baudRate} onChange={e => updateConfig({ baudRate: e.target.value })} style={SELECT_STYLE}>
                                 <option value="9600">9600</option>
                                 <option value="115200">115200</option>
                             </select>
-                        </Box>
-                    </HStack>
-                    <Button w="full" colorScheme="cyan" variant="outline" size="sm" onClick={handleTest} disabled={isPending}>
-                        {isPending ? <Spinner size="sm" mr={2} /> : null}
+                        </Field>
+                    </div>
+                    <button
+                        className="flex items-center justify-center gap-2 w-full h-9 rounded text-sm border transition-colors cursor-pointer disabled:opacity-50"
+                        style={{ borderColor: "#00F0FF", color: "#00F0FF" }}
+                        onMouseEnter={e => (e.currentTarget.style.background = "rgba(0,240,255,0.1)")}
+                        onMouseLeave={e => (e.currentTarget.style.background = "")}
+                        onClick={handleTest}
+                        disabled={isPending}
+                    >
+                        {isPending && <Spinner />}
                         {t("HW_BTN_TEST", language)}
-                    </Button>
-                </VStack>
-            </Box>
+                    </button>
+                </div>
+            </div>
 
-            <Box borderBottomWidth="1px" borderColor="whiteAlpha.100" />
+            <div className="h-px" style={{ background: "rgba(255,255,255,0.1)" }} />
 
-            <Box>
-                <HStack mb={4} gap={2}><Icon as={Wand2} boxSize={4} color="var(--astro-gold)" /><Text fontSize="12px" fontWeight="bold" letterSpacing="0.1em" color="var(--astro-gold)">{t("HW_AI_TITLE", language)}</Text></HStack>
-                <Box w="full">
-                    <Text fontSize="10px" color="whiteAlpha.700" mb={2}>{t("HW_AI_KEY", language)}</Text>
-                    <Input type="password" bg="rgba(0,0,0,0.3)" borderColor="whiteAlpha.200" placeholder="AI Key..." value={config.aiKey} onChange={(e) => updateConfig({ aiKey: e.target.value })} />
-                </Box>
-            </Box>
-        </VStack>
+            <AiAuthPanel language={language} />
+        </div>
     );
 };
+
+function AiAuthPanel({ language }: { language: string }) {
+    const auth = useAiAuth();
+    const [claudeKey, setClaudeKey] = useState("");
+    const [saving, setSaving] = useState(false);
+    const [showInput, setShowInput] = useState(false);
+
+    const saveClaudeKey = async () => {
+        if (!claudeKey.trim()) return;
+        setSaving(true);
+        try {
+            const res = await fetch("/api/ai/claude/key", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ apiKey: claudeKey.trim() }),
+            });
+            if (!res.ok) {
+                const d = await res.json();
+                notification.error(d.detail || "Erreur", { source: "AI Auth" });
+            } else {
+                notification.success(language === "fr" ? "Clé Claude enregistrée" : "Claude key saved", { source: "AI Auth" });
+                setClaudeKey("");
+                setShowInput(false);
+                // re-poll auth status
+                window.dispatchEvent(new Event("ai-auth-refresh"));
+            }
+        } catch (e: unknown) {
+            notification.error(e instanceof Error ? e.message : "Erreur", { source: "AI Auth" });
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const removeClaudeKey = async () => {
+        try {
+            await fetch("/api/ai/claude/key", { method: "DELETE" });
+            notification.success(language === "fr" ? "Clé Claude supprimée" : "Claude key removed", { source: "AI Auth" });
+            window.dispatchEvent(new Event("ai-auth-refresh"));
+        } catch (e: unknown) {
+            notification.error(e instanceof Error ? e.message : "Erreur", { source: "AI Auth" });
+        }
+    };
+
+    const fr = language === "fr";
+
+    return (
+        <div>
+            <div className="flex items-center gap-2 mb-4">
+                <Wand2 size={16} style={{ color: "var(--astro-gold)" }} />
+                <span className="text-[12px] font-bold tracking-[0.1em]" style={{ color: "var(--astro-gold)" }}>
+                    {fr ? "INTELLIGENCE ARTIFICIELLE" : "ARTIFICIAL INTELLIGENCE"}
+                </span>
+            </div>
+
+            <div className="flex flex-col gap-3 p-4 rounded-lg" style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.06)" }}>
+
+                {/* ── Gemini (service account) ── */}
+                <div className="flex items-center justify-between p-3 rounded-lg"
+                    style={{
+                        background: auth.gemini ? "rgba(37,99,235,0.08)" : "rgba(255,255,255,0.03)",
+                        border: `1px solid ${auth.gemini ? "rgba(37,99,235,0.35)" : "rgba(255,255,255,0.08)"}`,
+                    }}>
+                    <div className="flex items-center gap-3">
+                        {auth.loading
+                            ? <Loader size={14} className="animate-spin" style={{ color: "rgba(255,255,255,0.4)" }} />
+                            : auth.gemini
+                                ? <CheckCircle size={14} style={{ color: "#4ADE80" }} />
+                                : <XCircle size={14} style={{ color: "#F87171" }} />}
+                        <div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-[12px] font-bold" style={{ color: auth.gemini ? "#fff" : "rgba(255,255,255,0.4)" }}>Gemini</span>
+                                {auth.provider === "gemini" && (
+                                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: "#2563EB", color: "#fff" }}>ACTIF</span>
+                                )}
+                            </div>
+                            <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.35)" }}>
+                                {auth.gemini_sa
+                                    ? `Service Account · ${auth.gemini_sa.split("@")[0]}`
+                                    : fr ? "Firebase Admin SDK (firebase-adminsdk.json)" : "Firebase Admin SDK (firebase-adminsdk.json)"}
+                            </span>
+                        </div>
+                    </div>
+                    <span className="text-[10px] font-bold" style={{ color: auth.gemini ? "#4ADE80" : "#F87171" }}>
+                        {auth.loading ? "…" : auth.gemini ? (fr ? "Connecté" : "Connected") : (fr ? "Manquant" : "Missing")}
+                    </span>
+                </div>
+
+                {/* ── Claude (vault) ── */}
+                <div className="flex flex-col rounded-lg overflow-hidden"
+                    style={{
+                        background: auth.claude ? "rgba(217,119,6,0.08)" : "rgba(255,255,255,0.03)",
+                        border: `1px solid ${auth.claude ? "rgba(217,119,6,0.35)" : "rgba(255,255,255,0.08)"}`,
+                    }}>
+                    <div className="flex items-center justify-between p-3">
+                        <div className="flex items-center gap-3">
+                            {auth.loading
+                                ? <Loader size={14} className="animate-spin" style={{ color: "rgba(255,255,255,0.4)" }} />
+                                : auth.claude
+                                    ? <CheckCircle size={14} style={{ color: "#4ADE80" }} />
+                                    : <XCircle size={14} style={{ color: "#F87171" }} />}
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[12px] font-bold" style={{ color: auth.claude ? "#fff" : "rgba(255,255,255,0.4)" }}>Claude</span>
+                                    {auth.provider === "claude" && (
+                                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: "#D97706", color: "#fff" }}>ACTIF</span>
+                                    )}
+                                </div>
+                                <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.35)" }}>
+                                    {fr ? "Vault serveur (server/.env)" : "Server vault (server/.env)"}
+                                </span>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            {auth.claude && (
+                                <button
+                                    className="text-[10px] px-2 py-1 rounded border cursor-pointer transition-colors"
+                                    style={{ borderColor: "rgba(248,113,113,0.4)", color: "#F87171" }}
+                                    onMouseEnter={e => (e.currentTarget.style.background = "rgba(248,113,113,0.1)")}
+                                    onMouseLeave={e => (e.currentTarget.style.background = "")}
+                                    onClick={removeClaudeKey}
+                                >
+                                    {fr ? "Supprimer" : "Remove"}
+                                </button>
+                            )}
+                            {!auth.claude && (
+                                <button
+                                    className="text-[10px] px-2 py-1 rounded border cursor-pointer transition-colors"
+                                    style={{ borderColor: "rgba(217,119,6,0.5)", color: "#D97706" }}
+                                    onMouseEnter={e => (e.currentTarget.style.background = "rgba(217,119,6,0.1)")}
+                                    onMouseLeave={e => (e.currentTarget.style.background = "")}
+                                    onClick={() => setShowInput(v => !v)}
+                                >
+                                    {fr ? "Saisir la clé" : "Enter key"}
+                                </button>
+                            )}
+                            <span className="text-[10px] font-bold" style={{ color: auth.claude ? "#4ADE80" : "#F87171" }}>
+                                {auth.loading ? "…" : auth.claude ? (fr ? "Configuré" : "Configured") : (fr ? "Non configuré" : "Not set")}
+                            </span>
+                        </div>
+                    </div>
+
+                    {showInput && !auth.claude && (
+                        <div className="flex gap-2 px-3 pb-3">
+                            <input
+                                type="password"
+                                placeholder="sk-ant-api03-…"
+                                value={claudeKey}
+                                onChange={e => setClaudeKey(e.target.value)}
+                                onKeyDown={e => e.key === "Enter" && saveClaudeKey()}
+                                className={INPUT_CLS + " flex-1 text-[11px]"}
+                                style={{ ...INPUT_STYLE, background: "rgba(0,0,0,0.5)" }}
+                            />
+                            <button
+                                className="px-3 py-1 rounded text-[11px] font-bold text-black cursor-pointer disabled:opacity-50"
+                                style={{ background: "#D97706" }}
+                                onClick={saveClaudeKey}
+                                disabled={saving || !claudeKey.trim()}
+                            >
+                                {saving ? "…" : fr ? "Enregistrer" : "Save"}
+                            </button>
+                        </div>
+                    )}
+                </div>
+
+                {!auth.loading && !auth.claude && !auth.gemini && (
+                    <div className="mt-1 p-3 rounded text-[10px]" style={{ background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.2)", color: "rgba(251,191,36,0.9)", lineHeight: 1.6 }}>
+                        {fr
+                            ? <>Aucun provider actif. Activez l&apos;API <strong>Generative Language</strong> dans la console GCP (projet&nbsp;<code className="font-mono">stargazer-3b7c3</code>) pour Gemini, ou saisissez votre clé Claude ci-dessus.</>
+                            : <>No active provider. Enable the <strong>Generative Language API</strong> in GCP console (project&nbsp;<code className="font-mono">stargazer-3b7c3</code>) for Gemini, or enter your Claude key above.</>}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
+/* ─── Mount Tab ─────────────────────────────────────────────────────────────── */
 
 const MountTab = ({ config, updateConfig, language }: any) => {
     const { mountLimits, setMountLimits } = useStargazerStore();
     const [errors, setErrors] = useState<Record<string, string | null>>({});
-
-    const setError = (field: string, msg: string | null) => {
-        setErrors((prev) => ({ ...prev, [field]: msg }));
-    };
+    const setError = (field: string, msg: string | null) => setErrors(p => ({ ...p, [field]: msg }));
 
     return (
-        <VStack align="stretch" gap={8}>
-            <Text fontSize="sm" color="whiteAlpha.600">{t("MNT_DESC", language)}</Text>
-            
-            <Box>
-                <HStack mb={4} gap={2}><Icon as={Compass} boxSize={4} color="#00F0FF" /><Text fontSize="12px" fontWeight="bold" letterSpacing="0.1em">{t("MNT_TRACKING", language)}</Text></HStack>
-                <VStack gap={5} align="stretch" bg="rgba(0,0,0,0.3)" p={5} borderRadius="8px" border="1px solid rgba(255,255,255,0.05)">
-                    <HStack justify="space-between">
-                        <VStack align="start" gap={0}>
-                            <Text fontSize="12px" color="white">{t("MNT_AUTO_TRACK", language)}</Text>
-                            <Text fontSize="10px" color="whiteAlpha.500">{t("MNT_AUTO_TRACK_DESC", language)}</Text>
-                        </VStack>
-                        <input type="checkbox" checked={config.autoTracking} onChange={(e) => updateConfig({ autoTracking: e.target.checked })} style={{ accentColor: "#00F0FF", width: "18px", height: "18px" }} />
-                    </HStack>
-                    <Box borderBottomWidth="1px" borderColor="whiteAlpha.100" />
-                    <Box w="full">
-                        <Text fontSize="10px" color="whiteAlpha.700" mb={4}>{t("MNT_SLEW", language)}</Text>
-                        <input type="range" min="0" max="9" step="1" value={config.slewSpeed} onChange={(e) => updateConfig({ slewSpeed: parseInt(e.target.value) })} style={{ width: '100%', accentColor: '#00F0FF' }} />
-                        <HStack justify="space-between" mt={2}>
-                            <Text fontSize="9px" color="whiteAlpha.400">{t("MNT_FINE", language)}</Text>
-                            <Text fontSize="9px" color="whiteAlpha.400">{t("MNT_MAX", language)}</Text>
-                        </HStack>
-                    </Box>
-                </VStack>
-            </Box>
+        <div className="flex flex-col gap-8">
+            <p className="text-sm" style={{ color: "rgba(255,255,255,0.6)" }}>{t("MNT_DESC", language)}</p>
 
-            <Box>
-                <HStack mb={4} gap={2}><Icon as={ShieldCheck} boxSize={4} color="#00F0FF" /><Text fontSize="12px" fontWeight="bold" letterSpacing="0.1em">{t("MNT_LIMITS", language)}</Text></HStack>
-                <HStack gap={4}>
-                    <Box flex={1} bg="rgba(0,0,0,0.3)" p={4} borderRadius="8px" border="1px solid rgba(255,255,255,0.05)">
-                        <Text fontSize="10px" color="whiteAlpha.500" mb={2}>{t("MNT_MIN_ALT", language)}</Text>
-                        <Input
-                            type="number"
-                            bg="rgba(0,0,0,0.5)"
-                            borderColor={errors.minAlt ? "red.400" : "whiteAlpha.200"}
-                            value={mountLimits.minAlt}
-                            onChange={(e) => { setMountLimits({ minAlt: parseFloat(e.target.value) }); setError("minAlt", null); }}
-                            onBlur={() => setError("minAlt", validateMinAlt(mountLimits.minAlt))}
-                        />
-                        {errors.minAlt && <Text fontSize="10px" color="red.400" mt={1}>{errors.minAlt}</Text>}
-                    </Box>
-                    <Box flex={1} bg="rgba(0,0,0,0.3)" p={4} borderRadius="8px" border="1px solid rgba(255,255,255,0.05)">
-                        <Text fontSize="10px" color="whiteAlpha.500" mb={2}>{t("MNT_MAX_ALT", language)}</Text>
-                        <Input
-                            type="number"
-                            bg="rgba(0,0,0,0.5)"
-                            borderColor={errors.maxAlt ? "red.400" : "whiteAlpha.200"}
-                            value={mountLimits.maxAlt}
-                            onChange={(e) => { setMountLimits({ maxAlt: parseFloat(e.target.value) }); setError("maxAlt", null); }}
-                            onBlur={() => setError("maxAlt", validateMaxAlt(mountLimits.maxAlt))}
-                        />
-                        {errors.maxAlt && <Text fontSize="10px" color="red.400" mt={1}>{errors.maxAlt}</Text>}
-                    </Box>
-                </HStack>
-                {errors.minAlt || errors.maxAlt ? null : (
-                    mountLimits.minAlt >= mountLimits.maxAlt && (
-                        <Text fontSize="10px" color="var(--astro-gold)" mt={2}>
-                            {language === 'fr' ? "L'altitude minimum doit être inférieure à l'altitude maximum" : "Min altitude must be less than max altitude"}
-                        </Text>
-                    )
+            <div>
+                <div className="flex items-center gap-2 mb-4">
+                    <Compass size={16} style={{ color: "#00F0FF" }} />
+                    <span className="text-[12px] font-bold tracking-[0.1em]">{t("MNT_TRACKING", language)}</span>
+                </div>
+                <div className="flex flex-col gap-5 p-5 rounded-lg" style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.05)" }}>
+                    <div className="flex items-center justify-between">
+                        <div className="flex flex-col gap-0">
+                            <span className="text-[12px] text-white">{t("MNT_AUTO_TRACK", language)}</span>
+                            <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.5)" }}>{t("MNT_AUTO_TRACK_DESC", language)}</span>
+                        </div>
+                        <input type="checkbox" checked={config.autoTracking} onChange={e => updateConfig({ autoTracking: e.target.checked })} style={{ accentColor: "#00F0FF", width: "18px", height: "18px" }} />
+                    </div>
+                    <div className="h-px" style={{ background: "rgba(255,255,255,0.1)" }} />
+                    <div className="w-full">
+                        <p className="text-[10px] mb-4" style={{ color: "rgba(255,255,255,0.7)" }}>{t("MNT_SLEW", language)}</p>
+                        <input type="range" min="0" max="9" step="1" value={config.slewSpeed} onChange={e => updateConfig({ slewSpeed: parseInt(e.target.value) })} style={{ width: "100%", accentColor: "#00F0FF" }} />
+                        <div className="flex justify-between mt-2">
+                            <span className="text-[9px]" style={{ color: "rgba(255,255,255,0.4)" }}>{t("MNT_FINE", language)}</span>
+                            <span className="text-[9px]" style={{ color: "rgba(255,255,255,0.4)" }}>{t("MNT_MAX", language)}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <div className="flex items-center gap-2 mb-4">
+                    <ShieldCheck size={16} style={{ color: "#00F0FF" }} />
+                    <span className="text-[12px] font-bold tracking-[0.1em]">{t("MNT_LIMITS", language)}</span>
+                </div>
+                <div className="flex gap-4">
+                    <div className="flex-1 p-4 rounded-lg" style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.05)" }}>
+                        <Field label={t("MNT_MIN_ALT", language)} error={errors.minAlt}>
+                            <input
+                                type="number"
+                                className={INPUT_CLS}
+                                style={{ ...INPUT_STYLE, borderColor: errors.minAlt ? "#FC8181" : "rgba(255,255,255,0.2)", background: "rgba(0,0,0,0.5)" }}
+                                value={mountLimits.minAlt}
+                                onChange={e => { setMountLimits({ minAlt: parseFloat(e.target.value) }); setError("minAlt", null); }}
+                                onBlur={() => setError("minAlt", validateMinAlt(mountLimits.minAlt))}
+                            />
+                        </Field>
+                    </div>
+                    <div className="flex-1 p-4 rounded-lg" style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.05)" }}>
+                        <Field label={t("MNT_MAX_ALT", language)} error={errors.maxAlt}>
+                            <input
+                                type="number"
+                                className={INPUT_CLS}
+                                style={{ ...INPUT_STYLE, borderColor: errors.maxAlt ? "#FC8181" : "rgba(255,255,255,0.2)", background: "rgba(0,0,0,0.5)" }}
+                                value={mountLimits.maxAlt}
+                                onChange={e => { setMountLimits({ maxAlt: parseFloat(e.target.value) }); setError("maxAlt", null); }}
+                                onBlur={() => setError("maxAlt", validateMaxAlt(mountLimits.maxAlt))}
+                            />
+                        </Field>
+                    </div>
+                </div>
+                {!errors.minAlt && !errors.maxAlt && mountLimits.minAlt >= mountLimits.maxAlt && (
+                    <p className="text-[10px] mt-2" style={{ color: "var(--astro-gold)" }}>
+                        {language === 'fr' ? "L'altitude minimum doit être inférieure à l'altitude maximum" : "Min altitude must be less than max altitude"}
+                    </p>
                 )}
-            </Box>
-        </VStack>
+            </div>
+        </div>
     );
 };
+
+/* ─── Camera Tab ────────────────────────────────────────────────────────────── */
 
 const CameraTab = ({ config, updateConfig, language }: any) => {
     const { execute, isPending } = useAstroAction();
     const [lastHfr, setLastHfr] = useState<number | null>(null);
     const [showAutofocus, setShowAutofocus] = useState(false);
 
-    const handleFocus = async () => {
-        setShowAutofocus(true);
-    };
-
     return (
-        <VStack align="stretch" gap={8}>
-            <Text fontSize="sm" color="whiteAlpha.600">{t("CAM_DESC", language)}</Text>
+        <div className="flex flex-col gap-8">
+            <p className="text-sm" style={{ color: "rgba(255,255,255,0.6)" }}>{t("CAM_DESC", language)}</p>
 
-            <Box>
-                <HStack mb={4} gap={2}><Icon as={Camera} boxSize={4} color="#00F0FF" /><Text fontSize="12px" fontWeight="bold" letterSpacing="0.1em">{t("CAM_TITLE", language)}</Text></HStack>
-                <VStack gap={4} bg="rgba(0,0,0,0.3)" p={5} borderRadius="8px" border="1px solid rgba(255,255,255,0.05)">
-                    <HStack w="full" gap={4}>
-                        <Box flex={1}>
-                            <Text fontSize="10px" color="whiteAlpha.700" mb={2}>{t("CAM_FORMAT", language)}</Text>
-                            <select value={config.captureFormat} onChange={(e) => updateConfig({ captureFormat: e.target.value })} style={{ width: "100%", background: "rgba(0,0,0,0.5)", border: "1px solid rgba(255,255,255,0.2)", color: "white", padding: "8px", borderRadius: "4px" }}>
-                                <option value="RAW">RAW (CR2)</option>
-                                <option value="JPEG">JPEG (Fine)</option>
-                                <option value="RAW+JPEG">RAW + JPEG</option>
-                            </select>
-                        </Box>
-                        <Box flex={1}>
-                            <Text fontSize="10px" color="whiteAlpha.700" mb={2}>{t("CAM_COOLING", language)}</Text>
-                            <select value={config.sensorCooling ? 'ON' : 'OFF'} onChange={(e) => updateConfig({ sensorCooling: e.target.value === 'ON' })} style={{ width: "100%", background: "rgba(0,0,0,0.5)", border: "1px solid rgba(255,255,255,0.2)", color: "white", padding: "8px", borderRadius: "4px" }}>
-                                <option value="ON">ON (-15°C Target)</option>
-                                <option value="OFF">OFF</option>
-                            </select>
-                        </Box>
-                    </HStack>
-                </VStack>
-            </Box>
+            <div>
+                <div className="flex items-center gap-2 mb-4">
+                    <Camera size={16} style={{ color: "#00F0FF" }} />
+                    <span className="text-[12px] font-bold tracking-[0.1em]">{t("CAM_TITLE", language)}</span>
+                </div>
+                <div className="flex gap-4 p-5 rounded-lg" style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.05)" }}>
+                    <Field label={t("CAM_FORMAT", language)}>
+                        <select value={config.captureFormat} onChange={e => updateConfig({ captureFormat: e.target.value })} style={SELECT_STYLE}>
+                            <option value="RAW">RAW (CR2)</option>
+                            <option value="JPEG">JPEG (Fine)</option>
+                            <option value="RAW+JPEG">RAW + JPEG</option>
+                        </select>
+                    </Field>
+                    <Field label={t("CAM_COOLING", language)}>
+                        <select value={config.sensorCooling ? 'ON' : 'OFF'} onChange={e => updateConfig({ sensorCooling: e.target.value === 'ON' })} style={SELECT_STYLE}>
+                            <option value="ON">ON (-15°C Target)</option>
+                            <option value="OFF">OFF</option>
+                        </select>
+                    </Field>
+                </div>
+            </div>
 
-            <Box>
-                <HStack mb={4} gap={2}><Icon as={LocateFixed} boxSize={4} color="var(--astro-gold)" /><Text fontSize="12px" fontWeight="bold" letterSpacing="0.1em" color="var(--astro-gold)">{t("CAM_AI_FOCUS_TITLE", language)}</Text></HStack>
-                <VStack gap={5} align="stretch" bg="rgba(255, 179, 71, 0.05)" p={5} borderRadius="8px" border="1px solid rgba(255, 179, 71, 0.2)">
-                    <Text fontSize="11px" color="whiteAlpha.800">{t("CAM_AI_FOCUS_DESC", language)}</Text>
-                    <HStack justify="space-between">
-                        <VStack align="start" gap={0}>
-                            <Text fontSize="12px" color="white">{t("CAM_AI_FOCUS_EN", language)}</Text>
-                            <Text fontSize="10px" color="whiteAlpha.500">{t("CAM_AI_FOCUS_EN_DESC", language)}</Text>
-                        </VStack>
-                        <input type="checkbox" checked={config.aiFocus} onChange={(e) => updateConfig({ aiFocus: e.target.checked })} style={{ accentColor: "var(--astro-gold)", width: "18px", height: "18px" }} />
-                    </HStack>
-                    <Button w="full" bg="var(--astro-gold)" color="black" _hover={{ bg: "#e69c3a" }} onClick={handleFocus} disabled={isPending}>
-                        {isPending ? <Spinner size="sm" mr={2} /> : null}
+            <div>
+                <div className="flex items-center gap-2 mb-4">
+                    <LocateFixed size={16} style={{ color: "var(--astro-gold)" }} />
+                    <span className="text-[12px] font-bold tracking-[0.1em]" style={{ color: "var(--astro-gold)" }}>{t("CAM_AI_FOCUS_TITLE", language)}</span>
+                </div>
+                <div className="flex flex-col gap-5 p-5 rounded-lg" style={{ background: "rgba(255, 179, 71, 0.05)", border: "1px solid rgba(255, 179, 71, 0.2)" }}>
+                    <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.8)" }}>{t("CAM_AI_FOCUS_DESC", language)}</p>
+                    <div className="flex items-center justify-between">
+                        <div className="flex flex-col gap-0">
+                            <span className="text-[12px] text-white">{t("CAM_AI_FOCUS_EN", language)}</span>
+                            <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.5)" }}>{t("CAM_AI_FOCUS_EN_DESC", language)}</span>
+                        </div>
+                        <input type="checkbox" checked={config.aiFocus} onChange={e => updateConfig({ aiFocus: e.target.checked })} style={{ accentColor: "var(--astro-gold)", width: "18px", height: "18px" }} />
+                    </div>
+                    <button
+                        className="flex items-center justify-center gap-2 w-full h-10 rounded-lg font-bold text-black cursor-pointer disabled:opacity-50"
+                        style={{ background: "var(--astro-gold)" }}
+                        onMouseEnter={e => (e.currentTarget.style.background = "#e69c3a")}
+                        onMouseLeave={e => (e.currentTarget.style.background = "var(--astro-gold)")}
+                        onClick={() => setShowAutofocus(true)}
+                        disabled={isPending}
+                    >
+                        {isPending && <Spinner />}
                         {lastHfr !== null ? `HFR CALIBRATED: ${lastHfr.toFixed(2)}` : t("CAM_AI_FOCUS_BTN", language)}
-                    </Button>
-                </VStack>
-            </Box>
-            
+                    </button>
+                </div>
+            </div>
+
             {showAutofocus && <AutofocusWizard onClose={() => setShowAutofocus(false)} />}
-        </VStack>
+        </div>
     );
 };
 
-const GamepadTab = ({ language }: any) => (
-    <VStack align="stretch" gap={8}>
-        <Text fontSize="sm" color="whiteAlpha.600">{t("GP_DESC", language)}</Text>
-        
-        <Box bg="rgba(0,0,0,0.3)" p={6} borderRadius="8px" border="1px solid rgba(255,255,255,0.05)" textAlign="center">
-            <Icon as={Gamepad2} boxSize={12} color="whiteAlpha.400" mb={4} />
-            <Heading size="sm" color="white" mb={2}>{t("GP_NO_PAD", language)}</Heading>
-            <Text fontSize="11px" color="whiteAlpha.500" mb={6}>{t("GP_NO_PAD_DESC", language)}</Text>
-            <Button size="sm" variant="outline" colorScheme="cyan">{t("GP_SCAN", language)}</Button>
-        </Box>
+/* ─── Gamepad Tab ───────────────────────────────────────────────────────────── */
 
-        <Box opacity={0.5} pointerEvents="none">
-            <HStack mb={4} gap={2}><Icon as={Settings} boxSize={4} /><Text fontSize="12px" fontWeight="bold" letterSpacing="0.1em">{t("GP_MAP", language)}</Text></HStack>
-            <VStack gap={3} align="stretch">
-                <HStack justify="space-between" bg="rgba(0,0,0,0.5)" p={3} borderRadius="md"><Text fontSize="11px">Left Stick (X/Y)</Text><Text fontSize="11px" color="#00F0FF">Mount Azimuth / Altitude</Text></HStack>
-                <HStack justify="space-between" bg="rgba(0,0,0,0.5)" p={3} borderRadius="md"><Text fontSize="11px">Right Stick (Y)</Text><Text fontSize="11px" color="#00F0FF">Focuser In / Out</Text></HStack>
-                <HStack justify="space-between" bg="rgba(0,0,0,0.5)" p={3} borderRadius="md"><Text fontSize="11px">D-Pad</Text><Text fontSize="11px" color="#00F0FF">Micro-Step Jogging</Text></HStack>
-                <HStack justify="space-between" bg="rgba(0,0,0,0.5)" p={3} borderRadius="md"><Text fontSize="11px">R1 / R2</Text><Text fontSize="11px" color="#00F0FF">Increase / Decrease Slew Speed</Text></HStack>
-                <HStack justify="space-between" bg="rgba(0,0,0,0.5)" p={3} borderRadius="md"><Text fontSize="11px">Cross / A</Text><Text fontSize="11px" color="#00F0FF">Start Exposure</Text></HStack>
-            </VStack>
-        </Box>
-    </VStack>
+const GamepadTab = ({ language }: any) => (
+    <div className="flex flex-col gap-8">
+        <p className="text-sm" style={{ color: "rgba(255,255,255,0.6)" }}>{t("GP_DESC", language)}</p>
+
+        <div className="flex flex-col items-center p-6 rounded-lg text-center" style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.05)" }}>
+            <Gamepad2 size={48} style={{ color: "rgba(255,255,255,0.4)", marginBottom: "16px" }} />
+            <h3 className="text-white font-bold mb-2">{t("GP_NO_PAD", language)}</h3>
+            <p className="text-[11px] mb-6" style={{ color: "rgba(255,255,255,0.5)" }}>{t("GP_NO_PAD_DESC", language)}</p>
+            <button className="h-8 px-4 rounded border text-sm transition-colors cursor-pointer" style={{ borderColor: "#00F0FF", color: "#00F0FF" }}
+                onMouseEnter={e => (e.currentTarget.style.background = "rgba(0,240,255,0.1)")}
+                onMouseLeave={e => (e.currentTarget.style.background = "")}>
+                {t("GP_SCAN", language)}
+            </button>
+        </div>
+
+        <div className="opacity-50 pointer-events-none">
+            <div className="flex items-center gap-2 mb-4"><Settings size={16} /><span className="text-[12px] font-bold tracking-[0.1em]">{t("GP_MAP", language)}</span></div>
+            <div className="flex flex-col gap-3">
+                {[
+                    ["Left Stick (X/Y)", "Mount Azimuth / Altitude"],
+                    ["Right Stick (Y)", "Focuser In / Out"],
+                    ["D-Pad", "Micro-Step Jogging"],
+                    ["R1 / R2", "Increase / Decrease Slew Speed"],
+                    ["Cross / A", "Start Exposure"],
+                ].map(([l, r]) => (
+                    <div key={l} className="flex justify-between p-3 rounded-md" style={{ background: "rgba(0,0,0,0.5)" }}>
+                        <span className="text-[11px]">{l}</span>
+                        <span className="text-[11px]" style={{ color: "#00F0FF" }}>{r}</span>
+                    </div>
+                ))}
+            </div>
+        </div>
+    </div>
 );
+
+/* ─── Objects Tab ───────────────────────────────────────────────────────────── */
 
 const ObjectsTab = ({ language }: any) => (
-    <VStack align="stretch" gap={6} h="full">
-        <Box bg="rgba(0,0,0,0.3)" p={4} borderRadius="8px" border="1px solid rgba(255,255,255,0.05)">
+    <div className="flex flex-col gap-6 h-full">
+        <div className="p-4 rounded-lg" style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.05)" }}>
             <ObjectFinder />
-        </Box>
-    </VStack>
+        </div>
+    </div>
 );
 
-const CaptureTab = ({ config, updateConfig, language }: any) => {
-    const [errors, setErrors] = useState<Record<string, string | null>>({});
-    const setError = (field: string, msg: string | null) => {
-        setErrors((prev) => ({ ...prev, [field]: msg }));
-    };
-    return (
-    <VStack align="stretch" gap={8}>
-        <Text fontSize="sm" color="whiteAlpha.600">{t("CAP_DESC", language)}</Text>
-
-        <Box>
-            <HStack mb={4} gap={2}><Icon as={Layers} boxSize={4} color="#00F0FF" /><Text fontSize="12px" fontWeight="bold" letterSpacing="0.1em">{t("CAP_SEQ", language)}</Text></HStack>
-            <VStack gap={4} bg="rgba(0,0,0,0.3)" p={5} borderRadius="8px" border="1px solid rgba(255,255,255,0.05)">
-                <HStack w="full" gap={4}>
-                    <Box flex={1}>
-                        <Text fontSize="10px" color="whiteAlpha.700" mb={2}>{t("CAP_EXP", language)}</Text>
-                        <Input type="number" bg="rgba(0,0,0,0.5)" borderColor={errors.exposureTime ? "red.400" : "whiteAlpha.200"} value={config.exposureTime} onChange={(e) => { updateConfig({ exposureTime: parseInt(e.target.value) }); setError("exposureTime", null); }} onBlur={() => setError("exposureTime", validatePositiveInt(config.exposureTime))} />
-                        {errors.exposureTime && <Text fontSize="10px" color="red.400" mt={1}>{errors.exposureTime}</Text>}
-                    </Box>
-                    <Box flex={1}>
-                        <Text fontSize="10px" color="whiteAlpha.700" mb={2}>{t("CAP_ISO", language)}</Text>
-                        <select value={config.isoGain} onChange={(e) => updateConfig({ isoGain: e.target.value })} style={{ width: "100%", background: "rgba(0,0,0,0.5)", border: "1px solid rgba(255,255,255,0.2)", color: "white", padding: "8px", borderRadius: "4px" }}>
-                            <option value="400">ISO 400</option>
-                            <option value="800">ISO 800</option>
-                            <option value="1600">ISO 1600</option>
-                            <option value="3200">ISO 3200</option>
-                        </select>
-                    </Box>
-                    <Box flex={1}>
-                        <Text fontSize="10px" color="whiteAlpha.700" mb={2}>{t("CAP_FRAMES", language)}</Text>
-                        <Input type="number" bg="rgba(0,0,0,0.5)" borderColor={errors.frameCount ? "red.400" : "whiteAlpha.200"} value={config.frameCount} onChange={(e) => { updateConfig({ frameCount: parseInt(e.target.value) }); setError("frameCount", null); }} onBlur={() => setError("frameCount", validatePositiveInt(config.frameCount))} />
-                        {errors.frameCount && <Text fontSize="10px" color="red.400" mt={1}>{errors.frameCount}</Text>}
-                    </Box>
-                </HStack>
-                <HStack w="full" gap={4} mt={2}>
-                    <input type="checkbox" checked={config.dithering} onChange={(e) => updateConfig({ dithering: e.target.checked })} style={{ accentColor: "#00F0FF", width: "18px", height: "18px" }} />
-                    <Text fontSize="11px" color="white">{t("CAP_DITHER", language)}</Text>
-                </HStack>
-            </VStack>
-        </Box>
-
-        <Box>
-            <HStack mb={4} gap={2}><Icon as={Wand2} boxSize={4} color="#00F0FF" /><Text fontSize="12px" fontWeight="bold" letterSpacing="0.1em">{t("CAP_AI_TITLE", language)}</Text></HStack>
-            <VStack gap={4} bg="rgba(0,0,0,0.3)" p={5} borderRadius="8px" border="1px solid rgba(255,255,255,0.05)">
-                <HStack justify="space-between" w="full">
-                    <Text fontSize="12px" color="white">{t("CAP_AI_STACK", language)}</Text>
-                    <input type="checkbox" checked={config.liveStacking} onChange={(e) => updateConfig({ liveStacking: e.target.checked })} style={{ accentColor: "#00F0FF", width: "18px", height: "18px" }} />
-                </HStack>
-                <Box borderBottomWidth="1px" borderColor="whiteAlpha.100" w="full" />
-                <HStack justify="space-between" w="full">
-                    <VStack align="start" gap={0}>
-                        <Text fontSize="12px" color="white">{t("CAP_AI_COLOR", language)}</Text>
-                        <Text fontSize="10px" color="whiteAlpha.500">{t("CAP_AI_COLOR_DESC", language)}</Text>
-                    </VStack>
-                    <input type="checkbox" checked={config.aiColorization} onChange={(e) => updateConfig({ aiColorization: e.target.checked })} style={{ accentColor: "#9F7AEA", width: "18px", height: "18px" }} />
-                </HStack>
-                <Box borderBottomWidth="1px" borderColor="whiteAlpha.100" w="full" />
-                <HStack justify="space-between" w="full">
-                    <Text fontSize="12px" color="white">{t("CAP_SAVE", language)}</Text>
-                    <input type="checkbox" checked={config.autoSave} onChange={(e) => updateConfig({ autoSave: e.target.checked })} style={{ accentColor: "#00F0FF", width: "18px", height: "18px" }} />
-                </HStack>
-            </VStack>
-        </Box>
-    </VStack>
-);};
+/* ─── System Tab ────────────────────────────────────────────────────────────── */
 
 const SystemTab = ({ config, updateConfig, language, setLanguage }: any) => {
     const { execute, isPending } = useAstroAction();
     const envData = useEnvironmentData();
     const [errors, setErrors] = useState<Record<string, string | null>>({});
-
-    const setError = (field: string, msg: string | null) => {
-        setErrors((prev) => ({ ...prev, [field]: msg }));
-    };
+    const setError = (field: string, msg: string | null) => setErrors(p => ({ ...p, [field]: msg }));
 
     const handleSyncLoc = async () => {
         const latErr = validateLatitude(config.latitude);
@@ -553,16 +709,12 @@ const SystemTab = ({ config, updateConfig, language, setLanguage }: any) => {
         setError("latitude", latErr);
         setError("longitude", lngErr);
 
-        let latStr = config.latitude?.toString().replace(',', '.').trim() || "";
-        let lonStr = config.longitude?.toString().replace(',', '.').trim() || "";
-        
-        let lat = parseFloat(latStr);
-        let lon = parseFloat(lonStr);
+        let lat = parseFloat(String(config.latitude).replace(',', '.').trim());
+        let lon = parseFloat(String(config.longitude).replace(',', '.').trim());
 
         if (latErr || lngErr) {
             if (envData.latitude !== null && envData.longitude !== null) {
-                lat = envData.latitude;
-                lon = envData.longitude;
+                lat = envData.latitude; lon = envData.longitude;
             } else {
                 notification.warning("Coordonnées invalides et pas de signal GPS", { source: "Configuration" });
                 return;
@@ -572,107 +724,101 @@ const SystemTab = ({ config, updateConfig, language, setLanguage }: any) => {
         await execute(
             async () => {
                 const res = await fetch('/api/indi', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        endpoint: 'mount/location', 
-                        lat, 
-                        lon,
-                        device: config.driverInstance || "Celestron GPS"
-                    })
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ endpoint: 'mount/location', lat, lon, device: config.driverInstance || "Celestron GPS" })
                 });
                 return res.json();
             },
             language === 'fr' ? "SYNCHRONISATION" : "SYNCING",
-            {
-                loadingMessage: language === 'fr' ? "SYNCHRONISATION DE LA POSITION..." : "SYNCING LOCATION...",
-                successMessage: `Location synced: ${lat.toFixed(4)}, ${lon.toFixed(4)}`
-            }
+            { loadingMessage: language === 'fr' ? "SYNCHRONISATION DE LA POSITION..." : "SYNCING LOCATION...", successMessage: `Location synced: ${lat.toFixed(4)}, ${lon.toFixed(4)}` }
         );
     };
 
     return (
-        <VStack align="stretch" gap={8}>
-            <Text fontSize="sm" color="whiteAlpha.600">{t("SYS_DESC", language)}</Text>
+        <div className="flex flex-col gap-8">
+            <p className="text-sm" style={{ color: "rgba(255,255,255,0.6)" }}>{t("SYS_DESC", language)}</p>
 
-            <HStack gap={6} align="start">
-                <Box flex={1}>
-                    <Text fontSize="10px" color="whiteAlpha.700" mb={2}>{t("SYS_UNIT", language)}</Text>
-                    <select value={config.unitSystem} onChange={(e) => updateConfig({ unitSystem: e.target.value })} style={{ width: "100%", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.2)", color: "white", padding: "8px", borderRadius: "4px" }}>
+            <div className="flex gap-6 items-start">
+                <Field label={t("SYS_UNIT", language)}>
+                    <select value={config.unitSystem} onChange={e => updateConfig({ unitSystem: e.target.value })} style={SELECT_STYLE}>
                         <option value="METRIC">Metric (Celsius, km/h)</option>
                         <option value="IMPERIAL">Imperial (Fahrenheit, mph)</option>
                     </select>
-                </Box>
-                <Box flex={1}>
-                    <Text fontSize="10px" color="whiteAlpha.700" mb={2}>{t("SYS_LANG", language)}</Text>
-                    <select value={language} onChange={(e) => setLanguage(e.target.value as 'en' | 'fr')} style={{ width: "100%", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.2)", color: "white", padding: "8px", borderRadius: "4px" }}>
+                </Field>
+                <Field label={t("SYS_LANG", language)}>
+                    <select value={language} onChange={e => setLanguage(e.target.value as 'en' | 'fr')} style={SELECT_STYLE}>
                         <option value="en">English</option>
                         <option value="fr">Français</option>
                     </select>
-                </Box>
-            </HStack>
+                </Field>
+            </div>
 
-            <Box>
-                <HStack mb={4} gap={2}><Icon as={Globe} boxSize={4} color="#00F0FF" /><Text fontSize="12px" fontWeight="bold" letterSpacing="0.1em">{t("SYS_LOC_TITLE", language)}</Text></HStack>
-                <VStack gap={4} bg="rgba(0,0,0,0.3)" p={5} borderRadius="8px" border="1px solid rgba(255,255,255,0.05)">
-                    <Text fontSize="11px" color="whiteAlpha.500">{t("SYS_LOC_DESC", language)}</Text>
-                    <HStack w="full" gap={4}>
-                        <Box flex={1}>
-                            <Text fontSize="10px" color="whiteAlpha.700" mb={2}>{t("SYS_LAT", language)}</Text>
-                            <Input
-                                bg="rgba(0,0,0,0.5)"
-                                borderColor={errors.latitude ? "red.400" : "whiteAlpha.200"}
+            <div>
+                <div className="flex items-center gap-2 mb-4">
+                    <Globe size={16} style={{ color: "#00F0FF" }} />
+                    <span className="text-[12px] font-bold tracking-[0.1em]">{t("SYS_LOC_TITLE", language)}</span>
+                </div>
+                <div className="flex flex-col gap-4 p-5 rounded-lg" style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.05)" }}>
+                    <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.5)" }}>{t("SYS_LOC_DESC", language)}</p>
+                    <div className="flex gap-4 w-full">
+                        <Field label={t("SYS_LAT", language)} error={errors.latitude}>
+                            <input
+                                className={INPUT_CLS}
+                                style={{ ...INPUT_STYLE, borderColor: errors.latitude ? "#FC8181" : "rgba(255,255,255,0.2)", background: "rgba(0,0,0,0.5)" }}
                                 placeholder="48.8566"
                                 value={config.latitude}
-                                onChange={(e) => { updateConfig({ latitude: e.target.value }); setError("latitude", null); }}
+                                onChange={e => { updateConfig({ latitude: e.target.value }); setError("latitude", null); }}
                                 onBlur={() => setError("latitude", validateLatitude(config.latitude))}
                             />
-                            {errors.latitude && <Text fontSize="10px" color="red.400" mt={1}>{errors.latitude}</Text>}
-                        </Box>
-                        <Box flex={1}>
-                            <Text fontSize="10px" color="whiteAlpha.700" mb={2}>{t("SYS_LON", language)}</Text>
-                            <Input
-                                bg="rgba(0,0,0,0.5)"
-                                borderColor={errors.longitude ? "red.400" : "whiteAlpha.200"}
+                        </Field>
+                        <Field label={t("SYS_LON", language)} error={errors.longitude}>
+                            <input
+                                className={INPUT_CLS}
+                                style={{ ...INPUT_STYLE, borderColor: errors.longitude ? "#FC8181" : "rgba(255,255,255,0.2)", background: "rgba(0,0,0,0.5)" }}
                                 placeholder="2.3522"
                                 value={config.longitude}
-                                onChange={(e) => { updateConfig({ longitude: e.target.value }); setError("longitude", null); }}
+                                onChange={e => { updateConfig({ longitude: e.target.value }); setError("longitude", null); }}
                                 onBlur={() => setError("longitude", validateLongitude(config.longitude))}
                             />
-                            {errors.longitude && <Text fontSize="10px" color="red.400" mt={1}>{errors.longitude}</Text>}
-                        </Box>
-                    </HStack>
-                    <Button size="sm" w="full" variant="outline" colorScheme="cyan" onClick={handleSyncLoc} disabled={isPending}>
-                        {isPending ? <Spinner size="sm" mr={2} /> : null}
+                        </Field>
+                    </div>
+                    <button
+                        className="flex items-center justify-center gap-2 w-full h-9 rounded border text-sm transition-colors cursor-pointer disabled:opacity-50"
+                        style={{ borderColor: "#00F0FF", color: "#00F0FF" }}
+                        onMouseEnter={e => (e.currentTarget.style.background = "rgba(0,240,255,0.1)")}
+                        onMouseLeave={e => (e.currentTarget.style.background = "")}
+                        onClick={handleSyncLoc}
+                        disabled={isPending}
+                    >
+                        {isPending && <Spinner />}
                         {t("SYS_APPLY_LOC", language)}
-                    </Button>
-                </VStack>
-            </Box>
-        </VStack>
+                    </button>
+                </div>
+            </div>
+        </div>
     );
 };
 
+/* ─── Bridge Tab ────────────────────────────────────────────────────────────── */
+
 const BridgeTab = ({ config, language }: any) => {
     const [logs, setLogs] = useState<string[]>([]);
-    const [status, setStatus] = useState<{ type: 'idle' | 'loading' | 'success' | 'error', msg: string }>({ type: 'idle', msg: '' });
+    const [status, setStatus] = useState<{ type: 'idle' | 'loading' | 'success' | 'error'; msg: string }>({ type: 'idle', msg: '' });
 
     const fetchLogs = useCallback(async () => {
         try {
             const logParams = new URLSearchParams({ ip: config.astroberryUrl || "" });
             const res = await fetch(clientApiUrl(`/api/indi/logs?${logParams.toString()}`));
             const data = await res.json();
-            if (data.logs) {
-                setLogs(data.logs);
-            }
-        } catch (e) {
+            if (data.logs) setLogs(data.logs);
+        } catch (e: unknown) {
             notification.warning("Impossible de charger les logs", {
-              description: e instanceof Error ? e.message : "Erreur inconnue",
-              source: "Bridge",
+                description: e instanceof Error ? e.message : "Erreur inconnue",
+                source: "Bridge",
             });
         }
     }, [config.astroberryUrl]);
 
-    // Poll logs every 2s
     useEffect(() => {
         fetchLogs();
         const interval = setInterval(fetchLogs, 2000);
@@ -684,8 +830,7 @@ const BridgeTab = ({ config, language }: any) => {
         try {
             const endpoint = action === 'autofix' ? '/api/indi/autofix' : '/api/indi/reconnect';
             const res = await fetch(clientApiUrl(endpoint), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action, ip: config.astroberryUrl })
             });
             const data = await res.json();
@@ -694,62 +839,87 @@ const BridgeTab = ({ config, language }: any) => {
             } else {
                 setStatus({ type: data.success ? 'success' : 'error', msg: data.message || data.error });
             }
-        } catch (e: any) {
-            setStatus({ type: 'error', msg: e.message });
+        } catch (e: unknown) {
+            setStatus({ type: 'error', msg: e instanceof Error ? e.message : "Erreur inconnue" });
         }
     };
 
     return (
-        <VStack align="stretch" gap={8} h="full">
-            <Text fontSize="sm" color="whiteAlpha.600">
+        <div className="flex flex-col gap-8 h-full">
+            <p className="text-sm" style={{ color: "rgba(255,255,255,0.6)" }}>
                 {language === 'fr' ? "Gérez la connexion au bridge INDI et consultez les logs en temps réel." : "Manage the INDI bridge connection and view real-time logs."}
-            </Text>
+            </p>
 
-            <HStack gap={4}>
-                <Button flex={1} bg="var(--astro-gold)" color="black" _hover={{ bg: "#e69c3a" }} onClick={() => handleAction('autofix')} disabled={status.type === 'loading'}>
-                    <Icon as={RefreshCw} mr={2} />
+            <div className="flex gap-4">
+                <button
+                    className="flex flex-1 items-center justify-center gap-2 h-10 rounded-lg font-bold text-black cursor-pointer disabled:opacity-50"
+                    style={{ background: "var(--astro-gold)" }}
+                    onMouseEnter={e => (e.currentTarget.style.background = "#e69c3a")}
+                    onMouseLeave={e => (e.currentTarget.style.background = "var(--astro-gold)")}
+                    onClick={() => handleAction('autofix')}
+                    disabled={status.type === 'loading'}
+                >
+                    <RefreshCw size={16} />
                     {language === 'fr' ? "Auto-Diagnostic & Fix" : "Auto-Diagnostic & Fix"}
-                </Button>
-                <Button flex={1} variant="outline" colorScheme="red" onClick={() => handleAction('restart_kstars')} disabled={status.type === 'loading'}>
-                    <Icon as={Power} mr={2} />
+                </button>
+                <button
+                    className="flex flex-1 items-center justify-center gap-2 h-10 rounded-lg border transition-colors cursor-pointer disabled:opacity-50"
+                    style={{ borderColor: "#FC8181", color: "#FC8181" }}
+                    onMouseEnter={e => (e.currentTarget.style.background = "rgba(252,129,129,0.1)")}
+                    onMouseLeave={e => (e.currentTarget.style.background = "")}
+                    onClick={() => handleAction('restart_kstars')}
+                    disabled={status.type === 'loading'}
+                >
+                    <Power size={16} />
                     {language === 'fr' ? "Redémarrer KStars (Mac)" : "Restart KStars (Mac)"}
-                </Button>
-            </HStack>
+                </button>
+            </div>
 
             {status.msg && (
-                <Text fontSize="12px" p={2} borderRadius="md" bg={status.type === 'success' ? 'rgba(0,255,0,0.1)' : 'rgba(255,0,0,0.1)'} color={status.type === 'success' ? 'green.400' : 'red.400'} border="1px solid" borderColor={status.type === 'success' ? 'green.800' : 'red.800'}>
+                <p
+                    className="text-[12px] p-2 rounded-md border"
+                    style={{
+                        background: status.type === 'success' ? 'rgba(0,255,0,0.1)' : 'rgba(255,0,0,0.1)',
+                        color: status.type === 'success' ? '#68D391' : '#FC8181',
+                        borderColor: status.type === 'success' ? 'rgba(72,187,120,0.4)' : 'rgba(252,129,129,0.4)',
+                    }}
+                >
                     {status.msg}
-                </Text>
+                </p>
             )}
 
-            <Box flex={1} minH="400px" bg="black" borderRadius="8px" border="1px solid rgba(255,255,255,0.1)" p={4} display="flex" flexDirection="column">
-                <HStack mb={2} justify="space-between">
-                    <HStack><Icon as={Activity} color="#00F0FF" boxSize={4} /><Text fontSize="12px" fontWeight="bold" letterSpacing="0.1em" color="#00F0FF">BRIDGE LOGS</Text></HStack>
-                    <IconButton aria-label="Refresh logs" size="xs" variant="ghost" color="whiteAlpha.600" onClick={fetchLogs}>
+            <div className="flex flex-col flex-1 min-h-[400px] rounded-lg p-4" style={{ background: "black", border: "1px solid rgba(255,255,255,0.1)" }}>
+                <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                        <Activity size={16} style={{ color: "#00F0FF" }} />
+                        <span className="text-[12px] font-bold tracking-[0.1em]" style={{ color: "#00F0FF" }}>BRIDGE LOGS</span>
+                    </div>
+                    <button
+                        className="p-1 rounded transition-colors cursor-pointer"
+                        style={{ color: "rgba(255,255,255,0.6)" }}
+                        onMouseEnter={e => (e.currentTarget.style.color = "white")}
+                        onMouseLeave={e => (e.currentTarget.style.color = "rgba(255,255,255,0.6)")}
+                        onClick={fetchLogs}
+                    >
                         <RefreshCw size={14} />
-                    </IconButton>
-                </HStack>
-                <Box flex={1} overflowY="auto" className="custom-scrollbar" display="flex" flexDirection="column-reverse">
-                    <VStack align="stretch" gap={1}>
+                    </button>
+                </div>
+                <div className="flex-1 overflow-y-auto custom-scrollbar flex flex-col-reverse">
+                    <div className="flex flex-col gap-1">
                         {logs.slice().reverse().map((log, i) => {
                             const isError = log.includes("ERROR") || log.includes("failed");
                             const isWarning = log.includes("WARNING");
                             const isSuccess = log.includes("✅") || log.includes("Connected");
-                            
-                            let color = "whiteAlpha.800";
-                            if (isError) color = "red.400";
-                            if (isWarning) color = "yellow.400";
-                            if (isSuccess) color = "green.400";
-
+                            const color = isError ? "#FC8181" : isWarning ? "#ECC94B" : isSuccess ? "#68D391" : "rgba(255,255,255,0.8)";
                             return (
-                                <Text key={i} fontSize="10px" fontFamily="monospace" color={color} wordBreak="break-all" borderBottom="1px solid rgba(255,255,255,0.05)" pb={1}>
+                                <p key={i} className="text-[10px] font-mono pb-1 break-all" style={{ color, borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
                                     {log}
-                                </Text>
+                                </p>
                             );
                         })}
-                    </VStack>
-                </Box>
-            </Box>
-        </VStack>
+                    </div>
+                </div>
+            </div>
+        </div>
     );
 };

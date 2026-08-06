@@ -1,45 +1,94 @@
 /* src/app/globals.css */
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-:root {
-  --astro-teal: #00FFD1;
-  --astro-gold: #FFB347;
-  --astro-cobalt: #1E3A8A;
-  --astro-starlight: #E2E8F0;
+/* ─── Local fonts (no Google Fonts network call at build time) ───────────── */
+@import "@fontsource-variable/space-grotesk";
+@import "@fontsource/jetbrains-mono/400.css";
+@import "@fontsource/jetbrains-mono/700.css";
+
+/* ─── Design tokens ──────────────────────────────────────────────────────── */
+@theme {
+  /* Fonts — CSS variables now resolved from local fontsource imports */
+  --font-sans: 'Space Grotesk Variable', 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --font-heading: 'Space Grotesk Variable', 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+
+  /* Astro color palette */
+  --color-astro-teal:      #00FFD1;
+  --color-astro-gold:      #FFB347;
+  --color-astro-cobalt:    #1E3A8A;
+  --color-astro-starlight: #E2E8F0;
+  --color-astro-void:      #030509;
+
+  /* Sky surface scale */
+  --color-sky-950: #030712;
+  --color-sky-900: #0a1628;
+  --color-sky-800: #0f1f3d;
+  --color-sky-700: #162952;
+
+  /* Semantic */
+  --color-background: #030509;
+  --color-surface:    rgba(10, 20, 40, 0.45);
+  --color-border:     rgba(255, 255, 255, 0.06);
+  --color-border-top: rgba(255, 255, 255, 0.12);
+
+  /* Status */
+  --color-success: #4ade80;
+  --color-warning: #FFB347;
+  --color-danger:  #f87171;
+  --color-info:    #38bdf8;
+
+  /* Radius */
+  --radius-panel: 16px;
+  --radius-sm:    8px;
 }
 
-@import url('https://fonts.googleapis.com/css2?family=Jura:wght@400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
+/* ─── CSS custom properties (legacy compat + Sonner theming) ────────────── */
+:root {
+  --astro-teal:      #00FFD1;
+  --astro-gold:      #FFB347;
+  --astro-cobalt:    #1E3A8A;
+  --astro-starlight: #E2E8F0;
+  --astro-void:      #030509;
 
-html,
-body {
+  /* Sonner toast theming */
+  --normal-bg:      rgba(10, 20, 40, 0.95);
+  --normal-border:  rgba(255, 255, 255, 0.08);
+  --normal-text:    #E2E8F0;
+  --success-bg:     rgba(10, 20, 40, 0.95);
+  --success-border: rgba(74, 222, 128, 0.3);
+  --error-bg:       rgba(10, 20, 40, 0.95);
+  --error-border:   rgba(248, 113, 113, 0.3);
+}
+
+/* ─── Base ───────────────────────────────────────────────────────────────── */
+html, body {
   height: 100%;
   margin: 0;
   padding: 0;
-  background: #030509;
+  background: var(--astro-void);
   color: var(--astro-starlight);
   overflow: hidden;
 }
 
 body {
-  font-family: 'Space Grotesk', sans-serif;
-  background-image: 
+  font-family: var(--font-sans);
+  background-image:
     radial-gradient(circle at 50% 0%, rgba(30, 58, 138, 0.15), transparent 50%),
     radial-gradient(circle at 10% 80%, rgba(0, 255, 209, 0.05), transparent 40%);
 }
 
 h1, h2, h3, .hud-font {
-  font-family: 'Jura', sans-serif;
+  font-family: var(--font-heading);
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
 .mono-font {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
 }
 
-/* Elegant Glass Panel */
+/* ─── Glass panel ────────────────────────────────────────────────────────── */
 .astro-panel {
   background: rgba(10, 20, 40, 0.45);
   backdrop-filter: blur(16px);
@@ -47,16 +96,16 @@ h1, h2, h3, .hud-font {
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-top: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 16px;
-  box-shadow: 
+  box-shadow:
     0 10px 40px rgba(0, 0, 0, 0.5),
     inset 0 0 20px rgba(0, 255, 209, 0.02);
   position: relative;
   transition: all 0.3s ease;
 }
 
-/* Subtle Grid Background for Space depth */
+/* ─── Grid depth background ──────────────────────────────────────────────── */
 .astro-grid {
-  background-image: 
+  background-image:
     linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
   background-size: 40px 40px;
@@ -67,23 +116,32 @@ h1, h2, h3, .hud-font {
   opacity: 0.5;
 }
 
-.pulse-glow {
-  animation: pulse-glow 3s infinite alternate cubic-bezier(0.4, 0, 0.6, 1);
-}
+/* ─── Animations ─────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: no-preference) {
+  .pulse-glow {
+    animation: pulse-glow 3s infinite alternate cubic-bezier(0.4, 0, 0.6, 1);
+  }
 
-@keyframes pulse-glow {
-  from { filter: drop-shadow(0 0 2px var(--astro-teal)); opacity: 0.8; }
-  to { filter: drop-shadow(0 0 12px var(--astro-teal)); opacity: 1; }
-}
+  @keyframes pulse-glow {
+    from { filter: drop-shadow(0 0 2px var(--astro-teal)); opacity: 0.8; }
+    to   { filter: drop-shadow(0 0 12px var(--astro-teal)); opacity: 1; }
+  }
 
-.ping-slow {
-  animation: ping-slow 3s cubic-bezier(0, 0, 0.2, 1) infinite;
-}
+  .ping-slow {
+    animation: ping-slow 3s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
 
-@keyframes ping-slow {
-  75%, 100% {
-    transform: scale(1.5);
-    opacity: 0;
+  @keyframes ping-slow {
+    75%, 100% { transform: scale(1.5); opacity: 0; }
+  }
+
+  .scanning::after {
+    animation: scan 3s linear infinite;
+  }
+
+  @keyframes scan {
+    from { transform: translateY(-100%); }
+    to   { transform: translateY(100%); }
   }
 }
 
@@ -95,79 +153,48 @@ h1, h2, h3, .hud-font {
 .scanning::after {
   content: "";
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
   background: linear-gradient(
     to bottom,
     transparent 0%,
     rgba(0, 255, 209, 0.1) 50%,
     transparent 100%
   );
-  animation: scan 3s linear infinite;
 }
 
-@keyframes scan {
-  from { transform: translateY(-100%); }
-  to { transform: translateY(100%); }
-}
+/* ─── Scrollbars ─────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--astro-teal); }
 
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 4px;
-}
-::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.2);
-}
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--astro-teal);
-}
-
-/* Subtle scrollbar for HUD side columns. Hidden until the column is hovered
-   so it doesn't clutter the chrome on screens where everything fits. */
 .hud-scroll {
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.06) transparent;
 }
-.hud-scroll::-webkit-scrollbar {
-  width: 3px;
-}
-.hud-scroll::-webkit-scrollbar-track {
-  background: transparent;
-}
-.hud-scroll::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.06);
-  border-radius: 3px;
-}
-.hud-scroll:hover::-webkit-scrollbar-thumb {
-  background: rgba(0, 255, 209, 0.25);
-}
+.hud-scroll::-webkit-scrollbar { width: 3px; }
+.hud-scroll::-webkit-scrollbar-track { background: transparent; }
+.hud-scroll::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.06); border-radius: 3px; }
+.hud-scroll:hover::-webkit-scrollbar-thumb { background: rgba(0, 255, 209, 0.25); }
 
-/* Slew Rate Slider Thumb */
+/* ─── Slew slider ────────────────────────────────────────────────────────── */
 .slew-rate-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 18px;
-  height: 18px;
+  width: 18px; height: 18px;
   border-radius: 50%;
   background: var(--astro-teal);
   border: 2px solid white;
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(255, 51, 51, 0.4);
+  box-shadow: 0 2px 6px rgba(0, 255, 209, 0.4);
   margin-top: -5px;
 }
-
 .slew-rate-slider::-moz-range-thumb {
-  width: 18px;
-  height: 18px;
+  width: 18px; height: 18px;
   border-radius: 50%;
   background: var(--astro-teal);
   border: 2px solid white;
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(255, 51, 51, 0.4);
+  box-shadow: 0 2px 6px rgba(0, 255, 209, 0.4);
 }

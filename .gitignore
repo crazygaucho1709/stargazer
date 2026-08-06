@@ -48,3 +48,19 @@ next-env.d.ts
 *.stream.jpg
 logs/backend-error.log
 certs/
+
+# Service account key — never commit
+server/firebase-adminsdk.json
+
+# config locale : contient des cles API (aiKey) et les limites du site
+server/config.json
+
+# artefacts Python
+__pycache__/
+*.pyc
+
+# transcriptions de sessions : contiennent des cles API en clair
+scratch/
+
+# graphe de code genere
+graphify-out/
