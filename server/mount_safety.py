@@ -110,6 +110,14 @@ ENCODER_STALE_S = 4.0
 """Au-delà de ce délai sans mise à jour d'encodeur, la position est réputée
 inconnue et tout mouvement est refusé."""
 
+MOTION_PROOF_S = 3.0
+"""Délai accordé à un mouvement commandé pour produire un changement de
+position mesurable. Au-delà, la liaison est réputée morte."""
+
+MOTION_PROOF_MIN_DEG = 0.02
+"""Variation minimale considérée comme un mouvement réel. En dessous, c'est du
+bruit de quantification (1 pas encodeur ≈ 0,0000215°, mais le driver arrondit)."""
+
 
 def check_encoder_fresh(last_update_ts: Optional[float], now_ts: float,
                         max_age_s: float = ENCODER_STALE_S) -> Tuple[bool, Optional[str]]:
@@ -131,6 +139,28 @@ def check_encoder_fresh(last_update_ts: Optional[float], now_ts: float,
                        f"refusé. Liaison monture perdue : coupez l'alimentation "
                        f"avant toute manœuvre.")
     return True, None
+
+
+def motion_proven(origin: Optional[tuple], az: Optional[float],
+                  alt: Optional[float],
+                  min_deg: float = MOTION_PROOF_MIN_DEG) -> bool:
+    """La position a-t-elle réellement bougé depuis `origin` ?
+
+    C'est la SEULE preuve valable qu'une commande de mouvement a atteint les
+    moteurs. La première version de ce garde-fou contrôlait l'arrivée des
+    trames d'encodeur, pas leur contenu : le driver republiant indéfiniment sa
+    dernière valeur connue, l'horodatage restait frais alors que la position
+    était gelée depuis une heure. Le contrôle était satisfait par des données
+    vides de sens et a laissé partir un mouvement.
+    """
+    if origin is None or az is None or alt is None:
+        return False
+    d_az = abs(shortest_delta(origin[0], az))
+    d_alt = abs(shortest_delta(origin[1], alt))
+    # Tolérance d'arrondi : une soustraction de flottants place un déplacement
+    # pile au seuil légèrement en dessous (182,72 - 182,7 = 0,019999999999996),
+    # ce qui déclencherait un arrêt d'urgence sur un mouvement pourtant réel.
+    return max(d_az, d_alt) >= min_deg - 1e-9
 
 
 def load_az_limits(config: Optional[dict]) -> Tuple[float, float]:

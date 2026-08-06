@@ -128,6 +128,9 @@ export default function SensorPage() {
   const [parkRef, setParkRef] = useState<{ az: number; alt: number } | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
   const [compassAccuracy, setCompassAccuracy] = useState<number | null>(null);
+  // null = pas encore déterminé, false = seul un cap RELATIF est disponible
+  // (donc aucun azimut publiable), true = cap absolu référencé au nord.
+  const [headingAbsolute, setHeadingAbsolute] = useState<boolean | null>(null);
   const [sunAlt, setSunAlt] = useState<number | null>(null);
   const [sessionLog, setSessionLog] = useState<SessionEntry[]>([]);
   const wsRef = useRef<WebSocket | null>(null);
@@ -268,6 +271,7 @@ export default function SensorPage() {
     const handleAbsolute = (e: Event) => {
       const ev = e as DeviceOrientationEvent;
       hasAbsolute = true;
+      setHeadingAbsolute(true);
       // deviceorientationabsolute: alpha is CCW from North → convert to CW
       const az = ev.alpha != null ? androidAlphaToCompass(ev.alpha) : null;
       setSensor(prev => ({ ...prev, alpha: az, beta: ev.beta, gamma: ev.gamma }));
@@ -275,8 +279,25 @@ export default function SensorPage() {
 
     const handleRelative = (e: Event) => {
       const ev = e as DeviceOrientationEvent;
-      // Relative deviceorientation: use alpha as-is (imprecise, no compass heading)
-      setSensor(prev => ({ ...prev, alpha: ev.alpha, beta: ev.beta, gamma: ev.gamma }));
+      // Certains navigateurs Android n'émettent pas deviceorientationabsolute
+      // mais marquent `absolute` sur l'événement classique : ce cap-là est
+      // valide et exploitable.
+      if (ev.absolute === true && ev.alpha != null) {
+        hasAbsolute = true;
+        setHeadingAbsolute(true);
+        setSensor(prev => ({
+          ...prev, alpha: androidAlphaToCompass(ev.alpha as number),
+          beta: ev.beta, gamma: ev.gamma,
+        }));
+        return;
+      }
+      // Sinon alpha est RELATIF : origine arbitraire fixée au chargement de la
+      // page, et dérive libre. Constaté le 5 août 2026 — 169°, puis 359°, puis
+      // 347°, puis 256° pour un tube physiquement immobile, alors qu'un iPhone
+      // lisait 180° stable. Publier ce nombre revient à inventer un cap ; on
+      // publie l'inclinaison, utile et fiable, et RIEN pour l'azimut.
+      setHeadingAbsolute(false);
+      setSensor(prev => ({ ...prev, alpha: null, beta: ev.beta, gamma: ev.gamma }));
     };
 
     window.addEventListener("deviceorientationabsolute", handleAbsolute, true);
@@ -577,6 +598,13 @@ export default function SensorPage() {
                       </span>
                       <span style={{ fontSize: 11, color: "#8899aa" }}>AZIMUT</span>
                     </>
+                  ) : headingAbsolute === false ? (
+                    // Cap relatif seulement : on n'affiche AUCUN chiffre plutôt
+                    // qu'un azimut à la dérive, et on dit pourquoi.
+                    <span style={{ fontSize: 10, color: "#ffb454", textAlign: "center", padding: "0 14px", lineHeight: 1.35 }}>
+                      Boussole<br/>indisponible<br/>
+                      <span style={{ color: "#8899aa" }}>capteur non absolu</span>
+                    </span>
                   ) : (
                     <span style={{ fontSize: 10, color: "#556677", textAlign: "center", padding: "0 20px" }}>
                       Bougez<br/>le téléphone
