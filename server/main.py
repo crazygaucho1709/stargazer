@@ -542,6 +542,42 @@ class INDIClient:
             except Exception as e:
                 logger.error(f"Remote indiserver restart raised: {e}")
 
+    def _apply_axis_limits(self, device: str):
+        """Réapplique les limites mécaniques du driver après (re)connexion monture.
+
+        Indispensable : le driver celestron_aux remet LIMIT_POS à ±180/±90 et
+        désactive AXIS1/AXIS2_LIMIT à chaque coupure d'alimentation, et CONFIG_SAVE
+        ne les persiste pas. Sans cette réapplication, la monture repart sans
+        aucune borne — c'est ce qui a failli provoquer un cord wrap le 5 août.
+
+        Ces limites sont en référentiel ENCODEUR (zéro = position d'allumage,
+        matérialisée par le repère du trépied), pas en coordonnées ciel.
+        """
+        try:
+            cfg = ConfigService.load_config()
+            alt_min, alt_max = mount_safety.load_alt_limits(cfg)
+            az_budget = self.cordwrap_guard.budget_deg
+            time.sleep(2.0)  # laisse le driver finir sa séquence de connexion
+
+            self.send(
+                f'<newNumberVector device="{device}" name="LIMIT_POS">'
+                f'<oneNumber name="SLEW_LIMIT_AXIS1_MIN">{-az_budget}</oneNumber>'
+                f'<oneNumber name="SLEW_LIMIT_AXIS1_MAX">{az_budget}</oneNumber>'
+                f'<oneNumber name="SLEW_LIMIT_AXIS2_MIN">{alt_min - 2.0}</oneNumber>'
+                f'<oneNumber name="SLEW_LIMIT_AXIS2_MAX">{alt_max}</oneNumber>'
+                f'</newNumberVector>')
+            time.sleep(0.8)
+            for prop in ("AXIS1_LIMIT", "AXIS2_LIMIT", "CORDWRAP"):
+                self.send(f'<newSwitchVector device="{device}" name="{prop}">'
+                          f'<oneSwitch name="INDI_ENABLED">On</oneSwitch>'
+                          f'<oneSwitch name="INDI_DISABLED">Off</oneSwitch></newSwitchVector>')
+                time.sleep(0.6)
+            logger.info(f"🛡 Limites mécaniques appliquées sur {device} : "
+                        f"az ±{az_budget}°, alt {alt_min - 2.0}→{alt_max}° (référentiel encodeur)")
+        except Exception as e:
+            logger.error(f"Échec d'application des limites mécaniques sur {device} : {e} — "
+                         f"la monture n'est PAS protégée, mouvements à éviter")
+
     def _safe_connect_device(self, device: str):
         """Send the 'Safe Connect' sequence for a single INDI device.
         Order matters here: subscribe to the device's properties, enable
@@ -710,8 +746,18 @@ class INDIClient:
                     logger.debug(f"INDI Connection Update: {dev_name} (Connected={is_connected})")
                     if any(kw in dev_name for kw in MOUNT_DEVICE_KEYWORDS):
                         self.device_mount = dev_name
+                        prev_mount_connected = self.mount_connected
                         self.mount_connected = is_connected
-                        if is_connected: logger.info(f"✅ Mount Online: {dev_name}")
+                        if is_connected:
+                            logger.info(f"✅ Mount Online: {dev_name}")
+                            # Les limites d'axes du driver AUX ne survivent PAS à une
+                            # coupure d'alimentation (retour à ±180/±90, désactivées) :
+                            # sans réapplication, plus rien ne protège de la collision
+                            # Canon/fourche ni de l'enroulement du câble.
+                            if not prev_mount_connected:
+                                self.cordwrap_guard.set_neutral(self.encoder_az or 0.0)
+                                threading.Thread(target=self._apply_axis_limits,
+                                                 args=(dev_name,), daemon=True).start()
                     elif any(kw in dev_name for kw in ["CCD", "Camera", "DSLR", "EOS", "GPhoto"]):
                         if self.device_ccd != dev_name:
                             logger.info(f"Detected new CCD device name: {dev_name}")
