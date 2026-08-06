@@ -22,6 +22,7 @@ import rawpy
 import imageio
 import cv2
 import numpy as np
+import stacking
 from datetime import datetime, timezone
 from astropy.coordinates import SkyCoord, EarthLocation, AltAz
 from astropy.time import Time
@@ -94,6 +95,11 @@ INDI_PORT = int(os.getenv("INDI_PORT", "7624"))
 # Noms de monture reconnus, tous drivers confondus. "AUX" et "Celestron" sont
 # indispensables depuis la bascule vers indi_celestron_aux ("Celestron AUX").
 MOUNT_DEVICE_KEYWORDS = ("GPS", "Mount", "NexStar", "Telescope", "AUX", "Celestron")
+# Délai accordé au téléchargement d'une image APRÈS la fin de l'exposition.
+# 35,8 Mo de RAW à ~2 Mo/s depuis le Pi 3B = ~18 s au mieux, davantage quand le
+# bus USB est partagé avec l'ethernet. Surchargeable si le matériel change.
+CAPTURE_DOWNLOAD_TIMEOUT_S = float(os.getenv("CAPTURE_DOWNLOAD_TIMEOUT_S", "120"))
+
 STORAGE_PATH = os.getenv("STORAGE_PATH", "/Volumes/Data2/captures")
 THUMBNAIL_PATH = os.path.join(STORAGE_PATH, "thumbnails")
 
@@ -364,11 +370,18 @@ class INDIClient:
         # Position encodeur brute (driver AUX) — base de la sécurité mécanique
         self.encoder_az: float | None = None
         self.encoder_alt: float | None = None
-        # Horodatage de la dernière trame TELESCOPE_ENCODER_ANGLES réellement
-        # reçue. Sert de preuve de vie de la liaison monture : sans elle, la
-        # position affichée peut être gelée depuis des minutes sans que rien ne
-        # le signale (cf. mount_safety.check_encoder_fresh).
+        # Horodatage de la dernière trame TELESCOPE_ENCODER_ANGLES reçue.
         self.encoder_last_update: float = 0.0
+        # Horodatage du dernier CHANGEMENT de valeur d'encodeur. C'est la seule
+        # vraie preuve de vie : le 5 août 2026, le driver a continué de
+        # republier une position figée (trames fraîches, valeur morte) pendant
+        # que la monture tournait réellement — un contrôle sur l'arrivée des
+        # trames était satisfait par des données vides de sens.
+        self.encoder_last_change: float = 0.0
+        # Liaison déclarée suspecte : un mouvement a été commandé et la
+        # position n'a pas varié. Tout nouveau mouvement est refusé jusqu'à ce
+        # qu'un changement de valeur soit observé (reconnexion driver comprise).
+        self.link_suspect: bool = False
         self.cordwrap_guard = mount_safety.CordWrapGuard()
         # {label ISO ("100", "1600", "Auto") : nom du switch ("ISO1"...)},
         # rempli à la découverte de CCD_ISO — voir process_message.
@@ -1425,6 +1438,50 @@ def _jog_shares_component(dir1: str, dir2: str) -> bool:
     return not parts1.isdisjoint(parts2)
 
 
+def _emergency_all_stop(reason: str) -> None:
+    """Arrêt inconditionnel des deux axes + ABORT. Best-effort, synchrone.
+
+    Appelé à l'extinction du backend (SIGTERM/SIGINT de PM2, atexit) et par le
+    watchdog de liaison. Incident du 5 août 2026 : le backend a été arrêté
+    alors qu'une commande MOTION_* était verrouillée à On dans le driver — ces
+    interrupteurs restent actifs tant que personne ne les remet à Off, et une
+    fois le backend mort, plus rien ne pouvait le faire. La monture a continué
+    seule. Aucun mouvement ne doit survivre à la mort du pilote.
+    """
+    try:
+        if not (indi and indi.connected and indi.device_mount):
+            return
+        device = indi.device_mount
+        logger.error(f"🛑 EMERGENCY ALL-STOP ({reason})")
+        indi.send(f'<newSwitchVector device="{device}" name="TELESCOPE_MOTION_NS">'
+                  f'<oneSwitch name="MOTION_NORTH">Off</oneSwitch>'
+                  f'<oneSwitch name="MOTION_SOUTH">Off</oneSwitch></newSwitchVector>')
+        indi.send(f'<newSwitchVector device="{device}" name="TELESCOPE_MOTION_WE">'
+                  f'<oneSwitch name="MOTION_EAST">Off</oneSwitch>'
+                  f'<oneSwitch name="MOTION_WEST">Off</oneSwitch></newSwitchVector>')
+        indi.send(f'<newSwitchVector device="{device}" name="TELESCOPE_ABORT_MOTION">'
+                  f'<oneSwitch name="ABORT">On</oneSwitch></newSwitchVector>')
+        # Laisse le temps aux trames de partir avant la fermeture du socket.
+        time.sleep(0.5)
+    except Exception as e:
+        # Dernier recours : on ne peut plus rien faire, mais on le dit.
+        logger.error(f"EMERGENCY ALL-STOP impossible: {e}")
+
+
+@app.on_event("shutdown")
+async def _shutdown_all_stop():
+    _emergency_all_stop("arrêt du backend")
+
+
+# Pas de handler de signal maison : uvicorn intercepte déjà SIGINT/SIGTERM et
+# déclenche le shutdown FastAPI ci-dessus (PM2 laisse kill_timeout=8s pour ça).
+# En écraser les handlers casserait cet arrêt propre. atexit couvre le reste
+# (sortie par exception, sys.exit) ; seul un SIGKILL passe outre — d'où le
+# watchdog de liaison côté jog, qui borne aussi ce cas.
+import atexit as _atexit
+_atexit.register(lambda: _emergency_all_stop("atexit"))
+
+
 def _jog_send_stop(device: str) -> None:
     """Hard-stop the mount. Called from watchdog thread or stop request.
 
@@ -1491,9 +1548,6 @@ def _jog_cancel_watchdog() -> None:
 
 JOG_DEFAULT_RATE = 5
 
-# Position encodeur au démarrage du jog courant, pour borner la course totale.
-_jog_origin: tuple[float, float] | None = None
-
 
 def _jog_rate_name() -> str:
     """Rang de vitesse à appliquer aux jogs manuels, borné au domaine 1..9.
@@ -1512,28 +1566,6 @@ def _jog_rate_name() -> str:
     return f"{max(1, min(9, rate))}x"
 
 
-def _jog_check_travel(device: str) -> None:
-    """Coupe le jog si la course dépasse la limite, quelle qu'en soit la cause.
-
-    Le watchdog temporel ne suffit pas : tant que des impulsions de maintien
-    arrivent, il est réarmé indéfiniment. Le 5 août 2026, des appuis brefs se
-    sont ainsi enchaînés en une course de 260°. Ce garde-fou borne la course
-    réelle mesurée, indépendamment du nombre d'impulsions reçues.
-    """
-    global _jog_origin
-    if _jog_origin is None or indi.encoder_az is None or indi.encoder_alt is None:
-        return
-    az0, alt0 = _jog_origin
-    d_az = abs(mount_safety.shortest_delta(az0, indi.encoder_az))
-    d_alt = abs(mount_safety.shortest_delta(alt0, indi.encoder_alt))
-    travel = max(d_az, d_alt)
-    if travel >= mount_safety.JOG_MAX_TRAVEL_DEG:
-        logger.error(f"⛔ Jog coupé : course de {travel:.1f}° atteinte "
-                     f"(limite {mount_safety.JOG_MAX_TRAVEL_DEG}°)")
-        _jog_send_stop(device)
-        _jog_origin = None
-
-
 @app.post("/mount/jog")
 async def mount_jog(req: JogRequest):
     """
@@ -1549,32 +1581,33 @@ async def mount_jog(req: JogRequest):
       Frontend sends START pulses every 800ms to keep the watchdog alive.
     - STOP: always processed immediately, directly on executor, no waiting.
     """
-    global indi, _jog_current_dir, _last_stop_time, _last_stop_dir, _stopped_jog_ids, _jog_active_id, _jog_origin
+    global indi, _jog_current_dir, _last_stop_time, _last_stop_dir, _stopped_jog_ids, _jog_active_id
     try:
         if not indi or not indi.connected:
             return {"success": False, "error": "Matériel déconnecté"}
         device = indi.device_mount
         loop = asyncio.get_running_loop()
 
-        # ── STOP ──────────────────────────────────────────────────────────────
+        # ── STOP — INCONDITIONNEL ─────────────────────────────────────────────
+        # Le relâchement coupe, point. Aucun état interne (jog_id inconnu,
+        # session déjà close, ordre d'arrivée) n'a le droit de retenir un arrêt.
+        #
+        # Ce bloc filtrait auparavant les STOP dont le jog_id ne correspondait
+        # pas à la session active — et c'est exactement ce qui s'est produit le
+        # 5 août 2026 : « Ignoring out-of-order STOP request ... is not active ».
+        # L'arrêt n'a jamais atteint la monture, le tube a parcouru 260°.
+        # Un STOP ignoré est un défaut de sécurité, jamais une optimisation.
         if req.state == "stop":
-            # Only process STOP if it's from the active session or if no ID is specified
-            is_active = (not req.jog_id) or (req.jog_id == _jog_active_id)
-            if is_active:
-                _jog_cancel_watchdog()
-                _last_stop_time = time.time()
-                _last_stop_dir = req.direction
-                if req.jog_id:
-                    _stopped_jog_ids.add(req.jog_id)
-                    if len(_stopped_jog_ids) > 100:
-                        _stopped_jog_ids.pop()
-                await loop.run_in_executor(None, _jog_send_stop, device)
-            else:
-                logger.warning(
-                    f"Ignoring out-of-order STOP request for {req.direction} "
-                    f"(jog_id {req.jog_id} is not active; active is {_jog_active_id})"
-                )
-            _jog_origin = None
+            _jog_cancel_watchdog()
+            _last_stop_time = time.time()
+            _last_stop_dir = req.direction
+            if req.jog_id:
+                _stopped_jog_ids.add(req.jog_id)
+                if len(_stopped_jog_ids) > 100:
+                    _stopped_jog_ids.pop()
+            _jog_active_id = None
+            _jog_current_dir = None
+            await loop.run_in_executor(None, _jog_send_stop, device)
             return {"success": True}
 
         # ── Preuve de vie de la position ──────────────────────────────────────
@@ -1585,13 +1618,6 @@ async def mount_jog(req: JogRequest):
         if not fresh:
             logger.error(f"⛔ Jog refusé — {why}")
             return {"success": False, "error": why}
-
-        # Origine de la course, posée au premier appui (pas aux impulsions
-        # de maintien qui suivent), pour borner le déplacement total.
-        if _jog_active_id != req.jog_id or _jog_origin is None:
-            if indi.encoder_az is not None and indi.encoder_alt is not None:
-                _jog_origin = (indi.encoder_az, indi.encoder_alt)
-        _jog_check_travel(device)
 
         # ── START / HEARTBEAT ─────────────────────────────────────────────────
         # Filter out delayed heartbeat pulses that arrive after a stop was already processed
@@ -1637,9 +1663,12 @@ async def mount_jog(req: JogRequest):
             # commande MOTION_* sans vitesse sélectionnée est acceptée puis
             # exécutée à vitesse nulle : l'API répond success, les logs montrent
             # le bon XML, et le tube ne bouge pas d'un pas moteur.
-            # L'échelle n'est pas linéaire : les rangs bas sont des vitesses de
-            # guidage (~0,004 °/s, invisibles), le pointage ne commence que vers
-            # 7x (~0,27 °/s). D'où un défaut élevé plutôt que médian.
+            #
+            # Ce bloc n'est atteint qu'au CHANGEMENT de direction : les
+            # impulsions de maintien qui suivent n'envoient rien à la monture,
+            # elles ne font qu'attester la présence du doigt et réarmer le
+            # watchdog. Le maintien autorise le mouvement à continuer, il ne le
+            # produit jamais.
             xmls.append(
                 f'<newSwitchVector device="{device}" name="TELESCOPE_SLEW_RATE">'
                 f'<oneSwitch name="{_jog_rate_name()}">On</oneSwitch></newSwitchVector>'
@@ -2599,6 +2628,186 @@ async def ccd_stream_stop():
     indi.send(f'<newSwitchVector device="{dev}" name="viewfinder"><oneSwitch name="viewfinder1">On</oneSwitch></newSwitchVector>')
     return {"success": True}
 
+# ─── Empilement : darks, pile, conseils IA ───────────────────────────────────
+
+class DarkSeriesRequest(BaseModel):
+    """Série de darks : mêmes exposition et ISO que les lights visés."""
+    count: int = 5
+    exposure: float = 15.0
+    iso: str | int | None = None
+    device: str | None = None
+
+
+class StackSessionRequest(BaseModel):
+    """Empile des captures déjà prises, désignées par leur horodatage."""
+    timestamps: list[str] = []          # vide = toutes les captures depuis since_ts
+    since_ts: str | None = None
+    exposure: float = 15.0
+    iso: str | int | None = None
+    name: str | None = None
+    use_siril: bool = False
+    ai_advice: bool = True
+
+
+def _captures_for(timestamps: list[str], since_ts: str | None) -> list[str]:
+    """Résout une liste de captures en chemins absolus, triés chronologiquement."""
+    out = []
+    if timestamps:
+        for ts in timestamps:
+            # Pas de séparateur de chemin : ces valeurs viennent du client.
+            if os.path.basename(ts) != ts:
+                continue
+            for ext in (".jpg", ".fits", ".fit", ".cr2"):
+                p = os.path.join(STORAGE_PATH, f"capture_{ts}{ext}")
+                if os.path.isfile(p):
+                    out.append(p)
+                    break
+        return sorted(out)
+    for name in sorted(os.listdir(STORAGE_PATH)):
+        if not name.startswith("capture_"):
+            continue
+        ts = name.removeprefix("capture_").rsplit(".", 1)[0]
+        if since_ts and ts < since_ts:
+            continue
+        out.append(os.path.join(STORAGE_PATH, name))
+    return sorted(out)
+
+
+@app.post("/capture/darks")
+async def capture_darks(req: DarkSeriesRequest):
+    """Tire une série de darks et l'archive comme master pour (pose, ISO).
+
+    Sans dark, les pixels chauds sont alignés et renforcés par l'empilement :
+    sur les images du 5 août, 489 des 489 « étoiles » détectées avant
+    soustraction étaient des défauts capteur. Un master n'est valable que pour
+    SON couple exposition/ISO — 856 pixels chauds à 0,1 s contre 1438 à 15 s.
+    """
+    if _autoalign_session is not None and _autoalign_session.running:
+        return {"success": False, "error": "Session d'auto-alignement en cours"}
+    if req.count < 2:
+        return {"success": False,
+                "error": "2 poses minimum : la médiane n'a pas de sens en dessous"}
+
+    device = req.device or indi.device_ccd
+    if not device:
+        return {"success": False, "error": "Aucune caméra détectée"}
+
+    shot: list[str] = []
+    for i in range(req.count):
+        before = set(os.listdir(STORAGE_PATH))
+        try:
+            r = await ccd_capture_internal(device, req.exposure,
+                                           preview=False, iso=req.iso)
+        except ValueError as e:
+            return {"success": False, "error": str(e)}
+        if not r.get("success"):
+            return {"success": False, "error": f"Dark {i+1} : {r.get('error')}"}
+
+        deadline = time.time() + req.exposure + CAPTURE_DOWNLOAD_TIMEOUT_S
+        new = None
+        while time.time() < deadline:
+            await asyncio.sleep(1.0)
+            added = [f for f in set(os.listdir(STORAGE_PATH)) - before
+                     if f.startswith("capture_")]
+            if added:
+                new = os.path.join(STORAGE_PATH, sorted(added)[-1])
+                break
+        if not new:
+            return {"success": False,
+                    "error": f"Dark {i+1} : image jamais reçue"}
+        shot.append(new)
+        logger.info(f"[Dark] {i+1}/{req.count} — {os.path.basename(new)}")
+
+    try:
+        meta = await asyncio.get_running_loop().run_in_executor(
+            None, lambda: stacking.build_master_dark(
+                shot, STORAGE_PATH, req.exposure, req.iso))
+    except ValueError as e:
+        return {"success": False, "error": str(e)}
+    return {"success": True, "master": meta}
+
+
+@app.get("/capture/darks")
+async def list_darks():
+    """Bibliothèque de master darks disponibles, avec leur péremption."""
+    return {"success": True, "darks": stacking.list_master_darks(STORAGE_PATH)}
+
+
+@app.post("/capture/stack")
+async def capture_stack(req: StackSessionRequest):
+    """Empile une série et rend l'image traitée plus des mesures objectives."""
+    paths = _captures_for(req.timestamps, req.since_ts)
+    if len(paths) < 2:
+        return {"success": False,
+                "error": f"{len(paths)} capture(s) trouvée(s), 2 minimum"}
+
+    name = req.name or f"stack_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    loop = asyncio.get_running_loop()
+    try:
+        res = await loop.run_in_executor(None, lambda: stacking.run_stack(
+            paths, STORAGE_PATH, req.exposure, req.iso, name,
+            prefer_siril=req.use_siril))
+    except ValueError as e:
+        logger.error(f"[Stack] {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+    res["image_url"] = f"/capture/stack/image/{os.path.basename(res['image'])}"
+    if req.ai_advice:
+        try:
+            res["advice"] = await loop.run_in_executor(
+                None, lambda: _ai_stack_advice(res["stats"]))
+        except Exception as e:
+            # L'IA est un bonus : son absence ne doit pas invalider la pile.
+            logger.warning(f"[Stack] conseils IA indisponibles : {e}")
+            res["advice"] = {"error": str(e)}
+    return res
+
+
+@app.get("/capture/stack/image/{name}")
+async def capture_stack_image(name: str):
+    if os.path.basename(name) != name:
+        raise HTTPException(status_code=400, detail="Nom invalide")
+    p = os.path.join(STORAGE_PATH, "stacks", name)
+    if not os.path.isfile(p):
+        raise HTTPException(status_code=404, detail="Pile introuvable")
+    with open(p, "rb") as f:
+        return Response(content=f.read(), media_type="image/png")
+
+
+def _ai_stack_advice(stats: dict) -> dict:
+    """Demande à l'IA quoi changer, en lui donnant des MESURES, pas une image.
+
+    Les chiffres transmis sont ceux qui pilotent réellement la qualité :
+    intégration, gain de bruit, rotation de champ, HFR, saturation. L'IA
+    n'invente rien sur l'image, elle raisonne sur des grandeurs mesurées.
+    """
+    prompt = (
+        "Tu conseilles un astrophotographe. Matériel : Celestron NexStar 4SE "
+        "(1350 mm, f/15, monture ALT-AZIMUTALE sans dérotateur) et Canon EOS "
+        "600D. Site : Tahiti.\n\n"
+        f"Résultats mesurés sur la dernière pile :\n"
+        f"- poses retenues : {stats.get('frames_used')}/{stats.get('frames_total')} "
+        f"({stats.get('frames_rejected')} rejetées à l'alignement)\n"
+        f"- exposition unitaire : {stats.get('exposure_s')} s, ISO {stats.get('iso')}\n"
+        f"- intégration totale : {stats.get('integration_s')} s\n"
+        f"- rotation de champ sur la série : {stats.get('field_rotation_deg')}°\n"
+        f"- bruit de fond : {stats.get('background_sigma_single')} sur une pose "
+        f"→ {stats.get('background_sigma')} sur la pile (gain ×{stats.get('noise_gain')})\n"
+        f"- étoiles détectées : {stats.get('star_count')}\n"
+        f"- HFR médian : {stats.get('hfr_px')} px\n"
+        f"- pixels saturés : {stats.get('saturated_pct')} %\n"
+        f"- master dark appliqué : {stats.get('dark_applied')} "
+        f"({stats.get('dark_hot_pixels')} pixels chauds cartographiés)\n\n"
+        "Donne des recommandations CONCRÈTES et chiffrées pour la prochaine "
+        "série. Tiens compte de la rotation de champ propre à l'alt-az, qui "
+        "limite la pose unitaire, et du f/15 très lent. Réponds UNIQUEMENT en "
+        'JSON : {"exposure_s": <nombre>, "iso": "<valeur>", "frame_count": '
+        '<nombre>, "diagnostic": "<constat en une phrase>", "actions": '
+        '["<action 1>", "<action 2>"]}'
+    )
+    return _ai_call(prompt)
+
+
 class StackRequest(BaseModel):
     folder: str
     darks: str | None = None
@@ -2933,9 +3142,20 @@ async def capture_progress(request: Request):
                         _capture_state["preview_label"] = "Téléchargement depuis l'appareil..."
                     # Watchdog : si l'image n'arrive jamais (mauvais device, driver muet),
                     # ne pas rester bloqué sur "Téléchargement..." indéfiniment.
-                    if elapsed > expo + 45:
+                    #
+                    # Marge calée sur le débit réel, pas sur une valeur ronde :
+                    # une trame RAW du 600D fait 35,8 Mo et le Pi 3B plafonne à
+                    # ~2 Mo/s (son ethernet partage le contrôleur USB avec
+                    # l'appareil photo), soit ~18 s dans le meilleur cas et bien
+                    # plus quand le bus est chargé. À 45 s, des captures
+                    # parfaitement valides étaient déclarées en échec alors que
+                    # l'image arrivait juste après.
+                    if elapsed > expo + CAPTURE_DOWNLOAD_TIMEOUT_S:
                         _capture_state["phase"] = "error"
-                        _capture_state["error"] = "Image jamais reçue de l'appareil (timeout 45s) — vérifiez le device et l'obturation"
+                        _capture_state["error"] = (
+                            f"Image jamais reçue de l'appareil "
+                            f"(timeout {CAPTURE_DOWNLOAD_TIMEOUT_S:.0f}s) — "
+                            f"vérifiez le device et l'obturation")
                         _capture_state["preview_label"] = ""
                         _capture_state["capture_started"] = None
                 payload = json.dumps({k: v for k, v in _capture_state.items() if k != "capture_started"})
@@ -3343,12 +3563,16 @@ async def capture_sequence_start(req: CaptureSequenceRequest):
             # ── Déclencher via le chemin unique (miroir, UPLOAD_MODE, RAM, etc.) ─
             pre_ts = _time.time()
             if indi._event_loop:
+                # req.gain porte l'ISO du boîtier ; il n'était pas transmis, si
+                # bien que toute la séquence se tournait au dernier ISO réglé
+                # sur l'appareil quelle que soit la valeur demandée — même
+                # défaut que la capture unitaire, à un troisième endroit.
                 future = asyncio.run_coroutine_threadsafe(
-                    ccd_capture_internal(device, req.exposure),
+                    ccd_capture_internal(device, req.exposure, iso=req.gain),
                     indi._event_loop,
                 )
                 try:
-                    result = future.result(timeout=req.exposure + 10.0)
+                    result = future.result(timeout=req.exposure + 30.0)
                     if not result.get("success"):
                         _cap_log(f"Frame {i+1}: déclenchement échoué — {result.get('error','?')}", "error")
                         continue
@@ -3366,7 +3590,10 @@ async def capture_sequence_start(req: CaptureSequenceRequest):
             # ── Attendre l'apparition d'un NOUVEAU fichier sur disque ───────────
             with _capture_lock:
                 _capture_state["preview_label"] = f"Attente image {i+1}/{req.count}..."
-            deadline = _time.time() + req.exposure + 30.0
+            # Même délai de téléchargement que la capture unitaire : ce 30 s
+            # abandonnait la frame avant même que le Pi ait fini de la
+            # transférer, faisant échouer des poses valides en série.
+            deadline = _time.time() + req.exposure + CAPTURE_DOWNLOAD_TIMEOUT_S
             latest = None
             while _time.time() < deadline:
                 _time.sleep(1.0)
