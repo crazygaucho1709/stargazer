@@ -78,10 +78,10 @@ export const TelescopeControls = ({ variant }: TelescopeControlsProps) => {
                     <div className="absolute inset-5 rounded-full border border-dashed border-red-500/20" style={{ animation: 'spin 40s linear infinite' }} />
 
                     {/* Cardinal markers */}
-                    <span className="absolute top-0.5 left-1/2 -translate-x-1/2 text-[8px] text-white/25 font-bold">N</span>
-                    <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 text-[8px] text-white/25 font-bold">S</span>
-                    <span className="absolute left-1 top-1/2 -translate-y-1/2 text-[8px] text-white/25 font-bold">W</span>
-                    <span className="absolute right-1 top-1/2 -translate-y-1/2 text-[8px] text-white/25 font-bold">E</span>
+                    <span className="absolute top-0.5 left-1/2 -translate-x-1/2 text-hud-2xs text-white/25 font-bold">N</span>
+                    <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 text-hud-2xs text-white/25 font-bold">S</span>
+                    <span className="absolute left-1 top-1/2 -translate-y-1/2 text-hud-2xs text-white/25 font-bold">W</span>
+                    <span className="absolute right-1 top-1/2 -translate-y-1/2 text-hud-2xs text-white/25 font-bold">E</span>
 
                     {/* Cardinal pads */}
                     <div className="absolute top-[15px]">
@@ -152,9 +152,9 @@ export const TelescopeControls = ({ variant }: TelescopeControlsProps) => {
                 {/* Slew rate slider */}
                 <div className="w-[160px] pt-2">
                     <div className="flex justify-between mb-1">
-                        <span className="text-[10px] text-white/40">1x</span>
-                        <span className="text-[11px] text-[--astro-teal] font-bold">{slewRate}x</span>
-                        <span className="text-[10px] text-white/40">9x</span>
+                        <span className="text-hud-xs text-white/40">1x</span>
+                        <span className="text-hud-xs text-[--astro-teal] font-bold">{slewRate}x</span>
+                        <span className="text-hud-xs text-white/40">9x</span>
                     </div>
                     <input
                         type="range" min={1} max={9} step={1} value={slewRate}
@@ -213,7 +213,7 @@ export const TrackingModeSelector = () => {
 
     return (
         <div className="flex flex-col gap-1">
-            <span className="text-[9px] text-white/40 uppercase tracking-wider text-center">Mode suivi</span>
+            <span className="text-hud-2xs text-white/40 uppercase tracking-wider text-center">Mode suivi</span>
             <div className="flex gap-1 justify-center">
                 {RATE_OPTIONS.map(({ rate, label, icon: Ico, desc }) => {
                     const active = trackingRate === rate;
@@ -225,7 +225,7 @@ export const TrackingModeSelector = () => {
                             disabled={isLoading}
                             onClick={() => handleSelect(rate)}
                             className={[
-                                "flex items-center gap-1 h-7 px-2 rounded-md border text-[10px] transition-colors duration-150 cursor-pointer",
+                                "flex items-center gap-1 h-7 px-2 rounded-md border text-hud-xs transition-colors duration-150 cursor-pointer",
                                 active
                                     ? "bg-teal-600 text-white border-teal-400 hover:bg-teal-500"
                                     : "bg-white/[0.04] text-white/60 border-white/10 hover:bg-white/[0.08] hover:text-white",

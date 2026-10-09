@@ -114,7 +114,7 @@ export const CameraControls = ({ variant = "standard" }: CameraControlsProps) =>
                     }}
                 >
                     <button
-                        className="flex flex-1 items-center justify-center gap-1 h-6 rounded-full text-[9px] hud-font transition-colors cursor-pointer"
+                        className="flex flex-1 items-center justify-center gap-1 h-6 rounded-full text-hud-2xs hud-font transition-colors cursor-pointer"
                         style={{
                             background: liveViewMode === "NASA" ? "var(--astro-teal)" : "transparent",
                             color: liveViewMode === "NASA" ? "black" : "rgba(255,255,255,0.6)",
@@ -127,7 +127,7 @@ export const CameraControls = ({ variant = "standard" }: CameraControlsProps) =>
                         SKY MAP
                     </button>
                     <button
-                        className="flex flex-1 items-center justify-center gap-1 h-6 rounded-full text-[9px] hud-font transition-colors cursor-pointer"
+                        className="flex flex-1 items-center justify-center gap-1 h-6 rounded-full text-hud-2xs hud-font transition-colors cursor-pointer"
                         style={{
                             background: liveViewMode === "CANON" ? "var(--astro-gold)" : "transparent",
                             color: liveViewMode === "CANON" ? "black" : "rgba(255,255,255,0.6)",
@@ -180,7 +180,7 @@ export const CameraControls = ({ variant = "standard" }: CameraControlsProps) =>
                             {isExposing ? (
                                 <div className="flex flex-col items-center gap-0">
                                     <Spinner />
-                                    <span className="text-[8px] text-black font-bold mt-1">BUSY</span>
+                                    <span className="text-hud-2xs text-black font-bold mt-1">BUSY</span>
                                 </div>
                             ) : (
                                 <Camera size={24} style={{ color: "var(--astro-teal)" }} />
@@ -216,13 +216,13 @@ export const CameraControls = ({ variant = "standard" }: CameraControlsProps) =>
                         <div className="flex flex-col gap-1">
                             <div className="flex items-center gap-2">
                                 <Brain size={14} style={{ color: "var(--astro-teal)" }} />
-                                <span className="text-[10px] font-bold tracking-[0.05em]" style={{ color: "rgba(255,255,255,0.9)" }}>AI FOCUS CORRECTIONS</span>
+                                <span className="text-hud-xs font-bold tracking-[0.05em]" style={{ color: "rgba(255,255,255,0.9)" }}>AI FOCUS CORRECTIONS</span>
                                 <Tooltip content="Automatically adjusts focus during long sessions based on temperature and star analysis (HFR). Helps maintain sharpness as the telescope cools." showArrow>
                                     <HelpCircle size={12} style={{ color: "rgba(255,255,255,0.4)", cursor: "help" }} />
                                 </Tooltip>
                             </div>
                             <button
-                                className="h-5 px-2 rounded text-[9px] text-left transition-colors cursor-pointer disabled:opacity-40"
+                                className="h-5 px-2 rounded text-hud-2xs text-left transition-colors cursor-pointer disabled:opacity-40"
                                 style={{ color: "var(--astro-gold)" }}
                                 onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.1)")}
                                 onMouseLeave={e => (e.currentTarget.style.background = "")}
@@ -246,12 +246,12 @@ export const CameraControls = ({ variant = "standard" }: CameraControlsProps) =>
                             <Eye size={14} style={{ color: "var(--astro-gold)" }} />
                             <div className="flex flex-col gap-0">
                                 <div className="flex items-center gap-1">
-                                    <span className="text-[10px] font-bold tracking-[0.05em]" style={{ color: "rgba(255,255,255,0.9)" }}>HFR OVERLAY</span>
+                                    <span className="text-hud-xs font-bold tracking-[0.05em]" style={{ color: "rgba(255,255,255,0.9)" }}>HFR OVERLAY</span>
                                     <Tooltip content="Superimposes Half Flux Radius (HFR) metrics on the direct view to help you visualize focus quality across the field." showArrow>
                                         <HelpCircle size={12} style={{ color: "rgba(255,255,255,0.4)", cursor: "help" }} />
                                     </Tooltip>
                                 </div>
-                                <span className="text-[8px]" style={{ color: "rgba(255,255,255,0.5)" }}>Real-time star metrics</span>
+                                <span className="text-hud-2xs" style={{ color: "rgba(255,255,255,0.5)" }}>Real-time star metrics</span>
                             </div>
                         </div>
                         <Switch
@@ -274,7 +274,7 @@ export const CameraControls = ({ variant = "standard" }: CameraControlsProps) =>
 
     return (
         <div className="flex flex-col gap-4 w-full">
-            <span className="text-[9px] tracking-[0.2em]" style={{ color: "rgba(255,255,255,0.4)" }}>CAMERA SYSTEM ACTIVE</span>
+            <span className="text-hud-2xs tracking-[0.2em]" style={{ color: "rgba(255,255,255,0.4)" }}>CAMERA SYSTEM ACTIVE</span>
         </div>
     );
 };

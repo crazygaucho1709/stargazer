@@ -64,10 +64,10 @@ export const CaptureProgress = () => {
                                 )}
                             </div>
                             <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-                                <span style={{ fontSize: "12px", fontWeight: "bold", color: "white", letterSpacing: "0.1em" }} className="hud-font">
+                                <span style={{ fontSize: "var(--text-hud-sm)", fontWeight: "bold", color: "white", letterSpacing: "0.1em" }} className="hud-font">
                                     {isExposing ? "DATA ACQUISITION" : "PROCESSING STACK"}
                                 </span>
-                                <span style={{ fontSize: "9px", color: "rgba(255,255,255,0.5)", letterSpacing: "0.05em" }}>
+                                <span style={{ fontSize: "var(--text-hud-2xs)", color: "rgba(255,255,255,0.5)", letterSpacing: "0.05em" }}>
                                     SENS. EOS 600D • FRM_CAPT_01
                                 </span>
                             </div>
@@ -77,7 +77,7 @@ export const CaptureProgress = () => {
                             color: isExposing ? "var(--astro-gold)" : "var(--astro-teal)",
                             borderRadius: "2px",
                             padding: "2px 8px",
-                            fontSize: "8px",
+                            fontSize: "var(--text-hud-2xs)",
                             letterSpacing: "0.1em",
                             border: "1px solid rgba(255,255,255,0.2)",
                             fontWeight: "bold",
@@ -91,9 +91,9 @@ export const CaptureProgress = () => {
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                                 <div style={{ width: "2px", height: "10px", background: "var(--astro-gold)" }} />
-                                <span style={{ fontSize: "10px", color: "rgba(255,255,255,0.7)", letterSpacing: "0.05em", fontWeight: "bold" }}>BUFFER_RAW</span>
+                                <span style={{ fontSize: "var(--text-hud-xs)", color: "rgba(255,255,255,0.7)", letterSpacing: "0.05em", fontWeight: "bold" }}>BUFFER_RAW</span>
                             </div>
-                            <span style={{ fontSize: "12px", fontWeight: "bold", color: "var(--astro-gold)", fontVariantNumeric: "tabular-nums" }} className="hud-font">
+                            <span style={{ fontSize: "var(--text-hud-sm)", fontWeight: "bold", color: "var(--astro-gold)", fontVariantNumeric: "tabular-nums" }} className="hud-font">
                                 {captureProgress}%
                             </span>
                         </div>
@@ -126,9 +126,9 @@ export const CaptureProgress = () => {
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                                 <div style={{ width: "2px", height: "10px", background: "var(--astro-teal)" }} />
-                                <span style={{ fontSize: "10px", color: "rgba(255,255,255,0.7)", letterSpacing: "0.05em", fontWeight: "bold" }}>PROC_INTEGRATION</span>
+                                <span style={{ fontSize: "var(--text-hud-xs)", color: "rgba(255,255,255,0.7)", letterSpacing: "0.05em", fontWeight: "bold" }}>PROC_INTEGRATION</span>
                             </div>
-                            <span style={{ fontSize: "12px", fontWeight: "bold", color: "var(--astro-teal)", fontVariantNumeric: "tabular-nums" }} className="hud-font">
+                            <span style={{ fontSize: "var(--text-hud-sm)", fontWeight: "bold", color: "var(--astro-teal)", fontVariantNumeric: "tabular-nums" }} className="hud-font">
                                 {stackingProgress}%
                             </span>
                         </div>
@@ -168,7 +168,7 @@ export const CaptureProgress = () => {
                                     alignItems: "center",
                                     gap: "0.75rem",
                                     color: "var(--astro-teal)",
-                                    fontSize: "10px",
+                                    fontSize: "var(--text-hud-xs)",
                                     marginTop: "0.25rem",
                                     background: "rgba(0, 255, 180, 0.05)",
                                     padding: "0.5rem",

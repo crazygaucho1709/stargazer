@@ -21,7 +21,7 @@ export const ControlPod = ({
             {title && (
                 <div className="relative">
                     <span
-                        className="hud-font text-[9px] font-black tracking-[0.4em] px-4 py-1 rounded-full"
+                        className="hud-font text-hud-2xs font-black tracking-[0.4em] px-4 py-1 rounded-full"
                         style={{
                             color: "rgba(255,255,255,0.7)",
                             background: "rgba(0,0,0,0.6)",

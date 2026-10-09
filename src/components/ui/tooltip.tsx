@@ -91,7 +91,7 @@ export const Tooltip = React.forwardRef<HTMLDivElement, TooltipProps>(
             border: "1px solid rgba(255,255,255,0.12)",
             borderRadius: "6px",
             padding: "4px 10px",
-            fontSize: "12px",
+            fontSize: "var(--text-hud-sm)",
             color: "rgba(255,255,255,0.9)",
             boxShadow: "0 4px 16px rgba(0,0,0,0.4)",
             ...positionStyles,

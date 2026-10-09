@@ -26,7 +26,7 @@ export const AstroPod = ({ title, children, width = "auto", height = "auto", glo
             {title && (
                 <div className="self-start">
                     <span
-                        className="hud-font text-[11px] font-semibold tracking-[0.15em] px-4 py-1.5"
+                        className="hud-font text-hud-xs font-semibold tracking-[0.15em] px-4 py-1.5"
                         style={{
                             color: activeColor,
                             background: "rgba(10, 20, 40, 0.7)",

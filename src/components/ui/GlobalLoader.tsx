@@ -110,7 +110,7 @@ export const GlobalLoader = () => {
                                     border: "1px solid rgba(255,51,51,0.2)",
                                 }}
                             >
-                                <span className="hud-font text-[8px]" style={{ color: "var(--astro-teal)" }}>AZ_LIMIT_LOCK</span>
+                                <span className="hud-font text-hud-2xs" style={{ color: "var(--astro-teal)" }}>AZ_LIMIT_LOCK</span>
                             </div>
 
                             {/* Rotating arcs */}
@@ -189,9 +189,9 @@ export const GlobalLoader = () => {
                                     </motion.span>
                                 </div>
                                 <div className="flex items-center gap-10 opacity-60">
-                                    <span className="hud-font text-[10px]" style={{ color: "var(--astro-teal)" }}>LAT: -17.6008</span>
-                                    <span className="hud-font text-[10px]" style={{ color: "var(--astro-teal)" }}>LON: -149.6091</span>
-                                    <span className="hud-font text-[10px]" style={{ color: "var(--astro-teal)" }}>SYS: READY</span>
+                                    <span className="hud-font text-hud-xs" style={{ color: "var(--astro-teal)" }}>LAT: -17.6008</span>
+                                    <span className="hud-font text-hud-xs" style={{ color: "var(--astro-teal)" }}>LON: -149.6091</span>
+                                    <span className="hud-font text-hud-xs" style={{ color: "var(--astro-teal)" }}>SYS: READY</span>
                                 </div>
                             </div>
 
@@ -209,14 +209,14 @@ export const GlobalLoader = () => {
                                 />
                                 <div className="flex items-center gap-3">
                                     <Activity size={16} color="var(--astro-teal)" className="pulse-glow" />
-                                    <span className="hud-font text-[11px] font-bold tracking-[0.2em]" style={{ color: "var(--astro-teal)" }}>
+                                    <span className="hud-font text-hud-xs font-bold tracking-[0.2em]" style={{ color: "var(--astro-teal)" }}>
                                         ASTROBERRY UP-LINK ESTABLISHED
                                     </span>
                                 </div>
                                 <div className="w-px h-5" style={{ background: "rgba(255, 51, 51, 0.3)" }} />
                                 <div className="flex items-center gap-3">
                                     <Terminal size={16} color="var(--astro-gold)" />
-                                    <span className="hud-font text-[11px] font-bold tracking-[0.2em]" style={{ color: "var(--astro-gold)" }}>
+                                    <span className="hud-font text-hud-xs font-bold tracking-[0.2em]" style={{ color: "var(--astro-gold)" }}>
                                         INDI STREAM ACTIVE
                                     </span>
                                 </div>

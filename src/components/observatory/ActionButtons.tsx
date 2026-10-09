@@ -34,7 +34,7 @@ const ActionBtn = ({ label, icon: IconComp, onClick, colorScheme = "gray", isLoa
             onMouseLeave={() => setHovered(false)}
             style={{
                 flex: 1,
-                fontSize: "11px",
+                fontSize: "var(--text-hud-xs)",
                 height: "40px",
                 border: variant === 'solid' ? "1px solid transparent" : "1px solid rgba(255,255,255,0.2)",
                 borderRadius: "0.375rem",
@@ -74,7 +74,7 @@ export const ActionButtons = () => {
         <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem", width: "100%" }}>
             {/* Mount Control */}
             <div>
-                <p style={{ fontSize: "12px", fontWeight: "bold", color: "rgba(255,255,255,0.6)", marginBottom: "0.75rem", letterSpacing: "0.1em" }}>
+                <p style={{ fontSize: "var(--text-hud-sm)", fontWeight: "bold", color: "rgba(255,255,255,0.6)", marginBottom: "0.75rem", letterSpacing: "0.1em" }}>
                     MOUNT CONTROL
                 </p>
                 <div style={{ display: "flex", gap: "0.75rem" }}>
@@ -107,10 +107,10 @@ export const ActionButtons = () => {
 
             {/* Maintenance — escape hatch (la récupération courante passe par le panneau DIAGNOSTIC) */}
             <div>
-                <p style={{ fontSize: "12px", fontWeight: "bold", color: "rgba(255,255,255,0.6)", marginBottom: "0.4rem", letterSpacing: "0.1em" }}>
+                <p style={{ fontSize: "var(--text-hud-sm)", fontWeight: "bold", color: "rgba(255,255,255,0.6)", marginBottom: "0.4rem", letterSpacing: "0.1em" }}>
                     MAINTENANCE
                 </p>
-                <p style={{ fontSize: "10px", color: "rgba(255,255,255,0.4)", marginBottom: "0.75rem", lineHeight: 1.5 }}>
+                <p style={{ fontSize: "var(--text-hud-xs)", color: "rgba(255,255,255,0.4)", marginBottom: "0.75rem", lineHeight: 1.5 }}>
                     Reconnexion, redémarrage INDI et verrou USB sont gérés par le panneau DIAGNOSTIC ci-dessus (Reset All).
                 </p>
                 <div style={{ display: "flex", width: "100%", gap: "0.75rem" }}>

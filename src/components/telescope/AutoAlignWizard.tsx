@@ -120,7 +120,7 @@ const SkyDome = ({ zone, limits, cells = [], liveAlt, liveAz }: {
     const livePos = liveAlt !== undefined && liveAz !== undefined ? toXY(liveAlt, liveAz) : null;
     return (
         <div className="rounded-lg p-2" style={{ background: "rgba(0,0,0,0.5)", border: "1px solid rgba(255,255,255,0.06)" }}>
-            <p className="text-[8px] mb-1 tracking-[0.08em]" style={{ color: "rgba(255,255,255,0.4)" }}>CARTE CIEL</p>
+            <p className="text-hud-2xs mb-1 tracking-[0.08em]" style={{ color: "rgba(255,255,255,0.4)" }}>CARTE CIEL</p>
             <svg width={W} height={H} style={{ display: 'block', margin: '0 auto' }}>
                 <path d={`M ${CX - R} ${CY} A ${R} ${R} 0 0 1 ${CX + R} ${CY}`} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
                 {[30, 60].map(alt => {
@@ -420,17 +420,17 @@ export const AutoAlignWizard = () => {
                         <Satellite size={16} style={{ color: "var(--astro-teal)" }} />
                     </div>
                     <div className="flex flex-col gap-0">
-                        <span className="text-[12px] font-bold tracking-[0.15em] text-white">
+                        <span className="text-hud-sm font-bold tracking-[0.15em] text-white">
                             {L("AUTO-ALIGN AUTONOME", "AUTONOMOUS AUTO-ALIGN")}
                         </span>
-                        <span className="text-[8px] tracking-[0.04em]" style={{ color: "rgba(255,255,255,0.4)" }}>
+                        <span className="text-hud-2xs tracking-[0.04em]" style={{ color: "rgba(255,255,255,0.4)" }}>
                             {phase === 'limits-setup'
                                 ? L("ÉTAPE 1/2 — DÉFINIR LES LIMITES PHYSIQUES", "STEP 1/2 — DEFINE PHYSICAL LIMITS")
                                 : L("ÉTAPE 2/2 — SOLVE → SYNC → TRACKING", "STEP 2/2 — SOLVE → SYNC → TRACKING")}
                         </span>
                     </div>
                 </div>
-                <span className="inline-flex items-center px-2 py-1 rounded text-[8px] border"
+                <span className="inline-flex items-center px-2 py-1 rounded text-hud-2xs border"
                     style={{
                         background: phase === 'complete' ? 'rgba(72,187,120,0.18)' : phase === 'failed' ? 'rgba(245,101,101,0.18)' : isRunning ? 'rgba(0,255,209,0.12)' : 'rgba(255,255,255,0.06)',
                         color: phase === 'complete' ? '#68d391' : phase === 'failed' ? '#fc8181' : isRunning ? 'var(--astro-teal)' : 'rgba(255,255,255,0.5)',
@@ -445,12 +445,12 @@ export const AutoAlignWizard = () => {
                 <div className="flex flex-col gap-3">
                     <div className="p-3 rounded-lg" style={{ background: "rgba(255,195,0,0.05)", border: "1px solid rgba(255,195,0,0.2)" }}>
                         <div className="flex items-center gap-2 mb-1">
-                            <span className="text-[14px]">🎯</span>
-                            <span className="text-[10px] font-bold tracking-[0.06em]" style={{ color: "#fefcbf" }}>
+                            <span className="text-hud-md">🎯</span>
+                            <span className="text-hud-xs font-bold tracking-[0.06em]" style={{ color: "#fefcbf" }}>
                                 {L("APPRENEZ AU TÉLESCOPE SES LIMITES", "TEACH THE TELESCOPE ITS LIMITS")}
                             </span>
                         </div>
-                        <p className="text-[8px] leading-[1.6]" style={{ color: "rgba(255,255,255,0.6)" }}>
+                        <p className="text-hud-2xs leading-[1.6]" style={{ color: "rgba(255,255,255,0.6)" }}>
                             {L("Déplacez le télescope vers chaque position limite avec la raquette ou les flèches ci-dessous, puis appuyez sur 📍 Enregistrer. Stargazer lit la position réelle depuis INDI.", "Move the telescope to each limit position with the handset or the arrows below, then press 📍 Record. Stargazer reads the actual position from INDI.")}
                         </p>
                     </div>
@@ -462,20 +462,20 @@ export const AutoAlignWizard = () => {
                             <div className="flex items-center justify-between gap-3 p-2.5 rounded-lg" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
                                 <div className="flex flex-col gap-0.5">
                                     <div className="flex items-center gap-1">
-                                        <span className="text-[8px] tracking-[0.06em]" style={{ color: "rgba(255,255,255,0.4)" }}>
+                                        <span className="text-hud-2xs tracking-[0.06em]" style={{ color: "rgba(255,255,255,0.4)" }}>
                                             {L("POSITION ACTUELLE", "CURRENT POSITION")}
                                         </span>
                                         {isPolling && <Spinner size="xs" color="rgba(255,255,255,0.3)" />}
                                     </div>
                                     {!isMountConnected ? (
                                         <div className="flex flex-col gap-1">
-                                            <span className="text-[8px] font-bold text-red-400">
+                                            <span className="text-hud-2xs font-bold text-red-400">
                                                 {L("⚠️ TÉLESCOPE DÉCONNECTÉ", "⚠️ MOUNT DISCONNECTED")}
                                             </span>
                                             <button
                                                 disabled={isConnectingMount}
                                                 onClick={connectHardware}
-                                                className="flex items-center justify-center gap-1 h-[22px] px-2 rounded text-[8px] font-bold text-white bg-red-600 hover:bg-red-500 disabled:opacity-60 cursor-pointer"
+                                                className="flex items-center justify-center gap-1 h-[22px] px-2 rounded text-hud-2xs font-bold text-white bg-red-600 hover:bg-red-500 disabled:opacity-60 cursor-pointer"
                                             >
                                                 {isConnectingMount && <Spinner size="xs" color="white" />}
                                                 {L("CONNECTER", "CONNECT MOUNT")}
@@ -485,28 +485,28 @@ export const AutoAlignWizard = () => {
                                         <>
                                             <div className="flex items-end gap-3">
                                                 <div className="flex flex-col gap-0">
-                                                    <span className="text-[7px]" style={{ color: "rgba(255,255,255,0.4)" }}>ALT</span>
-                                                    <span className="text-[13px] font-bold text-white font-mono leading-none">{liveAlt.toFixed(1)}°</span>
+                                                    <span className="text-hud-2xs" style={{ color: "rgba(255,255,255,0.4)" }}>ALT</span>
+                                                    <span className="text-hud-sm font-bold text-white font-mono leading-none">{liveAlt.toFixed(1)}°</span>
                                                 </div>
                                                 <div className="flex flex-col gap-0">
-                                                    <span className="text-[7px]" style={{ color: "rgba(255,255,255,0.4)" }}>AZ</span>
-                                                    <span className="text-[13px] font-bold text-white font-mono leading-none">{liveAz!.toFixed(1)}°</span>
+                                                    <span className="text-hud-2xs" style={{ color: "rgba(255,255,255,0.4)" }}>AZ</span>
+                                                    <span className="text-hud-sm font-bold text-white font-mono leading-none">{liveAz!.toFixed(1)}°</span>
                                                 </div>
                                             </div>
-                                            <span className="text-[7px] font-mono" style={{ color: "rgba(255,255,255,0.3)" }}>RA {liveRa !== undefined ? fmtRA(liveRa) : '—'}</span>
+                                            <span className="text-hud-2xs font-mono" style={{ color: "rgba(255,255,255,0.3)" }}>RA {liveRa !== undefined ? fmtRA(liveRa) : '—'}</span>
                                         </>
                                     ) : (
                                         <div className="flex items-center gap-1">
                                             <Spinner size="xs" color="rgba(255,255,255,0.4)" />
-                                            <span className="text-[8px]" style={{ color: "rgba(255,255,255,0.4)" }}>{L("Lecture INDI...", "Reading INDI...")}</span>
+                                            <span className="text-hud-2xs" style={{ color: "rgba(255,255,255,0.4)" }}>{L("Lecture INDI...", "Reading INDI...")}</span>
                                         </div>
                                     )}
                                 </div>
                                 <div className="flex flex-col items-center gap-1">
                                     <div className="flex items-center gap-1">
-                                        <span className="text-[7px] tracking-[0.06em]" style={{ color: "rgba(255,255,255,0.4)" }}>{L("DÉPLACEMENT FIN", "FINE JOG")}</span>
+                                        <span className="text-hud-2xs tracking-[0.06em]" style={{ color: "rgba(255,255,255,0.4)" }}>{L("DÉPLACEMENT FIN", "FINE JOG")}</span>
                                         {jog.activeDir && (
-                                            <span className="text-[6px] font-bold tracking-[0.05em]" style={{ color: "var(--astro-teal)", animation: 'pulse 0.6s infinite alternate' }}>
+                                            <span className="text-hud-2xs font-bold tracking-[0.05em]" style={{ color: "var(--astro-teal)", animation: 'pulse 0.6s infinite alternate' }}>
                                                 ▶ {jog.activeDir.toUpperCase()}
                                             </span>
                                         )}
@@ -526,19 +526,19 @@ export const AutoAlignWizard = () => {
                                                 <div className="flex flex-col gap-0.5 flex-1">
                                                     <div className="flex items-center gap-1.5">
                                                         <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: meta.color }} />
-                                                        <span className="text-[9px] font-bold tracking-[0.1em]" style={{ color: "rgba(255,255,255,0.7)" }}>{L(meta.fr, meta.en)}</span>
-                                                        {defined && <span className="text-[8px]">✅</span>}
+                                                        <span className="text-hud-2xs font-bold tracking-[0.1em]" style={{ color: "rgba(255,255,255,0.7)" }}>{L(meta.fr, meta.en)}</span>
+                                                        {defined && <span className="text-hud-2xs">✅</span>}
                                                     </div>
                                                     {defined && lp ? (
-                                                        <span className="text-[8px] text-white font-mono">Alt {lp.alt.toFixed(1)}° / Az {lp.az.toFixed(1)}°</span>
+                                                        <span className="text-hud-2xs text-white font-mono">Alt {lp.alt.toFixed(1)}° / Az {lp.az.toFixed(1)}°</span>
                                                     ) : (
-                                                        <span className="text-[7px]" style={{ color: "rgba(255,255,255,0.4)" }}>{L(meta.frDesc, meta.enDesc)}</span>
+                                                        <span className="text-hud-2xs" style={{ color: "rgba(255,255,255,0.4)" }}>{L(meta.frDesc, meta.enDesc)}</span>
                                                     )}
                                                 </div>
                                                 <button
                                                     disabled={isRec || liveAlt === undefined}
                                                     onClick={() => recordLimit(key)}
-                                                    className="flex items-center justify-center gap-1 h-7 px-3 ml-2 shrink-0 rounded-lg text-[9px] font-bold tracking-[0.06em] border transition-colors cursor-pointer disabled:opacity-40"
+                                                    className="flex items-center justify-center gap-1 h-7 px-3 ml-2 shrink-0 rounded-lg text-hud-2xs font-bold tracking-[0.06em] border transition-colors cursor-pointer disabled:opacity-40"
                                                     style={{
                                                         background: defined ? 'rgba(255,255,255,0.06)' : `${meta.color}22`,
                                                         color: defined ? 'rgba(255,255,255,0.6)' : meta.color,
@@ -558,13 +558,13 @@ export const AutoAlignWizard = () => {
                             <button
                                 disabled={!allLimitsDefined}
                                 onClick={confirmZone}
-                                className="w-full flex items-center justify-center gap-1 h-10 rounded-lg text-[11px] font-bold tracking-[0.1em] border transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                                className="w-full flex items-center justify-center gap-1 h-10 rounded-lg text-hud-xs font-bold tracking-[0.1em] border transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
                                 style={{ background: "rgba(0,255,209,0.1)", color: "var(--astro-teal)", borderColor: "rgba(0,255,209,0.3)" }}
                             >
                                 <Navigation size={12} />
                                 {L("CONFIRMER LA ZONE ET LANCER", "CONFIRM ZONE AND START")}
                                 {!allLimitsDefined && (
-                                    <span className="text-[8px] ml-2" style={{ color: "rgba(255,255,255,0.4)" }}>
+                                    <span className="text-hud-2xs ml-2" style={{ color: "rgba(255,255,255,0.4)" }}>
                                         ({LIMIT_KEYS.filter(k => !limits[k]).length} {L("manquante(s)", "missing")})
                                     </span>
                                 )}
@@ -577,11 +577,11 @@ export const AutoAlignWizard = () => {
                                 <div className="flex items-center justify-between mb-2">
                                     <div className="flex items-center gap-1.5">
                                         <Camera size={14} style={{ color: "var(--astro-gold)" }} />
-                                        <span className="text-[9px] font-bold tracking-[0.08em]" style={{ color: "rgba(255,255,255,0.8)" }}>{L("RETOUR IMAGE EN DIRECT", "CAMERA LIVE FEED")}</span>
+                                        <span className="text-hud-2xs font-bold tracking-[0.08em]" style={{ color: "rgba(255,255,255,0.8)" }}>{L("RETOUR IMAGE EN DIRECT", "CAMERA LIVE FEED")}</span>
                                     </div>
                                     <button
                                         onClick={isLiveStreaming ? stopLiveView : startLiveView}
-                                        className="flex items-center gap-1 h-5 px-2.5 rounded text-[8px] font-bold text-white cursor-pointer"
+                                        className="flex items-center gap-1 h-5 px-2.5 rounded text-hud-2xs font-bold text-white cursor-pointer"
                                         style={{ background: isLiveStreaming ? "#e53e3e" : "#38a169" }}
                                     >
                                         {isLiveStreaming ? (
@@ -596,8 +596,8 @@ export const AutoAlignWizard = () => {
                                         ccdError ? (
                                             <div className="flex flex-col items-center gap-1 p-3 text-center">
                                                 <AlertTriangle size={24} style={{ color: "var(--astro-gold)" }} />
-                                                <span className="text-[9px] font-bold" style={{ color: "var(--astro-gold)" }}>{L("ERREUR DE FLUX", "STREAM ERROR")}</span>
-                                                <span className="text-[7px]" style={{ color: "rgba(255,255,255,0.5)" }}>{L("Échec du chargement de l'image", "Failed to load camera frame")}</span>
+                                                <span className="text-hud-2xs font-bold" style={{ color: "var(--astro-gold)" }}>{L("ERREUR DE FLUX", "STREAM ERROR")}</span>
+                                                <span className="text-hud-2xs" style={{ color: "rgba(255,255,255,0.5)" }}>{L("Échec du chargement de l'image", "Failed to load camera frame")}</span>
                                             </div>
                                         ) : ccdImage ? (
                                             <>
@@ -610,7 +610,7 @@ export const AutoAlignWizard = () => {
                                                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "rgba(255,179,71,0.4)" }}>
                                                     <Crosshair size={80} strokeWidth={1} />
                                                 </div>
-                                                <span className="absolute top-2 left-2 text-[7px] px-1.5 py-0.5 rounded font-bold" style={{ background: "rgba(229,57,53,0.9)", color: "white" }}>LIVE</span>
+                                                <span className="absolute top-2 left-2 text-hud-2xs px-1.5 py-0.5 rounded font-bold" style={{ background: "rgba(229,57,53,0.9)", color: "white" }}>LIVE</span>
                                             </>
                                         ) : (
                                             <Spinner size="sm" />
@@ -618,17 +618,17 @@ export const AutoAlignWizard = () => {
                                     ) : (
                                         <div className="flex flex-col items-center gap-2 p-4 text-center">
                                             <Camera size={32} style={{ color: "rgba(255,255,255,0.2)" }} />
-                                            <span className="text-[9px]" style={{ color: "rgba(255,255,255,0.4)" }}>{L("FLUX VIDÉO EN VEILLE", "CAMERA FEED STANDBY")}</span>
-                                            <span className="text-[7px]" style={{ color: "rgba(255,255,255,0.3)" }}>{L("Activez le LIVE pour voir le viseur", "Start LIVE to show camera view")}</span>
+                                            <span className="text-hud-2xs" style={{ color: "rgba(255,255,255,0.4)" }}>{L("FLUX VIDÉO EN VEILLE", "CAMERA FEED STANDBY")}</span>
+                                            <span className="text-hud-2xs" style={{ color: "rgba(255,255,255,0.3)" }}>{L("Activez le LIVE pour voir le viseur", "Start LIVE to show camera view")}</span>
                                         </div>
                                     )}
                                 </div>
                                 {streamStatus && streamStatus !== "LIVE" && (
                                     <div className="flex flex-col gap-1 mt-1">
-                                        <span className="text-[8px] text-center" style={{ color: streamStatus.startsWith("❌") ? "#fc8181" : "rgba(255,255,255,0.5)" }}>{streamStatus}</span>
+                                        <span className="text-hud-2xs text-center" style={{ color: streamStatus.startsWith("❌") ? "#fc8181" : "rgba(255,255,255,0.5)" }}>{streamStatus}</span>
                                         {streamStatus.startsWith("❌") && (
                                             <button disabled={isReconnectingCamera} onClick={reconnectCamera}
-                                                className="flex items-center justify-center gap-1 h-5 px-2.5 rounded text-[8px] font-bold w-full cursor-pointer disabled:opacity-60"
+                                                className="flex items-center justify-center gap-1 h-5 px-2.5 rounded text-hud-2xs font-bold w-full cursor-pointer disabled:opacity-60"
                                                 style={{ background: "rgba(246,173,85,0.15)", color: "#f6ad55", border: "1px solid rgba(246,173,85,0.3)" }}>
                                                 {isReconnectingCamera && <Spinner size="xs" color="#f6ad55" />}
                                                 🔌 {L("RECONNECTER CAMÉRA", "RECONNECT CAMERA")}
@@ -647,7 +647,7 @@ export const AutoAlignWizard = () => {
             {phase === 'zone-confirm' && zone && (
                 <div className="flex flex-col gap-3">
                     <div className="p-3 rounded-lg" style={{ background: "rgba(0,255,209,0.04)", border: "1px solid rgba(0,255,209,0.15)" }}>
-                        <span className="text-[9px] font-bold tracking-[0.1em] block mb-2" style={{ color: "var(--astro-teal)" }}>
+                        <span className="text-hud-2xs font-bold tracking-[0.1em] block mb-2" style={{ color: "var(--astro-teal)" }}>
                             {L("✅ ZONE ENREGISTRÉE — RÉCAPITULATIF", "✅ ZONE RECORDED — SUMMARY")}
                         </span>
                         <div className="grid grid-cols-2 gap-2">
@@ -657,9 +657,9 @@ export const AutoAlignWizard = () => {
                                     <div key={key} className="p-2 rounded-md" style={{ background: "rgba(0,0,0,0.2)" }}>
                                         <div className="flex items-center gap-1 mb-0.5">
                                             <div className="w-[5px] h-[5px] rounded-full" style={{ background: meta.color }} />
-                                            <span className="text-[7px]" style={{ color: "rgba(255,255,255,0.5)" }}>{L(meta.fr, meta.en)}</span>
+                                            <span className="text-hud-2xs" style={{ color: "rgba(255,255,255,0.5)" }}>{L(meta.fr, meta.en)}</span>
                                         </div>
-                                        <span className="text-[9px] font-bold text-white font-mono">Alt {lp.alt.toFixed(1)}° Az {lp.az.toFixed(1)}°</span>
+                                        <span className="text-hud-2xs font-bold text-white font-mono">Alt {lp.alt.toFixed(1)}° Az {lp.az.toFixed(1)}°</span>
                                     </div>
                                 );
                             })}
@@ -667,35 +667,35 @@ export const AutoAlignWizard = () => {
                         <div className="mt-2 pt-2 border-t border-white/5">
                             <div className="flex items-center justify-center gap-8">
                                 <div className="flex flex-col items-center gap-0">
-                                    <span className="text-[7px]" style={{ color: "rgba(255,255,255,0.4)" }}>PLAGE ALTITUDE</span>
-                                    <span className="text-[10px] font-bold text-white font-mono">{zone.altMin.toFixed(1)}° → {zone.altMax.toFixed(1)}°</span>
+                                    <span className="text-hud-2xs" style={{ color: "rgba(255,255,255,0.4)" }}>PLAGE ALTITUDE</span>
+                                    <span className="text-hud-xs font-bold text-white font-mono">{zone.altMin.toFixed(1)}° → {zone.altMax.toFixed(1)}°</span>
                                 </div>
                                 <div className="flex flex-col items-center gap-0">
-                                    <span className="text-[7px]" style={{ color: "rgba(255,255,255,0.4)" }}>PLAGE AZIMUT</span>
-                                    <span className="text-[10px] font-bold text-white font-mono">{zone.azMin.toFixed(1)}° → {zone.azMax.toFixed(1)}°</span>
+                                    <span className="text-hud-2xs" style={{ color: "rgba(255,255,255,0.4)" }}>PLAGE AZIMUT</span>
+                                    <span className="text-hud-xs font-bold text-white font-mono">{zone.azMin.toFixed(1)}° → {zone.azMax.toFixed(1)}°</span>
                                 </div>
                             </div>
                         </div>
                     </div>
                     <SkyDome zone={zone} limits={limits} />
                     <div className="p-3 rounded-lg" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.07)" }}>
-                        <span className="text-[8px] block text-center mb-2 tracking-[0.08em]" style={{ color: "rgba(255,255,255,0.4)" }}>
+                        <span className="text-hud-2xs block text-center mb-2 tracking-[0.08em]" style={{ color: "rgba(255,255,255,0.4)" }}>
                             {L("CHOISIR LA MÉTHODE D'ALIGNEMENT INITIAL", "CHOOSE INITIAL ALIGNMENT METHOD")}
                         </span>
                         <div className="flex flex-col gap-2">
                             <button onClick={() => setPhase('iphone-coarse')}
-                                className="w-full flex items-center justify-center gap-1.5 h-9 rounded-lg text-[10px] font-bold tracking-[0.08em] border transition-colors cursor-pointer"
+                                className="w-full flex items-center justify-center gap-1.5 h-9 rounded-lg text-hud-xs font-bold tracking-[0.08em] border transition-colors cursor-pointer"
                                 style={{ background: "rgba(147,112,219,0.12)", color: "#b39ddb", borderColor: "rgba(147,112,219,0.35)" }}>
                                 <Smartphone size={12} />{L("SYNC VIA TÉLÉPHONE (JOUR / TEST)", "SYNC VIA PHONE (DAY / TEST)")}
                             </button>
                             <button onClick={runAutoAlign}
-                                className="w-full flex items-center justify-center gap-1.5 h-9 rounded-lg text-[10px] font-bold tracking-[0.08em] border transition-colors cursor-pointer"
+                                className="w-full flex items-center justify-center gap-1.5 h-9 rounded-lg text-hud-xs font-bold tracking-[0.08em] border transition-colors cursor-pointer"
                                 style={{ background: "rgba(0,255,209,0.08)", color: "var(--astro-teal)", borderColor: "rgba(0,255,209,0.25)" }}>
                                 <Zap size={12} />{L("ASTROMÉTRIE DIRECTE (NUIT)", "DIRECT ASTROMETRY (NIGHT)")}
                             </button>
                         </div>
                     </div>
-                    <button className="text-[9px] cursor-pointer" style={{ color: "rgba(255,255,255,0.4)" }} onClick={() => setPhase('limits-setup')}>
+                    <button className="text-hud-2xs cursor-pointer" style={{ color: "rgba(255,255,255,0.4)" }} onClick={() => setPhase('limits-setup')}>
                         {L("← MODIFIER LA ZONE", "← MODIFY ZONE")}
                     </button>
                 </div>
@@ -709,14 +709,14 @@ export const AutoAlignWizard = () => {
                         <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
                                 <Smartphone size={14} style={{ color: phoneSensor.connected ? "#b39ddb" : "#fc8181" }} />
-                                <span className="text-[9px] font-bold tracking-[0.08em]" style={{ color: phoneSensor.connected ? "#b39ddb" : "#fc8181" }}>
+                                <span className="text-hud-2xs font-bold tracking-[0.08em]" style={{ color: phoneSensor.connected ? "#b39ddb" : "#fc8181" }}>
                                     {phoneSensor.connected ? L("TÉLÉPHONE CONNECTÉ", "PHONE CONNECTED") : L("EN ATTENTE DU TÉLÉPHONE…", "WAITING FOR PHONE…")}
                                 </span>
                             </div>
                             {!phoneSensor.connected && <Spinner size="xs" color="#9f7aea" />}
                         </div>
                         {!phoneSensor.connected && (
-                            <p className="text-[8px]" style={{ color: "rgba(255,255,255,0.5)" }}>
+                            <p className="text-hud-2xs" style={{ color: "rgba(255,255,255,0.5)" }}>
                                 {L("Ouvrez stargazer sur votre téléphone et activez l'envoi des capteurs.", "Open stargazer on your phone and enable sensor streaming.")}
                             </p>
                         )}
@@ -728,8 +728,8 @@ export const AutoAlignWizard = () => {
                                     { label: "ROULIS",   val: phoneSensor.gamma != null ? `${phoneSensor.gamma.toFixed(1)}°` : '—' },
                                 ].map(({ label, val }) => (
                                     <div key={label} className="flex flex-col items-center gap-0">
-                                        <span className="text-[7px]" style={{ color: "rgba(255,255,255,0.4)" }}>{label}</span>
-                                        <span className="text-[11px] font-bold text-white font-mono">{val}</span>
+                                        <span className="text-hud-2xs" style={{ color: "rgba(255,255,255,0.4)" }}>{label}</span>
+                                        <span className="text-hud-xs font-bold text-white font-mono">{val}</span>
                                     </div>
                                 ))}
                             </div>
@@ -738,14 +738,14 @@ export const AutoAlignWizard = () => {
 
                     {phoneRaDec && (
                         <div className="p-3 rounded-lg" style={{ background: "rgba(0,255,209,0.04)", border: "1px solid rgba(0,255,209,0.15)" }}>
-                            <span className="text-[8px] block mb-2 tracking-[0.08em]" style={{ color: "rgba(255,255,255,0.4)" }}>
+                            <span className="text-hud-2xs block mb-2 tracking-[0.08em]" style={{ color: "rgba(255,255,255,0.4)" }}>
                                 {L("COORDONNÉES CALCULÉES (MàJ ~2s)", "CALCULATED COORDINATES (updated ~2s)")}
                             </span>
                             <div className="flex items-center justify-around">
                                 {[{ label: "RA", val: `${phoneRaDec.ra.toFixed(4)}h` }, { label: "DEC", val: `${phoneRaDec.dec.toFixed(2)}°` }].map(({ label, val }) => (
                                     <div key={label} className="flex flex-col items-center gap-0">
-                                        <span className="text-[7px]" style={{ color: "rgba(255,255,255,0.4)" }}>{label}</span>
-                                        <span className="text-[12px] font-bold font-mono" style={{ color: "var(--astro-teal)" }}>{val}</span>
+                                        <span className="text-hud-2xs" style={{ color: "rgba(255,255,255,0.4)" }}>{label}</span>
+                                        <span className="text-hud-sm font-bold font-mono" style={{ color: "var(--astro-teal)" }}>{val}</span>
                                     </div>
                                 ))}
                             </div>
@@ -754,7 +754,7 @@ export const AutoAlignWizard = () => {
 
                     {iphoneSyncDone && (
                         <div className="p-2 rounded-lg text-center" style={{ background: "rgba(104,211,145,0.06)", border: "1px solid rgba(104,211,145,0.3)" }}>
-                            <span className="text-[9px] font-bold text-green-300">
+                            <span className="text-hud-2xs font-bold text-green-300">
                                 {L("✅ SYNC EFFECTUÉ — monture calée sur les coordonnées iPhone", "✅ SYNC DONE — mount aligned to iPhone coordinates")}
                             </span>
                         </div>
@@ -764,7 +764,7 @@ export const AutoAlignWizard = () => {
                         <button
                             disabled={isSyncing || !phoneSensor.connected || phoneSensor.alpha == null}
                             onClick={syncFromPhone}
-                            className="w-full flex items-center justify-center gap-1.5 h-10 rounded-lg text-[11px] font-bold tracking-[0.1em] border transition-colors cursor-pointer disabled:opacity-40"
+                            className="w-full flex items-center justify-center gap-1.5 h-10 rounded-lg text-hud-xs font-bold tracking-[0.1em] border transition-colors cursor-pointer disabled:opacity-40"
                             style={{ background: iphoneSyncDone ? "rgba(104,211,145,0.1)" : "rgba(147,112,219,0.12)", color: iphoneSyncDone ? "#68d391" : "#b39ddb", borderColor: iphoneSyncDone ? "rgba(104,211,145,0.3)" : "rgba(147,112,219,0.35)" }}
                         >
                             {isSyncing ? <Spinner size="xs" color="currentColor" /> : <Smartphone size={12} />}
@@ -774,18 +774,18 @@ export const AutoAlignWizard = () => {
                         {iphoneSyncDone && (
                             <div className="flex gap-2">
                                 <button onClick={() => setPhase('complete')}
-                                    className="flex-1 h-8 rounded-lg text-[10px] border border-white/20 text-white/60 hover:text-white transition-colors cursor-pointer">
+                                    className="flex-1 h-8 rounded-lg text-hud-xs border border-white/20 text-white/60 hover:text-white transition-colors cursor-pointer">
                                     {L("TERMINER", "FINISH")}
                                 </button>
                                 <button onClick={runAutoAlign}
-                                    className="flex-[2] flex items-center justify-center gap-1 h-8 rounded-lg text-[10px] font-bold tracking-[0.08em] border transition-colors cursor-pointer"
+                                    className="flex-[2] flex items-center justify-center gap-1 h-8 rounded-lg text-hud-xs font-bold tracking-[0.08em] border transition-colors cursor-pointer"
                                     style={{ background: "rgba(0,255,209,0.12)", color: "var(--astro-teal)", borderColor: "rgba(0,255,209,0.35)" }}>
                                     <Zap size={12} />{L("AFFINER PAR ASTROMÉTRIE", "REFINE WITH ASTROMETRY")}
                                 </button>
                             </div>
                         )}
 
-                        <button className="text-[9px] cursor-pointer" style={{ color: "rgba(255,255,255,0.4)" }}
+                        <button className="text-hud-2xs cursor-pointer" style={{ color: "rgba(255,255,255,0.4)" }}
                             onClick={() => { setIphoneSyncDone(false); setPhoneRaDec(null); setPhase('zone-confirm'); }}>
                             {L("← RETOUR", "← BACK")}
                         </button>
@@ -801,16 +801,16 @@ export const AutoAlignWizard = () => {
                         <div className="flex items-center justify-between mb-1">
                             <div className="flex items-center gap-2">
                                 {isRunning && <Spinner size="xs" />}
-                                <span className="text-[9px] tracking-[0.06em]" style={{ color: "rgba(255,255,255,0.5)" }}>
+                                <span className="text-hud-2xs tracking-[0.06em]" style={{ color: "rgba(255,255,255,0.5)" }}>
                                     {isRunning ? L(stateLabel.fr, stateLabel.en) : phase.replace(/-/g, ' ').toUpperCase()}
                                 </span>
                                 {isRunning && session.site && (
-                                    <span className="text-[7px] font-mono" style={{ color: "rgba(255,255,255,0.3)" }}>
+                                    <span className="text-hud-2xs font-mono" style={{ color: "rgba(255,255,255,0.3)" }}>
                                         📍 {session.site.lat.toFixed(4)}°/{session.site.lon.toFixed(4)}° ({session.site.source})
                                     </span>
                                 )}
                             </div>
-                            <span className="text-[9px] font-bold" style={{ color: phase === 'complete' ? '#68d391' : 'rgba(255,255,255,0.6)' }}>{progress}%</span>
+                            <span className="text-hud-2xs font-bold" style={{ color: phase === 'complete' ? '#68d391' : 'rgba(255,255,255,0.6)' }}>{progress}%</span>
                         </div>
                         <div className="w-full h-[2px] rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
                             <div className="h-full rounded-full" style={{
@@ -832,8 +832,8 @@ export const AutoAlignWizard = () => {
                             { label: L('PAIRES', 'PAIRS'), val: `${session.pairs.length}/3`, color: '#68d391' },
                         ].map(({ label, val, color }) => (
                             <div key={label} className="p-2 rounded-lg text-center" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
-                                <span className="text-[7px] block tracking-[0.08em]" style={{ color: 'rgba(255,255,255,0.4)' }}>{label}</span>
-                                <span className="text-[13px] font-bold font-mono" style={{ color }}>{val}</span>
+                                <span className="text-hud-2xs block tracking-[0.08em]" style={{ color: 'rgba(255,255,255,0.4)' }}>{label}</span>
+                                <span className="text-hud-sm font-bold font-mono" style={{ color }}>{val}</span>
                             </div>
                         ))}
                     </div>
@@ -843,9 +843,9 @@ export const AutoAlignWizard = () => {
                         <div className="flex flex-col gap-1">
                             {session.pairs.map((p, i) => (
                                 <div key={i} className="flex items-center justify-between p-2 rounded-md" style={{ background: 'rgba(104,211,145,0.05)', border: '1px solid rgba(104,211,145,0.2)' }}>
-                                    <span className="text-[8px] font-bold" style={{ color: '#68d391' }}>✅ {L(`PAIRE ${i + 1}`, `PAIR ${i + 1}`)}</span>
-                                    <span className="text-[8px] font-mono text-white">{fmtRA(p.solved_ra_h)} / {fmtDEC(p.solved_dec)}</span>
-                                    <span className="text-[7px] font-mono" style={{ color: 'rgba(255,255,255,0.4)' }}>Δ {p.offset_ra_deg.toFixed(2)}° / {p.offset_dec_deg.toFixed(2)}°</span>
+                                    <span className="text-hud-2xs font-bold" style={{ color: '#68d391' }}>✅ {L(`PAIRE ${i + 1}`, `PAIR ${i + 1}`)}</span>
+                                    <span className="text-hud-2xs font-mono text-white">{fmtRA(p.solved_ra_h)} / {fmtDEC(p.solved_dec)}</span>
+                                    <span className="text-hud-2xs font-mono" style={{ color: 'rgba(255,255,255,0.4)' }}>Δ {p.offset_ra_deg.toFixed(2)}° / {p.offset_dec_deg.toFixed(2)}°</span>
                                 </div>
                             ))}
                         </div>
@@ -855,7 +855,7 @@ export const AutoAlignWizard = () => {
                         <div className="p-2.5 rounded-md max-h-[150px] overflow-y-auto" style={{ background: "rgba(0,0,0,0.45)", border: "1px solid rgba(255,255,255,0.05)" }}>
                             <div className="flex flex-col gap-0.5">
                                 {session.logs.map((msg, i) => (
-                                    <span key={i} className="text-[8px] leading-[1.5] whitespace-pre-wrap"
+                                    <span key={i} className="text-hud-2xs leading-[1.5] whitespace-pre-wrap"
                                         style={{ color: msg.includes('✅') ? '#68d391' : msg.includes('❌') ? '#fc8181' : msg.includes('⚠️') ? '#f6ad55' : 'rgba(255,255,255,0.55)' }}>
                                         {msg}
                                     </span>
@@ -869,24 +869,24 @@ export const AutoAlignWizard = () => {
                         <div className="p-3 rounded-lg" style={{ background: "rgba(72,187,120,0.06)", border: "1px solid rgba(72,187,120,0.25)" }}>
                             <div className="flex items-center gap-2 mb-2">
                                 <CheckCircle2 size={20} className="text-green-400" />
-                                <span className="text-[11px] font-bold tracking-[0.05em] text-green-300">{L("🎉 TÉLESCOPE ALIGNÉ ET PRÊT", "🎉 TELESCOPE ALIGNED AND READY")}</span>
+                                <span className="text-hud-xs font-bold tracking-[0.05em] text-green-300">{L("🎉 TÉLESCOPE ALIGNÉ ET PRÊT", "🎉 TELESCOPE ALIGNED AND READY")}</span>
                             </div>
                             <div className="grid grid-cols-2 gap-2 mb-2">
                                 {[{ label: "RA", val: fmtRA(finalRa) }, { label: "DEC", val: fmtDEC(finalDec) }].map(({ label, val }) => (
                                     <div key={label} className="p-2 rounded-md" style={{ background: "rgba(0,0,0,0.2)" }}>
-                                        <span className="text-[7px] block mb-0.5" style={{ color: "rgba(255,255,255,0.4)" }}>{label}</span>
-                                        <span className="text-[11px] font-bold text-white font-mono">{val}</span>
+                                        <span className="text-hud-2xs block mb-0.5" style={{ color: "rgba(255,255,255,0.4)" }}>{label}</span>
+                                        <span className="text-hud-xs font-bold text-white font-mono">{val}</span>
                                     </div>
                                 ))}
                             </div>
-                            <span className="text-[8px] text-green-700">✅ GoTo précis • Suivi sidéral actif • Astrophoto disponible</span>
+                            <span className="text-hud-2xs text-green-700">✅ GoTo précis • Suivi sidéral actif • Astrophoto disponible</span>
                         </div>
                     )}
 
                     {phase === 'failed' && (
                         <div className="p-2.5 rounded-lg flex items-center gap-2" style={{ background: "rgba(245,101,101,0.06)", border: "1px solid rgba(245,101,101,0.2)" }}>
                             <AlertTriangle size={16} className="text-red-400 shrink-0" />
-                            <span className="text-[9px] text-red-300">{L("Alignement échoué. Vérifiez la caméra, INDI et les catalogues solve-field.", "Alignment failed. Check camera, INDI connection and solve-field index files.")}</span>
+                            <span className="text-hud-2xs text-red-300">{L("Alignement échoué. Vérifiez la caméra, INDI et les catalogues solve-field.", "Alignment failed. Check camera, INDI connection and solve-field index files.")}</span>
                         </div>
                     )}
 
@@ -894,7 +894,7 @@ export const AutoAlignWizard = () => {
                         {!isRunning && (
                             <button
                                 onClick={() => { setPhase('limits-setup'); setLogs([]); }}
-                                className="flex-1 flex items-center justify-center gap-1 h-10 rounded-lg text-[11px] font-bold tracking-[0.1em] border transition-colors cursor-pointer"
+                                className="flex-1 flex items-center justify-center gap-1 h-10 rounded-lg text-hud-xs font-bold tracking-[0.1em] border transition-colors cursor-pointer"
                                 style={{ background: phase === 'complete' ? 'rgba(72,187,120,0.12)' : 'rgba(0,255,209,0.08)', color: phase === 'complete' ? '#68d391' : 'var(--astro-teal)', borderColor: phase === 'complete' ? 'rgba(72,187,120,0.3)' : 'rgba(0,255,209,0.25)' }}>
                                 <RotateCcw size={12} />{phase === 'complete' ? L("REFAIRE L'ALIGNEMENT", "RE-ALIGN") : L("RECOMMENCER", "RESTART")}
                             </button>
@@ -902,7 +902,7 @@ export const AutoAlignWizard = () => {
                         {isRunning && (
                             <button
                                 onClick={() => { session.stop(); }}
-                                className="flex-1 flex items-center justify-center gap-1 h-10 rounded-lg text-[11px] font-bold tracking-[0.1em] border transition-colors cursor-pointer"
+                                className="flex-1 flex items-center justify-center gap-1 h-10 rounded-lg text-hud-xs font-bold tracking-[0.1em] border transition-colors cursor-pointer"
                                 style={{ background: "rgba(245,101,101,0.08)", color: "#fc8181", borderColor: "rgba(245,101,101,0.25)" }}>
                                 <Square size={12} />{L("INTERROMPRE", "ABORT")}
                             </button>

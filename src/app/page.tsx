@@ -12,6 +12,8 @@ import { MountCalibration } from "@/components/telescope/MountCalibration";
 import { AstroPod } from "@/components/ui/AstroPod";
 import { ConfigurationMenu } from "@/components/ui/ConfigurationMenu";
 import { GlobalLoader } from "@/components/ui/GlobalLoader";
+import { VisionControls } from "@/components/ui/VisionControls";
+import { HardwareState } from "@/components/ui/HardwareState";
 import { useStargazerStore } from "@/store/useStargazerStore";
 import { t } from "@/i18n/translations";
 import { useEffect, useState } from "react";
@@ -67,10 +69,10 @@ function TwilightBadge({ lat, lon }: { lat: string; lon: string }) {
     return (
         <div className="flex items-center gap-2">
             <div className="flex flex-col gap-0">
-                <span className="text-[8px] text-[--astro-starlight] opacity-60 hud-font">CRÉPUSCULE</span>
-                <span className="text-[11px] hud-font font-bold" style={{ color }}>{label}</span>
+                <span className="text-hud-2xs text-[--astro-starlight] opacity-60 hud-font">CRÉPUSCULE</span>
+                <span className="text-hud-xs hud-font font-bold" style={{ color }}>{label}</span>
             </div>
-            <span className="text-[9px] opacity-60" style={{ color }}>{sunAlt.toFixed(1)}°</span>
+            <span className="text-hud-2xs opacity-60" style={{ color }}>{sunAlt.toFixed(1)}°</span>
         </div>
     );
 }
@@ -195,8 +197,8 @@ export default function Home() {
                         <div className="flex items-center gap-3">
                             <Orbit size={22} color="var(--astro-teal)" className="pulse-glow" />
                             <div className="flex flex-col gap-0">
-                                <span className="text-[15px] hud-font text-[--astro-starlight] leading-none">{t("APP_TITLE", language)}</span>
-                                <span className="text-[8px] tracking-[0.2em] text-[--astro-teal] opacity-80">{t("APP_SUBTITLE", language)}</span>
+                                <span className="text-hud-md hud-font text-[--astro-starlight] leading-none">{t("APP_TITLE", language)}</span>
+                                <span className="text-hud-2xs tracking-[0.2em] text-[--astro-teal] opacity-80">{t("APP_SUBTITLE", language)}</span>
                             </div>
                         </div>
                     </div>
@@ -208,10 +210,10 @@ export default function Home() {
                         <div className="flex items-center gap-3">
                             <Clock size={16} color="var(--astro-starlight)" opacity={0.6} />
                             <div className="flex flex-col gap-0">
-                                <span className="text-[8px] text-[--astro-starlight] opacity-60">{t("SYS_TIME", language)}</span>
+                                <span className="text-hud-2xs text-[--astro-starlight] opacity-60">{t("SYS_TIME", language)}</span>
                                 <div className="flex items-center gap-2">
-                                    <span className="text-[11px] hud-font text-white">{envData.date || "---"}</span>
-                                    <span className="text-[11px] hud-font text-[--astro-teal]">{envData.time || t("SYNCING", language)}</span>
+                                    <span className="text-hud-xs hud-font text-white">{envData.date || "---"}</span>
+                                    <span className="text-hud-xs hud-font text-[--astro-teal]">{envData.time || t("SYNCING", language)}</span>
                                 </div>
                             </div>
                         </div>
@@ -221,8 +223,8 @@ export default function Home() {
                         <div className="flex items-center gap-3">
                             <MapPin size={16} color="var(--astro-starlight)" opacity={0.6} />
                             <div className="flex flex-col gap-0">
-                                <span className="text-[8px] text-[--astro-starlight] opacity-60">{t("GPS_COORD", language)}</span>
-                                <span className="text-[11px] hud-font text-[--astro-teal]">
+                                <span className="text-hud-2xs text-[--astro-starlight] opacity-60">{t("GPS_COORD", language)}</span>
+                                <span className="text-hud-xs hud-font text-[--astro-teal]">
                                     {envData.latitude !== null
                                         ? `${envData.latitude.toFixed(4)}°, ${envData.longitude?.toFixed(4)}°`
                                         : t("ACQUIRING", language)}
@@ -235,8 +237,8 @@ export default function Home() {
                         <div className="flex items-center gap-3">
                             <Compass size={16} color="var(--astro-gold)" />
                             <div className="flex flex-col gap-0">
-                                <span className="text-[8px] text-[--astro-starlight] opacity-60">{t("POSITION", language)}</span>
-                                <span className="text-[11px] hud-font text-[--astro-gold]">
+                                <span className="text-hud-2xs text-[--astro-starlight] opacity-60">{t("POSITION", language)}</span>
+                                <span className="text-hud-xs hud-font text-[--astro-gold]">
                                     {alt.toFixed(2)}° / {az.toFixed(2)}°
                                 </span>
                             </div>
@@ -245,33 +247,22 @@ export default function Home() {
 
                         <TwilightBadge lat={config.latitude} lon={config.longitude} />
                         <div className="h-6 w-px bg-white/10" />
+                        <VisionControls />
+                        <div className="h-6 w-px bg-white/10" />
 
-                        {/* Status dot */}
-                        <div className="flex items-center gap-3">
-                            <div
-                                className="w-2 h-2 rounded-full"
-                                style={{
-                                    background: connected ? "var(--astro-teal)" : "var(--astro-error, #f87171)",
-                                    boxShadow: connected
-                                        ? "0 0 8px var(--astro-teal)"
-                                        : "0 0 8px var(--astro-error, #f87171)",
-                                }}
-                            />
-                            <span
-                                className="text-[11px] hud-font tracking-[0.1em]"
-                                style={{ color: connected ? "var(--astro-teal)" : "var(--astro-error, #f87171)" }}
-                            >
-                                {connected ? "SYS_STABLE" : "SYS_OFFLINE"}
-                            </span>
-                        </div>
+                        <HardwareState
+                            name={t("ACTIVE_LINK", language)}
+                            state={connected ? "idle" : "lost"}
+                            detail={connected ? "SYS_STABLE" : "SYS_OFFLINE"}
+                        />
                         <div className="h-6 w-px bg-white/10" />
 
                         {/* Météo */}
                         <div className="flex items-center gap-3">
                             <Thermometer size={16} color="var(--astro-starlight)" opacity={0.6} />
                             <div className="flex flex-col gap-0">
-                                <span className="text-[8px] text-[--astro-starlight] opacity-60">{t("EXT_WEATHER", language)}</span>
-                                <span className="text-[11px] hud-font text-white">
+                                <span className="text-hud-2xs text-[--astro-starlight] opacity-60">{t("EXT_WEATHER", language)}</span>
+                                <span className="text-hud-xs hud-font text-white">
                                     {envData.weather
                                         ? `${envData.weather.temperature}°C, ${envData.weather.description}`
                                         : t("SCANNING", language)}
@@ -285,10 +276,10 @@ export default function Home() {
                         <div className="flex flex-col items-end gap-2">
                             <div className="flex items-center gap-4">
                                 <div className="flex flex-col items-end gap-0">
-                                    <span className="text-[10px] font-bold tracking-[0.1em]" style={{ color: connected ? "var(--astro-teal)" : "var(--astro-gold)" }}>
+                                    <span className="text-hud-xs font-bold tracking-[0.1em]" style={{ color: connected ? "var(--astro-teal)" : "var(--astro-gold)" }}>
                                         {connected ? t("ACTIVE_LINK", language) : t("LINK_ERROR", language)}
                                     </span>
-                                    <span className="text-[8px] opacity-60">{statusText}</span>
+                                    <span className="text-hud-2xs opacity-60">{statusText}</span>
                                 </div>
                                 <div
                                     className="p-1 rounded-full border"
@@ -314,10 +305,10 @@ export default function Home() {
                                 <div className="flex flex-col gap-3">
                                     <TelescopeControls variant="pad" />
                                     <TrackingModeSelector />
-                                    <div className="flex justify-between items-center w-full mt-1 text-[10px] text-[--astro-starlight] opacity-80">
+                                    <div className="flex justify-between items-center w-full mt-1 text-hud-xs text-[--astro-starlight] opacity-80">
                                         <span>{t("ERR", language)} 0.04&quot;</span>
                                         <button
-                                            className="text-[9px] text-teal-300 hover:text-teal-100 transition-colors duration-150 cursor-pointer"
+                                            className="text-hud-2xs text-teal-300 hover:text-teal-100 transition-colors duration-150 cursor-pointer"
                                             onClick={() => setShowMiseEnStation(!showMiseEnStation)}
                                         >
                                             {showMiseEnStation ? "▲ Fermer wizard" : "⊕ Mise en station"}
@@ -353,14 +344,14 @@ export default function Home() {
                                 <div className="flex flex-col gap-3 w-full">
                                     <CameraControls variant="circular" />
                                     <div className="w-full bg-black/30 p-2 rounded-lg border-l-2 border-[--astro-teal]">
-                                        <div className="flex justify-between text-[10px] text-[--astro-starlight]">
+                                        <div className="flex justify-between text-hud-xs text-[--astro-starlight]">
                                             <span>{t("SENSOR_TEMP", language)} -15°C</span>
                                             <span>{t("COOLER", language)} 85%</span>
                                         </div>
                                     </div>
                                     <button
                                         className={[
-                                            "w-full text-[9px] rounded-md py-1 px-2 text-center cursor-pointer border transition-colors duration-150",
+                                            "w-full text-hud-2xs rounded-md py-1 px-2 text-center cursor-pointer border transition-colors duration-150",
                                             showCapturePanel
                                                 ? "text-blue-300 bg-blue-400/10 border-blue-700 hover:text-blue-200 hover:border-blue-600"
                                                 : "text-white/50 bg-white/[0.03] border-white/10 hover:text-blue-200 hover:border-blue-600",
@@ -391,7 +382,7 @@ export default function Home() {
                         <div className={connected ? "pulse-glow" : ""} style={{ color: connected ? "var(--astro-teal)" : "rgba(255,255,255,0.25)" }}>
                             <Power size={14} />
                         </div>
-                        <span className="text-[10px]" style={{ color: connected ? "var(--astro-starlight)" : "rgba(255,255,255,0.25)" }}>
+                        <span className="text-hud-xs" style={{ color: connected ? "var(--astro-starlight)" : "rgba(255,255,255,0.25)" }}>
                             {connected ? "BRIDGE_UP" : "BRIDGE_DOWN"}
                         </span>
                     </div>
@@ -399,9 +390,9 @@ export default function Home() {
                     <div className="flex items-center gap-3">
                         <Activity size={14} color={isExposing ? "var(--astro-gold)" : "var(--astro-teal)"} />
                         <div className="flex flex-col gap-0">
-                            <span className="text-[8px] text-[--astro-starlight] opacity-60">{t("SEQUENCE", language)}</span>
+                            <span className="text-hud-2xs text-[--astro-starlight] opacity-60">{t("SEQUENCE", language)}</span>
                             <span
-                                className="text-[11px] hud-font"
+                                className="text-hud-xs hud-font"
                                 style={{ color: isExposing ? "var(--astro-gold)" : "white" }}
                             >
                                 {isExposing ? t("CAPTURING", language) : t("STANDBY", language)}

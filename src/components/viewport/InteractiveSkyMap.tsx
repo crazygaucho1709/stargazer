@@ -154,10 +154,10 @@ const InteractiveSkyMap: React.FC = () => {
                     </div>
                     <div className="flex flex-col gap-4">
                         <div className="flex items-center gap-2">
-                            <span className="text-[11px] px-2 py-0.5 rounded-full font-medium" style={{ background: "rgba(147,51,234,0.3)", color: "#C4B5FD" }}>
+                            <span className="text-hud-xs px-2 py-0.5 rounded-full font-medium" style={{ background: "rgba(147,51,234,0.3)", color: "#C4B5FD" }}>
                                 {selectedObj.type}
                             </span>
-                            <span className="text-[11px] px-2 py-0.5 rounded-full font-medium" style={{ background: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.7)" }}>
+                            <span className="text-hud-xs px-2 py-0.5 rounded-full font-medium" style={{ background: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.7)" }}>
                                 {selectedObj.constellation}
                             </span>
                         </div>

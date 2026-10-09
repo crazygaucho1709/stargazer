@@ -58,7 +58,7 @@ export function LatencyIndicator({
         alignItems: "center",
         gap: "4px",
         fontFamily: "'JetBrains Mono', 'Courier New', monospace",
-        fontSize: "10px",
+        fontSize: "var(--text-hud-xs)",
         letterSpacing: "0.04em",
         color: textColor,
         userSelect: "none",

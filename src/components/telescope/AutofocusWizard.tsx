@@ -230,7 +230,7 @@ export const AutofocusWizard = ({
 
                     {/* Profil actif */}
                     {profile?.active && phase === "done" && (
-                        <div className="rounded-md p-3 text-xs"
+                        <div className="rounded-md p-3 text-hud-2xs"
                             style={{ background: "rgba(72,187,120,0.08)", border: "1px solid rgba(72,187,120,0.3)" }}>
                             <div className="flex items-center gap-2 mb-2">
                                 <Sparkles size={13} style={{ color: "#48BB78" }} />
@@ -254,7 +254,7 @@ export const AutofocusWizard = ({
                         <div className="rounded-md overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.1)" }}>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={previewAfter} alt="Aperçu après traitement" style={{ width: "100%", display: "block" }} />
-                            <div className="px-2 py-1 text-[10px] text-gray-400" style={{ background: "rgba(0,0,0,0.6)" }}>
+                            <div className="px-2 py-1 text-hud-xs text-gray-400" style={{ background: "rgba(0,0,0,0.6)" }}>
                                 {L("Aperçu avec le profil appliqué", "Preview with profile applied")}
                             </div>
                         </div>
@@ -262,7 +262,7 @@ export const AutofocusWizard = ({
 
                     {/* Logs */}
                     {logs.length > 0 && (
-                        <div className="rounded-md p-3 max-h-[140px] overflow-y-auto font-mono text-[11px] space-y-1"
+                        <div className="rounded-md p-3 max-h-[140px] overflow-y-auto font-mono text-hud-xs space-y-1"
                             style={{ background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.08)" }}>
                             {logs.map((l, i) => (
                                 <div key={i} style={{ color: l.type === "success" ? "#48BB78" : l.type === "error" ? "#FC8181" : "#A0AEC0" }}>

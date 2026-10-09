@@ -52,7 +52,7 @@ const PHASE_STYLES: Record<string, { label: string; bg: string; color: string }>
 function PhaseBadge({ phase }: { phase: string }) {
     const s = PHASE_STYLES[phase] ?? PHASE_STYLES["idle"];
     return (
-        <span className="text-[11px] px-2 py-0.5 rounded-full font-medium" style={{ background: s.bg, color: s.color }}>
+        <span className="text-hud-xs px-2 py-0.5 rounded-full font-medium" style={{ background: s.bg, color: s.color }}>
             {s.label}
         </span>
     );
@@ -108,7 +108,7 @@ export const CaptureProgressPanel = ({ onClose }: CaptureProgressPanelProps) => 
                     <PhaseBadge phase={state.phase} />
                     {onClose && (
                         <button
-                            className="text-[10px] px-1.5 py-0.5 rounded transition-colors cursor-pointer"
+                            className="text-hud-xs px-1.5 py-0.5 rounded transition-colors cursor-pointer"
                             style={{ color: "rgba(255,255,255,0.4)" }}
                             onMouseEnter={e => (e.currentTarget.style.color = "rgba(255,255,255,0.7)")}
                             onMouseLeave={e => (e.currentTarget.style.color = "rgba(255,255,255,0.4)")}
@@ -128,16 +128,16 @@ export const CaptureProgressPanel = ({ onClose }: CaptureProgressPanelProps) => 
                             { label: "Gain ISO",   value: gain,     set: setGain,     step: 100, min: 100, max: 6400, fmt: (v: number) => `${v}` },
                         ].map(({ label, value, set, step, min, max, fmt }) => (
                             <div key={label} className="flex flex-col gap-0.5">
-                                <span className="text-[9px] uppercase tracking-wider" style={{ color: "rgba(255,255,255,0.5)" }}>{label}</span>
+                                <span className="text-hud-2xs uppercase tracking-wider" style={{ color: "rgba(255,255,255,0.5)" }}>{label}</span>
                                 <div className="flex items-center gap-1">
                                     <button
-                                        className="text-[10px] px-1 cursor-pointer"
+                                        className="text-hud-xs px-1 cursor-pointer"
                                         style={{ color: "rgba(255,255,255,0.5)" }}
                                         onClick={() => set(Math.max(min, value - step))}
                                     >−</button>
                                     <span className="text-sm text-white font-mono text-center min-w-[40px]">{fmt(value)}</span>
                                     <button
-                                        className="text-[10px] px-1 cursor-pointer"
+                                        className="text-hud-xs px-1 cursor-pointer"
                                         style={{ color: "rgba(255,255,255,0.5)" }}
                                         onClick={() => set(Math.min(max, value + step))}
                                     >+</button>
@@ -146,7 +146,7 @@ export const CaptureProgressPanel = ({ onClose }: CaptureProgressPanelProps) => 
                         ))}
                     </div>
 
-                    <p className="text-[10px] mb-3" style={{ color: "rgba(255,255,255,0.4)" }}>
+                    <p className="text-hud-xs mb-3" style={{ color: "rgba(255,255,255,0.4)" }}>
                         Durée estimée: {formatDuration(exposure * count)} · {detectedCcd || "Canon DSLR"}
                     </p>
                 </>
@@ -160,19 +160,19 @@ export const CaptureProgressPanel = ({ onClose }: CaptureProgressPanelProps) => 
                             <div className="flex items-center gap-1">
                                 {isRunning && <Spinner />}
                                 <Camera size={12} style={{ color: "#93C5FD" }} />
-                                <span className="text-xs" style={{ color: "rgba(255,255,255,0.7)" }}>
+                                <span className="text-hud-2xs" style={{ color: "rgba(255,255,255,0.7)" }}>
                                     Frame {state.current_frame}/{state.total_frames}
                                 </span>
                             </div>
                             <div className="flex items-center gap-2">
                                 <div className="flex items-center gap-1">
                                     <Clock size={10} style={{ color: "rgba(255,255,255,0.4)" }} />
-                                    <span className="text-[10px] font-mono" style={{ color: "rgba(255,255,255,0.5)" }}>
+                                    <span className="text-hud-xs font-mono" style={{ color: "rgba(255,255,255,0.5)" }}>
                                         {formatDuration(state.elapsed_s)}
                                     </span>
                                 </div>
                                 {state.eta_s > 0 && (
-                                    <span className="text-[10px] font-mono" style={{ color: "rgba(255,255,255,0.4)" }}>
+                                    <span className="text-hud-xs font-mono" style={{ color: "rgba(255,255,255,0.4)" }}>
                                         ETA {formatDuration(state.eta_s)}
                                     </span>
                                 )}
@@ -184,11 +184,11 @@ export const CaptureProgressPanel = ({ onClose }: CaptureProgressPanelProps) => 
                     {state.stack_count > 0 && (
                         <div className="flex items-center gap-2">
                             <Layers size={12} style={{ color: "#C4B5FD" }} />
-                            <span className="text-xs" style={{ color: "rgba(255,255,255,0.6)" }}>
+                            <span className="text-hud-2xs" style={{ color: "rgba(255,255,255,0.6)" }}>
                                 Stack: <span style={{ color: "#C4B5FD" }}>{state.stack_count} frames</span>
                             </span>
                             {state.hfr && (
-                                <span className="text-xs" style={{ color: "rgba(255,255,255,0.5)" }}>
+                                <span className="text-hud-2xs" style={{ color: "rgba(255,255,255,0.5)" }}>
                                     HFR: <span style={{ color: "#5EEAD4" }}>{state.hfr.toFixed(2)}</span>
                                 </span>
                             )}
@@ -198,14 +198,14 @@ export const CaptureProgressPanel = ({ onClose }: CaptureProgressPanelProps) => 
                     {isError && state.error && (
                         <div className="flex items-center gap-2 p-2 rounded-md" style={{ background: "rgba(127,29,29,0.5)", border: "1px solid rgba(220,38,38,0.5)" }}>
                             <AlertTriangle size={12} style={{ color: "#FCA5A5" }} />
-                            <span className="text-xs" style={{ color: "#FCA5A5" }}>{state.error}</span>
+                            <span className="text-hud-2xs" style={{ color: "#FCA5A5" }}>{state.error}</span>
                         </div>
                     )}
 
                     {isDone && (
                         <div className="flex items-center justify-center gap-1">
                             <CheckCircle2 size={12} style={{ color: "#86EFAC" }} />
-                            <span className="text-xs" style={{ color: "#86EFAC" }}>Séquence terminée — {state.stack_count} frames</span>
+                            <span className="text-hud-2xs" style={{ color: "#86EFAC" }}>Séquence terminée — {state.stack_count} frames</span>
                         </div>
                     )}
                 </div>
@@ -220,14 +220,14 @@ export const CaptureProgressPanel = ({ onClose }: CaptureProgressPanelProps) => 
                         style={{ width: 80, height: 60, objectFit: "cover", borderRadius: 6, border: "1px solid rgba(255,255,255,0.1)" }}
                     />
                     <div className="flex flex-col gap-0.5">
-                        <span className="text-[9px] uppercase tracking-wider" style={{ color: "rgba(255,255,255,0.5)" }}>Dernier stack</span>
+                        <span className="text-hud-2xs uppercase tracking-wider" style={{ color: "rgba(255,255,255,0.5)" }}>Dernier stack</span>
                         {state.hfr && (
-                            <span className="text-xs" style={{ color: "rgba(255,255,255,0.7)" }}>HFR: <span style={{ color: "#5EEAD4" }}>{state.hfr.toFixed(2)}</span></span>
+                            <span className="text-hud-2xs" style={{ color: "rgba(255,255,255,0.7)" }}>HFR: <span style={{ color: "#5EEAD4" }}>{state.hfr.toFixed(2)}</span></span>
                         )}
                         {state.snr && (
-                            <span className="text-xs" style={{ color: "rgba(255,255,255,0.7)" }}>SNR: <span style={{ color: "#FDE047" }}>{state.snr.toFixed(1)}</span></span>
+                            <span className="text-hud-2xs" style={{ color: "rgba(255,255,255,0.7)" }}>SNR: <span style={{ color: "#FDE047" }}>{state.snr.toFixed(1)}</span></span>
                         )}
-                        <span className="text-[9px]" style={{ color: "rgba(255,255,255,0.4)" }}>{state.stack_count} frames empilées</span>
+                        <span className="text-hud-2xs" style={{ color: "rgba(255,255,255,0.4)" }}>{state.stack_count} frames empilées</span>
                     </div>
                 </div>
             )}
@@ -263,7 +263,7 @@ export const CaptureProgressPanel = ({ onClose }: CaptureProgressPanelProps) => 
             {capture.startError && (
                 <div className="flex items-center gap-2 p-2 rounded-md mt-3" style={{ background: "rgba(127,29,29,0.5)", border: "1px solid rgba(220,38,38,0.5)" }}>
                     <AlertTriangle size={12} style={{ color: "#FCA5A5" }} />
-                    <span className="text-xs" style={{ color: "#FCA5A5" }}>{capture.startError}</span>
+                    <span className="text-hud-2xs" style={{ color: "#FCA5A5" }}>{capture.startError}</span>
                 </div>
             )}
 
@@ -272,7 +272,7 @@ export const CaptureProgressPanel = ({ onClose }: CaptureProgressPanelProps) => 
                 <>
                     <div className="h-px mt-3 mb-2" style={{ background: "rgba(255,255,255,0.1)" }} />
                     <button
-                        className="flex w-full items-center justify-center gap-1 text-[10px] transition-colors cursor-pointer"
+                        className="flex w-full items-center justify-center gap-1 text-hud-xs transition-colors cursor-pointer"
                         style={{ color: "rgba(255,255,255,0.5)" }}
                         onMouseEnter={e => (e.currentTarget.style.color = "rgba(255,255,255,0.7)")}
                         onMouseLeave={e => (e.currentTarget.style.color = "rgba(255,255,255,0.5)")}
@@ -284,7 +284,7 @@ export const CaptureProgressPanel = ({ onClose }: CaptureProgressPanelProps) => 
 
                     {showLog && (
                         <div
-                            className="mt-2 p-2 rounded-md text-[10px] font-mono overflow-y-auto max-h-[120px]"
+                            className="mt-2 p-2 rounded-md text-hud-xs font-mono overflow-y-auto max-h-[120px]"
                             style={{ background: "rgba(0,0,0,0.3)" }}
                         >
                             {state.log.map((entry, i) => (

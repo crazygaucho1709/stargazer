@@ -225,11 +225,11 @@ export const CaptureAndStack = () => {
             <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                     <Camera size={16} className={isCapturing ? "ping-slow" : ""} style={{ color: "var(--astro-teal)" }} />
-                    <span className="text-[12px] font-bold tracking-[0.1em] text-white">DATA ACQUISITION</span>
+                    <span className="text-hud-sm font-bold tracking-[0.1em] text-white">DATA ACQUISITION</span>
                 </div>
                 <div className="flex items-center gap-2">
                     <span
-                        className="text-[9px] px-2 py-0.5 rounded-full border"
+                        className="text-hud-2xs px-2 py-0.5 rounded-full border"
                         style={{
                             background: isCapturing ? "rgba(239,68,68,0.2)" : "rgba(255,255,255,0.1)",
                             color: isCapturing ? "#FC8181" : "rgba(255,255,255,0.6)",
@@ -239,7 +239,7 @@ export const CaptureAndStack = () => {
                         {isCapturing ? 'ACQUIRING' : 'READY'}
                     </span>
                     <span
-                        className="text-[9px] px-2 py-0.5 rounded-full border"
+                        className="text-hud-2xs px-2 py-0.5 rounded-full border"
                         style={{ background: "rgba(0,255,209,0.1)", color: "var(--astro-teal)", borderColor: "rgba(0,255,209,0.3)" }}
                     >
                         {frames.length}/{numFrames} SUBFRAMES
@@ -254,14 +254,14 @@ export const CaptureAndStack = () => {
                         <div className="flex flex-col gap-0">
                             <div className="flex items-center gap-1">
                                 <BrainCircuit size={12} style={{ color: "#A78BFA" }} />
-                                <span className="text-[9px] font-bold tracking-[0.05em]" style={{ color: "#A78BFA" }}>AI SUGGESTION: {recommendation.desc}</span>
+                                <span className="text-hud-2xs font-bold tracking-[0.05em]" style={{ color: "#A78BFA" }}>AI SUGGESTION: {recommendation.desc}</span>
                             </div>
-                            <span className="text-[8px]" style={{ color: "rgba(255,255,255,0.6)" }}>
+                            <span className="text-hud-2xs" style={{ color: "rgba(255,255,255,0.6)" }}>
                                 {recommendation.exp}s | ISO {recommendation.gain} | {recommendation.count} captures (F/15, Alt-Az)
                             </span>
                         </div>
                         <button
-                            className="flex items-center gap-1 h-6 px-2 rounded text-[9px] text-white font-medium cursor-pointer transition-colors disabled:opacity-50"
+                            className="flex items-center gap-1 h-6 px-2 rounded text-hud-2xs text-white font-medium cursor-pointer transition-colors disabled:opacity-50"
                             style={{ background: "#7C3AED" }}
                             onMouseEnter={e => (e.currentTarget.style.background = "#6D28D9")}
                             onMouseLeave={e => (e.currentTarget.style.background = "#7C3AED")}
@@ -285,7 +285,7 @@ export const CaptureAndStack = () => {
                     <div key={label} className="flex flex-col gap-1 p-2 rounded" style={{ background: "rgba(0,0,0,0.2)", border: "1px solid rgba(255,255,255,0.05)" }}>
                         <div className="flex items-center gap-1">
                             <Ico size={12} style={{ color: "rgba(255,255,255,0.4)" }} />
-                            <span className="text-[9px] tracking-[0.05em]" style={{ color: "rgba(255,255,255,0.5)" }}>{label}</span>
+                            <span className="text-hud-2xs tracking-[0.05em]" style={{ color: "rgba(255,255,255,0.5)" }}>{label}</span>
                         </div>
                         <input
                             type="number"
@@ -304,10 +304,10 @@ export const CaptureAndStack = () => {
             {isCapturing && (
                 <div className="relative p-3 rounded" style={{ background: "rgba(0,255,209,0.05)", border: "1px solid rgba(0,255,209,0.2)" }}>
                     <div className="flex items-center justify-between mb-2">
-                        <span className="text-[10px] font-bold" style={{ color: "var(--astro-teal)" }}>ACQUISITION IN PROGRESS</span>
+                        <span className="text-hud-xs font-bold" style={{ color: "var(--astro-teal)" }}>ACQUISITION IN PROGRESS</span>
                         <div className="flex items-center gap-2">
                             <Thermometer size={12} style={{ color: "rgba(255,255,255,0.4)" }} />
-                            <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.7)" }}>{liveStats.temperature}°C</span>
+                            <span className="text-hud-xs" style={{ color: "rgba(255,255,255,0.7)" }}>{liveStats.temperature}°C</span>
                         </div>
                     </div>
                     <div className="w-full h-1 rounded-full overflow-hidden mb-2" style={{ background: "rgba(255,255,255,0.05)" }}>
@@ -320,7 +320,7 @@ export const CaptureAndStack = () => {
                             }}
                         />
                     </div>
-                    <div className="flex items-center justify-between text-[9px]" style={{ color: "rgba(255,255,255,0.5)" }}>
+                    <div className="flex items-center justify-between text-hud-2xs" style={{ color: "rgba(255,255,255,0.5)" }}>
                         <span>FRAME {currentFrame} OF {numFrames}</span>
                         <span>EST. REMAINING: {Math.floor(liveStats.remainingTime / 60)}M {liveStats.remainingTime % 60}S</span>
                     </div>
@@ -333,7 +333,7 @@ export const CaptureAndStack = () => {
                     <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-1">
                             <Target size={12} style={{ color: "var(--astro-gold)" }} />
-                            <span className="text-[9px] font-bold" style={{ color: "rgba(255,255,255,0.6)" }}>AI FOCUS</span>
+                            <span className="text-hud-2xs font-bold" style={{ color: "rgba(255,255,255,0.6)" }}>AI FOCUS</span>
                         </div>
                         <Tooltip content="Half Flux Radius: Measure of star sharpness. Lower is better.">
                             <button className="cursor-help" style={{ color: "rgba(255,255,255,0.4)" }}>
@@ -343,8 +343,8 @@ export const CaptureAndStack = () => {
                     </div>
                     <div className="flex flex-col gap-1">
                         <div className="flex items-center justify-between w-full">
-                            <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.5)" }}>HFR QUALITY:</span>
-                            <span className="text-[10px] font-bold" style={{ color: focusHFR && focusHFR < 3 ? "#68D391" : "var(--astro-gold)" }}>
+                            <span className="text-hud-xs" style={{ color: "rgba(255,255,255,0.5)" }}>HFR QUALITY:</span>
+                            <span className="text-hud-xs font-bold" style={{ color: focusHFR && focusHFR < 3 ? "#68D391" : "var(--astro-gold)" }}>
                                 {focusHFR ? focusHFR.toFixed(2) : '---'}
                             </span>
                         </div>
@@ -358,7 +358,7 @@ export const CaptureAndStack = () => {
                     <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-1">
                             <BrainCircuit size={12} style={{ color: "var(--astro-teal)" }} />
-                            <span className="text-[9px] font-bold" style={{ color: "rgba(255,255,255,0.6)" }}>STACKING</span>
+                            <span className="text-hud-2xs font-bold" style={{ color: "rgba(255,255,255,0.6)" }}>STACKING</span>
                         </div>
                         <Tooltip content="Signal-to-Noise Ratio: Overall image quality index.">
                             <button className="cursor-help" style={{ color: "rgba(255,255,255,0.4)" }}>
@@ -368,8 +368,8 @@ export const CaptureAndStack = () => {
                     </div>
                     <div className="flex flex-col gap-1">
                         <div className="flex items-center justify-between w-full">
-                            <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.5)" }}>SNR INDEX:</span>
-                            <span className="text-[10px] font-bold" style={{ color: "var(--astro-teal)" }}>
+                            <span className="text-hud-xs" style={{ color: "rgba(255,255,255,0.5)" }}>SNR INDEX:</span>
+                            <span className="text-hud-xs font-bold" style={{ color: "var(--astro-teal)" }}>
                                 {stackingResult ? stackingResult.snr.toFixed(1) : '---'}
                             </span>
                         </div>
@@ -384,10 +384,10 @@ export const CaptureAndStack = () => {
             {isStacking && stackingResult && (
                 <div className="p-3 rounded" style={{ background: "rgba(0,240,255,0.05)", borderLeft: "2px solid var(--astro-teal)" }}>
                     <div className="flex items-center justify-between mb-2">
-                        <span className="text-[10px] font-bold" style={{ color: "var(--astro-teal)" }}>
+                        <span className="text-hud-xs font-bold" style={{ color: "var(--astro-teal)" }}>
                             {stackingResult.status === 'aligning' ? 'ALIGNING ASTRO-FRAMES' : 'NEURAL STACKING PROCESS'}
                         </span>
-                        <span className="text-[9px] px-1.5 py-0.5 rounded font-medium text-black" style={{ background: "var(--astro-teal)" }}>
+                        <span className="text-hud-2xs px-1.5 py-0.5 rounded font-medium text-black" style={{ background: "var(--astro-teal)" }}>
                             {stackingResult.framesUsed} SUBS
                         </span>
                     </div>
@@ -405,16 +405,16 @@ export const CaptureAndStack = () => {
                 <div className="p-4 rounded" style={{ background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.2)" }}>
                     <div className="flex items-center gap-2 mb-3">
                         <ShieldCheck size={16} style={{ color: "#86EFAC" }} />
-                        <span className="text-[12px] font-bold text-white">PROCESSING COMPLETE</span>
+                        <span className="text-hud-sm font-bold text-white">PROCESSING COMPLETE</span>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div className="flex flex-col gap-0">
-                            <span className="text-[9px]" style={{ color: "rgba(255,255,255,0.5)" }}>INTEGRATION TIME</span>
-                            <span className="text-[12px] font-bold" style={{ color: "var(--astro-teal)" }}>{stackingResult.totalExposure}S</span>
+                            <span className="text-hud-2xs" style={{ color: "rgba(255,255,255,0.5)" }}>INTEGRATION TIME</span>
+                            <span className="text-hud-sm font-bold" style={{ color: "var(--astro-teal)" }}>{stackingResult.totalExposure}S</span>
                         </div>
                         <div className="flex flex-col gap-0">
-                            <span className="text-[9px]" style={{ color: "rgba(255,255,255,0.5)" }}>AVG STAR FWHM</span>
-                            <span className="text-[12px] font-bold" style={{ color: "var(--astro-gold)" }}>{stackingResult.fwhm.toFixed(2)}&quot;</span>
+                            <span className="text-hud-2xs" style={{ color: "rgba(255,255,255,0.5)" }}>AVG STAR FWHM</span>
+                            <span className="text-hud-sm font-bold" style={{ color: "var(--astro-gold)" }}>{stackingResult.fwhm.toFixed(2)}&quot;</span>
                         </div>
                     </div>
                 </div>
@@ -425,7 +425,7 @@ export const CaptureAndStack = () => {
                 <div className="flex w-full gap-2">
                     {!isCapturing ? (
                         <button
-                            className="flex flex-[2] items-center justify-center gap-2 h-10 rounded-lg text-[11px] font-bold tracking-[0.1em] text-black transition-all cursor-pointer disabled:opacity-50"
+                            className="flex flex-[2] items-center justify-center gap-2 h-10 rounded-lg text-hud-xs font-bold tracking-[0.1em] text-black transition-all cursor-pointer disabled:opacity-50"
                             style={{ background: "var(--astro-teal)" }}
                             onMouseEnter={e => (e.currentTarget.style.background = "white")}
                             onMouseLeave={e => (e.currentTarget.style.background = "var(--astro-teal)")}
@@ -437,7 +437,7 @@ export const CaptureAndStack = () => {
                         </button>
                     ) : (
                         <button
-                            className="flex flex-[2] items-center justify-center gap-2 h-10 rounded-lg text-[11px] font-bold tracking-[0.1em] text-white transition-colors cursor-pointer"
+                            className="flex flex-[2] items-center justify-center gap-2 h-10 rounded-lg text-hud-xs font-bold tracking-[0.1em] text-white transition-colors cursor-pointer"
                             style={{ background: "#EF4444" }}
                             onMouseEnter={e => (e.currentTarget.style.background = "#DC2626")}
                             onMouseLeave={e => (e.currentTarget.style.background = "#EF4444")}
@@ -449,7 +449,7 @@ export const CaptureAndStack = () => {
                     )}
 
                     <button
-                        className="flex flex-1 items-center justify-center gap-2 h-10 rounded-lg text-[11px] border transition-colors cursor-pointer disabled:opacity-50"
+                        className="flex flex-1 items-center justify-center gap-2 h-10 rounded-lg text-hud-xs border transition-colors cursor-pointer disabled:opacity-50"
                         style={{ borderColor: "rgba(0,255,209,0.3)", color: "var(--astro-teal)" }}
                         onMouseEnter={e => (e.currentTarget.style.background = "rgba(0,255,209,0.1)")}
                         onMouseLeave={e => (e.currentTarget.style.background = "")}
@@ -463,7 +463,7 @@ export const CaptureAndStack = () => {
 
                 {frames.length > 0 && !isCapturing && !isStacking && (
                     <button
-                        className="flex w-full items-center justify-center gap-2 h-8 rounded-lg text-[10px] transition-colors cursor-pointer"
+                        className="flex w-full items-center justify-center gap-2 h-8 rounded-lg text-hud-xs transition-colors cursor-pointer"
                         style={{ color: "var(--astro-gold)" }}
                         onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
                         onMouseLeave={e => (e.currentTarget.style.background = "")}
@@ -476,7 +476,7 @@ export const CaptureAndStack = () => {
             </div>
 
             {actionError && (
-                <p className="text-[10px] text-center mt-2" style={{ color: "#FC8181" }}>{actionError}</p>
+                <p className="text-hud-xs text-center mt-2" style={{ color: "#FC8181" }}>{actionError}</p>
             )}
 
             {showAutofocus && (

@@ -35,9 +35,23 @@ async function moveFocuser(direction: "in" | "out"): Promise<void> {
 export const JogPad = ({ jog }: JogPadProps) => {
   const { startJog, stopJog } = jog;
 
+/** Les boutons du pavé n'ont qu'une icône : sans libellé, un lecteur d'écran
+ *  annonce « bouton » quatre fois. Les directions sont celles perçues par
+ *  l'observateur, pas les noms de commandes du driver (qui sont inversés). */
+const JOG_LABELS: Record<string, string> = {
+  up: "Monter le tube",
+  down: "Descendre le tube",
+  left: "Tourner vers l'est",
+  right: "Tourner vers l'ouest",
+};
+
   const btn = (dir: JogDirection, IconComponent: React.ElementType) => (
     <button
-      className="w-10 h-10 flex items-center justify-center rounded-full text-[--astro-starlight] bg-white/5 transition-all duration-200 hover:bg-white/10 hover:scale-110 active:bg-[--astro-teal] active:text-black cursor-pointer"
+      aria-label={JOG_LABELS[dir] ?? dir}
+      // 40px était sous la norme de 44px, pour LE contrôle qu'on vise dehors,
+      // de nuit, les doigts froids. hover:scale-110 déplaçait en plus la cible
+      // sous le doigt au moment de l'appui : remplacé par un changement de fond.
+      className="w-12 h-12 flex items-center justify-center rounded-full text-[--astro-starlight] bg-white/5 transition-colors duration-200 hover:bg-white/15 active:bg-[--astro-teal] active:text-black cursor-pointer"
       style={{ touchAction: "none" }}
       onPointerDown={(e) => {
         e.preventDefault();
@@ -76,17 +90,17 @@ export const JogPad = ({ jog }: JogPadProps) => {
 
       {/* Focuser controls */}
       <div className="flex items-center gap-2 mt-1">
-        <span className="text-[9px] text-white/30 uppercase tracking-wider mr-1">FOC</span>
+        <span className="text-hud-2xs text-white/30 uppercase tracking-wider mr-1">FOC</span>
         <button
           onClick={() => moveFocuser("out")}
-          className="h-6 px-2.5 rounded text-[10px] font-mono font-medium text-white/60 bg-white/[0.04] border border-white/10 hover:bg-white/10 hover:text-white/90 transition-all duration-150 cursor-pointer"
+          className="h-6 px-2.5 rounded text-hud-xs font-mono font-medium text-white/60 bg-white/[0.04] border border-white/10 hover:bg-white/10 hover:text-white/90 transition-all duration-150 cursor-pointer"
           title="Focuser OUT (−50 steps)"
         >
           FOC−
         </button>
         <button
           onClick={() => moveFocuser("in")}
-          className="h-6 px-2.5 rounded text-[10px] font-mono font-medium text-white/60 bg-white/[0.04] border border-white/10 hover:bg-white/10 hover:text-white/90 transition-all duration-150 cursor-pointer"
+          className="h-6 px-2.5 rounded text-hud-xs font-mono font-medium text-white/60 bg-white/[0.04] border border-white/10 hover:bg-white/10 hover:text-white/90 transition-all duration-150 cursor-pointer"
           title="Focuser IN (+50 steps)"
         >
           FOC+

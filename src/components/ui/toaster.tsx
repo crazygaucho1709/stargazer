@@ -72,7 +72,7 @@ export function Toaster() {
                         borderTop:      "1px solid rgba(255, 255, 255, 0.15)",
                         color:          "#E2E8F0",
                         fontFamily:     "var(--font-space-grotesk, 'Space Grotesk', sans-serif)",
-                        fontSize:       "13px",
+                        fontSize: "var(--text-hud-sm)",
                         borderRadius:   "12px",
                     },
                 }}

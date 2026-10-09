@@ -45,7 +45,7 @@ export function CameraDetectedBadge({ onOpenCamera }: CameraDetectedBadgeProps) 
                 border:         `1px solid ${borderColor}`,
                 backdropFilter: "blur(8px)",
                 cursor:         onOpenCamera ? "pointer" : "default",
-                fontSize:       "11px",
+                fontSize: "var(--text-hud-xs)",
                 fontFamily:     "var(--font-space-grotesk, 'Space Grotesk', sans-serif)",
                 color:          "#cbd5e1",
                 transition:     "background 0.2s, border-color 0.2s",

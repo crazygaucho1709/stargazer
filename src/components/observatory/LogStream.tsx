@@ -124,7 +124,7 @@ export const LogStream = () => {
             }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
                     <Terminal size={16} color="#00F0FF" />
-                    <span style={{ fontSize: "12px", fontWeight: "bold", letterSpacing: "0.1em", color: "rgba(255,255,255,0.9)" }}>
+                    <span style={{ fontSize: "var(--text-hud-sm)", fontWeight: "bold", letterSpacing: "0.1em", color: "rgba(255,255,255,0.9)" }}>
                         UNIFIED LOGS
                     </span>
                 </div>
@@ -133,7 +133,7 @@ export const LogStream = () => {
                         style={{
                             background: 'rgba(255,255,255,0.05)',
                             color: 'white',
-                            fontSize: '10px',
+                            fontSize: "var(--text-hud-xs)",
                             padding: '4px 8px',
                             borderRadius: '4px',
                             border: '1px solid rgba(255,255,255,0.1)',
@@ -196,7 +196,7 @@ export const LogStream = () => {
                         gap: "0.5rem",
                     }}>
                         <Terminal size={40} color="white" />
-                        <span style={{ fontSize: "12px", color: "white" }}>Waiting for logs...</span>
+                        <span style={{ fontSize: "var(--text-hud-sm)", color: "white" }}>Waiting for logs...</span>
                     </div>
                 ) : (
                     <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
@@ -213,14 +213,14 @@ export const LogStream = () => {
                                         paddingBottom: "4px",
                                     }}
                                 >
-                                    <span style={{ fontSize: "9px", color: "rgba(255,255,255,0.4)", fontFamily: "monospace", minWidth: "65px" }}>
+                                    <span style={{ fontSize: "var(--text-hud-2xs)", color: "rgba(255,255,255,0.4)", fontFamily: "monospace", minWidth: "65px" }}>
                                         {log.time}
                                     </span>
                                     <SourceIcon size={12} color="#0e7490" style={{ marginTop: "2px", flexShrink: 0 }} />
-                                    <span style={{ fontSize: "10px", color: getLevelColor(log.level), fontWeight: "bold", minWidth: "50px" }}>
+                                    <span style={{ fontSize: "var(--text-hud-xs)", color: getLevelColor(log.level), fontWeight: "bold", minWidth: "50px" }}>
                                         [{log.level}]
                                     </span>
-                                    <span style={{ fontSize: "10px", color: "rgba(255,255,255,0.8)", fontFamily: "monospace", wordBreak: "break-all" }}>
+                                    <span style={{ fontSize: "var(--text-hud-xs)", color: "rgba(255,255,255,0.8)", fontFamily: "monospace", wordBreak: "break-all" }}>
                                         {log.message}
                                     </span>
                                 </div>

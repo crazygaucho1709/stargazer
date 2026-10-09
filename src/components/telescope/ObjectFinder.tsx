@@ -108,7 +108,7 @@ export const ObjectFinder = ({ onSlew }: ObjectFinderProps) => {
         color: "white",
         padding: "4px 8px",
         borderRadius: "4px",
-        fontSize: "11px",
+        fontSize: "var(--text-hud-xs)",
         cursor: "pointer",
     };
 
@@ -118,12 +118,12 @@ export const ObjectFinder = ({ onSlew }: ObjectFinderProps) => {
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <Telescope size={20} style={{ color: "var(--astro-teal)" }} />
-                    <span className="text-[14px] font-bold tracking-[0.1em] text-white">
+                    <span className="text-hud-md font-bold tracking-[0.1em] text-white">
                         {language === "fr" ? "CHERCHEUR D'OBJETS" : "OBJECT FINDER"}
                     </span>
                 </div>
                 <div
-                    className="px-2 py-0.5 rounded text-[10px] font-bold"
+                    className="px-2 py-0.5 rounded text-hud-xs font-bold"
                     style={{
                         color: "var(--astro-teal)",
                         background: "rgba(0,240,255,0.12)",
@@ -145,7 +145,7 @@ export const ObjectFinder = ({ onSlew }: ObjectFinderProps) => {
                             placeholder={language === "fr" ? "Rechercher M31, Orion..." : "Search M31, Orion..."}
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="flex-1 bg-white/5 border-none outline-none text-white text-[12px] placeholder-white/30 focus:bg-white/10 rounded px-2 py-1 transition-colors"
+                            className="flex-1 bg-white/5 border-none outline-none text-white text-hud-sm placeholder-white/30 focus:bg-white/10 rounded px-2 py-1 transition-colors"
                         />
                     </div>
 
@@ -209,11 +209,11 @@ export const ObjectFinder = ({ onSlew }: ObjectFinderProps) => {
                         <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
                                 <Star size={12} style={{ color: getTypeColor(obj.type) }} />
-                                <span className="text-[12px] font-bold text-white">{obj.id}</span>
-                                <span className="text-[11px] text-white/70">{obj.name}</span>
+                                <span className="text-hud-sm font-bold text-white">{obj.id}</span>
+                                <span className="text-hud-xs text-white/70">{obj.name}</span>
                             </div>
                             <div
-                                className="text-[10px] font-bold text-white rounded px-1.5 py-0.5"
+                                className="text-hud-xs font-bold text-white rounded px-1.5 py-0.5"
                                 style={{
                                     background: getDifficultyBg(obj.difficulty).bg,
                                     border: `1px solid ${getDifficultyBg(obj.difficulty).border}`,
@@ -224,14 +224,14 @@ export const ObjectFinder = ({ onSlew }: ObjectFinderProps) => {
                         </div>
 
                         <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3 text-[10px] text-white/50">
+                            <div className="flex items-center gap-3 text-hud-xs text-white/50">
                                 <span>{obj.constellation}</span>
                                 <span>•</span>
                                 <span style={{ color: getTypeColor(obj.type) }}>{obj.type}</span>
                             </div>
 
                             <button
-                                className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded transition-colors"
+                                className="flex items-center gap-1 text-hud-xs font-bold px-2 py-0.5 rounded transition-colors"
                                 style={{ background: "var(--astro-teal)", color: "black" }}
                                 onMouseEnter={(e) => (e.currentTarget.style.background = "white")}
                                 onMouseLeave={(e) =>
@@ -255,7 +255,7 @@ export const ObjectFinder = ({ onSlew }: ObjectFinderProps) => {
                 ))}
 
                 {filteredObjects.length === 0 && (
-                    <p className="text-[12px] text-white/50 text-center py-4">
+                    <p className="text-hud-sm text-white/50 text-center py-4">
                         {language === "fr"
                             ? "Aucun objet trouvé. Essayez d'autres critères."
                             : "No objects found. Try different criteria."}
@@ -274,11 +274,11 @@ export const ObjectFinder = ({ onSlew }: ObjectFinderProps) => {
                 >
                     <div className="flex flex-col gap-3">
                         <div className="flex items-center justify-between">
-                            <span className="text-[14px] font-bold" style={{ color: "var(--astro-teal)" }}>
+                            <span className="text-hud-md font-bold" style={{ color: "var(--astro-teal)" }}>
                                 {selectedObject.name}
                             </span>
                             <span
-                                className="text-[10px] font-bold px-2 py-0.5 rounded"
+                                className="text-hud-xs font-bold px-2 py-0.5 rounded"
                                 style={{
                                     background: "rgba(0,240,255,0.15)",
                                     color: "var(--astro-teal)",
@@ -289,9 +289,9 @@ export const ObjectFinder = ({ onSlew }: ObjectFinderProps) => {
                             </span>
                         </div>
 
-                        <p className="text-[11px] text-white/70">{selectedObject.description}</p>
+                        <p className="text-hud-xs text-white/70">{selectedObject.description}</p>
 
-                        <div className="grid grid-cols-2 gap-2 text-[10px]">
+                        <div className="grid grid-cols-2 gap-2 text-hud-xs">
                             <div className="flex items-center gap-1">
                                 <Compass size={12} style={{ color: "rgba(255,255,255,0.5)" }} />
                                 <span className="text-white/60">RA: {selectedObject.ra}</span>

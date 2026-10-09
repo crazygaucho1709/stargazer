@@ -38,6 +38,29 @@
   --color-danger:  #f87171;
   --color-info:    #38bdf8;
 
+
+  /* ─── Échelle typographique HUD ──────────────────────────────────────────
+     Toutes les tailles dérivent de --hud-scale, piloté par data-density.
+     Pourquoi : l'interface comptait 255 occurrences de texte sous 12px (dont
+     une à 6px), souvent à 60% d'opacité. Lisible sur un écran de bureau, pas
+     dehors de nuit avec des yeux adaptés à l'obscurité. Le multiplicateur
+     laisse l'utilisateur choisir sa densité au lieu d'imposer une taille. */
+  --text-hud-2xs: calc(0.75rem * var(--hud-scale, 1));   /* 12px à l'échelle 1 */
+  --text-hud-xs:  calc(0.8125rem * var(--hud-scale, 1)); /* 13px */
+  --text-hud-sm:  calc(0.875rem * var(--hud-scale, 1));  /* 14px */
+  --text-hud-md:  calc(1rem * var(--hud-scale, 1));      /* 16px */
+  --text-hud-lg:  calc(1.25rem * var(--hud-scale, 1));   /* 20px */
+  --text-hud-xl:  calc(1.75rem * var(--hud-scale, 1));   /* 28px */
+
+  /* Cible tactile minimale (WCAG 2.2 / doigts froids, gants) */
+  --size-touch: 44px;
+  --size-touch-lg: 56px;
+
+  /* Rouge vision nocturne — au-delà de 620nm, préserve l'adaptation */
+  --color-night-red:     #FF3B30;
+  --color-night-ember:   #FF6B4A;
+  --color-night-dim:     #8C1D18;
+
   /* Radius */
   --radius-panel: 16px;
   --radius-sm:    8px;
@@ -197,4 +220,145 @@ h1, h2, h3, .hud-font {
   border: 2px solid white;
   cursor: pointer;
   box-shadow: 0 2px 6px rgba(0, 255, 209, 0.4);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   MODES D'OBSERVATION
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Densité : pilote toute l'échelle typographique ───────────────────────
+   L'interface est dense par choix (HUD). Plutôt que d'imposer une taille
+   unique, on laisse l'observateur l'adapter à ses conditions : écran de
+   bureau au chaud, ou téléphone dehors à bout de bras. */
+:root                        { --hud-scale: 1; }
+:root[data-density="compact"]{ --hud-scale: 0.875; }
+:root[data-density="outdoor"]{ --hud-scale: 1.25; }
+
+/* ─── Vision nocturne ──────────────────────────────────────────────────────
+   L'adaptation à l'obscurité demande 20 à 30 minutes et se détruit en une
+   seconde. Les bâtonnets, seuls actifs en vision scotopique, culminent à
+   ~507 nm — en plein dans le cyan #00FFD1 utilisé par l'accent de
+   l'application. Seules les longueurs d'onde au-delà de ~620 nm (rouge
+   profond) la laissent intacte.
+
+   Deux mécanismes complémentaires :
+
+   1. Remappage des tokens — la bonne méthode, qui garde le contrôle des
+      contrastes. Elle ne couvre que le code qui utilise les tokens.
+   2. Filtre global sur <body> — le filet de sécurité. L'application compte
+      plus de mille styles inline avec des couleurs en dur qu'aucun remappage
+      de token n'atteindrait. Le filtre les rattrape tous.
+
+   Limite assumée du filtre : il crée un bloc conteneur, donc `position:fixed`
+   se réfère à <body>. Ici body fait exactement la hauteur du viewport
+   (height:100%, overflow:hidden), le rendu est identique. */
+:root[data-vision="night"] {
+  --astro-teal:      var(--color-night-red);
+  --astro-gold:      var(--color-night-ember);
+  --astro-starlight: #FFD5CC;
+  --astro-cobalt:    #4A0E0A;
+}
+
+/* Surcouche plutôt que filtre sur <body>.
+   Un `filter` sur body fonctionne, mais il a deux défauts rédhibitoires ici :
+   il crée un bloc conteneur qui perturbe le rendu, et surtout il ANNULE les
+   `backdrop-filter` des descendants — or toute l'identité visuelle de
+   l'application repose sur des panneaux de verre flous. La surcouche
+   n'intervient qu'à la composition finale : zéro impact sur la mise en page,
+   zéro impact sur le flou des panneaux.
+
+   multiply avec un rouge saturé : chaque pixel garde sa luminosité mais perd
+   ses composantes verte et bleue — exactement ce qu'on veut, une image
+   monochrome rouge sans rien éteindre. */
+:root[data-vision="night"]::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;   /* au-dessus de tout, y compris les toasts */
+  pointer-events: none;  /* ne doit jamais intercepter un clic */
+  background: #FF2D1E;
+  mix-blend-mode: multiply;
+}
+
+/* Deuxième couche : désature d'abord, pour que le multiply donne un rouge
+   uniforme quelle que soit la teinte de départ, et plafonne la luminosité. */
+:root[data-vision="night"]::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 2147482999;
+  pointer-events: none;
+  backdrop-filter: grayscale(1) brightness(var(--night-brightness, 0.85));
+  -webkit-backdrop-filter: grayscale(1) brightness(var(--night-brightness, 0.85));
+}
+
+:root[data-vision="night"] body { background-image: none; }
+
+/* La luminosité absolue compte autant que la teinte : un écran rouge trop
+   lumineux éblouit quand même. */
+:root[data-vision="night"][data-dim="1"] { --night-brightness: 0.58; }
+:root[data-vision="night"][data-dim="2"] { --night-brightness: 0.34; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   ACCESSIBILITÉ — s'applique à toute l'application
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* L'audit n'a trouvé AUCUN état de focus dans les 57 fichiers d'interface :
+   l'application était inutilisable au clavier. Une seule règle les couvre
+   tous. :focus-visible n'affiche l'anneau qu'au clavier, jamais à la souris. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--astro-teal);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Cible tactile minimale. ::after plutôt que min-height, pour agrandir la
+   zone sensible sans déformer les boutons compacts du HUD. */
+.touch-target { position: relative; }
+.touch-target::after {
+  content: "";
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: max(100%, var(--size-touch));
+  height: max(100%, var(--size-touch));
+  transform: translate(-50%, -50%);
+}
+
+/* 146 transitions dans le code pour une seule prise en compte de
+   prefers-reduced-motion. Filet global. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   ÉTATS MATÉRIELS — le vocabulaire visuel du pilotage
+   ══════════════════════════════════════════════════════════════════════════
+   Un opérateur doit distinguer d'un coup d'œil, de loin et de nuit :
+   au repos / en mouvement / en butée / liaison perdue. La couleur seule ne
+   suffit pas (daltonisme, et le mode nuit écrase toutes les teintes) : on
+   ajoute donc une forme et un mouvement distincts. */
+.state-idle   { --state: var(--color-success); }
+.state-moving { --state: var(--color-warning); }
+.state-limit  { --state: var(--color-danger); }
+.state-lost   { --state: #94A3B8; }
+
+.state-dot {
+  width: 10px; height: 10px; border-radius: 9999px;
+  background: var(--state, var(--color-success));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--state) 22%, transparent);
+  flex: none;
+}
+/* En mouvement : pulsation. En butée : carré, visible même monochrome. */
+.state-moving .state-dot { animation: state-pulse 1s ease-in-out infinite; }
+.state-limit  .state-dot { border-radius: 2px; }
+.state-lost   .state-dot { opacity: 0.45; }
+
+@keyframes state-pulse {
+  0%, 100% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--state) 22%, transparent); }
+  50%      { box-shadow: 0 0 0 7px color-mix(in srgb, var(--state) 8%, transparent); }
 }

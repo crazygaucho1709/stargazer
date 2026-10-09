@@ -37,7 +37,7 @@ export const SessionIndicator = () => {
                 style={{ background: color, boxShadow: glows ? `0 0 8px ${color}` : "none" }}
             />
             <IconComp size={12} style={{ color }} />
-            <span className="hud-font text-[10px] font-bold tracking-[0.08em]" style={{ color }}>
+            <span className="hud-font text-hud-xs font-bold tracking-[0.08em]" style={{ color }}>
                 {label}
             </span>
         </div>

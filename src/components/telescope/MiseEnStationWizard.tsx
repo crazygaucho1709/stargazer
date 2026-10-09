@@ -115,7 +115,7 @@ function CompassNeedle({ heading }: { heading: number | null }) {
     return (
         <div className="relative w-[100px] h-[100px]">
             <div className="absolute inset-0 rounded-full border-2 border-white/20 bg-black/40" />
-            <span className="absolute top-1 left-1/2 -translate-x-1/2 text-xs text-white/70 font-mono">N</span>
+            <span className="absolute top-1 left-1/2 -translate-x-1/2 text-hud-2xs text-white/70 font-mono">N</span>
             {heading !== null && (
                 <div className="absolute inset-0" style={{ transform: `rotate(${heading}deg)`, transition: "transform 0.2s" }}>
                     <div className="absolute left-1/2 top-1/2" style={{
@@ -141,7 +141,7 @@ function StepIndicator({ current, total }: { current: number; total: number }) {
             {Array.from({ length: total }).map((_, i) => (
                 <div key={i} className="flex items-center gap-2">
                     <div className={[
-                        "w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold",
+                        "w-7 h-7 rounded-full flex items-center justify-center text-hud-2xs font-bold",
                         i < current ? "bg-teal-500 text-gray-900" :
                             i === current ? "bg-teal-300 text-gray-900 border-2 border-teal-200" :
                                 "bg-white/10 text-white/50",
@@ -351,31 +351,31 @@ export const MiseEnStationWizard = ({ onClose }: MiseEnStationWizardProps) => {
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                     <Crosshair size={16} className="text-teal-300" />
-                    <span className="text-[16px] font-bold text-white">Mise en Station</span>
+                    <span className="text-hud-md font-bold text-white">Mise en Station</span>
                 </div>
                 <div className="flex items-center gap-2">
                     <span className={[
-                        "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium",
+                        "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-hud-xs font-medium",
                         wsConnected ? "bg-green-500/20 text-green-300" : "bg-red-500/20 text-red-300",
                     ].join(" ")}>
                         {wsConnected ? <Wifi size={10} /> : <WifiOff size={10} />}
                         <span>iPhone</span>
                     </span>
                     {onClose && (
-                        <button className="text-white/40 hover:text-white/70 transition-colors text-xs px-1" onClick={onClose}>✕</button>
+                        <button className="text-white/40 hover:text-white/70 transition-colors text-hud-2xs px-1" onClick={onClose}>✕</button>
                     )}
                 </div>
             </div>
 
             <StepIndicator current={step} total={4} />
-            <p className="text-[14px] text-teal-200 text-center mt-2 mb-4 font-medium">{STEP_LABELS[step]}</p>
+            <p className="text-hud-md text-teal-200 text-center mt-2 mb-4 font-medium">{STEP_LABELS[step]}</p>
 
             <div className="h-px bg-white/10 mb-4" />
 
             {/* ── STEP 0: GPS Validation ── */}
             {step === 0 && (
                 <div className="flex flex-col gap-4">
-                    <p className="text-xs text-white/50">
+                    <p className="text-hud-2xs text-white/50">
                         Vérifiez votre position géographique avant de lancer la séquence. Une position exacte est
                         indispensable pour que la NexStar calcule correctement sa mise en station.
                     </p>
@@ -385,10 +385,10 @@ export const MiseEnStationWizard = ({ onClose }: MiseEnStationWizardProps) => {
                         <div className="flex items-center gap-2 p-2.5 rounded-md border border-green-600 bg-green-900/40">
                             <CheckCircle2 size={14} className="text-green-300 shrink-0" />
                             <div className="flex flex-col gap-0.5">
-                                <span className="text-[12px] text-green-200 font-medium">
+                                <span className="text-hud-sm text-green-200 font-medium">
                                     GPS config : {formatCoord(configLat, configLon)}
                                 </span>
-                                <span className="text-[10px] text-green-400/70">Coordonnées enregistrées dans la configuration</span>
+                                <span className="text-hud-xs text-green-400/70">Coordonnées enregistrées dans la configuration</span>
                             </div>
                         </div>
                     )}
@@ -398,10 +398,10 @@ export const MiseEnStationWizard = ({ onClose }: MiseEnStationWizardProps) => {
                         <div className="flex items-center gap-2 p-2.5 rounded-md border border-amber-600 bg-amber-900/40">
                             <AlertTriangle size={14} className="text-amber-300 shrink-0" />
                             <div className="flex flex-col gap-0.5">
-                                <span className="text-[12px] text-amber-200 font-medium">
+                                <span className="text-hud-sm text-amber-200 font-medium">
                                     Coordonnées par défaut détectées
                                 </span>
-                                <span className="text-[10px] text-amber-400/70">
+                                <span className="text-hud-xs text-amber-400/70">
                                     Veuillez confirmer votre position avant de continuer
                                 </span>
                             </div>
@@ -413,13 +413,13 @@ export const MiseEnStationWizard = ({ onClose }: MiseEnStationWizardProps) => {
                         <div className="flex items-center gap-2 p-2.5 rounded-md border border-green-600 bg-green-900/40">
                             <CheckCircle2 size={14} className="text-green-300 shrink-0" />
                             <div className="flex flex-col gap-0.5">
-                                <span className="text-[12px] text-green-200 font-medium">
+                                <span className="text-hud-sm text-green-200 font-medium">
                                     GPS téléphone : {formatCoord(resolvedLat, resolvedLon)}
                                     {resolvedAccuracy !== null && (
                                         <span className="text-green-400 ml-1">— Précision : {resolvedAccuracy.toFixed(0)} m</span>
                                     )}
                                 </span>
-                                <span className="text-[10px] text-green-400/70">Position importée depuis le capteur téléphone</span>
+                                <span className="text-hud-xs text-green-400/70">Position importée depuis le capteur téléphone</span>
                             </div>
                         </div>
                     )}
@@ -438,7 +438,7 @@ export const MiseEnStationWizard = ({ onClose }: MiseEnStationWizardProps) => {
                     {sensor.lat !== null && sensor.lon !== null && (
                         <div className="flex items-center gap-2">
                             <MapPin size={11} className="text-teal-300" />
-                            <span className="text-[11px] text-teal-200">
+                            <span className="text-hud-xs text-teal-200">
                                 Capteur live : {formatCoord(sensor.lat, sensor.lon)}
                                 {sensor.alt_gps !== null && <span className="text-teal-400/60 ml-1">· alt {sensor.alt_gps.toFixed(0)} m</span>}
                             </span>
@@ -455,7 +455,7 @@ export const MiseEnStationWizard = ({ onClose }: MiseEnStationWizardProps) => {
                     </button>
 
                     {!gpsStepReady && (
-                        <p className="text-xs text-white/40 text-center">
+                        <p className="text-hud-2xs text-white/40 text-center">
                             Importez la position du téléphone ou configurez vos coordonnées dans les réglages
                         </p>
                     )}
@@ -467,20 +467,20 @@ export const MiseEnStationWizard = ({ onClose }: MiseEnStationWizardProps) => {
                 <div className="flex flex-col gap-4">
                     <div className="flex items-start justify-center gap-6">
                         <div className="flex flex-col items-center gap-1">
-                            <span className="text-xs text-white/60 uppercase tracking-wider">Niveau</span>
+                            <span className="text-hud-2xs text-white/60 uppercase tracking-wider">Niveau</span>
                             <LevelBubble beta={sensor.beta} gamma={sensor.gamma} />
                             <span className={[
-                                "inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium",
+                                "inline-flex px-2 py-0.5 rounded-full text-hud-xs font-medium",
                                 isLevel ? "bg-green-500/20 text-green-300" : "bg-orange-500/20 text-orange-300",
                             ].join(" ")}>
                                 {isLevel ? "OK" : sensor.beta !== null ? `β${sensor.beta?.toFixed(1)}° γ${sensor.gamma?.toFixed(1)}°` : "—"}
                             </span>
                         </div>
                         <div className="flex flex-col items-center gap-1">
-                            <span className="text-xs text-white/60 uppercase tracking-wider">Azimut</span>
+                            <span className="text-hud-2xs text-white/60 uppercase tracking-wider">Azimut</span>
                             <CompassNeedle heading={sensor.alpha} />
                             <span className={[
-                                "inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium",
+                                "inline-flex px-2 py-0.5 rounded-full text-hud-xs font-medium",
                                 isNorth ? "bg-green-500/20 text-green-300" : "bg-orange-500/20 text-orange-300",
                             ].join(" ")}>
                                 {isNorth ? "Nord OK" : sensor.alpha !== null ? `${sensor.alpha?.toFixed(1)}°` : "—"}
@@ -490,7 +490,7 @@ export const MiseEnStationWizard = ({ onClose }: MiseEnStationWizardProps) => {
 
                     <div className="flex items-center justify-center gap-2">
                         <MapPin size={12} className={hasGps ? "text-teal-300" : "text-white/40"} />
-                        <span className={`text-xs ${hasGps ? "text-teal-200" : "text-white/50"}`}>
+                        <span className={`text-hud-2xs ${hasGps ? "text-teal-200" : "text-white/50"}`}>
                             {hasGps ? `GPS: ${sensor.lat?.toFixed(4)}°, ${sensor.lon?.toFixed(4)}°` : "En attente du GPS iPhone…"}
                         </span>
                     </div>
@@ -498,13 +498,13 @@ export const MiseEnStationWizard = ({ onClose }: MiseEnStationWizardProps) => {
                     {sensor.compassAccuracy !== null && sensor.compassAccuracy > 20 && (
                         <div className="flex items-center gap-2 p-2 rounded-md border border-orange-600 bg-orange-900/50">
                             <AlertTriangle size={12} className="text-orange-300 shrink-0" />
-                            <span className="text-xs text-orange-200">
+                            <span className="text-hud-2xs text-orange-200">
                                 Précision boussole faible ({sensor.compassAccuracy}°) — éloignez-vous du métal
                             </span>
                         </div>
                     )}
 
-                    <p className="text-xs text-white/50 text-center">
+                    <p className="text-hud-2xs text-white/50 text-center">
                         Ajustez la monture jusqu&apos;à ce que la bulle soit centrée et l&apos;aiguille pointe le Nord
                     </p>
 
@@ -526,7 +526,7 @@ export const MiseEnStationWizard = ({ onClose }: MiseEnStationWizardProps) => {
                     </div>
 
                     {!step1Ready && (
-                        <p className="text-xs text-white/40 text-center">
+                        <p className="text-hud-2xs text-white/40 text-center">
                             {!hasGps ? "GPS requis" : !isLevel ? "Niveler la monture" : "Orienter vers le Nord"}
                         </p>
                     )}
@@ -539,26 +539,26 @@ export const MiseEnStationWizard = ({ onClose }: MiseEnStationWizardProps) => {
                     <div className="flex flex-col gap-2 rounded-lg p-3 bg-white/[0.03]">
                         <div className="flex items-center gap-2">
                             <MapPin size={12} className="text-teal-300" />
-                            <span className="text-[14px] text-white">
+                            <span className="text-hud-md text-white">
                                 Lat: <span className="text-teal-200">{(effectiveLat ?? 0).toFixed(5)}°</span>
                                 {" "}Lon: <span className="text-teal-200">{(effectiveLon ?? 0).toFixed(5)}°</span>
                             </span>
                         </div>
                         <div className="flex items-center gap-2">
                             <Navigation size={12} className="text-teal-300" />
-                            <span className="text-[14px] text-white">
+                            <span className="text-hud-md text-white">
                                 Altitude GPS: <span className="text-teal-200">{sensor.alt_gps?.toFixed(0) ?? "—"} m</span>
                             </span>
                         </div>
                         <div className="flex items-center gap-2">
                             <Clock size={12} className="text-teal-300" />
-                            <span className="text-[14px] text-white">
+                            <span className="text-hud-md text-white">
                                 UTC: <span className="text-teal-200">{new Date().toUTCString().slice(0, 25)}</span>
                             </span>
                         </div>
                     </div>
 
-                    <p className="text-xs text-white/50">
+                    <p className="text-hud-2xs text-white/50">
                         Ces coordonnées et l&apos;heure UTC seront envoyées au contrôleur NexStar via INDI,
                         puis le suivi sidéral sera activé.
                     </p>
@@ -566,13 +566,13 @@ export const MiseEnStationWizard = ({ onClose }: MiseEnStationWizardProps) => {
                     {initResult && (
                         <div className="flex items-center gap-2 p-2 rounded-md border border-green-600 bg-green-900/50">
                             <CheckCircle2 size={12} className="text-green-300" />
-                            <span className="text-[14px] text-green-200">{initResult}</span>
+                            <span className="text-hud-md text-green-200">{initResult}</span>
                         </div>
                     )}
                     {initError && (
                         <div className="flex items-center gap-2 p-2 rounded-md border border-red-600 bg-red-900/50">
                             <AlertTriangle size={12} className="text-red-300" />
-                            <span className="text-[14px] text-red-200">{initError}</span>
+                            <span className="text-hud-md text-red-200">{initError}</span>
                         </div>
                     )}
 
@@ -599,15 +599,15 @@ export const MiseEnStationWizard = ({ onClose }: MiseEnStationWizardProps) => {
             {step === 3 && (
                 <div className="flex flex-col gap-4">
                     <div className="flex flex-col gap-2 rounded-lg p-3 bg-white/[0.03]">
-                        <span className="text-xs text-white/60 uppercase tracking-wider">Alignement stellaire</span>
-                        <p className="text-[14px] text-white">
+                        <span className="text-hud-2xs text-white/60 uppercase tracking-wider">Alignement stellaire</span>
+                        <p className="text-hud-md text-white">
                             Le wizard va capturer une image courte (5s) et résoudre sa position par plate-solving
                             pour synchroniser précisément les coordonnées du télescope.
                         </p>
                     </div>
 
                     {solveStatus === "idle" && (
-                        <p className="text-xs text-white/50">
+                        <p className="text-hud-2xs text-white/50">
                             Pointez le télescope vers une zone du ciel bien étoilée, loin de la Lune et des nuages.
                         </p>
                     )}
@@ -615,21 +615,21 @@ export const MiseEnStationWizard = ({ onClose }: MiseEnStationWizardProps) => {
                     {(solveStatus === "capturing" || solveStatus === "solving") && (
                         <div className="flex items-center justify-center gap-2">
                             <Spinner size="sm" color="#5eead4" />
-                            <span className="text-[14px] text-teal-200">{solveMsg}</span>
+                            <span className="text-hud-md text-teal-200">{solveMsg}</span>
                         </div>
                     )}
 
                     {solveStatus === "done" && (
                         <div className="flex items-center gap-2 p-2 rounded-md border border-green-600 bg-green-900/50">
                             <CheckCircle2 size={12} className="text-green-300" />
-                            <span className="text-[14px] text-green-200 font-mono">{solveMsg}</span>
+                            <span className="text-hud-md text-green-200 font-mono">{solveMsg}</span>
                         </div>
                     )}
 
                     {solveStatus === "failed" && (
                         <div className="flex items-center gap-2 p-2 rounded-md border border-red-600 bg-red-900/50">
                             <AlertTriangle size={12} className="text-red-300" />
-                            <span className="text-[14px] text-red-200">{solveMsg}</span>
+                            <span className="text-hud-md text-red-200">{solveMsg}</span>
                         </div>
                     )}
 
@@ -664,7 +664,7 @@ export const MiseEnStationWizard = ({ onClose }: MiseEnStationWizardProps) => {
 
                     {solveStatus === "failed" && (
                         <button
-                            className="flex items-center justify-center gap-1 text-xs text-white/40 hover:text-white/70 transition-colors cursor-pointer"
+                            className="flex items-center justify-center gap-1 text-hud-2xs text-white/40 hover:text-white/70 transition-colors cursor-pointer"
                             onClick={() => setSolveStatus("idle")}
                         >
                             <RotateCcw size={12} />

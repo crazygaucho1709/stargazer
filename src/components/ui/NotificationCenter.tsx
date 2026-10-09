@@ -50,7 +50,7 @@ export const NotificationCenter = () => {
                 <Bell size={16} />
                 {notifications.length > 0 && (
                     <span
-                        className="absolute top-0 right-0 w-4 h-4 flex items-center justify-center rounded-full text-[9px] font-bold text-black"
+                        className="absolute top-0 right-0 w-4 h-4 flex items-center justify-center rounded-full text-hud-2xs font-bold text-black"
                         style={{ background: criticalCount > 0 ? "#EF4444" : "var(--astro-teal)" }}
                     >
                         {criticalCount || notifications.length}
@@ -76,7 +76,7 @@ export const NotificationCenter = () => {
                         <span className="hud-font text-white text-sm font-bold">NOTIFICATIONS</span>
                         {notifications.length > 0 && (
                             <button
-                                className="text-[10px] px-2 py-0.5 rounded transition-colors cursor-pointer"
+                                className="text-hud-xs px-2 py-0.5 rounded transition-colors cursor-pointer"
                                 style={{ color: "#A0AEC0" }}
                                 onMouseEnter={e => (e.currentTarget.style.color = "white")}
                                 onMouseLeave={e => (e.currentTarget.style.color = "#A0AEC0")}
@@ -107,9 +107,9 @@ export const NotificationCenter = () => {
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-white text-sm font-bold">{n.title}</p>
                                                 {n.description && (
-                                                    <p className="text-xs mt-0.5" style={{ color: "#A0AEC0" }}>{n.description}</p>
+                                                    <p className="text-hud-2xs mt-0.5" style={{ color: "#A0AEC0" }}>{n.description}</p>
                                                 )}
-                                                <p className="text-[10px] mt-1" style={{ color: "#4A5568" }}>
+                                                <p className="text-hud-xs mt-1" style={{ color: "#4A5568" }}>
                                                     {new Date(n.timestamp).toLocaleTimeString()}
                                                     {n.source && ` • ${n.source}`}
                                                 </p>
@@ -148,7 +148,7 @@ export const NotificationToast = ({ notification: n }: { notification: Notificat
                 <div className="flex-1">
                     <p className="text-white text-sm font-bold">{n.title}</p>
                     {n.description && (
-                        <p className="text-xs mt-0.5" style={{ color: "#CBD5E0" }}>{n.description}</p>
+                        <p className="text-hud-2xs mt-0.5" style={{ color: "#CBD5E0" }}>{n.description}</p>
                     )}
                 </div>
             </div>

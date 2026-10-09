@@ -116,7 +116,7 @@ export const LiveView = () => {
                         <div className="w-full h-full" style={{ background: "#030509" }} />
                     ) : ccdError ? (
                         <div className="flex items-center justify-center w-full h-full" style={{ background: "#112233" }}>
-                            <span style={{ color: "var(--astro-gold)", fontSize: "18px" }}>{t("CANON_CONNECTION_ERROR", language)}</span>
+                            <span style={{ color: "var(--astro-gold)", fontSize: "var(--text-hud-lg)" }}>{t("CANON_CONNECTION_ERROR", language)}</span>
                         </div>
                     ) : liveView.streamUrl ? (
                         <div className="absolute top-0 left-0 w-full h-full">
@@ -143,7 +143,7 @@ export const LiveView = () => {
                             <div className="flex flex-col items-center gap-3">
                                 <Camera size={48} style={{ color: "var(--astro-teal)", opacity: 0.5 }} />
                                 <span className="hud-font text-sm" style={{ color: "var(--astro-teal)" }}>{t("CANON_STANDBY", language)}</span>
-                                <span className="text-[11px]" style={{ color: "rgba(255,255,255,0.5)" }}>{t("CANON_STANDBY_HINT", language)}</span>
+                                <span className="text-hud-xs" style={{ color: "rgba(255,255,255,0.5)" }}>{t("CANON_STANDBY_HINT", language)}</span>
                             </div>
                         </div>
                     )}
@@ -218,7 +218,7 @@ export const LiveView = () => {
                     >
                         <ZoomIn size={18} />
                     </button>
-                    <span className="hud-font text-[12px] font-bold" style={{ color: "var(--astro-teal)" }}>
+                    <span className="hud-font text-hud-sm font-bold" style={{ color: "var(--astro-teal)" }}>
                         {zoom.toFixed(1)}x
                     </span>
                     <button
@@ -244,7 +244,7 @@ export const LiveView = () => {
                     }}
                 >
                     <button
-                        className="flex items-center gap-1.5 h-7 px-6 rounded-full text-[10px] hud-font transition-colors cursor-pointer"
+                        className="flex items-center gap-1.5 h-7 px-6 rounded-full text-hud-xs hud-font transition-colors cursor-pointer"
                         style={{
                             background: liveViewMode === "NASA" ? "var(--astro-teal)" : "transparent",
                             color: liveViewMode === "NASA" ? "black" : "rgba(255,255,255,0.7)",
@@ -257,7 +257,7 @@ export const LiveView = () => {
                         {t("SKY_MAP", language)}
                     </button>
                     <button
-                        className="flex items-center gap-1.5 h-7 px-6 rounded-full text-[10px] hud-font transition-colors cursor-pointer"
+                        className="flex items-center gap-1.5 h-7 px-6 rounded-full text-hud-xs hud-font transition-colors cursor-pointer"
                         style={{
                             background: liveViewMode === "CANON" ? "var(--astro-gold)" : "transparent",
                             color: liveViewMode === "CANON" ? "black" : "rgba(255,255,255,0.7)",
@@ -272,7 +272,7 @@ export const LiveView = () => {
 
                     {liveViewMode === "CANON" && (
                         <button
-                            className="flex items-center gap-1 h-7 px-4 rounded-full text-[10px] hud-font text-white transition-colors cursor-pointer"
+                            className="flex items-center gap-1 h-7 px-4 rounded-full text-hud-xs hud-font text-white transition-colors cursor-pointer"
                             style={{
                                 background: liveView.isLive ? "#E53E3E" : "#38A169",
                                 animation: liveView.isLive ? "pulse 1s infinite" : undefined,
@@ -284,7 +284,7 @@ export const LiveView = () => {
                             {liveView.isLive ? <Square size={12} fill="currentColor" /> : <Play size={12} fill="currentColor" />}
                             <span className="ml-1">{liveView.isLive ? "STOP" : "LIVE"}</span>
                             {liveView.status && (
-                                <span className="ml-1 text-[8px] opacity-80">({liveView.status})</span>
+                                <span className="ml-1 text-hud-2xs opacity-80">({liveView.status})</span>
                             )}
                         </button>
                     )}
@@ -305,13 +305,13 @@ export const LiveView = () => {
                 >
                     <div className="flex items-center gap-10">
                         <div className="flex flex-col items-center gap-1">
-                            <span className="text-[9px] font-bold opacity-60" style={{ color: "var(--astro-starlight)" }}>{t("RIGHT_ASCENSION", language)}</span>
-                            <span className="hud-font text-[18px]" style={{ color: "var(--astro-teal)" }}>{ra}</span>
+                            <span className="text-hud-2xs font-bold opacity-60" style={{ color: "var(--astro-starlight)" }}>{t("RIGHT_ASCENSION", language)}</span>
+                            <span className="hud-font text-hud-lg" style={{ color: "var(--astro-teal)" }}>{ra}</span>
                         </div>
                         <div className="w-px h-[30px]" style={{ background: "rgba(255,255,255,0.1)" }} />
                         <div className="flex flex-col items-center gap-1">
-                            <span className="text-[9px] font-bold opacity-60" style={{ color: "var(--astro-starlight)" }}>{t("DECLINATION", language)}</span>
-                            <span className="hud-font text-[18px]" style={{ color: "var(--astro-gold)" }}>{dec}</span>
+                            <span className="text-hud-2xs font-bold opacity-60" style={{ color: "var(--astro-starlight)" }}>{t("DECLINATION", language)}</span>
+                            <span className="hud-font text-hud-lg" style={{ color: "var(--astro-gold)" }}>{dec}</span>
                         </div>
                     </div>
                 </div>

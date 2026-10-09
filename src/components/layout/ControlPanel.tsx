@@ -37,7 +37,7 @@ export const ControlPanel = () => {
                 <div>
                     <div className="flex items-center gap-3 mb-2">
                         <Boxes size={20} color="#D00000" className="text-glow-red" />
-                        <h2 style={{ fontSize: "14px", color: "white", letterSpacing: "0.1em", fontWeight: 900, margin: 0 }}>
+                        <h2 style={{ fontSize: "var(--text-hud-md)", color: "white", letterSpacing: "0.1em", fontWeight: 900, margin: 0 }}>
                             INSTRUMENT HUB
                         </h2>
                     </div>
@@ -54,7 +54,7 @@ export const ControlPanel = () => {
                         />
                         <span
                             style={{
-                                fontSize: "10px",
+                                fontSize: "var(--text-hud-xs)",
                                 fontWeight: 900,
                                 color: isConnected ? "#10b981" : "rgba(255,255,255,0.4)",
                                 letterSpacing: "0.2em",
@@ -79,7 +79,7 @@ export const ControlPanel = () => {
                 <div style={insetSection}>
                     <div className="flex items-center gap-3 mb-4">
                         <Telescope size={16} color="#FFB300" />
-                        <h3 style={{ fontSize: "12px", color: "#FFB300", letterSpacing: "0.2em", fontWeight: 900, margin: 0 }}>
+                        <h3 style={{ fontSize: "var(--text-hud-sm)", color: "#FFB300", letterSpacing: "0.2em", fontWeight: 900, margin: 0 }}>
                             CHERCHEUR D&apos;OBJETS
                         </h3>
                     </div>
@@ -90,7 +90,7 @@ export const ControlPanel = () => {
                 <div style={insetSection}>
                     <div className="flex items-center gap-3 mb-4">
                         <Camera size={16} color="#00F0FF" />
-                        <h3 style={{ fontSize: "12px", color: "#00F0FF", letterSpacing: "0.2em", fontWeight: 900, margin: 0 }}>
+                        <h3 style={{ fontSize: "var(--text-hud-sm)", color: "#00F0FF", letterSpacing: "0.2em", fontWeight: 900, margin: 0 }}>
                             CAPTURE &amp; STACKING
                         </h3>
                     </div>

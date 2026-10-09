@@ -77,10 +77,10 @@ export const MountCalibration = () => {
                     <span className={isCalibrating ? "pulse-glow" : ""} style={{ color: "var(--astro-teal)" }}>
                         <Settings size={16} />
                     </span>
-                    <span className="text-[12px] font-bold tracking-[0.1em]">{t("CALIB_LIMITS_TITLE", language)}</span>
+                    <span className="text-hud-sm font-bold tracking-[0.1em]">{t("CALIB_LIMITS_TITLE", language)}</span>
                 </div>
                 {isCalibrating && (
-                    <span className="text-[10px] pulse-glow" style={{ color: "var(--astro-gold)" }}>
+                    <span className="text-hud-xs pulse-glow" style={{ color: "var(--astro-gold)" }}>
                         {t("CALIB_IN_PROGRESS", language)}
                     </span>
                 )}
@@ -90,7 +90,7 @@ export const MountCalibration = () => {
 
             {!isCalibrating ? (
                 <div className="flex flex-col gap-3">
-                    <div className="flex items-center justify-between text-[10px] opacity-80">
+                    <div className="flex items-center justify-between text-hud-xs opacity-80">
                         <div className="flex flex-col gap-0">
                             <span style={{ color: "var(--astro-teal)" }}>{t("CALIB_ALTITUDE", language)}</span>
                             <span>{mountLimits.minAlt.toFixed(1)}° ➔ {mountLimits.maxAlt.toFixed(1)}°</span>
@@ -102,7 +102,7 @@ export const MountCalibration = () => {
                     </div>
 
                     <button
-                        className="w-full flex items-center justify-center gap-1.5 h-8 rounded-md border text-[10px] transition-all duration-200 cursor-pointer hover:text-black"
+                        className="w-full flex items-center justify-center gap-1.5 h-8 rounded-md border text-hud-xs transition-all duration-200 cursor-pointer hover:text-black"
                         style={{
                             background: "rgba(255, 51, 51, 0.1)",
                             borderColor: "var(--astro-teal)",
@@ -131,14 +131,14 @@ export const MountCalibration = () => {
                 }}>
                     <div className="flex items-center gap-2">
                         <span style={{ color: "var(--astro-gold)" }}><AlertTriangle size={16} /></span>
-                        <span className="text-[10px] font-bold" style={{ color: "var(--astro-gold)" }}>{step.toUpperCase()}</span>
+                        <span className="text-hud-xs font-bold" style={{ color: "var(--astro-gold)" }}>{step.toUpperCase()}</span>
                     </div>
-                    <p className="text-[10px] leading-[1.4]">{getStepInstruction()}</p>
-                    <p className="text-[9px] italic" style={{ color: "var(--astro-teal)" }}>{getStepHint()}</p>
+                    <p className="text-hud-xs leading-[1.4]">{getStepInstruction()}</p>
+                    <p className="text-hud-2xs italic" style={{ color: "var(--astro-teal)" }}>{getStepHint()}</p>
 
                     <div className="flex items-center justify-center gap-2 py-2">
                         {jog.activeDir && (
-                            <span className="text-[8px] font-bold" style={{ color: "var(--astro-teal)", animation: 'pulse 0.6s infinite alternate' }}>
+                            <span className="text-hud-2xs font-bold" style={{ color: "var(--astro-teal)", animation: 'pulse 0.6s infinite alternate' }}>
                                 ▶ {jog.activeDir.toUpperCase()}
                             </span>
                         )}
@@ -148,13 +148,13 @@ export const MountCalibration = () => {
                     <div className="flex items-center justify-between p-2 rounded"
                         style={{ background: "#030509", border: "1px solid rgba(255,255,255,0.05)" }}>
                         <div className="flex flex-col gap-0">
-                            <span className="text-[8px] opacity-60">{t("CALIB_CURRENT_POS", language)}</span>
-                            <span className="text-[12px] hud-font" style={{ color: "var(--astro-teal)" }}>
+                            <span className="text-hud-2xs opacity-60">{t("CALIB_CURRENT_POS", language)}</span>
+                            <span className="text-hud-sm hud-font" style={{ color: "var(--astro-teal)" }}>
                                 {step.includes("Alt") ? `ALT: ${alt.toFixed(1)}°` : `AZ: ${az.toFixed(1)}°`}
                             </span>
                         </div>
                         <button
-                            className="h-8 px-3 rounded-md text-black font-semibold text-[12px] transition-colors cursor-pointer disabled:opacity-40"
+                            className="h-8 px-3 rounded-md text-black font-semibold text-hud-sm transition-colors cursor-pointer disabled:opacity-40"
                             style={{ background: "var(--astro-teal)" }}
                             onMouseEnter={e => (e.currentTarget.style.background = "white")}
                             onMouseLeave={e => (e.currentTarget.style.background = "var(--astro-teal)")}
@@ -166,7 +166,7 @@ export const MountCalibration = () => {
                     </div>
 
                     <button
-                        className="text-[10px] text-white/40 hover:text-white/70 transition-colors mt-1 cursor-pointer disabled:opacity-30"
+                        className="text-hud-xs text-white/40 hover:text-white/70 transition-colors mt-1 cursor-pointer disabled:opacity-30"
                         onClick={() => setStep("idle")}
                         disabled={jog.isMoving}
                     >

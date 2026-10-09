@@ -46,7 +46,7 @@ export const SkyDome: React.FC<{ limits: TelescopeLimits; liveAlt?: number; live
         padding: "8px",
       }}
     >
-      <p style={{ fontSize: "8px", color: "rgba(255,255,255,0.4)", marginBottom: "4px", letterSpacing: "0.08em" }}>
+      <p style={{ fontSize: "var(--text-hud-2xs)", color: "rgba(255,255,255,0.4)", marginBottom: "4px", letterSpacing: "0.08em" }}>
         CARTE CIEL
       </p>
       <svg width={200} height={100} style={{ display: 'block', margin: '0 auto' }}>

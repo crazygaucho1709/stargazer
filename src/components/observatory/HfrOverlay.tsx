@@ -68,14 +68,14 @@ export const HfrOverlay = () => {
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", color: "var(--astro-teal)" }}>
                         <Activity size={16} />
-                        <span style={{ fontSize: "10px", fontWeight: "bold", letterSpacing: "0.2em" }} className="hud-font">
+                        <span style={{ fontSize: "var(--text-hud-xs)", fontWeight: "bold", letterSpacing: "0.2em" }} className="hud-font">
                             OPTICAL AI
                         </span>
                     </div>
                     <span style={{
                         background: `${getStatusColor()}22`,
                         color: getStatusColor(),
-                        fontSize: "9px",
+                        fontSize: "var(--text-hud-2xs)",
                         padding: "2px 8px",
                         borderRadius: "9999px",
                         border: `1px solid ${getStatusColor()}44`,
@@ -88,12 +88,12 @@ export const HfrOverlay = () => {
                 {/* HFR value + icon */}
                 <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
                     <div>
-                        <p style={{ fontSize: "9px", color: "rgba(255,255,255,0.5)", marginBottom: "2px", letterSpacing: "0.05em" }}>HALF-FLUX RADIUS</p>
+                        <p style={{ fontSize: "var(--text-hud-2xs)", color: "rgba(255,255,255,0.5)", marginBottom: "2px", letterSpacing: "0.05em" }}>HALF-FLUX RADIUS</p>
                         <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
                             <span style={{ fontSize: "38px", color: "white", fontWeight: "bold", lineHeight: "1" }} className="hud-font">
                                 {hfr.toFixed(2)}
                             </span>
-                            <span style={{ fontSize: "12px", color: "rgba(255,255,255,0.4)" }}>px</span>
+                            <span style={{ fontSize: "var(--text-hud-sm)", color: "rgba(255,255,255,0.4)" }}>px</span>
                         </div>
                     </div>
                     <div style={{ flex: 1, display: "flex", justifyContent: "center", alignItems: "center" }}>
@@ -107,7 +107,7 @@ export const HfrOverlay = () => {
 
                 {/* Focus Trend Sparkline */}
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.375rem" }}>
-                    <p style={{ fontSize: "8px", color: "rgba(255,255,255,0.4)", letterSpacing: "0.1em" }}>FOCUS TREND (LOWER IS BETTER)</p>
+                    <p style={{ fontSize: "var(--text-hud-2xs)", color: "rgba(255,255,255,0.4)", letterSpacing: "0.1em" }}>FOCUS TREND (LOWER IS BETTER)</p>
                     <div style={{
                         height: "30px",
                         width: "100%",
@@ -134,7 +134,7 @@ export const HfrOverlay = () => {
                                 />
                             );
                         }) : (
-                            <span style={{ fontSize: "8px", color: "rgba(255,255,255,0.3)", width: "100%", textAlign: "center" }}>
+                            <span style={{ fontSize: "var(--text-hud-2xs)", color: "rgba(255,255,255,0.3)", width: "100%", textAlign: "center" }}>
                                 WAITING FOR SENSOR DATA...
                             </span>
                         )}
@@ -145,7 +145,7 @@ export const HfrOverlay = () => {
                 <div style={{ paddingTop: "0.75rem", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
                     <div style={{ display: "flex", gap: "0.75rem", alignItems: "flex-start" }}>
                         <Target size={12} color="var(--astro-teal)" style={{ marginTop: "2px", flexShrink: 0 }} />
-                        <p style={{ fontSize: "10px", color: "rgba(255,255,255,0.9)", lineHeight: "1.5" }}>
+                        <p style={{ fontSize: "var(--text-hud-xs)", color: "rgba(255,255,255,0.9)", lineHeight: "1.5" }}>
                             {language === 'fr'
                                 ? "Action : Ajustez la mise au point jusqu'à ce que l'indicateur devienne VERT."
                                 : "Instruction: Adjust focus until indicator turns GREEN."}

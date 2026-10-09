@@ -41,7 +41,7 @@ export function RetryableError({
         <span
           style={{
             flex: 1,
-            fontSize: "12px",
+            fontSize: "var(--text-hud-sm)",
             color: "#f87171",
             fontFamily: "var(--font-hud, monospace)",
           }}
@@ -63,7 +63,7 @@ export function RetryableError({
             border: "1px solid rgba(45, 212, 191, 0.4)",
             background: "rgba(45, 212, 191, 0.08)",
             color: "#2dd4bf",
-            fontSize: "11px",
+            fontSize: "var(--text-hud-xs)",
             cursor: isRetrying ? "not-allowed" : "pointer",
             opacity: isRetrying ? 0.5 : 1,
             flexShrink: 0,
@@ -196,7 +196,7 @@ function ErrorCard({
       <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
         <span
           style={{
-            fontSize: "14px",
+            fontSize: "var(--text-hud-md)",
             fontWeight: 600,
             color: "#e2e8f0",
             fontFamily: "var(--font-hud, monospace)",
@@ -208,7 +208,7 @@ function ErrorCard({
         {description && (
           <span
             style={{
-              fontSize: "12px",
+              fontSize: "var(--text-hud-sm)",
               color: "rgba(226,232,240,0.5)",
               lineHeight: 1.5,
             }}
@@ -229,7 +229,7 @@ function ErrorCard({
           border: "1px solid rgba(45, 212, 191, 0.4)",
           background: "rgba(45, 212, 191, 0.1)",
           color: "#2dd4bf",
-          fontSize: "12px",
+          fontSize: "var(--text-hud-sm)",
           cursor: isRetrying ? "not-allowed" : "pointer",
           opacity: isRetrying ? 0.5 : 1,
           fontFamily: "var(--font-hud, monospace)",

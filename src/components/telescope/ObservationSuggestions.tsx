@@ -21,7 +21,7 @@ export const ObservationSuggestions = () => {
         <div className="flex flex-col gap-3 w-full px-2">
             <div className="flex items-center gap-2 px-2 mb-1">
                 <Sparkles size={12} color="#00F0FF" />
-                <span style={{ fontSize: "9px", color: "rgba(255,255,255,0.6)", letterSpacing: "0.1em", fontWeight: "bold" }}>
+                <span style={{ fontSize: "var(--text-hud-2xs)", color: "rgba(255,255,255,0.6)", letterSpacing: "0.1em", fontWeight: "bold" }}>
                     AI_SUGGESTIONS
                 </span>
             </div>
@@ -49,11 +49,11 @@ export const ObservationSuggestions = () => {
                             <Target size={12} color="rgba(255,255,255,0.4)" />
                             <div className="flex flex-col gap-0">
                                 <span
-                                    style={{ fontSize: "10px", fontWeight: "bold", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                                    style={{ fontSize: "var(--text-hud-xs)", fontWeight: "bold", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
                                 >
                                     {target.name}
                                 </span>
-                                <span style={{ fontSize: "8px", color: "rgba(255,255,255,0.4)" }}>{target.type}</span>
+                                <span style={{ fontSize: "var(--text-hud-2xs)", color: "rgba(255,255,255,0.4)" }}>{target.type}</span>
                             </div>
                         </div>
                         <ChevronRight size={12} color="rgba(255,255,255,0.3)" />

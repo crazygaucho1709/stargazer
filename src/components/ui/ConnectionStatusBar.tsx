@@ -62,16 +62,16 @@ function StatusPill({ icon, name, subtitle, color, latency }: PillProps) {
       flexShrink: 0, opacity: color === "offline" ? 0.45 : 1,
       maxWidth: "160px", overflow: "hidden",
     }}>
-      <span style={{ fontSize: "11px", lineHeight: 1, flexShrink: 0 }}>{icon}</span>
+      <span style={{ fontSize: "var(--text-hud-xs)", lineHeight: 1, flexShrink: 0 }}>{icon}</span>
       <span style={{
-        fontSize: "11px", fontWeight: 500, color: "#CBD5E0", letterSpacing: "0.02em",
+        fontSize: "var(--text-hud-xs)", fontWeight: 500, color: "#CBD5E0", letterSpacing: "0.02em",
         whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
       }}>
         {name}
         {shortSub && <span style={{ color: "#718096", marginLeft: "4px", fontWeight: 400 }}>{shortSub}</span>}
       </span>
       {latency !== undefined && (
-        <span style={{ fontSize: "10px", color: "#718096", fontFamily: "monospace", whiteSpace: "nowrap", flexShrink: 0 }}>
+        <span style={{ fontSize: "var(--text-hud-xs)", color: "#718096", fontFamily: "monospace", whiteSpace: "nowrap", flexShrink: 0 }}>
           {latency}ms
         </span>
       )}
@@ -115,7 +115,7 @@ function RecoveryButton() {
         padding: "0 10px", height: "20px", borderRadius: "10px",
         background: active ? "rgba(236,201,75,0.10)" : "rgba(236,201,75,0.15)",
         border: "1px solid rgba(236,201,75,0.4)",
-        color: "#ECC94B", fontSize: "10px", fontWeight: 600,
+        color: "#ECC94B", fontSize: "var(--text-hud-xs)", fontWeight: 600,
         letterSpacing: "0.05em", cursor: active ? "wait" : "pointer",
         fontFamily: "monospace",
       }}
@@ -160,7 +160,7 @@ export const ConnectionStatusBar = () => {
       }}>
         {backendOffline && (
           <>
-            <span style={{ fontSize: "10px", color: "#4A5568", fontFamily: "monospace", letterSpacing: "0.05em", marginRight: 4 }}>
+            <span style={{ fontSize: "var(--text-hud-xs)", color: "#4A5568", fontFamily: "monospace", letterSpacing: "0.05em", marginRight: 4 }}>
               BACKEND OFFLINE
             </span>
             <RecoveryButton />
@@ -175,7 +175,7 @@ export const ConnectionStatusBar = () => {
         <div style={{ flex: 1 }} />
 
         {globalLatency !== null && (
-          <span style={{ fontSize: "10px", color: "#4A5568", fontFamily: "monospace" }}>
+          <span style={{ fontSize: "var(--text-hud-xs)", color: "#4A5568", fontFamily: "monospace" }}>
             {globalLatency}ms
           </span>
         )}
@@ -191,7 +191,7 @@ export const ConnectionStatusBar = () => {
             style={{ width: "5px", height: "5px", borderRadius: "50%", background: isLive ? "#48BB78" : "#4A5568" }}
           />
           <span style={{
-            fontSize: "9px", fontWeight: 700, letterSpacing: "0.08em",
+            fontSize: "var(--text-hud-2xs)", fontWeight: 700, letterSpacing: "0.08em",
             color: isLive ? "#48BB78" : "#4A5568", fontFamily: "monospace",
           }}>
             {isLive ? "LIVE" : "OFFLINE"}

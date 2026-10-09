@@ -334,8 +334,8 @@ const SkyFallback = ({ objects, onSelect, mountRa, mountDec, resetViewSignal, sh
                     style={{ background: 'rgba(10, 20, 40, 0.9)', border: '1px solid var(--astro-teal)' }}
                 >
                     <p className="font-bold text-sm" style={{ color: 'var(--astro-gold)' }}>{hoveredObj.id} - {hoveredObj.name}</p>
-                    <p className="text-white text-xs">{hoveredObj.constellation} | {hoveredObj.type}</p>
-                    <p className="text-xs" style={{ color: '#9ca3af' }}>Mag: {hoveredObj.magnitude}</p>
+                    <p className="text-white text-hud-2xs">{hoveredObj.constellation} | {hoveredObj.type}</p>
+                    <p className="text-hud-2xs" style={{ color: '#9ca3af' }}>Mag: {hoveredObj.magnitude}</p>
                 </div>
             )}
         </div>
@@ -876,8 +876,8 @@ const AladinSkyMap = ({
                 >
                     <p className="font-bold text-sm" style={{ color: 'var(--astro-gold)' }}>{hoveredObject.id}</p>
                     <p className="text-white text-sm">{hoveredObject.name}</p>
-                    <p className="text-xs" style={{ color: '#9ca3af' }}>{hoveredObject.type}</p>
-                    <p className="text-xs" style={{ color: '#67e8f9' }}>Mag: {hoveredObject.magnitude}</p>
+                    <p className="text-hud-2xs" style={{ color: '#9ca3af' }}>{hoveredObject.type}</p>
+                    <p className="text-hud-2xs" style={{ color: '#67e8f9' }}>Mag: {hoveredObject.magnitude}</p>
                 </div>
             )}
         </div>
@@ -1137,7 +1137,7 @@ Génère une séquence de capture optimale au format JSON strict:
                     {/* Live/Sky mode buttons */}
                     <div className="flex items-center gap-1 flex-shrink-0">
                         <button
-                            className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium"
+                            className="flex items-center gap-1 px-3 py-1 rounded-full text-hud-2xs font-medium"
                             style={{
                                 background: liveViewMode === "NASA" ? 'var(--astro-teal)' : 'rgba(10,20,40,0.8)',
                                 color: liveViewMode === "NASA" ? 'black' : 'var(--astro-teal)',
@@ -1148,7 +1148,7 @@ Génère une séquence de capture optimale au format JSON strict:
                             <Globe size={12} />SKY
                         </button>
                         <button
-                            className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium"
+                            className="flex items-center gap-1 px-3 py-1 rounded-full text-hud-2xs font-medium"
                             style={{
                                 background: liveViewMode === "CANON" ? 'var(--astro-gold)' : 'rgba(10,20,40,0.8)',
                                 color: liveViewMode === "CANON" ? 'black' : 'var(--astro-gold)',
@@ -1179,14 +1179,14 @@ Génère une séquence de capture optimale au format JSON strict:
                             />
                             <button
                                 type="submit"
-                                className="text-xs px-2 rounded-full"
+                                className="text-hud-2xs px-2 rounded-full"
                                 style={{ color: 'var(--astro-teal)', background: 'transparent' }}
                             >
                                 FIND
                             </button>
                             <button
                                 type="button"
-                                className="text-xs font-bold px-3 py-1 rounded-full"
+                                className="text-hud-2xs font-bold px-3 py-1 rounded-full"
                                 style={{ background: 'var(--astro-gold)', color: 'black' }}
                                 onClick={handleSlewToMap}
                             >
@@ -1198,7 +1198,7 @@ Génère une séquence de capture optimale au format JSON strict:
                     {/* Toggle buttons — all in-flow, no absolute positioning */}
                     <div className="flex items-center gap-1 flex-shrink-0">
                         <button
-                            className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium"
+                            className="flex items-center gap-1 px-2 py-1 rounded-full text-hud-2xs font-medium"
                             style={{
                                 background: trackMount ? 'var(--astro-teal)' : 'rgba(10,20,40,0.8)',
                                 color: trackMount ? 'black' : 'var(--astro-teal)',
@@ -1210,7 +1210,7 @@ Génère une séquence de capture optimale au format JSON strict:
                             {trackMount ? "TRACK" : "CENTER"}
                         </button>
                         <button
-                            className="px-2 py-1 rounded-full text-xs font-medium"
+                            className="px-2 py-1 rounded-full text-hud-2xs font-medium"
                             style={{
                                 background: gridVisible ? 'var(--astro-teal)' : 'rgba(10,20,40,0.8)',
                                 color: gridVisible ? 'black' : 'var(--astro-teal)',
@@ -1219,7 +1219,7 @@ Génère une séquence de capture optimale au format JSON strict:
                             onClick={toggleGrid}
                         >GRID</button>
                         <button
-                            className="px-2 py-1 rounded-full text-xs font-medium"
+                            className="px-2 py-1 rounded-full text-hud-2xs font-medium"
                             style={{
                                 background: showCatalog ? 'var(--astro-teal)' : 'rgba(10,20,40,0.8)',
                                 color: showCatalog ? 'black' : 'var(--astro-teal)',
@@ -1228,7 +1228,7 @@ Génère une séquence de capture optimale au format JSON strict:
                             onClick={() => setShowCatalog(!showCatalog)}
                         >CAT</button>
                         <button
-                            className="px-2 py-1 rounded-full text-xs font-medium"
+                            className="px-2 py-1 rounded-full text-hud-2xs font-medium"
                             style={{
                                 background: showLabels ? 'var(--astro-teal)' : 'rgba(10,20,40,0.8)',
                                 color: showLabels ? 'black' : 'var(--astro-teal)',
@@ -1237,7 +1237,7 @@ Génère une séquence de capture optimale au format JSON strict:
                             onClick={() => setShowLabels(!showLabels)}
                         >LABELS</button>
                         <button
-                            className="px-2 py-1 rounded-full text-xs font-medium"
+                            className="px-2 py-1 rounded-full text-hud-2xs font-medium"
                             style={{
                                 background: showCardinals ? 'var(--astro-teal)' : 'rgba(10,20,40,0.8)',
                                 color: showCardinals ? 'black' : 'var(--astro-teal)',
@@ -1246,7 +1246,7 @@ Génère une séquence de capture optimale au format JSON strict:
                             onClick={() => setShowCardinals(!showCardinals)}
                         >N/S/E/W</button>
                         <button
-                            className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium"
+                            className="flex items-center gap-1 px-2 py-1 rounded-full text-hud-2xs font-medium"
                             style={{
                                 background: showTelrad ? 'var(--astro-teal)' : 'rgba(10,20,40,0.8)',
                                 color: showTelrad ? 'black' : 'var(--astro-teal)',
@@ -1257,7 +1257,7 @@ Génère une séquence de capture optimale au format JSON strict:
                             <Target size={12} />TELRAD
                         </button>
                         <button
-                            className="px-2 py-1 rounded-full text-xs font-medium"
+                            className="px-2 py-1 rounded-full text-hud-2xs font-medium"
                             style={{
                                 background: obsMode === 'visual' ? 'var(--astro-gold)' : 'rgba(10,20,40,0.8)',
                                 color: obsMode === 'visual' ? 'black' : 'var(--astro-gold)',
@@ -1267,9 +1267,9 @@ Génère une séquence de capture optimale au format JSON strict:
                         >
                             {obsMode === 'visual' ? 'Visual' : 'Photo'}
                         </button>
-                        <span className="text-xs whitespace-nowrap" style={{ color: '#6b7280' }}>≤{limitingMagnitude.toFixed(1)}</span>
+                        <span className="text-hud-2xs whitespace-nowrap" style={{ color: '#6b7280' }}>≤{limitingMagnitude.toFixed(1)}</span>
                         <button
-                            className="p-1 rounded-full text-xs"
+                            className="p-1 rounded-full text-hud-2xs"
                             style={{
                                 background: 'rgba(10,20,40,0.8)',
                                 color: 'var(--astro-teal)',
@@ -1280,7 +1280,7 @@ Génère une séquence de capture optimale au format JSON strict:
                             <Layers size={12} />
                         </button>
                         <button
-                            className="px-2 py-1 rounded-full text-xs"
+                            className="px-2 py-1 rounded-full text-hud-2xs"
                             style={{
                                 background: 'rgba(10,20,40,0.8)',
                                 color: 'white',
@@ -1318,10 +1318,10 @@ Génère une séquence de capture optimale au format JSON strict:
                                 >
                                     <div>
                                         <p className="text-white font-bold text-sm">{obj.id} — {obj.name}</p>
-                                        <p className="text-xs" style={{ color: '#9ca3af' }}>{obj.constellation} | {obj.type}</p>
+                                        <p className="text-hud-2xs" style={{ color: '#9ca3af' }}>{obj.constellation} | {obj.type}</p>
                                     </div>
                                     <span
-                                        className="text-xs px-2 py-0.5 rounded font-medium"
+                                        className="text-hud-2xs px-2 py-0.5 rounded font-medium"
                                         style={{
                                             background: obj.catalog === 'Messier' ? 'rgba(234,179,8,0.2)' : 'rgba(59,130,246,0.2)',
                                             color: obj.catalog === 'Messier' ? '#fbbf24' : '#60a5fa',
@@ -1392,17 +1392,17 @@ Génère une séquence de capture optimale au format JSON strict:
                             </p>
                         </div>
                         <div className="flex flex-col items-end gap-1">
-                            <span className="text-xs px-2 py-0.5 rounded font-medium" style={catalogBadgeStyle}>
+                            <span className="text-hud-2xs px-2 py-0.5 rounded font-medium" style={catalogBadgeStyle}>
                                 {selectedObject.catalog}
                             </span>
                             <div className="flex items-center gap-1">
-                                <span className="text-xs px-1.5 py-0.5 rounded font-medium" style={{ background: visualBadge.bg, color: visualBadge.color, border: `1px solid ${visualBadge.border}`, fontSize: 9 }}>{visualBadge.label}</span>
-                                <span className="text-xs px-1.5 py-0.5 rounded font-medium" style={{ background: photoBadge.bg, color: photoBadge.color, border: `1px solid ${photoBadge.border}`, fontSize: 9 }}>{photoBadge.label}</span>
+                                <span className="text-hud-2xs px-1.5 py-0.5 rounded font-medium" style={{ background: visualBadge.bg, color: visualBadge.color, border: `1px solid ${visualBadge.border}`, fontSize: 9 }}>{visualBadge.label}</span>
+                                <span className="text-hud-2xs px-1.5 py-0.5 rounded font-medium" style={{ background: photoBadge.bg, color: photoBadge.color, border: `1px solid ${photoBadge.border}`, fontSize: 9 }}>{photoBadge.label}</span>
                             </div>
                         </div>
                     </div>
 
-                    <div className="flex flex-col gap-1 text-xs" style={{ color: '#d1d5db' }}>
+                    <div className="flex flex-col gap-1 text-hud-2xs" style={{ color: '#d1d5db' }}>
                         <div className="flex items-center gap-1"><span style={{ color: '#6b7280' }}>Type:</span><span>{selectedObject.type}</span></div>
                         <div className="flex items-center gap-1"><span style={{ color: '#6b7280' }}>Constellation:</span><span>{selectedObject.constellation}</span></div>
                         <div className="flex items-center gap-1">
@@ -1412,7 +1412,7 @@ Génère une séquence de capture optimale au format JSON strict:
                         <div className="flex items-center gap-1"><span style={{ color: '#6b7280' }}>Taille:</span><span>{selectedObject.size_arcmin || 'N/A'}</span></div>
                         <div className="flex items-center gap-1">
                             <span style={{ color: '#6b7280' }}>Difficulté:</span>
-                            <span className="text-xs px-1.5 py-0.5 rounded font-medium" style={{ background: difficultyStyle.background, color: difficultyStyle.color, border: `1px solid ${difficultyStyle.border}` }}>
+                            <span className="text-hud-2xs px-1.5 py-0.5 rounded font-medium" style={{ background: difficultyStyle.background, color: difficultyStyle.color, border: `1px solid ${difficultyStyle.border}` }}>
                                 {selectedObject.difficulty}
                             </span>
                         </div>
@@ -1423,8 +1423,8 @@ Génère une séquence de capture optimale au format JSON strict:
                     </div>
 
                     <div className="mt-2 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-                        <p className="text-xs mb-1" style={{ color: '#9ca3af' }}>Coordonnées (J2000)</p>
-                        <div className="flex items-center gap-4 text-xs font-mono">
+                        <p className="text-hud-2xs mb-1" style={{ color: '#9ca3af' }}>Coordonnées (J2000)</p>
+                        <div className="flex items-center gap-4 text-hud-2xs font-mono">
                             <div className="flex flex-col gap-0">
                                 <span style={{ color: '#6b7280' }}>RA</span>
                                 <span style={{ color: 'var(--astro-teal)' }}>{selectedObject.ra}</span>
@@ -1438,7 +1438,7 @@ Génère une séquence de capture optimale au format JSON strict:
 
                     {selectedObject.description && (
                         <div className="mt-2 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-                            <p className="text-xs" style={{ color: '#9ca3af' }}>{selectedObject.description}</p>
+                            <p className="text-hud-2xs" style={{ color: '#9ca3af' }}>{selectedObject.description}</p>
                         </div>
                     )}
 
@@ -1540,7 +1540,7 @@ Génère une séquence de capture optimale au format JSON strict:
                 <div className="absolute inset-0 flex items-center justify-center" style={{ zIndex: 5, background: 'black' }}>
                     <div className="flex flex-col items-center gap-4">
                         <div className="w-12 h-12 border-4 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--astro-teal)', borderTopColor: 'transparent' }} />
-                        <p className="text-xs hud-font" style={{ color: 'var(--astro-teal)' }}>INITIALIZING SKY ENGINE...</p>
+                        <p className="text-hud-2xs hud-font" style={{ color: 'var(--astro-teal)' }}>INITIALIZING SKY ENGINE...</p>
                     </div>
                 </div>
             )}
@@ -1597,7 +1597,7 @@ Génère une séquence de capture optimale au format JSON strict:
                     </svg>
                     {/* Label */}
                     <div className="absolute" style={{ bottom: 'calc(50% - 2deg * 1000 / 15 - 20px)', left: '50%', transform: 'translateX(-50%)' }}>
-                        <span className="text-xs whitespace-nowrap" style={{ color: 'var(--astro-teal)', opacity: 0.6 }}>
+                        <span className="text-hud-2xs whitespace-nowrap" style={{ color: 'var(--astro-teal)', opacity: 0.6 }}>
                             {aladinSettings.fov}° FOV
                         </span>
                     </div>
@@ -1638,7 +1638,7 @@ Génère une séquence de capture optimale au format JSON strict:
                 </div>
                 <div className="flex flex-col gap-4">
                     <div>
-                        <p className="text-xs mb-1" style={{ color: '#9ca3af' }}>Survey</p>
+                        <p className="text-hud-2xs mb-1" style={{ color: '#9ca3af' }}>Survey</p>
                         <select value={aladinSettings.survey} onChange={(e) => setAladinSettings({...aladinSettings, survey: e.target.value})}
                             style={{ width:'100%', background:'rgba(0,0,0,0.5)', color:'white', border:'1px solid #00f0ff', borderRadius:'4px', padding:'6px' }}>
                             <option value="P/DSS2/color">DSS Color</option>
@@ -1651,31 +1651,31 @@ Génère une séquence de capture optimale au format JSON strict:
                         </select>
                     </div>
                     <div>
-                        <p className="text-xs mb-1" style={{ color: '#9ca3af' }}>Field of View (°): {aladinSettings.fov}</p>
+                        <p className="text-hud-2xs mb-1" style={{ color: '#9ca3af' }}>Field of View (°): {aladinSettings.fov}</p>
                         <input type="range" min="1" max="180" step="1" value={aladinSettings.fov}
                             onChange={(e) => setAladinSettings({...aladinSettings, fov: parseFloat(e.target.value)})}
                             style={{ width:'100%' }} />
                     </div>
                     <div>
-                        <p className="text-xs mb-1" style={{ color: '#9ca3af' }}>Object Size: {aladinSettings.sourceSize}px</p>
+                        <p className="text-hud-2xs mb-1" style={{ color: '#9ca3af' }}>Object Size: {aladinSettings.sourceSize}px</p>
                         <input type="range" min="6" max="30" step="1" value={aladinSettings.sourceSize}
                             onChange={(e) => setAladinSettings({...aladinSettings, sourceSize: parseInt(e.target.value)})}
                             style={{ width:'100%' }} />
                     </div>
                     <div>
-                        <p className="text-xs mb-1" style={{ color: '#9ca3af' }}>Object Color</p>
+                        <p className="text-hud-2xs mb-1" style={{ color: '#9ca3af' }}>Object Color</p>
                         <input type="color" value={aladinSettings.objectColor}
                             onChange={(e) => setAladinSettings({...aladinSettings, objectColor: e.target.value})}
                             style={{ width:'100%', height:'30px', border:'none' }} />
                     </div>
                     <div>
-                        <p className="text-xs mb-1" style={{ color: '#9ca3af' }}>Mount Marker Color</p>
+                        <p className="text-hud-2xs mb-1" style={{ color: '#9ca3af' }}>Mount Marker Color</p>
                         <input type="color" value={aladinSettings.mountColor}
                             onChange={(e) => setAladinSettings({...aladinSettings, mountColor: e.target.value})}
                             style={{ width:'100%', height:'30px', border:'none' }} />
                     </div>
                     <div>
-                        <p className="text-xs mb-1" style={{ color: '#9ca3af' }}>Projection</p>
+                        <p className="text-hud-2xs mb-1" style={{ color: '#9ca3af' }}>Projection</p>
                         <select value={aladinSettings.projection} onChange={(e) => setAladinSettings({...aladinSettings, projection: e.target.value})}
                             style={{ width:'100%', background:'rgba(0,0,0,0.5)', color:'white', border:'1px solid #00f0ff', borderRadius:'4px', padding:'6px' }}>
                             <option value="SIN">Orthographic (SIN)</option>
@@ -1738,7 +1738,7 @@ Génère une séquence de capture optimale au format JSON strict:
                         <div className="flex flex-col gap-3">
                             <div className="flex items-start gap-4">
                                 <div className="flex flex-col gap-1 flex-1">
-                                    <p className="text-xs" style={{ color: '#9ca3af' }}>Lights</p>
+                                    <p className="text-hud-2xs" style={{ color: '#9ca3af' }}>Lights</p>
                                     <div className="flex items-center gap-1">
                                         <input
                                             type="number"
@@ -1747,7 +1747,7 @@ Génère une séquence de capture optimale au format JSON strict:
                                             className="text-white text-sm px-2 py-1 rounded"
                                             style={{ width: 70, background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.2)' }}
                                         />
-                                        <span className="text-xs" style={{ color: '#6b7280' }}>×</span>
+                                        <span className="text-hud-2xs" style={{ color: '#6b7280' }}>×</span>
                                         <input
                                             type="number"
                                             value={sequenceParams.lights.exposure}
@@ -1755,11 +1755,11 @@ Génère une séquence de capture optimale au format JSON strict:
                                             className="text-white text-sm px-2 py-1 rounded"
                                             style={{ width: 70, background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.2)' }}
                                         />
-                                        <span className="text-xs" style={{ color: '#6b7280' }}>s</span>
+                                        <span className="text-hud-2xs" style={{ color: '#6b7280' }}>s</span>
                                     </div>
                                 </div>
                                 <div className="flex flex-col gap-1">
-                                    <p className="text-xs" style={{ color: '#9ca3af' }}>ISO</p>
+                                    <p className="text-hud-2xs" style={{ color: '#9ca3af' }}>ISO</p>
                                     <select
                                         value={sequenceParams.lights.iso}
                                         onChange={e => setSequenceParams(p => p ? {...p, lights: {...p.lights, iso: +e.target.value}} : p)}
@@ -1771,7 +1771,7 @@ Génère une séquence de capture optimale au format JSON strict:
                             </div>
                             <div className="flex items-start gap-4">
                                 <div className="flex flex-col gap-1 flex-1">
-                                    <p className="text-xs" style={{ color: '#9ca3af' }}>Darks × Exposure</p>
+                                    <p className="text-hud-2xs" style={{ color: '#9ca3af' }}>Darks × Exposure</p>
                                     <div className="flex items-center gap-1">
                                         <input
                                             type="number"
@@ -1780,7 +1780,7 @@ Génère une séquence de capture optimale au format JSON strict:
                                             className="text-white text-sm px-2 py-1 rounded"
                                             style={{ width: 70, background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.2)' }}
                                         />
-                                        <span className="text-xs" style={{ color: '#6b7280' }}>×</span>
+                                        <span className="text-hud-2xs" style={{ color: '#6b7280' }}>×</span>
                                         <input
                                             type="number"
                                             value={sequenceParams.darks.exposure}
@@ -1788,11 +1788,11 @@ Génère une séquence de capture optimale au format JSON strict:
                                             className="text-white text-sm px-2 py-1 rounded"
                                             style={{ width: 70, background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.2)' }}
                                         />
-                                        <span className="text-xs" style={{ color: '#6b7280' }}>s</span>
+                                        <span className="text-hud-2xs" style={{ color: '#6b7280' }}>s</span>
                                     </div>
                                 </div>
                                 <div className="flex flex-col gap-1">
-                                    <p className="text-xs" style={{ color: '#9ca3af' }}>Flats</p>
+                                    <p className="text-hud-2xs" style={{ color: '#9ca3af' }}>Flats</p>
                                     <input
                                         type="number"
                                         value={sequenceParams.flats.count}
@@ -1802,7 +1802,7 @@ Génère une séquence de capture optimale au format JSON strict:
                                     />
                                 </div>
                                 <div className="flex flex-col gap-1">
-                                    <p className="text-xs" style={{ color: '#9ca3af' }}>Bias</p>
+                                    <p className="text-hud-2xs" style={{ color: '#9ca3af' }}>Bias</p>
                                     <input
                                         type="number"
                                         value={sequenceParams.bias.count}
@@ -1813,7 +1813,7 @@ Génère une séquence de capture optimale au format JSON strict:
                                 </div>
                             </div>
                             <div className="flex flex-col gap-1">
-                                <p className="text-xs" style={{ color: '#9ca3af' }}>Stacking</p>
+                                <p className="text-hud-2xs" style={{ color: '#9ca3af' }}>Stacking</p>
                                 <select
                                     value={sequenceParams.stacking_method}
                                     onChange={e => setSequenceParams(p => p ? {...p, stacking_method: e.target.value} : p)}
@@ -1826,7 +1826,7 @@ Génère une séquence de capture optimale au format JSON strict:
                             </div>
                             {sequenceParams.notes && (
                                 <div className="rounded-md p-3" style={{ background: 'rgba(255,179,71,0.1)', border: '1px solid rgba(255,179,71,0.3)' }}>
-                                    <p className="text-xs" style={{ color: 'var(--astro-gold)' }}>{sequenceParams.notes}</p>
+                                    <p className="text-hud-2xs" style={{ color: 'var(--astro-gold)' }}>{sequenceParams.notes}</p>
                                 </div>
                             )}
                             <div className="flex items-center gap-2 mt-2">

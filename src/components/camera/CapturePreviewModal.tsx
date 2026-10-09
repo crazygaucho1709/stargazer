@@ -210,7 +210,7 @@ export function CapturePreviewModal() {
                         <Camera size={15} style={{ color: phaseColor }} />
                         <span className="text-sm font-semibold text-white">Prévisualisation</span>
                         {PHASE_LABEL[state.phase] && (
-                            <span className="text-[11px] px-2 py-0.5 rounded-full font-medium ml-1"
+                            <span className="text-hud-xs px-2 py-0.5 rounded-full font-medium ml-1"
                                 style={{ background: `${phaseColor}22`, color: phaseColor }}>
                                 {PHASE_LABEL[state.phase]}
                             </span>
@@ -218,7 +218,7 @@ export function CapturePreviewModal() {
                     </div>
                     <div className="flex items-center gap-1">
                     <button onClick={() => (galleryOpen ? setGalleryOpen(false) : openGallery())}
-                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium cursor-pointer transition-colors"
+                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-hud-xs font-medium cursor-pointer transition-colors"
                         style={{
                             background: galleryOpen ? "rgba(147,197,253,0.15)" : "rgba(255,255,255,0.05)",
                             border: "1px solid rgba(255,255,255,0.12)",
@@ -241,11 +241,11 @@ export function CapturePreviewModal() {
                         {gallery.loading && (
                             <div className="flex items-center justify-center h-40 gap-2" style={{ color: "rgba(255,255,255,0.35)" }}>
                                 <RefreshCw size={14} className="animate-spin" />
-                                <span className="text-xs">Chargement...</span>
+                                <span className="text-hud-2xs">Chargement...</span>
                             </div>
                         )}
                         {!gallery.loading && gallery.items.length === 0 && (
-                            <div className="flex items-center justify-center h-40 text-xs" style={{ color: "rgba(255,255,255,0.3)" }}>
+                            <div className="flex items-center justify-center h-40 text-hud-2xs" style={{ color: "rgba(255,255,255,0.3)" }}>
                                 Aucune capture en galerie
                             </div>
                         )}
@@ -260,7 +260,7 @@ export function CapturePreviewModal() {
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
                                     <img src={gallery.thumbUrl(item.thumb)} alt={item.ts}
                                         style={{ width: "100%", height: 90, objectFit: "cover", display: "block" }} />
-                                    <div className="px-1.5 py-1 text-[10px] font-mono flex justify-between"
+                                    <div className="px-1.5 py-1 text-hud-xs font-mono flex justify-between"
                                         style={{ background: "rgba(0,0,0,0.7)", color: "rgba(255,255,255,0.5)" }}>
                                         <span>{item.ts.slice(9, 11)}:{item.ts.slice(11, 13)}:{item.ts.slice(13, 15)}</span>
                                         <span>{item.capture_size_mb ? `${item.capture_size_mb}Mo` : "thumb seul"}</span>
@@ -276,7 +276,7 @@ export function CapturePreviewModal() {
                         {selected.size > 0 && (
                             <div className="sticky bottom-0 mt-3 flex justify-end">
                                 <button onClick={handleGalleryDelete}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-hud-2xs font-medium cursor-pointer"
                                     style={{ background: "rgba(252,165,165,0.15)", border: "1px solid rgba(252,165,165,0.4)", color: "#FCA5A5" }}>
                                     <Trash2 size={12} /> Supprimer {selected.size} sélection{selected.size > 1 ? "s" : ""}
                                 </button>
@@ -306,7 +306,7 @@ export function CapturePreviewModal() {
                     ) : (
                         <div className="flex flex-col items-center gap-3" style={{ color: "rgba(255,255,255,0.2)" }}>
                             <Camera size={52} strokeWidth={0.8} />
-                            <span className="text-xs">En attente de l&apos;image...</span>
+                            <span className="text-hud-2xs">En attente de l&apos;image...</span>
                         </div>
                     )}
 
@@ -316,7 +316,7 @@ export function CapturePreviewModal() {
                             style={{ pointerEvents: "none" }}>
                             <div className="w-10 h-10 rounded-full border-2 border-blue-300/20 border-t-blue-300 animate-spin" />
                             {state.preview_label && (
-                                <span className="text-xs font-medium px-3 py-1.5 rounded-full"
+                                <span className="text-hud-2xs font-medium px-3 py-1.5 rounded-full"
                                     style={{ background: "rgba(0,0,0,0.65)", color: phaseColor, backdropFilter: "blur(4px)" }}>
                                     {state.preview_label}
                                 </span>
@@ -326,7 +326,7 @@ export function CapturePreviewModal() {
 
                     {/* Badge avant/après quand l'image améliorée est affichée */}
                     {enhanced && (
-                        <span className="absolute top-2 left-2 text-[10px] font-medium px-2 py-1 rounded-full"
+                        <span className="absolute top-2 left-2 text-hud-xs font-medium px-2 py-1 rounded-full"
                             style={{ background: "rgba(0,0,0,0.7)", color: showOriginal ? "rgba(255,255,255,0.5)" : "#C4B5FD" }}>
                             {showOriginal ? "Originale" : "✨ Améliorée"}
                         </span>
@@ -340,12 +340,12 @@ export function CapturePreviewModal() {
 
                     {/* Label + compteur */}
                     <div className="flex items-center justify-between">
-                        <span className="text-xs" style={{ color: "rgba(255,255,255,0.45)" }}>
+                        <span className="text-hud-2xs" style={{ color: "rgba(255,255,255,0.45)" }}>
                             {!loading && (state.preview_label || (isDone ? "Terminée" : isError ? (state.error ?? "Erreur") : ""))}
                             {loading && (state.preview_label || "En cours...")}
                         </span>
                         {state.total_frames > 0 && (
-                            <span className="text-xs font-mono" style={{ color: "rgba(255,255,255,0.35)" }}>
+                            <span className="text-hud-2xs font-mono" style={{ color: "rgba(255,255,255,0.35)" }}>
                                 {state.current_frame}/{state.total_frames}
                             </span>
                         )}
@@ -362,7 +362,7 @@ export function CapturePreviewModal() {
                             <ProgressBar value={singleProgress} color={barColor} />
                             {state.exposure_s > 0 && state.eta_s > 0 && state.preview_label.startsWith("Exposition") && (
                                 <div className="flex justify-end">
-                                    <span className="text-[11px] font-mono" style={{ color: "rgba(255,255,255,0.35)" }}>
+                                    <span className="text-hud-xs font-mono" style={{ color: "rgba(255,255,255,0.35)" }}>
                                         {state.eta_s.toFixed(0)}s restantes
                                     </span>
                                 </div>
@@ -378,7 +378,7 @@ export function CapturePreviewModal() {
                                 border: "1px solid rgba(236,201,75,0.25)",
                             }}>
                             <AlertTriangle size={12} style={{ color: "#ECC94B", flexShrink: 0 }} />
-                            <span className="text-[11px]" style={{ color: "#ECC94B" }}>
+                            <span className="text-hud-xs" style={{ color: "#ECC94B" }}>
                                 {state.stats.suggestion ??
                                     (state.stats.verdict === "overexposed" ? "Image surexposée" : "Image sous-exposée")}
                             </span>
@@ -390,23 +390,23 @@ export function CapturePreviewModal() {
                         {state.stack_count > 0 && (
                             <div className="flex items-center gap-1">
                                 <Layers size={11} style={{ color: "#C4B5FD" }} />
-                                <span className="text-[11px]" style={{ color: "rgba(255,255,255,0.45)" }}>
+                                <span className="text-hud-xs" style={{ color: "rgba(255,255,255,0.45)" }}>
                                     {state.stack_count} frame{state.stack_count > 1 ? "s" : ""} empilée{state.stack_count > 1 ? "s" : ""}
                                 </span>
                             </div>
                         )}
                         {state.hfr != null && (
-                            <span className="text-[11px]" style={{ color: "rgba(255,255,255,0.45)" }}>
+                            <span className="text-hud-xs" style={{ color: "rgba(255,255,255,0.45)" }}>
                                 HFR <span style={{ color: "#5EEAD4" }}>{state.hfr.toFixed(2)}</span>
                             </span>
                         )}
                         {state.snr != null && (
-                            <span className="text-[11px]" style={{ color: "rgba(255,255,255,0.45)" }}>
+                            <span className="text-hud-xs" style={{ color: "rgba(255,255,255,0.45)" }}>
                                 SNR <span style={{ color: "#FDE047" }}>{state.snr.toFixed(1)}</span>
                             </span>
                         )}
                         {state.elapsed_s > 0 && (
-                            <span className="text-[11px] ml-auto font-mono" style={{ color: "rgba(255,255,255,0.25)" }}>
+                            <span className="text-hud-xs ml-auto font-mono" style={{ color: "rgba(255,255,255,0.25)" }}>
                                 {Math.floor(state.elapsed_s / 60)}m{String(Math.floor(state.elapsed_s % 60)).padStart(2, "0")}s
                             </span>
                         )}
@@ -416,7 +416,7 @@ export function CapturePreviewModal() {
                     {isDone && (
                         <div className="flex items-center gap-2 mt-1">
                             <CheckCircle2 size={13} style={{ color: "#86EFAC" }} />
-                            <span className="text-xs" style={{ color: "#86EFAC" }}>
+                            <span className="text-hud-2xs" style={{ color: "#86EFAC" }}>
                                 Terminée — {state.stack_count || state.current_frame || 1} frame{((state.stack_count || state.current_frame) ?? 0) > 1 ? "s" : ""}
                             </span>
                             <div className="ml-auto flex items-center gap-2">
@@ -424,7 +424,7 @@ export function CapturePreviewModal() {
                                     <button
                                         onClick={handleEnhance}
                                         disabled={enhancing}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer transition-colors"
+                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-hud-2xs font-medium cursor-pointer transition-colors"
                                         style={{
                                             background: "rgba(196,181,253,0.12)",
                                             border: "1px solid rgba(196,181,253,0.35)",
@@ -438,7 +438,7 @@ export function CapturePreviewModal() {
                                 )}
                                 <button
                                     onClick={handleClose}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer transition-colors"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-hud-2xs font-medium cursor-pointer transition-colors"
                                     style={{
                                         background: "rgba(134,239,172,0.12)",
                                         border: "1px solid rgba(134,239,172,0.35)",
@@ -451,7 +451,7 @@ export function CapturePreviewModal() {
                                     <button
                                         onClick={handleDiscard}
                                         disabled={deleting}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer transition-colors"
+                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-hud-2xs font-medium cursor-pointer transition-colors"
                                         style={{
                                             background: "rgba(252,165,165,0.10)",
                                             border: "1px solid rgba(252,165,165,0.35)",
@@ -468,7 +468,7 @@ export function CapturePreviewModal() {
                     {isError && state.error && (
                         <div className="flex items-center gap-2 mt-1">
                             <AlertTriangle size={13} style={{ color: "#FCA5A5" }} />
-                            <span className="text-xs" style={{ color: "#FCA5A5" }}>{state.error}</span>
+                            <span className="text-hud-2xs" style={{ color: "#FCA5A5" }}>{state.error}</span>
                         </div>
                     )}
                 </div>

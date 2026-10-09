@@ -213,10 +213,10 @@ export const CalibrationWizard = () => {
             <div className="flex flex-col gap-4 w-full">
                 <div className="astro-panel p-6 w-full text-center" style={{ border: "1px solid rgba(0, 255, 209, 0.2)" }}>
                     <Settings2 size={32} style={{ color: "var(--astro-teal)", margin: "0 auto 16px" }} className="ping-slow" />
-                    <p className="text-[14px] font-bold tracking-[0.2em] text-white mb-2">
+                    <p className="text-hud-md font-bold tracking-[0.2em] text-white mb-2">
                         {language === 'fr' ? 'CALIBRATION SYSTÈME' : 'SYSTEM CALIBRATION'}
                     </p>
-                    <p className="text-[11px] mb-6" style={{ color: "rgba(255,255,255,0.6)" }}>
+                    <p className="text-hud-xs mb-6" style={{ color: "rgba(255,255,255,0.6)" }}>
                         {language === 'fr' ? 'Initialisez votre observatoire: connexion, limites et alignement céleste.' : 'Initialize your observatory: connection, limits, and celestial alignment.'}
                     </p>
                     <button
@@ -242,11 +242,11 @@ export const CalibrationWizard = () => {
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         <Activity size={16} style={{ color: "var(--astro-teal)" }} className="scanning" />
-                        <span className="text-[10px] font-bold tracking-[0.1em]" style={{ color: "var(--astro-teal)" }}>
+                        <span className="text-hud-xs font-bold tracking-[0.1em]" style={{ color: "var(--astro-teal)" }}>
                             {step.step.toUpperCase().replace('-', ' ')}
                         </span>
                     </div>
-                    <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.5)" }}>{Math.round(getStepProgress())}%</span>
+                    <span className="text-hud-xs" style={{ color: "rgba(255,255,255,0.5)" }}>{Math.round(getStepProgress())}%</span>
                 </div>
                 <div className="w-full h-[2px] rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.05)" }}>
                     <div className="h-full transition-all duration-500 ease-out rounded-full" style={{ width: `${getStepProgress()}%`, background: "var(--astro-teal)", boxShadow: "0 0 10px var(--astro-teal)" }} />
@@ -256,16 +256,16 @@ export const CalibrationWizard = () => {
             {/* Message Area */}
             <div className="relative p-3 rounded overflow-hidden" style={{ background: "rgba(0,240,255,0.05)", borderLeft: "2px solid var(--astro-teal)" }}>
                 <div className="absolute inset-0 scanline opacity-10 pointer-events-none" />
-                <p className="text-[12px] font-bold text-white mb-1">{step.message}</p>
-                <p className="text-[10px] leading-[1.4]" style={{ color: "rgba(255,255,255,0.7)" }}>{step.instruction}</p>
+                <p className="text-hud-sm font-bold text-white mb-1">{step.message}</p>
+                <p className="text-hud-xs leading-[1.4]" style={{ color: "rgba(255,255,255,0.7)" }}>{step.instruction}</p>
             </div>
 
             {/* Limits Dashboard */}
             {LIMIT_DASHBOARD_STEPS.includes(step.step) && (
                 <div className="p-3 rounded" style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(0,255,209,0.12)" }}>
                     <div className="flex items-center justify-between mb-2">
-                        <span className="text-[9px] font-bold tracking-[0.12em]" style={{ color: "rgba(255,255,255,0.4)" }}>SLEW LIMITS</span>
-                        <span className="text-[9px]" style={{ color: "rgba(255,255,255,0.3)" }}>{recordedInSession.size}/4 enregistrées</span>
+                        <span className="text-hud-2xs font-bold tracking-[0.12em]" style={{ color: "rgba(255,255,255,0.4)" }}>SLEW LIMITS</span>
+                        <span className="text-hud-2xs" style={{ color: "rgba(255,255,255,0.3)" }}>{recordedInSession.size}/4 enregistrées</span>
                     </div>
                     <div className="grid grid-cols-2 gap-1.5">
                         {([
@@ -280,12 +280,12 @@ export const CalibrationWizard = () => {
                                     style={{ background: isCurrent ? 'rgba(0,255,209,0.08)' : 'rgba(255,255,255,0.02)', border: `1px solid ${isCurrent ? 'rgba(0,255,209,0.35)' : isDone ? 'rgba(72,199,142,0.3)' : 'rgba(255,255,255,0.05)'}` }}>
                                     {isDone ? <CheckCircle2 size={12} className="text-green-400" /> : isCurrent ? <Target size={12} style={{ color: "var(--astro-teal)" }} /> : <MapPin size={12} style={{ color: "rgba(255,255,255,0.2)" }} />}
                                     <div className="flex flex-col gap-0 flex-1 min-w-0">
-                                        <span className="text-[8px] tracking-[0.06em]" style={{ color: "rgba(255,255,255,0.4)" }}>{label}</span>
-                                        <span className="text-[11px] font-bold font-mono" style={{ color: isDone ? '#68d391' : isCurrent ? 'var(--astro-teal)' : 'rgba(255,255,255,0.4)' }}>
+                                        <span className="text-hud-2xs tracking-[0.06em]" style={{ color: "rgba(255,255,255,0.4)" }}>{label}</span>
+                                        <span className="text-hud-xs font-bold font-mono" style={{ color: isDone ? '#68d391' : isCurrent ? 'var(--astro-teal)' : 'rgba(255,255,255,0.4)' }}>
                                             {`${value.toFixed(1)}°`}
                                         </span>
                                     </div>
-                                    <span className="inline-flex items-center px-1 rounded text-[7px]"
+                                    <span className="inline-flex items-center px-1 rounded text-hud-2xs"
                                         style={{ background: isDone ? 'rgba(72,187,120,0.25)' : 'rgba(255,255,255,0.05)', color: isDone ? '#68d391' : 'rgba(255,255,255,0.4)' }}>
                                         {isDone ? 'NEW' : 'SAVED'}
                                     </span>
@@ -316,7 +316,7 @@ export const CalibrationWizard = () => {
                             <div key={i} className={`absolute w-2.5 h-2.5 ${cls}`} style={{ borderColor: "var(--astro-teal)" }} />
                         ))}
                     </div>
-                    <span className="absolute bottom-2 right-2 text-[8px] px-1 py-0.5 rounded" style={{ background: "rgba(0,0,0,0.6)", color: "var(--astro-teal)" }}>
+                    <span className="absolute bottom-2 right-2 text-hud-2xs px-1 py-0.5 rounded" style={{ background: "rgba(0,0,0,0.6)", color: "var(--astro-teal)" }}>
                         LIVE_FEED_STABLE
                     </span>
                 </div>
@@ -328,11 +328,11 @@ export const CalibrationWizard = () => {
                     <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-1.5">
                             <Telescope size={14} style={{ color: "#00b4ff" }} />
-                            <span className="text-[9px] font-bold tracking-[0.08em]" style={{ color: "rgba(255,255,255,0.8)" }}>
+                            <span className="text-hud-2xs font-bold tracking-[0.08em]" style={{ color: "rgba(255,255,255,0.8)" }}>
                                 {language === 'fr' ? "CAPTEURS IPHONE EMBARQUÉ" : "EMBEDDED IPHONE SENSORS"}
                             </span>
                         </div>
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-medium"
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-hud-2xs font-medium"
                             style={{ background: phoneSensor.connected ? "rgba(72,187,120,0.3)" : "rgba(245,101,101,0.3)", color: "white" }}>
                             {phoneSensor.connected ? "LIVE" : "DÉCONNECTÉ"}
                         </span>
@@ -344,13 +344,13 @@ export const CalibrationWizard = () => {
                             { label: language === 'fr' ? "ROULIS" : "ROLL", val: phoneSensor.gamma != null ? `${phoneSensor.gamma.toFixed(1)}°` : "—", color: "#aaaaff" },
                         ].map(({ label, val, color }) => (
                             <div key={label} className="flex flex-col items-center gap-0.5 p-2 rounded" style={{ background: "rgba(0,0,0,0.3)" }}>
-                                <span className="text-[8px] tracking-[0.05em]" style={{ color: "rgba(255,255,255,0.4)" }}>{label}</span>
-                                <span className="text-[13px] font-bold font-mono" style={{ color }}>{val}</span>
+                                <span className="text-hud-2xs tracking-[0.05em]" style={{ color: "rgba(255,255,255,0.4)" }}>{label}</span>
+                                <span className="text-hud-sm font-bold font-mono" style={{ color }}>{val}</span>
                             </div>
                         ))}
                     </div>
                     {phoneSensor.lat != null && phoneSensor.lon != null && (
-                        <div className="flex items-center justify-between mt-2 px-1 text-[8px]" style={{ color: "rgba(255,255,255,0.5)" }}>
+                        <div className="flex items-center justify-between mt-2 px-1 text-hud-2xs" style={{ color: "rgba(255,255,255,0.5)" }}>
                             <span>GPS: {phoneSensor.lat.toFixed(5)}, {phoneSensor.lon.toFixed(5)}</span>
                             <span>ACCURACY: ±{phoneSensor.accuracy_m?.toFixed(0)}m</span>
                         </div>
@@ -361,7 +361,7 @@ export const CalibrationWizard = () => {
             {/* Manual Controls */}
             {step.isWaitingUser && step.step !== 'complete' && (
                 <div className="flex flex-col items-center gap-3 p-4 rounded" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}>
-                    <span className="text-[10px] font-bold tracking-[0.1em]" style={{ color: "rgba(255,255,255,0.4)" }}>MANUAL JOG CONTROL</span>
+                    <span className="text-hud-xs font-bold tracking-[0.1em]" style={{ color: "rgba(255,255,255,0.4)" }}>MANUAL JOG CONTROL</span>
                     <JogPad jog={jog} size="md" />
                 </div>
             )}
@@ -401,7 +401,7 @@ export const CalibrationWizard = () => {
                 {step.step === 'alignment' && (
                     <div className="flex flex-col gap-3 p-3 rounded" style={{ background: "rgba(0,0,0,0.2)" }}>
                         <select
-                            className="w-full p-2 rounded text-xs border cursor-pointer"
+                            className="w-full p-2 rounded text-hud-2xs border cursor-pointer"
                             style={{ background: "black", color: "var(--astro-teal)", border: "1px solid rgba(0,255,209,0.2)" }}
                             onChange={e => setSelectedStar(BRIGHT_STARS.find(s => s.name === e.target.value) || BRIGHT_STARS[0])}
                         >
@@ -410,11 +410,11 @@ export const CalibrationWizard = () => {
 
                         {starAltAz ? (
                             <div className="flex items-center justify-between px-1">
-                                <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.6)" }}>TARGET POSITION:</span>
-                                <span className="text-[10px] font-bold" style={{ color: "var(--astro-gold)" }}>ALT {starAltAz.alt.toFixed(1)}° / AZ {starAltAz.az.toFixed(0)}°</span>
+                                <span className="text-hud-xs" style={{ color: "rgba(255,255,255,0.6)" }}>TARGET POSITION:</span>
+                                <span className="text-hud-xs font-bold" style={{ color: "var(--astro-gold)" }}>ALT {starAltAz.alt.toFixed(1)}° / AZ {starAltAz.az.toFixed(0)}°</span>
                             </div>
                         ) : selectedStar && (
-                            <p className="text-[10px] text-orange-300">
+                            <p className="text-hud-xs text-orange-300">
                                 ⚠ {language === 'fr' ? 'Alt/Az non calculable — backend hors ligne ou étoile sous l\'horizon' : 'Cannot compute Alt/Az — backend offline or star below horizon'}
                             </p>
                         )}
@@ -436,7 +436,7 @@ export const CalibrationWizard = () => {
                 {step.step === 'complete' && (
                     <div className="flex flex-col items-center gap-4 w-full">
                         <CheckCircle2 size={40} className="text-green-400" />
-                        <p className="text-[14px] font-bold text-white">CALIBRATION RÉUSSIE</p>
+                        <p className="text-hud-md font-bold text-white">CALIBRATION RÉUSSIE</p>
                         <button onClick={reset}
                             className="w-full h-10 rounded-lg text-white bg-green-700 hover:bg-green-600 font-bold cursor-pointer transition-colors">
                             FERMER LE WIZARD
@@ -447,12 +447,12 @@ export const CalibrationWizard = () => {
                 {actionError && (
                     <div className="flex items-center gap-2 p-2 rounded w-full" style={{ background: "rgba(245,101,101,0.1)", border: "1px solid rgba(245,101,101,0.3)" }}>
                         <AlertTriangle size={12} className="text-red-400" />
-                        <span className="text-[9px] text-red-400">{actionError}</span>
+                        <span className="text-hud-2xs text-red-400">{actionError}</span>
                     </div>
                 )}
 
                 <button onClick={reset}
-                    className="flex items-center justify-center gap-1 text-xs cursor-pointer transition-colors"
+                    className="flex items-center justify-center gap-1 text-hud-2xs cursor-pointer transition-colors"
                     style={{ color: "rgba(255,255,255,0.4)" }}
                     onMouseEnter={e => (e.currentTarget.style.color = "#fc8181")}
                     onMouseLeave={e => (e.currentTarget.style.color = "rgba(255,255,255,0.4)")}>

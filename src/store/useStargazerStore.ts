@@ -43,8 +43,21 @@ interface MountLimits {
     minAz: number;
 }
 
+/** Confort d'observation — persisté, car il dépend du lieu et de l'habitude,
+ *  pas de la session. */
+export type VisionMode = "day" | "night";
+export type DensityMode = "compact" | "normal" | "outdoor";
+/** Paliers d'assombrissement en mode nuit : 0 = nominal, 2 = ciel très sombre. */
+export type DimLevel = 0 | 1 | 2;
+
 interface StargazerState {
     language: "en" | "fr";
+    vision: VisionMode;
+    density: DensityMode;
+    dim: DimLevel;
+    setVision: (v: VisionMode) => void;
+    setDensity: (d: DensityMode) => void;
+    setDim: (d: DimLevel) => void;
     isConnected: boolean;
     sessionState: SessionState;
     observatoryState: ObservatoryState;
@@ -105,6 +118,9 @@ export const useStargazerStore = create<StargazerState>()(
     persist(
         (set, get) => ({
             language: "en",
+            vision: "day" as VisionMode,
+            density: "normal" as DensityMode,
+            dim: 0 as DimLevel,
             isConnected: false,
             sessionState: "IDLE" as SessionState,
             observatoryState: "OFFLINE" as ObservatoryState,
@@ -177,6 +193,9 @@ export const useStargazerStore = create<StargazerState>()(
             },
 
             setLanguage: (language) => set({ language }),
+            setVision: (vision) => set({ vision }),
+            setDensity: (density) => set({ density }),
+            setDim: (dim) => set({ dim }),
             setConnected: (status) => set({ isConnected: status }),
             sendSessionEvent: (event) => {
                 const current = get().sessionState;
@@ -235,6 +254,9 @@ export const useStargazerStore = create<StargazerState>()(
             name: 'stargazer-storage',
             partialize: (state) => ({
                 language: state.language,
+                vision: state.vision,
+                density: state.density,
+                dim: state.dim,
                 config: state.config,
                 mountLimits: state.mountLimits,
                 liveViewMode: state.liveViewMode,

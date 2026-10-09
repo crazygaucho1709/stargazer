@@ -150,7 +150,7 @@ export const AIAssistant = () => {
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <BrainCircuit size={16} color="var(--astro-gold)" className="pulse-glow" />
-                    <span style={{ fontSize: "11px", fontWeight: "bold", letterSpacing: "0.1em" }}>
+                    <span style={{ fontSize: "var(--text-hud-xs)", fontWeight: "bold", letterSpacing: "0.1em" }}>
                         {t("AI_METEO_ORACLE", language)}
                     </span>
                 </div>
@@ -164,7 +164,7 @@ export const AIAssistant = () => {
                             border: "1px solid rgba(255,255,255,0.2)",
                             color: "var(--astro-starlight)",
                             width: "50px",
-                            fontSize: "10px",
+                            fontSize: "var(--text-hud-xs)",
                             height: "20px",
                             borderRadius: "4px",
                             cursor: "pointer",
@@ -172,7 +172,7 @@ export const AIAssistant = () => {
                     >
                         {language.toUpperCase()}
                     </button>
-                    <span style={{ fontSize: "10px", color: "var(--astro-teal)" }}>
+                    <span style={{ fontSize: "var(--text-hud-xs)", color: "var(--astro-teal)" }}>
                         {loading ? "Loading..." : t("AI_ANALYSIS_OK", language)}
                     </span>
                 </div>
@@ -192,10 +192,10 @@ export const AIAssistant = () => {
                 >
                     <div className="flex items-start justify-between mb-2">
                         <div className="flex flex-col gap-0">
-                            <span style={{ fontSize: "15px", fontWeight: "bold", color: "var(--astro-teal)" }}>
+                            <span style={{ fontSize: "var(--text-hud-md)", fontWeight: "bold", color: "var(--astro-teal)" }}>
                                 {t("AI_SEEING", language)} {loading ? "--" : (weather.seeing?.toFixed(1) || "--")}&quot;
                             </span>
-                            <span style={{ fontSize: "9px", opacity: 0.6 }}>
+                            <span style={{ fontSize: "var(--text-hud-2xs)", opacity: 0.6 }}>
                                 {weather.cloudCover !== undefined ? (
                                     weather.cloudCover > 50
                                         ? `${weather.cloudCover.toFixed(0)}% ${language === 'fr' ? 'nuages' : 'clouds'}`
@@ -210,9 +210,9 @@ export const AIAssistant = () => {
                                 ) : (
                                     <Cloud size={16} color="rgba(255,255,255,0.5)" />
                                 )}
-                                <span style={{ fontSize: "12px", fontWeight: "bold" }}>{getConditionText()}</span>
+                                <span style={{ fontSize: "var(--text-hud-sm)", fontWeight: "bold" }}>{getConditionText()}</span>
                             </div>
-                            <span style={{ fontSize: "9px", opacity: 0.6 }}>
+                            <span style={{ fontSize: "var(--text-hud-2xs)", opacity: 0.6 }}>
                                 {weather.cloudCover !== undefined ? (
                                     weather.cloudCover > 50
                                         ? `${(100 - weather.cloudCover).toFixed(0)}% ${language === 'fr' ? 'dégagé' : 'clear'}`
@@ -225,7 +225,7 @@ export const AIAssistant = () => {
                     <div
                         className="flex items-center justify-between"
                         style={{
-                            fontSize: "10px",
+                            fontSize: "var(--text-hud-xs)",
                             opacity: 0.8,
                             background: "rgba(255,255,255,0.02)",
                             padding: "8px",
@@ -267,21 +267,21 @@ export const AIAssistant = () => {
                     <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-2">
                             <Moon size={16} color="var(--astro-gold)" />
-                            <span style={{ fontSize: "12px", fontWeight: "bold", letterSpacing: "0.1em", color: "rgba(255,255,255,0.8)" }}>
+                            <span style={{ fontSize: "var(--text-hud-sm)", fontWeight: "bold", letterSpacing: "0.1em", color: "rgba(255,255,255,0.8)" }}>
                                 EPHEMERIS
                             </span>
                         </div>
                     </div>
-                    <div className="flex items-center justify-between" style={{ fontSize: "11px" }}>
+                    <div className="flex items-center justify-between" style={{ fontSize: "var(--text-hud-xs)" }}>
                         <div className="flex flex-col gap-0">
-                            <span style={{ opacity: 0.6, fontSize: "9px" }}>SUNRISE</span>
+                            <span style={{ opacity: 0.6, fontSize: "var(--text-hud-2xs)" }}>SUNRISE</span>
                             <div className="flex items-center gap-1">
                                 <Sun size={12} color="#F6AD55" />
                                 <span style={{ fontWeight: "bold" }}>{weather.sunrise || "--:--"}</span>
                             </div>
                         </div>
                         <div className="flex flex-col items-end gap-0">
-                            <span style={{ opacity: 0.6, fontSize: "9px" }}>SUNSET</span>
+                            <span style={{ opacity: 0.6, fontSize: "var(--text-hud-2xs)" }}>SUNSET</span>
                             <div className="flex items-center gap-1">
                                 <Moon size={12} color="#7986CB" />
                                 <span style={{ fontWeight: "bold" }}>{weather.sunset || "--:--"}</span>
@@ -313,7 +313,7 @@ export const AIAssistant = () => {
                     >
                         <div className="flex items-center gap-1">
                             <Star size={12} color="var(--astro-gold)" />
-                            <span style={{ fontSize: "8px", color: "var(--astro-gold)", fontWeight: "bold" }}>
+                            <span style={{ fontSize: "var(--text-hud-2xs)", color: "var(--astro-gold)", fontWeight: "bold" }}>
                                 {t("AI_ADVICE", language)}
                             </span>
                         </div>
@@ -321,11 +321,11 @@ export const AIAssistant = () => {
                     <div className="flex flex-col gap-2 mt-1">
                         <span
                             className="hud-font"
-                            style={{ fontSize: "13px", fontWeight: "bold", color: "var(--astro-gold)", letterSpacing: "0.05em" }}
+                            style={{ fontSize: "var(--text-hud-sm)", fontWeight: "bold", color: "var(--astro-gold)", letterSpacing: "0.05em" }}
                         >
                             {getAdviceTitle()}
                         </span>
-                        <p style={{ fontSize: "11px", opacity: 0.85, lineHeight: 1.5, margin: 0 }}>
+                        <p style={{ fontSize: "var(--text-hud-xs)", opacity: 0.85, lineHeight: 1.5, margin: 0 }}>
                             {getAdviceDescription()}{" "}
                             {t("AI_HORIZON_LIMITS", language)}{" "}
                             <span style={{ color: "var(--astro-teal)", fontWeight: "bold" }}>

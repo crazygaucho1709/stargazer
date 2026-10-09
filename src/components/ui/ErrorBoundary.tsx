@@ -84,7 +84,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
               className="hud-font"
               style={{
                 color: "var(--astro-teal, #00F0FF)",
-                fontSize: "11px",
+                fontSize: "var(--text-hud-xs)",
                 fontWeight: "bold",
                 letterSpacing: "0.15em",
                 margin: 0,
@@ -97,7 +97,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
 
           <p
             className="hud-font"
-            style={{ color: "#fc8181", fontSize: "13px", fontWeight: "bold", margin: 0 }}
+            style={{ color: "#fc8181", fontSize: "var(--text-hud-sm)", fontWeight: "bold", margin: 0 }}
           >
             ERREUR PANNEAU
           </p>
@@ -105,7 +105,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
           <p
             style={{
               color: "#9ca3af",
-              fontSize: "12px",
+              fontSize: "var(--text-hud-sm)",
               margin: 0,
               textAlign: "center",
               maxWidth: "320px",
@@ -119,7 +119,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
               style={{
                 width: "100%",
                 maxWidth: "400px",
-                fontSize: "10px",
+                fontSize: "var(--text-hud-xs)",
                 color: "#6b7280",
                 fontFamily: "monospace",
               }}
@@ -167,7 +167,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
               border: "1px solid var(--astro-teal, #00F0FF)",
               borderRadius: "6px",
               padding: "6px 18px",
-              fontSize: "11px",
+              fontSize: "var(--text-hud-xs)",
               fontWeight: "bold",
               cursor: "pointer",
               transition: "background 0.2s ease, color 0.2s ease",

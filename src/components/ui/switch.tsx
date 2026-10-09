@@ -101,7 +101,7 @@ export const Switch = React.forwardRef<HTMLInputElement, SwitchProps>(
             <span
               style={{
                 position: "absolute",
-                fontSize: "9px",
+                fontSize: "var(--text-hud-2xs)",
                 color: "rgba(255,255,255,0.7)",
                 left: checked ? "6px" : "auto",
                 right: checked ? "auto" : "6px",
@@ -127,7 +127,7 @@ export const Switch = React.forwardRef<HTMLInputElement, SwitchProps>(
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: "9px",
+              fontSize: "var(--text-hud-2xs)",
             }}
           >
             {thumbLabel && (checked ? thumbLabel.on : thumbLabel.off)}
@@ -136,7 +136,7 @@ export const Switch = React.forwardRef<HTMLInputElement, SwitchProps>(
 
         {/* Side label */}
         {children && (
-          <span style={{ fontSize: "14px", color: "rgba(255,255,255,0.85)" }}>
+          <span style={{ fontSize: "var(--text-hud-md)", color: "rgba(255,255,255,0.85)" }}>
             {children}
           </span>
         )}

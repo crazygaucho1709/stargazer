@@ -136,7 +136,7 @@ export function ConnectionLostOverlay() {
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             <span
               style={{
-                fontSize: "15px",
+                fontSize: "var(--text-hud-md)",
                 fontWeight: 700,
                 color: "#f87171",
                 fontFamily: "var(--font-hud, monospace)",
@@ -150,7 +150,7 @@ export function ConnectionLostOverlay() {
             {formattedLastSeen && (
               <span
                 style={{
-                  fontSize: "11px",
+                  fontSize: "var(--text-hud-xs)",
                   color: "rgba(226,232,240,0.45)",
                   fontFamily: "var(--font-hud, monospace)",
                 }}
@@ -179,7 +179,7 @@ export function ConnectionLostOverlay() {
             />
             <span
               style={{
-                fontSize: "11px",
+                fontSize: "var(--text-hud-xs)",
                 color: "#fbbf24",
                 fontFamily: "var(--font-hud, monospace)",
               }}
@@ -201,7 +201,7 @@ export function ConnectionLostOverlay() {
               border: "1px solid rgba(45, 212, 191, 0.45)",
               background: "rgba(45, 212, 191, 0.1)",
               color: "#2dd4bf",
-              fontSize: "12px",
+              fontSize: "var(--text-hud-sm)",
               cursor: isRetrying ? "not-allowed" : "pointer",
               opacity: isRetrying ? 0.5 : 1,
               fontFamily: "var(--font-hud, monospace)",

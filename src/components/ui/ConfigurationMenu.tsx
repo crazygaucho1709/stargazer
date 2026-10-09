@@ -28,9 +28,9 @@ function Spinner() {
 function Field({ label, error, children }: { label: string; error?: string | null; children: React.ReactNode }) {
     return (
         <div className="w-full">
-            <p className="text-[10px] mb-2" style={{ color: "rgba(255,255,255,0.7)" }}>{label}</p>
+            <p className="text-hud-xs mb-2" style={{ color: "rgba(255,255,255,0.7)" }}>{label}</p>
             {children}
-            {error && <p className="text-[10px] mt-1" style={{ color: "#FC8181" }}>{error}</p>}
+            {error && <p className="text-hud-xs mt-1" style={{ color: "#FC8181" }}>{error}</p>}
         </div>
     );
 }
@@ -116,7 +116,7 @@ export const ConfigurationMenu = () => {
                             <Wand2 size={24} style={{ color: "#00F0FF" }} />
                             <div className="flex flex-col gap-0">
                                 <h2 className="hud-font font-bold tracking-[0.1em] text-lg">{t("CONFIG_TITLE", language)}</h2>
-                                <span className="text-[10px] tracking-[0.2em]" style={{ color: "rgba(255,255,255,0.5)" }}>{t("CONFIG_SUBTITLE", language)}</span>
+                                <span className="text-hud-xs tracking-[0.2em]" style={{ color: "rgba(255,255,255,0.5)" }}>{t("CONFIG_SUBTITLE", language)}</span>
                             </div>
                             <button
                                 className="absolute top-6 right-6 p-2 rounded transition-colors cursor-pointer"
@@ -150,7 +150,7 @@ export const ConfigurationMenu = () => {
                                             onClick={() => setActiveTab(tab.id)}
                                         >
                                             <Ico size={20} />
-                                            <span className="text-[12px] font-bold tracking-[0.05em]">{tab.label.toUpperCase()}</span>
+                                            <span className="text-hud-sm font-bold tracking-[0.05em]">{tab.label.toUpperCase()}</span>
                                         </button>
                                     );
                                 })}
@@ -204,7 +204,7 @@ const AlignmentTab = ({ language }: { language: string }) => {
                         <button
                             key={id}
                             onClick={() => setMode(id)}
-                            className="flex items-center gap-2 px-4 py-2 rounded-md text-[12px] font-bold transition-colors cursor-pointer"
+                            className="flex items-center gap-2 px-4 py-2 rounded-md text-hud-sm font-bold transition-colors cursor-pointer"
                             style={{
                                 background: active ? "rgba(0,240,255,0.12)" : "transparent",
                                 color: active ? "#00F0FF" : "rgba(255,255,255,0.55)",
@@ -224,7 +224,7 @@ const AlignmentTab = ({ language }: { language: string }) => {
                         <LocateFixed size={24} style={{ color: "var(--astro-teal)" }} />
                         <div className="flex flex-col gap-0">
                             <h3 className="text-white font-bold">{fr ? 'Auto-Alignement IA' : 'Auto-Align AI'}</h3>
-                            <span className="text-[10px] tracking-[0.08em]" style={{ color: "rgba(255,255,255,0.5)" }}>
+                            <span className="text-hud-xs tracking-[0.08em]" style={{ color: "rgba(255,255,255,0.5)" }}>
                                 {fr
                                     ? 'Localisation autonome par plate solving — 3 captures — triangulation'
                                     : 'Autonomous localization via plate solving — 3 captures — triangulation'}
@@ -239,7 +239,7 @@ const AlignmentTab = ({ language }: { language: string }) => {
                         <Wand2 size={24} style={{ color: "#00F0FF" }} />
                         <div className="flex flex-col gap-0">
                             <h3 className="text-white font-bold">{fr ? 'Calibration manuelle' : 'Manual calibration'}</h3>
-                            <span className="text-[10px] tracking-[0.08em]" style={{ color: "rgba(255,255,255,0.5)" }}>
+                            <span className="text-hud-xs tracking-[0.08em]" style={{ color: "rgba(255,255,255,0.5)" }}>
                                 {fr
                                     ? 'Séquence guidée — limites alt/az, park, test caméra, alignement étoile'
                                     : 'Guided sequence — alt/az limits, park, camera test, star alignment'}
@@ -280,7 +280,7 @@ const HardwareTab = ({ config, updateConfig, language }: any) => {
             <div>
                 <div className="flex items-center gap-2 mb-4">
                     <Radio size={16} style={{ color: "#00F0FF" }} />
-                    <span className="text-[12px] font-bold tracking-[0.1em]">{t("HW_ASTROBERRY", language)}</span>
+                    <span className="text-hud-sm font-bold tracking-[0.1em]">{t("HW_ASTROBERRY", language)}</span>
                 </div>
                 <div className="flex flex-col gap-4">
                     <Field label={t("HW_SERVER_URL", language)} error={errors.astroberryUrl}>
@@ -378,7 +378,7 @@ function AiAuthPanel({ language }: { language: string }) {
         <div>
             <div className="flex items-center gap-2 mb-4">
                 <Wand2 size={16} style={{ color: "var(--astro-gold)" }} />
-                <span className="text-[12px] font-bold tracking-[0.1em]" style={{ color: "var(--astro-gold)" }}>
+                <span className="text-hud-sm font-bold tracking-[0.1em]" style={{ color: "var(--astro-gold)" }}>
                     {fr ? "INTELLIGENCE ARTIFICIELLE" : "ARTIFICIAL INTELLIGENCE"}
                 </span>
             </div>
@@ -399,19 +399,19 @@ function AiAuthPanel({ language }: { language: string }) {
                                 : <XCircle size={14} style={{ color: "#F87171" }} />}
                         <div>
                             <div className="flex items-center gap-2">
-                                <span className="text-[12px] font-bold" style={{ color: auth.gemini ? "#fff" : "rgba(255,255,255,0.4)" }}>Gemini</span>
+                                <span className="text-hud-sm font-bold" style={{ color: auth.gemini ? "#fff" : "rgba(255,255,255,0.4)" }}>Gemini</span>
                                 {auth.provider === "gemini" && (
-                                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: "#2563EB", color: "#fff" }}>ACTIF</span>
+                                    <span className="text-hud-2xs font-bold px-1.5 py-0.5 rounded" style={{ background: "#2563EB", color: "#fff" }}>ACTIF</span>
                                 )}
                             </div>
-                            <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.35)" }}>
+                            <span className="text-hud-xs" style={{ color: "rgba(255,255,255,0.35)" }}>
                                 {auth.gemini_sa
                                     ? `Service Account · ${auth.gemini_sa.split("@")[0]}`
                                     : fr ? "Firebase Admin SDK (firebase-adminsdk.json)" : "Firebase Admin SDK (firebase-adminsdk.json)"}
                             </span>
                         </div>
                     </div>
-                    <span className="text-[10px] font-bold" style={{ color: auth.gemini ? "#4ADE80" : "#F87171" }}>
+                    <span className="text-hud-xs font-bold" style={{ color: auth.gemini ? "#4ADE80" : "#F87171" }}>
                         {auth.loading ? "…" : auth.gemini ? (fr ? "Connecté" : "Connected") : (fr ? "Manquant" : "Missing")}
                     </span>
                 </div>
@@ -431,12 +431,12 @@ function AiAuthPanel({ language }: { language: string }) {
                                     : <XCircle size={14} style={{ color: "#F87171" }} />}
                             <div>
                                 <div className="flex items-center gap-2">
-                                    <span className="text-[12px] font-bold" style={{ color: auth.claude ? "#fff" : "rgba(255,255,255,0.4)" }}>Claude</span>
+                                    <span className="text-hud-sm font-bold" style={{ color: auth.claude ? "#fff" : "rgba(255,255,255,0.4)" }}>Claude</span>
                                     {auth.provider === "claude" && (
-                                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: "#D97706", color: "#fff" }}>ACTIF</span>
+                                        <span className="text-hud-2xs font-bold px-1.5 py-0.5 rounded" style={{ background: "#D97706", color: "#fff" }}>ACTIF</span>
                                     )}
                                 </div>
-                                <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.35)" }}>
+                                <span className="text-hud-xs" style={{ color: "rgba(255,255,255,0.35)" }}>
                                     {fr ? "Vault serveur (server/.env)" : "Server vault (server/.env)"}
                                 </span>
                             </div>
@@ -444,7 +444,7 @@ function AiAuthPanel({ language }: { language: string }) {
                         <div className="flex items-center gap-2">
                             {auth.claude && (
                                 <button
-                                    className="text-[10px] px-2 py-1 rounded border cursor-pointer transition-colors"
+                                    className="text-hud-xs px-2 py-1 rounded border cursor-pointer transition-colors"
                                     style={{ borderColor: "rgba(248,113,113,0.4)", color: "#F87171" }}
                                     onMouseEnter={e => (e.currentTarget.style.background = "rgba(248,113,113,0.1)")}
                                     onMouseLeave={e => (e.currentTarget.style.background = "")}
@@ -455,7 +455,7 @@ function AiAuthPanel({ language }: { language: string }) {
                             )}
                             {!auth.claude && (
                                 <button
-                                    className="text-[10px] px-2 py-1 rounded border cursor-pointer transition-colors"
+                                    className="text-hud-xs px-2 py-1 rounded border cursor-pointer transition-colors"
                                     style={{ borderColor: "rgba(217,119,6,0.5)", color: "#D97706" }}
                                     onMouseEnter={e => (e.currentTarget.style.background = "rgba(217,119,6,0.1)")}
                                     onMouseLeave={e => (e.currentTarget.style.background = "")}
@@ -464,7 +464,7 @@ function AiAuthPanel({ language }: { language: string }) {
                                     {fr ? "Saisir la clé" : "Enter key"}
                                 </button>
                             )}
-                            <span className="text-[10px] font-bold" style={{ color: auth.claude ? "#4ADE80" : "#F87171" }}>
+                            <span className="text-hud-xs font-bold" style={{ color: auth.claude ? "#4ADE80" : "#F87171" }}>
                                 {auth.loading ? "…" : auth.claude ? (fr ? "Configuré" : "Configured") : (fr ? "Non configuré" : "Not set")}
                             </span>
                         </div>
@@ -478,11 +478,11 @@ function AiAuthPanel({ language }: { language: string }) {
                                 value={claudeKey}
                                 onChange={e => setClaudeKey(e.target.value)}
                                 onKeyDown={e => e.key === "Enter" && saveClaudeKey()}
-                                className={INPUT_CLS + " flex-1 text-[11px]"}
+                                className={INPUT_CLS + " flex-1 text-hud-xs"}
                                 style={{ ...INPUT_STYLE, background: "rgba(0,0,0,0.5)" }}
                             />
                             <button
-                                className="px-3 py-1 rounded text-[11px] font-bold text-black cursor-pointer disabled:opacity-50"
+                                className="px-3 py-1 rounded text-hud-xs font-bold text-black cursor-pointer disabled:opacity-50"
                                 style={{ background: "#D97706" }}
                                 onClick={saveClaudeKey}
                                 disabled={saving || !claudeKey.trim()}
@@ -494,7 +494,7 @@ function AiAuthPanel({ language }: { language: string }) {
                 </div>
 
                 {!auth.loading && !auth.claude && !auth.gemini && (
-                    <div className="mt-1 p-3 rounded text-[10px]" style={{ background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.2)", color: "rgba(251,191,36,0.9)", lineHeight: 1.6 }}>
+                    <div className="mt-1 p-3 rounded text-hud-xs" style={{ background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.2)", color: "rgba(251,191,36,0.9)", lineHeight: 1.6 }}>
                         {fr
                             ? <>Aucun provider actif. Activez l&apos;API <strong>Generative Language</strong> dans la console GCP (projet&nbsp;<code className="font-mono">stargazer-3b7c3</code>) pour Gemini, ou saisissez votre clé Claude ci-dessus.</>
                             : <>No active provider. Enable the <strong>Generative Language API</strong> in GCP console (project&nbsp;<code className="font-mono">stargazer-3b7c3</code>) for Gemini, or enter your Claude key above.</>}
@@ -519,23 +519,23 @@ const MountTab = ({ config, updateConfig, language }: any) => {
             <div>
                 <div className="flex items-center gap-2 mb-4">
                     <Compass size={16} style={{ color: "#00F0FF" }} />
-                    <span className="text-[12px] font-bold tracking-[0.1em]">{t("MNT_TRACKING", language)}</span>
+                    <span className="text-hud-sm font-bold tracking-[0.1em]">{t("MNT_TRACKING", language)}</span>
                 </div>
                 <div className="flex flex-col gap-5 p-5 rounded-lg" style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.05)" }}>
                     <div className="flex items-center justify-between">
                         <div className="flex flex-col gap-0">
-                            <span className="text-[12px] text-white">{t("MNT_AUTO_TRACK", language)}</span>
-                            <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.5)" }}>{t("MNT_AUTO_TRACK_DESC", language)}</span>
+                            <span className="text-hud-sm text-white">{t("MNT_AUTO_TRACK", language)}</span>
+                            <span className="text-hud-xs" style={{ color: "rgba(255,255,255,0.5)" }}>{t("MNT_AUTO_TRACK_DESC", language)}</span>
                         </div>
                         <input type="checkbox" checked={config.autoTracking} onChange={e => updateConfig({ autoTracking: e.target.checked })} style={{ accentColor: "#00F0FF", width: "18px", height: "18px" }} />
                     </div>
                     <div className="h-px" style={{ background: "rgba(255,255,255,0.1)" }} />
                     <div className="w-full">
-                        <p className="text-[10px] mb-4" style={{ color: "rgba(255,255,255,0.7)" }}>{t("MNT_SLEW", language)}</p>
+                        <p className="text-hud-xs mb-4" style={{ color: "rgba(255,255,255,0.7)" }}>{t("MNT_SLEW", language)}</p>
                         <input type="range" min="0" max="9" step="1" value={config.slewSpeed} onChange={e => updateConfig({ slewSpeed: parseInt(e.target.value) })} style={{ width: "100%", accentColor: "#00F0FF" }} />
                         <div className="flex justify-between mt-2">
-                            <span className="text-[9px]" style={{ color: "rgba(255,255,255,0.4)" }}>{t("MNT_FINE", language)}</span>
-                            <span className="text-[9px]" style={{ color: "rgba(255,255,255,0.4)" }}>{t("MNT_MAX", language)}</span>
+                            <span className="text-hud-2xs" style={{ color: "rgba(255,255,255,0.4)" }}>{t("MNT_FINE", language)}</span>
+                            <span className="text-hud-2xs" style={{ color: "rgba(255,255,255,0.4)" }}>{t("MNT_MAX", language)}</span>
                         </div>
                     </div>
                 </div>
@@ -544,7 +544,7 @@ const MountTab = ({ config, updateConfig, language }: any) => {
             <div>
                 <div className="flex items-center gap-2 mb-4">
                     <ShieldCheck size={16} style={{ color: "#00F0FF" }} />
-                    <span className="text-[12px] font-bold tracking-[0.1em]">{t("MNT_LIMITS", language)}</span>
+                    <span className="text-hud-sm font-bold tracking-[0.1em]">{t("MNT_LIMITS", language)}</span>
                 </div>
                 <div className="flex gap-4">
                     <div className="flex-1 p-4 rounded-lg" style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.05)" }}>
@@ -573,7 +573,7 @@ const MountTab = ({ config, updateConfig, language }: any) => {
                     </div>
                 </div>
                 {!errors.minAlt && !errors.maxAlt && mountLimits.minAlt >= mountLimits.maxAlt && (
-                    <p className="text-[10px] mt-2" style={{ color: "var(--astro-gold)" }}>
+                    <p className="text-hud-xs mt-2" style={{ color: "var(--astro-gold)" }}>
                         {language === 'fr' ? "L'altitude minimum doit être inférieure à l'altitude maximum" : "Min altitude must be less than max altitude"}
                     </p>
                 )}
@@ -596,7 +596,7 @@ const CameraTab = ({ config, updateConfig, language }: any) => {
             <div>
                 <div className="flex items-center gap-2 mb-4">
                     <Camera size={16} style={{ color: "#00F0FF" }} />
-                    <span className="text-[12px] font-bold tracking-[0.1em]">{t("CAM_TITLE", language)}</span>
+                    <span className="text-hud-sm font-bold tracking-[0.1em]">{t("CAM_TITLE", language)}</span>
                 </div>
                 <div className="flex gap-4 p-5 rounded-lg" style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.05)" }}>
                     <Field label={t("CAM_FORMAT", language)}>
@@ -618,14 +618,14 @@ const CameraTab = ({ config, updateConfig, language }: any) => {
             <div>
                 <div className="flex items-center gap-2 mb-4">
                     <LocateFixed size={16} style={{ color: "var(--astro-gold)" }} />
-                    <span className="text-[12px] font-bold tracking-[0.1em]" style={{ color: "var(--astro-gold)" }}>{t("CAM_AI_FOCUS_TITLE", language)}</span>
+                    <span className="text-hud-sm font-bold tracking-[0.1em]" style={{ color: "var(--astro-gold)" }}>{t("CAM_AI_FOCUS_TITLE", language)}</span>
                 </div>
                 <div className="flex flex-col gap-5 p-5 rounded-lg" style={{ background: "rgba(255, 179, 71, 0.05)", border: "1px solid rgba(255, 179, 71, 0.2)" }}>
-                    <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.8)" }}>{t("CAM_AI_FOCUS_DESC", language)}</p>
+                    <p className="text-hud-xs" style={{ color: "rgba(255,255,255,0.8)" }}>{t("CAM_AI_FOCUS_DESC", language)}</p>
                     <div className="flex items-center justify-between">
                         <div className="flex flex-col gap-0">
-                            <span className="text-[12px] text-white">{t("CAM_AI_FOCUS_EN", language)}</span>
-                            <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.5)" }}>{t("CAM_AI_FOCUS_EN_DESC", language)}</span>
+                            <span className="text-hud-sm text-white">{t("CAM_AI_FOCUS_EN", language)}</span>
+                            <span className="text-hud-xs" style={{ color: "rgba(255,255,255,0.5)" }}>{t("CAM_AI_FOCUS_EN_DESC", language)}</span>
                         </div>
                         <input type="checkbox" checked={config.aiFocus} onChange={e => updateConfig({ aiFocus: e.target.checked })} style={{ accentColor: "var(--astro-gold)", width: "18px", height: "18px" }} />
                     </div>
@@ -657,7 +657,7 @@ const GamepadTab = ({ language }: any) => (
         <div className="flex flex-col items-center p-6 rounded-lg text-center" style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.05)" }}>
             <Gamepad2 size={48} style={{ color: "rgba(255,255,255,0.4)", marginBottom: "16px" }} />
             <h3 className="text-white font-bold mb-2">{t("GP_NO_PAD", language)}</h3>
-            <p className="text-[11px] mb-6" style={{ color: "rgba(255,255,255,0.5)" }}>{t("GP_NO_PAD_DESC", language)}</p>
+            <p className="text-hud-xs mb-6" style={{ color: "rgba(255,255,255,0.5)" }}>{t("GP_NO_PAD_DESC", language)}</p>
             <button className="h-8 px-4 rounded border text-sm transition-colors cursor-pointer" style={{ borderColor: "#00F0FF", color: "#00F0FF" }}
                 onMouseEnter={e => (e.currentTarget.style.background = "rgba(0,240,255,0.1)")}
                 onMouseLeave={e => (e.currentTarget.style.background = "")}>
@@ -666,7 +666,7 @@ const GamepadTab = ({ language }: any) => (
         </div>
 
         <div className="opacity-50 pointer-events-none">
-            <div className="flex items-center gap-2 mb-4"><Settings size={16} /><span className="text-[12px] font-bold tracking-[0.1em]">{t("GP_MAP", language)}</span></div>
+            <div className="flex items-center gap-2 mb-4"><Settings size={16} /><span className="text-hud-sm font-bold tracking-[0.1em]">{t("GP_MAP", language)}</span></div>
             <div className="flex flex-col gap-3">
                 {[
                     ["Left Stick (X/Y)", "Mount Azimuth / Altitude"],
@@ -676,8 +676,8 @@ const GamepadTab = ({ language }: any) => (
                     ["Cross / A", "Start Exposure"],
                 ].map(([l, r]) => (
                     <div key={l} className="flex justify-between p-3 rounded-md" style={{ background: "rgba(0,0,0,0.5)" }}>
-                        <span className="text-[11px]">{l}</span>
-                        <span className="text-[11px]" style={{ color: "#00F0FF" }}>{r}</span>
+                        <span className="text-hud-xs">{l}</span>
+                        <span className="text-hud-xs" style={{ color: "#00F0FF" }}>{r}</span>
                     </div>
                 ))}
             </div>
@@ -756,10 +756,10 @@ const SystemTab = ({ config, updateConfig, language, setLanguage }: any) => {
             <div>
                 <div className="flex items-center gap-2 mb-4">
                     <Globe size={16} style={{ color: "#00F0FF" }} />
-                    <span className="text-[12px] font-bold tracking-[0.1em]">{t("SYS_LOC_TITLE", language)}</span>
+                    <span className="text-hud-sm font-bold tracking-[0.1em]">{t("SYS_LOC_TITLE", language)}</span>
                 </div>
                 <div className="flex flex-col gap-4 p-5 rounded-lg" style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.05)" }}>
-                    <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.5)" }}>{t("SYS_LOC_DESC", language)}</p>
+                    <p className="text-hud-xs" style={{ color: "rgba(255,255,255,0.5)" }}>{t("SYS_LOC_DESC", language)}</p>
                     <div className="flex gap-4 w-full">
                         <Field label={t("SYS_LAT", language)} error={errors.latitude}>
                             <input
@@ -877,7 +877,7 @@ const BridgeTab = ({ config, language }: any) => {
 
             {status.msg && (
                 <p
-                    className="text-[12px] p-2 rounded-md border"
+                    className="text-hud-sm p-2 rounded-md border"
                     style={{
                         background: status.type === 'success' ? 'rgba(0,255,0,0.1)' : 'rgba(255,0,0,0.1)',
                         color: status.type === 'success' ? '#68D391' : '#FC8181',
@@ -892,7 +892,7 @@ const BridgeTab = ({ config, language }: any) => {
                 <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                         <Activity size={16} style={{ color: "#00F0FF" }} />
-                        <span className="text-[12px] font-bold tracking-[0.1em]" style={{ color: "#00F0FF" }}>BRIDGE LOGS</span>
+                        <span className="text-hud-sm font-bold tracking-[0.1em]" style={{ color: "#00F0FF" }}>BRIDGE LOGS</span>
                     </div>
                     <button
                         className="p-1 rounded transition-colors cursor-pointer"
@@ -912,7 +912,7 @@ const BridgeTab = ({ config, language }: any) => {
                             const isSuccess = log.includes("✅") || log.includes("Connected");
                             const color = isError ? "#FC8181" : isWarning ? "#ECC94B" : isSuccess ? "#68D391" : "rgba(255,255,255,0.8)";
                             return (
-                                <p key={i} className="text-[10px] font-mono pb-1 break-all" style={{ color, borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                                <p key={i} className="text-hud-xs font-mono pb-1 break-all" style={{ color, borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
                                     {log}
                                 </p>
                             );

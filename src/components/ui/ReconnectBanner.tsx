@@ -57,10 +57,10 @@ function BannerContent({ reconnectState, onRetryNow }: ReconnectBannerProps) {
     >
       {/* Left: icon + message */}
       <div style={{ display: "flex", alignItems: "center", gap: "10px", flex: 1, minWidth: 0 }}>
-        <span style={{ fontSize: "16px", flexShrink: 0 }}>⚡</span>
+        <span style={{ fontSize: "var(--text-hud-md)", flexShrink: 0 }}>⚡</span>
         <span
           style={{
-            fontSize: "11px",
+            fontSize: "var(--text-hud-xs)",
             fontWeight: 700,
             color: "#fff",
             letterSpacing: "0.08em",
@@ -74,7 +74,7 @@ function BannerContent({ reconnectState, onRetryNow }: ReconnectBannerProps) {
         {lastError && (
           <span
             style={{
-              fontSize: "9px",
+              fontSize: "var(--text-hud-2xs)",
               color: "rgba(255,255,255,0.65)",
               whiteSpace: "nowrap",
               overflow: "hidden",
@@ -132,7 +132,7 @@ function BannerContent({ reconnectState, onRetryNow }: ReconnectBannerProps) {
         onClick={onRetryNow}
         disabled={isReconnecting}
         style={{
-          fontSize: "10px",
+          fontSize: "var(--text-hud-xs)",
           fontWeight: 700,
           color: isReconnecting ? "rgba(255,255,255,0.4)" : "#fff",
           background: isReconnecting ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.15)",
@@ -154,7 +154,7 @@ function BannerContent({ reconnectState, onRetryNow }: ReconnectBannerProps) {
         onClick={() => setDismissed(true)}
         aria-label="Masquer la bannière"
         style={{
-          fontSize: "14px",
+          fontSize: "var(--text-hud-md)",
           color: "rgba(255,255,255,0.6)",
           background: "transparent",
           border: "none",
