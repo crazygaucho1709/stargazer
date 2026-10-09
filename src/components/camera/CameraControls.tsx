@@ -20,7 +20,7 @@ function Spinner() {
 const ControlButton = ({ icon: DirIcon, onClick, glowColor = "var(--astro-teal)", isLoading = false, tooltip }: { icon: React.ElementType, onClick?: () => void, glowColor?: string, isLoading?: boolean, tooltip?: string }) => (
     <Tooltip content={tooltip} showArrow>
         <button
-            className="w-9 h-9 flex items-center justify-center rounded-full transition-all duration-200 cursor-pointer"
+            className="w-9 h-11 flex items-center justify-center rounded-full transition-all duration-200 cursor-pointer"
             style={{ color: "var(--astro-starlight)", background: "rgba(255,255,255,0.05)" }}
             onMouseEnter={e => {
                 const el = e.currentTarget as HTMLElement;

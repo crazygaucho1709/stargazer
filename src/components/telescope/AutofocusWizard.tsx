@@ -209,7 +209,8 @@ export const AutofocusWizard = ({
                             {L("FOCUS NUMÉRIQUE IA", "AI NUMERICAL FOCUS")}
                         </span>
                     </div>
-                    <button className="text-gray-400 hover:text-white transition-colors p-1 rounded" onClick={onClose}>
+                    <button className="text-gray-400 hover:text-white transition-colors p-1 rounded min-h-[var(--size-touch)]" onClick={onClose}>
+                        aria-label={"Fermer l'assistant de mise au point"}
                         <X size={16} />
                     </button>
                 </div>
@@ -278,7 +279,7 @@ export const AutofocusWizard = ({
                         <button
                             onClick={runCalibration}
                             disabled={busy}
-                            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md font-semibold text-sm cursor-pointer transition-colors"
+                            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md font-semibold text-sm cursor-pointer transition-colors min-h-[var(--size-touch)]"
                             style={{
                                 background: busy ? "rgba(0,240,255,0.08)" : "rgba(0,240,255,0.15)",
                                 border: "1px solid var(--astro-teal)",
@@ -294,8 +295,9 @@ export const AutofocusWizard = ({
                         </button>
                         {profile?.active && !busy && (
                             <button
+                                aria-label={"Réinitialiser le profil de mise au point"}
                                 onClick={resetProfile}
-                                className="flex items-center gap-1.5 px-3 py-2.5 rounded-md text-sm cursor-pointer"
+                                className="flex items-center gap-1.5 px-3 py-2.5 rounded-md text-sm cursor-pointer min-h-[var(--size-touch)]"
                                 style={{ background: "rgba(252,165,165,0.1)", border: "1px solid rgba(252,165,165,0.3)", color: "#FCA5A5" }}
                                 title={L("Désactiver le profil", "Disable profile")}
                             >

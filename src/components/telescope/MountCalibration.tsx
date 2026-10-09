@@ -102,7 +102,7 @@ export const MountCalibration = () => {
                     </div>
 
                     <button
-                        className="w-full flex items-center justify-center gap-1.5 h-8 rounded-md border text-hud-xs transition-all duration-200 cursor-pointer hover:text-black"
+                        className="w-full flex items-center justify-center gap-1.5 h-11 rounded-md border text-hud-xs transition-all duration-200 cursor-pointer hover:text-black"
                         style={{
                             background: "rgba(255, 51, 51, 0.1)",
                             borderColor: "var(--astro-teal)",
@@ -154,7 +154,7 @@ export const MountCalibration = () => {
                             </span>
                         </div>
                         <button
-                            className="h-8 px-3 rounded-md text-black font-semibold text-hud-sm transition-colors cursor-pointer disabled:opacity-40"
+                            className="h-11 px-3 rounded-md text-black font-semibold text-hud-sm transition-colors cursor-pointer disabled:opacity-40"
                             style={{ background: "var(--astro-teal)" }}
                             onMouseEnter={e => (e.currentTarget.style.background = "white")}
                             onMouseLeave={e => (e.currentTarget.style.background = "var(--astro-teal)")}

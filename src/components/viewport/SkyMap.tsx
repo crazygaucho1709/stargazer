@@ -2,12 +2,13 @@
 "use client";
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { Search, Crosshair, Layers, Target, Navigation, Camera, Globe } from "lucide-react";
+import { Search, Crosshair, Layers, Target, Navigation, Camera, Globe, X } from "lucide-react";
 import { useStargazerStore } from "@/store/useStargazerStore";
 import { useAstroAction } from "@/hooks/useAstroAction";
 import { useGoTo } from "@/hooks/useGoTo";
 import { CELESTIAL_CATALOG, CelestialObject } from "@/data/celestialCatalog";
 import { notification } from "@/lib/notificationService";
+import { CloseButton } from "@/components/ui/CloseButton";
 
 declare global {
     interface Window {
@@ -1137,7 +1138,7 @@ Génère une séquence de capture optimale au format JSON strict:
                     {/* Live/Sky mode buttons */}
                     <div className="flex items-center gap-1 flex-shrink-0">
                         <button
-                            className="flex items-center gap-1 px-3 py-1 rounded-full text-hud-2xs font-medium"
+                            className="flex items-center gap-1 px-3 py-1 rounded-full text-hud-2xs font-medium min-h-[var(--size-touch)]"
                             style={{
                                 background: liveViewMode === "NASA" ? 'var(--astro-teal)' : 'rgba(10,20,40,0.8)',
                                 color: liveViewMode === "NASA" ? 'black' : 'var(--astro-teal)',
@@ -1148,7 +1149,7 @@ Génère une séquence de capture optimale au format JSON strict:
                             <Globe size={12} />SKY
                         </button>
                         <button
-                            className="flex items-center gap-1 px-3 py-1 rounded-full text-hud-2xs font-medium"
+                            className="flex items-center gap-1 px-3 py-1 rounded-full text-hud-2xs font-medium min-h-[var(--size-touch)]"
                             style={{
                                 background: liveViewMode === "CANON" ? 'var(--astro-gold)' : 'rgba(10,20,40,0.8)',
                                 color: liveViewMode === "CANON" ? 'black' : 'var(--astro-gold)',
@@ -1186,7 +1187,7 @@ Génère une séquence de capture optimale au format JSON strict:
                             </button>
                             <button
                                 type="button"
-                                className="text-hud-2xs font-bold px-3 py-1 rounded-full"
+                                className="text-hud-2xs font-bold px-3 py-1 rounded-full min-h-[var(--size-touch)]"
                                 style={{ background: 'var(--astro-gold)', color: 'black' }}
                                 onClick={handleSlewToMap}
                             >
@@ -1198,7 +1199,7 @@ Génère une séquence de capture optimale au format JSON strict:
                     {/* Toggle buttons — all in-flow, no absolute positioning */}
                     <div className="flex items-center gap-1 flex-shrink-0">
                         <button
-                            className="flex items-center gap-1 px-2 py-1 rounded-full text-hud-2xs font-medium"
+                            className="flex items-center gap-1 px-2 py-1 rounded-full text-hud-2xs font-medium min-h-[var(--size-touch)]"
                             style={{
                                 background: trackMount ? 'var(--astro-teal)' : 'rgba(10,20,40,0.8)',
                                 color: trackMount ? 'black' : 'var(--astro-teal)',
@@ -1210,7 +1211,7 @@ Génère une séquence de capture optimale au format JSON strict:
                             {trackMount ? "TRACK" : "CENTER"}
                         </button>
                         <button
-                            className="px-2 py-1 rounded-full text-hud-2xs font-medium"
+                            className="px-2 py-1 rounded-full text-hud-2xs font-medium min-h-[var(--size-touch)]"
                             style={{
                                 background: gridVisible ? 'var(--astro-teal)' : 'rgba(10,20,40,0.8)',
                                 color: gridVisible ? 'black' : 'var(--astro-teal)',
@@ -1219,7 +1220,7 @@ Génère une séquence de capture optimale au format JSON strict:
                             onClick={toggleGrid}
                         >GRID</button>
                         <button
-                            className="px-2 py-1 rounded-full text-hud-2xs font-medium"
+                            className="px-2 py-1 rounded-full text-hud-2xs font-medium min-h-[var(--size-touch)]"
                             style={{
                                 background: showCatalog ? 'var(--astro-teal)' : 'rgba(10,20,40,0.8)',
                                 color: showCatalog ? 'black' : 'var(--astro-teal)',
@@ -1228,7 +1229,7 @@ Génère une séquence de capture optimale au format JSON strict:
                             onClick={() => setShowCatalog(!showCatalog)}
                         >CAT</button>
                         <button
-                            className="px-2 py-1 rounded-full text-hud-2xs font-medium"
+                            className="px-2 py-1 rounded-full text-hud-2xs font-medium min-h-[var(--size-touch)]"
                             style={{
                                 background: showLabels ? 'var(--astro-teal)' : 'rgba(10,20,40,0.8)',
                                 color: showLabels ? 'black' : 'var(--astro-teal)',
@@ -1237,7 +1238,7 @@ Génère une séquence de capture optimale au format JSON strict:
                             onClick={() => setShowLabels(!showLabels)}
                         >LABELS</button>
                         <button
-                            className="px-2 py-1 rounded-full text-hud-2xs font-medium"
+                            className="px-2 py-1 rounded-full text-hud-2xs font-medium min-h-[var(--size-touch)]"
                             style={{
                                 background: showCardinals ? 'var(--astro-teal)' : 'rgba(10,20,40,0.8)',
                                 color: showCardinals ? 'black' : 'var(--astro-teal)',
@@ -1246,7 +1247,7 @@ Génère une séquence de capture optimale au format JSON strict:
                             onClick={() => setShowCardinals(!showCardinals)}
                         >N/S/E/W</button>
                         <button
-                            className="flex items-center gap-1 px-2 py-1 rounded-full text-hud-2xs font-medium"
+                            className="flex items-center gap-1 px-2 py-1 rounded-full text-hud-2xs font-medium min-h-[var(--size-touch)]"
                             style={{
                                 background: showTelrad ? 'var(--astro-teal)' : 'rgba(10,20,40,0.8)',
                                 color: showTelrad ? 'black' : 'var(--astro-teal)',
@@ -1257,7 +1258,7 @@ Génère une séquence de capture optimale au format JSON strict:
                             <Target size={12} />TELRAD
                         </button>
                         <button
-                            className="px-2 py-1 rounded-full text-hud-2xs font-medium"
+                            className="px-2 py-1 rounded-full text-hud-2xs font-medium min-h-[var(--size-touch)]"
                             style={{
                                 background: obsMode === 'visual' ? 'var(--astro-gold)' : 'rgba(10,20,40,0.8)',
                                 color: obsMode === 'visual' ? 'black' : 'var(--astro-gold)',
@@ -1269,7 +1270,7 @@ Génère une séquence de capture optimale au format JSON strict:
                         </button>
                         <span className="text-hud-2xs whitespace-nowrap" style={{ color: '#6b7280' }}>≤{limitingMagnitude.toFixed(1)}</span>
                         <button
-                            className="p-1 rounded-full text-hud-2xs"
+                            className="p-1 rounded-full text-hud-2xs min-h-[var(--size-touch)]"
                             style={{
                                 background: 'rgba(10,20,40,0.8)',
                                 color: 'var(--astro-teal)',
@@ -1280,7 +1281,7 @@ Génère une séquence de capture optimale au format JSON strict:
                             <Layers size={12} />
                         </button>
                         <button
-                            className="px-2 py-1 rounded-full text-hud-2xs"
+                            className="px-2 py-1 rounded-full text-hud-2xs min-h-[var(--size-touch)]"
                             style={{
                                 background: 'rgba(10,20,40,0.8)',
                                 color: 'white',
@@ -1444,7 +1445,7 @@ Génère une séquence de capture optimale au format JSON strict:
 
                     {/* AI Sequence button */}
                     <button
-                        className="w-full mt-3 py-2 rounded text-white font-bold text-sm"
+                        className="w-full mt-3 py-2 rounded text-white font-bold text-sm min-h-[var(--size-touch)]"
                         style={{ background: 'linear-gradient(135deg, #1a5c2a, #b8860b)' }}
                         onMouseEnter={e => (e.currentTarget.style.opacity = '0.9')}
                         onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
@@ -1455,7 +1456,7 @@ Génère une séquence de capture optimale au format JSON strict:
 
                     <div className="flex items-center gap-2 mt-3 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
                         <button
-                            className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded text-sm font-medium"
+                            className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded text-sm font-medium min-h-[var(--size-touch)]"
                             style={{ background: 'var(--astro-gold)', color: 'black' }}
                             onMouseEnter={e => (e.currentTarget.style.filter = 'brightness(1.1)')}
                             onMouseLeave={e => (e.currentTarget.style.filter = 'none')}
@@ -1468,7 +1469,7 @@ Génère une séquence de capture optimale au format JSON strict:
                             CENTER
                         </button>
                         <button
-                            className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded text-sm font-medium text-white"
+                            className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded text-sm font-medium text-white min-h-[var(--size-touch)]"
                             style={{ background: '#22c55e' }}
                             onMouseEnter={e => (e.currentTarget.style.background = '#16a34a')}
                             onMouseLeave={e => (e.currentTarget.style.background = '#22c55e')}
@@ -1477,16 +1478,13 @@ Génère une séquence de capture optimale au format JSON strict:
                             <Target size={12} />
                             GOTO
                         </button>
-                        <button
-                            className="py-1.5 px-3 rounded text-white text-sm"
-                            style={{ background: 'transparent' }}
+                        <CloseButton
                             onClick={() => {
                                 setSelectedObject(null);
                                 setSelectedObjectId(null);
                             }}
-                        >
-                            ✕
-                        </button>
+                            label={language === 'fr' ? "Fermer la fiche de l'objet" : 'Close object details'}
+                        />
                     </div>
                 </div>
                 );
@@ -1630,11 +1628,10 @@ Génère une séquence de capture optimale au format JSON strict:
                     <p className="font-bold text-xl" style={{ color: 'var(--astro-teal)' }}>
                         {language === 'fr' ? 'Paramètres carte' : 'Map Settings'}
                     </p>
-                    <button
-                        className="px-3 py-1 rounded text-white font-medium"
-                        style={{ background: '#ef4444' }}
+                    <CloseButton
                         onClick={() => setShowSettings(false)}
-                    >✕</button>
+                        label={language === 'fr' ? 'Fermer les paramètres' : 'Close settings'}
+                    />
                 </div>
                 <div className="flex flex-col gap-4">
                     <div>
@@ -1696,7 +1693,7 @@ Génère une séquence de capture optimale au format JSON strict:
                             onChange={(e) => setAladinSettings({...aladinSettings, showZoom: e.target.checked})} />
                     </div>
                     <button
-                        className="w-full py-2 rounded font-medium"
+                        className="w-full py-2 rounded font-medium min-h-[var(--size-touch)]"
                         style={{ background: 'var(--astro-teal)', color: 'black' }}
                         onClick={() => setShowSettings(false)}
                     >
@@ -1831,7 +1828,7 @@ Génère une séquence de capture optimale au format JSON strict:
                             )}
                             <div className="flex items-center gap-2 mt-2">
                                 <button
-                                    className="flex-1 py-2 rounded text-white font-medium"
+                                    className="flex-1 py-2 rounded text-white font-medium min-h-[var(--size-touch)]"
                                     style={{ background: '#22c55e' }}
                                     onMouseEnter={e => (e.currentTarget.style.background = '#16a34a')}
                                     onMouseLeave={e => (e.currentTarget.style.background = '#22c55e')}
@@ -1840,11 +1837,11 @@ Génère une séquence de capture optimale au format JSON strict:
                                     ✅ LANCER
                                 </button>
                                 <button
-                                    className="flex-1 py-2 rounded text-white font-medium"
+                                    className="flex-1 py-2 rounded text-white font-medium min-h-[var(--size-touch)]"
                                     style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.2)' }}
                                     onClick={() => setShowSequenceModal(false)}
                                 >
-                                    ✕ Annuler
+                                    <X size={14} aria-hidden /> Annuler
                                 </button>
                             </div>
                         </div>

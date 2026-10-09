@@ -70,7 +70,7 @@ export const ConfigurationMenu = () => {
         <>
             <button
                 aria-label="Configuration"
-                className="p-2 rounded transition-all duration-[400ms] cursor-pointer"
+                className="p-2 rounded transition-all duration-[400ms] cursor-pointer min-h-[var(--size-touch)]"
                 style={{ color: "var(--astro-teal)" }}
                 onMouseEnter={e => {
                     (e.currentTarget as HTMLElement).style.background = "rgba(0, 240, 255, 0.1)";
@@ -119,7 +119,8 @@ export const ConfigurationMenu = () => {
                                 <span className="text-hud-xs tracking-[0.2em]" style={{ color: "rgba(255,255,255,0.5)" }}>{t("CONFIG_SUBTITLE", language)}</span>
                             </div>
                             <button
-                                className="absolute top-6 right-6 p-2 rounded transition-colors cursor-pointer"
+                                aria-label={"Fermer la configuration"}
+                                className="absolute top-6 right-6 p-2 rounded transition-colors cursor-pointer min-h-[var(--size-touch)]"
                                 style={{ color: "rgba(255,255,255,0.6)" }}
                                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(255,51,51,0.2)"; (e.currentTarget as HTMLElement).style.color = "var(--astro-gold)"; }}
                                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ""; (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.6)"; }}
@@ -139,7 +140,7 @@ export const ConfigurationMenu = () => {
                                     return (
                                         <button
                                             key={tab.id}
-                                            className="flex items-center gap-3 w-full py-3 px-3 rounded text-left transition-colors cursor-pointer"
+                                            className="flex items-center gap-3 w-full py-3 px-3 rounded text-left transition-colors cursor-pointer min-h-[var(--size-touch)]"
                                             style={{
                                                 background: active ? "rgba(0, 240, 255, 0.1)" : "transparent",
                                                 color: active ? "#00F0FF" : "rgba(255,255,255,0.7)",
@@ -310,7 +311,7 @@ const HardwareTab = ({ config, updateConfig, language }: any) => {
                         </Field>
                     </div>
                     <button
-                        className="flex items-center justify-center gap-2 w-full h-9 rounded text-sm border transition-colors cursor-pointer disabled:opacity-50"
+                        className="flex items-center justify-center gap-2 w-full h-11 rounded text-sm border transition-colors cursor-pointer disabled:opacity-50"
                         style={{ borderColor: "#00F0FF", color: "#00F0FF" }}
                         onMouseEnter={e => (e.currentTarget.style.background = "rgba(0,240,255,0.1)")}
                         onMouseLeave={e => (e.currentTarget.style.background = "")}
@@ -444,7 +445,7 @@ function AiAuthPanel({ language }: { language: string }) {
                         <div className="flex items-center gap-2">
                             {auth.claude && (
                                 <button
-                                    className="text-hud-xs px-2 py-1 rounded border cursor-pointer transition-colors"
+                                    className="text-hud-xs px-2 py-1 rounded border cursor-pointer transition-colors min-h-[var(--size-touch)]"
                                     style={{ borderColor: "rgba(248,113,113,0.4)", color: "#F87171" }}
                                     onMouseEnter={e => (e.currentTarget.style.background = "rgba(248,113,113,0.1)")}
                                     onMouseLeave={e => (e.currentTarget.style.background = "")}
@@ -455,7 +456,7 @@ function AiAuthPanel({ language }: { language: string }) {
                             )}
                             {!auth.claude && (
                                 <button
-                                    className="text-hud-xs px-2 py-1 rounded border cursor-pointer transition-colors"
+                                    className="text-hud-xs px-2 py-1 rounded border cursor-pointer transition-colors min-h-[var(--size-touch)]"
                                     style={{ borderColor: "rgba(217,119,6,0.5)", color: "#D97706" }}
                                     onMouseEnter={e => (e.currentTarget.style.background = "rgba(217,119,6,0.1)")}
                                     onMouseLeave={e => (e.currentTarget.style.background = "")}
@@ -482,7 +483,7 @@ function AiAuthPanel({ language }: { language: string }) {
                                 style={{ ...INPUT_STYLE, background: "rgba(0,0,0,0.5)" }}
                             />
                             <button
-                                className="px-3 py-1 rounded text-hud-xs font-bold text-black cursor-pointer disabled:opacity-50"
+                                className="px-3 py-1 rounded text-hud-xs font-bold text-black cursor-pointer disabled:opacity-50 min-h-[var(--size-touch)]"
                                 style={{ background: "#D97706" }}
                                 onClick={saveClaudeKey}
                                 disabled={saving || !claudeKey.trim()}
@@ -630,7 +631,7 @@ const CameraTab = ({ config, updateConfig, language }: any) => {
                         <input type="checkbox" checked={config.aiFocus} onChange={e => updateConfig({ aiFocus: e.target.checked })} style={{ accentColor: "var(--astro-gold)", width: "18px", height: "18px" }} />
                     </div>
                     <button
-                        className="flex items-center justify-center gap-2 w-full h-10 rounded-lg font-bold text-black cursor-pointer disabled:opacity-50"
+                        className="flex items-center justify-center gap-2 w-full h-11 rounded-lg font-bold text-black cursor-pointer disabled:opacity-50"
                         style={{ background: "var(--astro-gold)" }}
                         onMouseEnter={e => (e.currentTarget.style.background = "#e69c3a")}
                         onMouseLeave={e => (e.currentTarget.style.background = "var(--astro-gold)")}
@@ -658,7 +659,7 @@ const GamepadTab = ({ language }: any) => (
             <Gamepad2 size={48} style={{ color: "rgba(255,255,255,0.4)", marginBottom: "16px" }} />
             <h3 className="text-white font-bold mb-2">{t("GP_NO_PAD", language)}</h3>
             <p className="text-hud-xs mb-6" style={{ color: "rgba(255,255,255,0.5)" }}>{t("GP_NO_PAD_DESC", language)}</p>
-            <button className="h-8 px-4 rounded border text-sm transition-colors cursor-pointer" style={{ borderColor: "#00F0FF", color: "#00F0FF" }}
+            <button className="h-11 px-4 rounded border text-sm transition-colors cursor-pointer" style={{ borderColor: "#00F0FF", color: "#00F0FF" }}
                 onMouseEnter={e => (e.currentTarget.style.background = "rgba(0,240,255,0.1)")}
                 onMouseLeave={e => (e.currentTarget.style.background = "")}>
                 {t("GP_SCAN", language)}
@@ -783,7 +784,7 @@ const SystemTab = ({ config, updateConfig, language, setLanguage }: any) => {
                         </Field>
                     </div>
                     <button
-                        className="flex items-center justify-center gap-2 w-full h-9 rounded border text-sm transition-colors cursor-pointer disabled:opacity-50"
+                        className="flex items-center justify-center gap-2 w-full h-11 rounded border text-sm transition-colors cursor-pointer disabled:opacity-50"
                         style={{ borderColor: "#00F0FF", color: "#00F0FF" }}
                         onMouseEnter={e => (e.currentTarget.style.background = "rgba(0,240,255,0.1)")}
                         onMouseLeave={e => (e.currentTarget.style.background = "")}
@@ -852,7 +853,7 @@ const BridgeTab = ({ config, language }: any) => {
 
             <div className="flex gap-4">
                 <button
-                    className="flex flex-1 items-center justify-center gap-2 h-10 rounded-lg font-bold text-black cursor-pointer disabled:opacity-50"
+                    className="flex flex-1 items-center justify-center gap-2 h-11 rounded-lg font-bold text-black cursor-pointer disabled:opacity-50"
                     style={{ background: "var(--astro-gold)" }}
                     onMouseEnter={e => (e.currentTarget.style.background = "#e69c3a")}
                     onMouseLeave={e => (e.currentTarget.style.background = "var(--astro-gold)")}
@@ -863,7 +864,7 @@ const BridgeTab = ({ config, language }: any) => {
                     {language === 'fr' ? "Auto-Diagnostic & Fix" : "Auto-Diagnostic & Fix"}
                 </button>
                 <button
-                    className="flex flex-1 items-center justify-center gap-2 h-10 rounded-lg border transition-colors cursor-pointer disabled:opacity-50"
+                    className="flex flex-1 items-center justify-center gap-2 h-11 rounded-lg border transition-colors cursor-pointer disabled:opacity-50"
                     style={{ borderColor: "#FC8181", color: "#FC8181" }}
                     onMouseEnter={e => (e.currentTarget.style.background = "rgba(252,129,129,0.1)")}
                     onMouseLeave={e => (e.currentTarget.style.background = "")}
@@ -895,7 +896,8 @@ const BridgeTab = ({ config, language }: any) => {
                         <span className="text-hud-sm font-bold tracking-[0.1em]" style={{ color: "#00F0FF" }}>BRIDGE LOGS</span>
                     </div>
                     <button
-                        className="p-1 rounded transition-colors cursor-pointer"
+                        aria-label={"Rafraîchir les journaux"}
+                        className="p-1 rounded transition-colors cursor-pointer min-h-[var(--size-touch)]"
                         style={{ color: "rgba(255,255,255,0.6)" }}
                         onMouseEnter={e => (e.currentTarget.style.color = "white")}
                         onMouseLeave={e => (e.currentTarget.style.color = "rgba(255,255,255,0.6)")}

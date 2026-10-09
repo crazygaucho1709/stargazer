@@ -94,7 +94,7 @@ export const LiveView = () => {
                             </p>
                         </div>
                         <button
-                            className="w-full h-10 rounded-lg font-bold text-black transition-colors cursor-pointer"
+                            className="w-full h-11 rounded-lg font-bold text-black transition-colors cursor-pointer"
                             style={{ background: "var(--astro-gold)" }}
                             onMouseEnter={e => (e.currentTarget.style.background = "white")}
                             onMouseLeave={e => (e.currentTarget.style.background = "var(--astro-gold)")}
@@ -210,7 +210,7 @@ export const LiveView = () => {
                     }}
                 >
                     <button
-                        className="p-1 rounded transition-colors cursor-pointer"
+                        className="p-1 rounded transition-colors cursor-pointer min-h-[var(--size-touch)]"
                         style={{ color: "rgba(255,255,255,0.7)" }}
                         onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "var(--astro-teal)"; }}
                         onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.7)"; }}
@@ -222,7 +222,7 @@ export const LiveView = () => {
                         {zoom.toFixed(1)}x
                     </span>
                     <button
-                        className="p-1 rounded transition-colors cursor-pointer"
+                        className="p-1 rounded transition-colors cursor-pointer min-h-[var(--size-touch)]"
                         style={{ color: "rgba(255,255,255,0.7)" }}
                         onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "var(--astro-teal)"; }}
                         onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.7)"; }}
@@ -244,7 +244,7 @@ export const LiveView = () => {
                     }}
                 >
                     <button
-                        className="flex items-center gap-1.5 h-7 px-6 rounded-full text-hud-xs hud-font transition-colors cursor-pointer"
+                        className="flex items-center gap-1.5 h-11 px-6 rounded-full text-hud-xs hud-font transition-colors cursor-pointer"
                         style={{
                             background: liveViewMode === "NASA" ? "var(--astro-teal)" : "transparent",
                             color: liveViewMode === "NASA" ? "black" : "rgba(255,255,255,0.7)",
@@ -257,7 +257,7 @@ export const LiveView = () => {
                         {t("SKY_MAP", language)}
                     </button>
                     <button
-                        className="flex items-center gap-1.5 h-7 px-6 rounded-full text-hud-xs hud-font transition-colors cursor-pointer"
+                        className="flex items-center gap-1.5 h-11 px-6 rounded-full text-hud-xs hud-font transition-colors cursor-pointer"
                         style={{
                             background: liveViewMode === "CANON" ? "var(--astro-gold)" : "transparent",
                             color: liveViewMode === "CANON" ? "black" : "rgba(255,255,255,0.7)",
@@ -272,7 +272,7 @@ export const LiveView = () => {
 
                     {liveViewMode === "CANON" && (
                         <button
-                            className="flex items-center gap-1 h-7 px-4 rounded-full text-hud-xs hud-font text-white transition-colors cursor-pointer"
+                            className="flex items-center gap-1 h-11 px-4 rounded-full text-hud-xs hud-font text-white transition-colors cursor-pointer"
                             style={{
                                 background: liveView.isLive ? "#E53E3E" : "#38A169",
                                 animation: liveView.isLive ? "pulse 1s infinite" : undefined,

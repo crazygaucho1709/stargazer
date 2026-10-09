@@ -195,6 +195,7 @@ export const FocusCurve: React.FC<FocusCurveProps> = ({ isVisible, onClose, onMo
                 </div>
               )}
               <button
+                  aria-label={"Fermer la courbe de mise au point"}
                 onClick={onClose}
                 style={{
                   background: "none",

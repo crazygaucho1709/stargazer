@@ -231,7 +231,7 @@ export const TargetSelector: React.FC<TargetSelectorProps> = ({ onSelectTarget }
                 </div>
 
                 <button
-                    className="flex items-center gap-1 text-hud-2xs px-2 py-1 rounded transition-colors hover:bg-white/5"
+                    className="flex items-center gap-1 text-hud-2xs px-2 py-1 rounded transition-colors hover:bg-white/5 min-h-[var(--size-touch)]"
                     style={{ color: "var(--astro-teal)" }}
                     onClick={() => setShowSettings(!showSettings)}
                 >
@@ -247,7 +247,7 @@ export const TargetSelector: React.FC<TargetSelectorProps> = ({ onSelectTarget }
                                 <span className="text-gray-400 text-hud-2xs">Exposition (s)</span>
                                 <div className="flex items-center gap-1">
                                     <button
-                                        className="text-hud-2xs px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-white transition-colors"
+                                        className="text-hud-2xs px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-white transition-colors min-h-[var(--size-touch)]"
                                         onClick={() =>
                                             setExposureTime(Math.max(0.5, exposureTime - 1))
                                         }
@@ -258,7 +258,7 @@ export const TargetSelector: React.FC<TargetSelectorProps> = ({ onSelectTarget }
                                         {exposureTime}s
                                     </span>
                                     <button
-                                        className="text-hud-2xs px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-white transition-colors"
+                                        className="text-hud-2xs px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-white transition-colors min-h-[var(--size-touch)]"
                                         onClick={() =>
                                             setExposureTime(Math.min(300, exposureTime + 1))
                                         }
@@ -274,7 +274,7 @@ export const TargetSelector: React.FC<TargetSelectorProps> = ({ onSelectTarget }
                                 <span className="text-gray-400 text-hud-2xs">Stack frames</span>
                                 <div className="flex items-center gap-1">
                                     <button
-                                        className="text-hud-2xs px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-white transition-colors"
+                                        className="text-hud-2xs px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-white transition-colors min-h-[var(--size-touch)]"
                                         onClick={() =>
                                             setStackCount(Math.max(1, stackCount - 5))
                                         }
@@ -285,7 +285,7 @@ export const TargetSelector: React.FC<TargetSelectorProps> = ({ onSelectTarget }
                                         {stackCount}
                                     </span>
                                     <button
-                                        className="text-hud-2xs px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-white transition-colors"
+                                        className="text-hud-2xs px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-white transition-colors min-h-[var(--size-touch)]"
                                         onClick={() =>
                                             setStackCount(Math.min(500, stackCount + 5))
                                         }
@@ -348,7 +348,7 @@ export const TargetSelector: React.FC<TargetSelectorProps> = ({ onSelectTarget }
                     {(["score", "magnitude", "altitude"] as SortMode[]).map((mode) => (
                         <button
                             key={mode}
-                            className="flex items-center justify-center gap-1 flex-1 text-hud-2xs font-bold py-1 px-1 rounded transition-colors"
+                            className="flex items-center justify-center gap-1 flex-1 text-hud-2xs font-bold py-1 px-1 rounded transition-colors min-h-[var(--size-touch)]"
                             style={{
                                 background: sortMode === mode ? "var(--astro-teal)" : "transparent",
                                 color: sortMode === mode ? "black" : "#9CA3AF",
@@ -493,7 +493,7 @@ export const TargetSelector: React.FC<TargetSelectorProps> = ({ onSelectTarget }
                             {obj.isVisible && (
                                 <div className="flex items-center gap-2 mt-2">
                                     <button
-                                        className="flex items-center justify-center gap-1 flex-1 text-hud-2xs font-bold py-1 px-2 rounded transition-colors"
+                                        className="flex items-center justify-center gap-1 flex-1 text-hud-2xs font-bold py-1 px-2 rounded transition-colors min-h-[var(--size-touch)]"
                                         style={{ background: "var(--astro-teal)", color: "black" }}
                                         onMouseEnter={(e) =>
                                             (e.currentTarget.style.background = "#67E8F9")
@@ -510,7 +510,7 @@ export const TargetSelector: React.FC<TargetSelectorProps> = ({ onSelectTarget }
                                         AUTO
                                     </button>
                                     <button
-                                        className="flex items-center justify-center gap-1 flex-1 text-hud-2xs font-bold py-1 px-2 rounded transition-colors disabled:opacity-60"
+                                        className="flex items-center justify-center gap-1 flex-1 text-hud-2xs font-bold py-1 px-2 rounded transition-colors disabled:opacity-60 min-h-[var(--size-touch)]"
                                         style={{ background: "var(--astro-gold)", color: "black" }}
                                         onMouseEnter={(e) => {
                                             if (isOptimizing !== obj.id)
@@ -533,7 +533,7 @@ export const TargetSelector: React.FC<TargetSelectorProps> = ({ onSelectTarget }
                                         OPTI IA
                                     </button>
                                     <button
-                                        className="flex items-center justify-center gap-1 flex-1 text-hud-2xs font-bold py-1 px-2 rounded transition-colors"
+                                        className="flex items-center justify-center gap-1 flex-1 text-hud-2xs font-bold py-1 px-2 rounded transition-colors min-h-[var(--size-touch)]"
                                         style={{ background: "#276749", color: "white" }}
                                         onMouseEnter={(e) =>
                                             (e.currentTarget.style.background = "#2F855A")

@@ -143,7 +143,7 @@ const InteractiveSkyMap: React.FC = () => {
                     <div className="flex items-center justify-between mb-4">
                         <span className="text-xl font-bold">{selectedObj.name}</span>
                         <button
-                            className="p-1 rounded transition-colors cursor-pointer"
+                            className="p-1 rounded transition-colors cursor-pointer min-h-[var(--size-touch)]"
                             style={{ color: "rgba(255,255,255,0.5)" }}
                             onMouseEnter={e => (e.currentTarget.style.color = "white")}
                             onMouseLeave={e => (e.currentTarget.style.color = "rgba(255,255,255,0.5)")}
@@ -166,7 +166,7 @@ const InteractiveSkyMap: React.FC = () => {
                         </p>
                         <div className="flex gap-2">
                             <button
-                                className="flex flex-1 items-center justify-center gap-2 h-9 rounded-lg text-white font-medium cursor-pointer transition-colors"
+                                className="flex flex-1 items-center justify-center gap-2 h-11 rounded-lg text-white font-medium cursor-pointer transition-colors"
                                 style={{ background: "#2C7A7B" }}
                                 onMouseEnter={e => (e.currentTarget.style.background = "#285E61")}
                                 onMouseLeave={e => (e.currentTarget.style.background = "#2C7A7B")}
@@ -176,7 +176,7 @@ const InteractiveSkyMap: React.FC = () => {
                                 GoTo
                             </button>
                             <button
-                                className="flex flex-1 items-center justify-center gap-2 h-9 rounded-lg text-white font-medium cursor-pointer transition-colors"
+                                className="flex flex-1 items-center justify-center gap-2 h-11 rounded-lg text-white font-medium cursor-pointer transition-colors"
                                 style={{ background: "#C05621" }}
                                 onMouseEnter={e => (e.currentTarget.style.background = "#9C4221")}
                                 onMouseLeave={e => (e.currentTarget.style.background = "#C05621")}

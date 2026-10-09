@@ -221,7 +221,7 @@ export const CalibrationWizard = () => {
                     </p>
                     <button
                         onClick={startCalibration}
-                        className="w-full h-10 rounded-lg text-black font-bold transition-all duration-300 cursor-pointer hover:scale-[1.02]"
+                        className="w-full h-11 rounded-lg text-black font-bold transition-all duration-300 cursor-pointer hover:scale-[1.02]"
                         style={{ background: "var(--astro-teal)" }}
                         onMouseEnter={e => (e.currentTarget.style.background = "white")}
                         onMouseLeave={e => (e.currentTarget.style.background = "var(--astro-teal)")}
@@ -370,7 +370,7 @@ export const CalibrationWizard = () => {
             <div className="flex flex-col gap-3">
                 {step.step === 'park' && (
                     <button disabled={isPending} onClick={syncParkPosition}
-                        className="w-full flex items-center justify-center gap-2 h-10 rounded-lg text-black font-bold cursor-pointer disabled:opacity-60"
+                        className="w-full flex items-center justify-center gap-2 h-11 rounded-lg text-black font-bold cursor-pointer disabled:opacity-60"
                         style={{ background: "var(--astro-gold)" }}>
                         {isPending && <Spinner size="sm" color="black" />}
                         CONFIRMER POSITION REPOS (0°, 0°)
@@ -421,12 +421,12 @@ export const CalibrationWizard = () => {
 
                         <div className="flex items-center gap-2">
                             <button disabled={isPending} onClick={startStarGoto}
-                                className="flex-1 flex items-center justify-center gap-1 h-8 rounded-md text-sm border cursor-pointer disabled:opacity-60 transition-colors"
+                                className="flex-1 flex items-center justify-center gap-1 h-11 rounded-md text-sm border cursor-pointer disabled:opacity-60 transition-colors"
                                 style={{ borderColor: "var(--astro-gold)", color: "var(--astro-gold)" }}>
                                 {isPending && <Spinner size="xs" color="var(--astro-gold)" />}GOTO
                             </button>
                             <button disabled={isPending} onClick={syncStar}
-                                className="flex-1 flex items-center justify-center gap-1 h-8 rounded-md text-sm text-white bg-green-700 hover:bg-green-600 cursor-pointer disabled:opacity-60 transition-colors">
+                                className="flex-1 flex items-center justify-center gap-1 h-11 rounded-md text-sm text-white bg-green-700 hover:bg-green-600 cursor-pointer disabled:opacity-60 transition-colors">
                                 {isPending && <Spinner size="xs" color="white" />}SYNC
                             </button>
                         </div>
@@ -438,7 +438,7 @@ export const CalibrationWizard = () => {
                         <CheckCircle2 size={40} className="text-green-400" />
                         <p className="text-hud-md font-bold text-white">CALIBRATION RÉUSSIE</p>
                         <button onClick={reset}
-                            className="w-full h-10 rounded-lg text-white bg-green-700 hover:bg-green-600 font-bold cursor-pointer transition-colors">
+                            className="w-full h-11 rounded-lg text-white bg-green-700 hover:bg-green-600 font-bold cursor-pointer transition-colors">
                             FERMER LE WIZARD
                         </button>
                     </div>
@@ -452,6 +452,7 @@ export const CalibrationWizard = () => {
                 )}
 
                 <button onClick={reset}
+                    aria-label={"Réinitialiser la calibration"}
                     className="flex items-center justify-center gap-1 text-hud-2xs cursor-pointer transition-colors"
                     style={{ color: "rgba(255,255,255,0.4)" }}
                     onMouseEnter={e => (e.currentTarget.style.color = "#fc8181")}

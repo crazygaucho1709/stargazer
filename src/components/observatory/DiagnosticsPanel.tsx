@@ -272,6 +272,7 @@ export function DiagnosticsPanel() {
           )}
         </div>
         <button
+            aria-label={"Réinitialiser tous les sous-systèmes"}
           onClick={runResetAll}
           disabled={resetting}
           style={{

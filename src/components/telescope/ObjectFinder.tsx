@@ -231,7 +231,7 @@ export const ObjectFinder = ({ onSlew }: ObjectFinderProps) => {
                             </div>
 
                             <button
-                                className="flex items-center gap-1 text-hud-xs font-bold px-2 py-0.5 rounded transition-colors"
+                                className="flex items-center gap-1 text-hud-xs font-bold px-2 py-0.5 rounded transition-colors min-h-[var(--size-touch)]"
                                 style={{ background: "var(--astro-teal)", color: "black" }}
                                 onMouseEnter={(e) => (e.currentTarget.style.background = "white")}
                                 onMouseLeave={(e) =>
@@ -313,7 +313,7 @@ export const ObjectFinder = ({ onSlew }: ObjectFinderProps) => {
                         </div>
 
                         <button
-                            className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded font-bold transition-colors disabled:opacity-60"
+                            className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded font-bold transition-colors disabled:opacity-60 min-h-[var(--size-touch)]"
                             style={{ background: "var(--astro-teal)", color: "black" }}
                             onMouseEnter={(e) => (e.currentTarget.style.background = "white")}
                             onMouseLeave={(e) => (e.currentTarget.style.background = "var(--astro-teal)")}

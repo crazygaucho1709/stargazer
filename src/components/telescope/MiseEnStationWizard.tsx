@@ -18,6 +18,7 @@ import {
 import { useStargazerStore } from "@/store/useStargazerStore";
 import { plateSolve } from "@/services/plateSolve";
 import { notification } from "@/lib/notificationService";
+import { CloseButton } from "@/components/ui/CloseButton";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -362,7 +363,7 @@ export const MiseEnStationWizard = ({ onClose }: MiseEnStationWizardProps) => {
                         <span>iPhone</span>
                     </span>
                     {onClose && (
-                        <button className="text-white/40 hover:text-white/70 transition-colors text-hud-2xs px-1" onClick={onClose}>✕</button>
+                        <CloseButton onClick={onClose} label="Fermer l'assistant de mise en station" />
                     )}
                 </div>
             </div>
@@ -428,7 +429,7 @@ export const MiseEnStationWizard = ({ onClose }: MiseEnStationWizardProps) => {
                     <button
                         onClick={handleUsePhoneGps}
                         disabled={gpsLoading}
-                        className="flex items-center justify-center gap-2 h-8 rounded-md bg-white/[0.06] border border-white/15 text-white/70 text-sm font-medium transition-colors hover:bg-white/10 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                        className="flex items-center justify-center gap-2 h-11 rounded-md bg-white/[0.06] border border-white/15 text-white/70 text-sm font-medium transition-colors hover:bg-white/10 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                     >
                         {gpsLoading ? <Spinner size="xs" /> : <Smartphone size={13} />}
                         <span>{gpsLoading ? "Acquisition GPS…" : "Utiliser la position du téléphone"}</span>
@@ -510,7 +511,7 @@ export const MiseEnStationWizard = ({ onClose }: MiseEnStationWizardProps) => {
 
                     <div className="flex items-center gap-2">
                         <button
-                            className="h-8 px-3 text-sm text-white/50 hover:text-white/70 transition-colors cursor-pointer"
+                            className="h-11 px-3 text-sm text-white/50 hover:text-white/70 transition-colors cursor-pointer"
                             onClick={() => setStep(0)}
                         >
                             ← Retour
@@ -578,7 +579,7 @@ export const MiseEnStationWizard = ({ onClose }: MiseEnStationWizardProps) => {
 
                     <div className="flex items-center gap-2">
                         <button
-                            className="h-8 px-3 text-sm text-white/50 hover:text-white/70 transition-colors cursor-pointer"
+                            className="h-11 px-3 text-sm text-white/50 hover:text-white/70 transition-colors cursor-pointer"
                             onClick={() => setStep(1)}
                         >
                             ← Retour
@@ -586,7 +587,7 @@ export const MiseEnStationWizard = ({ onClose }: MiseEnStationWizardProps) => {
                         <button
                             disabled={initLoading}
                             onClick={handleInitStation}
-                            className="flex-1 flex items-center justify-center gap-2 h-8 rounded-md bg-teal-600 text-white text-sm font-medium transition-colors hover:bg-teal-500 disabled:opacity-60 cursor-pointer"
+                            className="flex-1 flex items-center justify-center gap-2 h-11 rounded-md bg-teal-600 text-white text-sm font-medium transition-colors hover:bg-teal-500 disabled:opacity-60 cursor-pointer"
                         >
                             {initLoading && <Spinner size="xs" color="white" />}
                             {initLoading ? "Envoi en cours…" : "Envoyer GPS + Heure → NexStar"}
@@ -635,7 +636,7 @@ export const MiseEnStationWizard = ({ onClose }: MiseEnStationWizardProps) => {
 
                     <div className="flex items-center gap-2">
                         <button
-                            className="h-8 px-3 text-sm text-white/50 hover:text-white/70 transition-colors cursor-pointer"
+                            className="h-11 px-3 text-sm text-white/50 hover:text-white/70 transition-colors cursor-pointer"
                             onClick={() => setStep(2)}
                         >
                             ← Retour
@@ -644,7 +645,7 @@ export const MiseEnStationWizard = ({ onClose }: MiseEnStationWizardProps) => {
                             <button
                                 disabled={solveStatus === "capturing" || solveStatus === "solving"}
                                 onClick={handlePlateSolve}
-                                className="flex-1 flex items-center justify-center gap-1.5 h-8 rounded-md bg-purple-600 text-white text-sm font-medium transition-colors hover:bg-purple-500 disabled:opacity-60 cursor-pointer"
+                                className="flex-1 flex items-center justify-center gap-1.5 h-11 rounded-md bg-purple-600 text-white text-sm font-medium transition-colors hover:bg-purple-500 disabled:opacity-60 cursor-pointer"
                             >
                                 {(solveStatus === "capturing" || solveStatus === "solving")
                                     ? <Spinner size="xs" color="white" />
@@ -654,7 +655,7 @@ export const MiseEnStationWizard = ({ onClose }: MiseEnStationWizardProps) => {
                         ) : (
                             <button
                                 onClick={onClose}
-                                className="flex-1 flex items-center justify-center gap-1.5 h-8 rounded-md bg-teal-600 text-white text-sm font-medium transition-colors hover:bg-teal-500 cursor-pointer"
+                                className="flex-1 flex items-center justify-center gap-1.5 h-11 rounded-md bg-teal-600 text-white text-sm font-medium transition-colors hover:bg-teal-500 cursor-pointer"
                             >
                                 <CheckCircle2 size={12} />
                                 <span>Mise en station terminée</span>

@@ -18,15 +18,21 @@ interface TelescopeControlsProps {
 interface PadButtonProps {
     icon: React.ElementType;
     glowColor?: string;
+    /** Nom accessible : le bouton n'a qu'une icône, sans lui un lecteur
+     *  d'écran annonce « bouton » sans rien d'autre. */
+    label: string;
     onClick?: () => void;
     onPointerDown?: (e: React.PointerEvent) => void;
     onPointerUp?: (e: React.PointerEvent) => void;
     onPointerCancel?: (e: React.PointerEvent) => void;
 }
 
-const PadButton = ({ icon: DirIcon, glowColor = "var(--astro-teal)", onClick, onPointerDown, onPointerUp, onPointerCancel }: PadButtonProps) => (
+const PadButton = ({ icon: DirIcon, glowColor = "var(--astro-teal)", label, onClick, onPointerDown, onPointerUp, onPointerCancel }: PadButtonProps) => (
     <button
-        className="w-10 h-10 flex items-center justify-center rounded-full text-[--astro-starlight] bg-white/5 transition-all duration-200 hover:bg-white/10 hover:scale-110 active:text-black cursor-pointer"
+        aria-label={label}
+        // 40px etait sous la norme de 44px, et hover:scale agrandissait la cible
+        // au moment meme ou le doigt se pose : elle se derobait sous l'appui.
+        className="w-12 h-12 flex items-center justify-center rounded-full text-[--astro-starlight] bg-white/5 transition-colors duration-200 hover:bg-white/15 active:text-black cursor-pointer"
         style={{ touchAction: "none" }}
         onClick={onClick}
         onPointerDown={onPointerDown}
@@ -85,25 +91,25 @@ export const TelescopeControls = ({ variant }: TelescopeControlsProps) => {
 
                     {/* Cardinal pads */}
                     <div className="absolute top-[15px]">
-                        <PadButton icon={ChevronUp}
+                        <PadButton icon={ChevronUp} label="Monter le tube"
                             onPointerDown={e => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); jog.startJog('up'); }}
                             onPointerUp={e => { e.preventDefault(); jog.stopJog(); }}
                             onPointerCancel={e => { e.preventDefault(); jog.stopJog(); }} />
                     </div>
                     <div className="absolute bottom-[15px]">
-                        <PadButton icon={ChevronDown}
+                        <PadButton icon={ChevronDown} label="Descendre le tube"
                             onPointerDown={e => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); jog.startJog('down'); }}
                             onPointerUp={e => { e.preventDefault(); jog.stopJog(); }}
                             onPointerCancel={e => { e.preventDefault(); jog.stopJog(); }} />
                     </div>
                     <div className="absolute left-[15px]">
-                        <PadButton icon={ChevronLeft}
+                        <PadButton icon={ChevronLeft} label="Tourner vers la gauche"
                             onPointerDown={e => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); jog.startJog('left'); }}
                             onPointerUp={e => { e.preventDefault(); jog.stopJog(); }}
                             onPointerCancel={e => { e.preventDefault(); jog.stopJog(); }} />
                     </div>
                     <div className="absolute right-[15px]">
-                        <PadButton icon={ChevronRight}
+                        <PadButton icon={ChevronRight} label="Tourner vers la droite"
                             onPointerDown={e => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); jog.startJog('right'); }}
                             onPointerUp={e => { e.preventDefault(); jog.stopJog(); }}
                             onPointerCancel={e => { e.preventDefault(); jog.stopJog(); }} />
@@ -111,25 +117,25 @@ export const TelescopeControls = ({ variant }: TelescopeControlsProps) => {
 
                     {/* Diagonal pads */}
                     <div className="absolute top-[25px] left-[25px]">
-                        <PadButton icon={ArrowUpLeft}
+                        <PadButton icon={ArrowUpLeft} label="Monter vers la gauche"
                             onPointerDown={e => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); jog.startJog('up-left'); }}
                             onPointerUp={e => { e.preventDefault(); jog.stopJog(); }}
                             onPointerCancel={e => { e.preventDefault(); jog.stopJog(); }} />
                     </div>
                     <div className="absolute top-[25px] right-[25px]">
-                        <PadButton icon={ArrowUpRight}
+                        <PadButton icon={ArrowUpRight} label="Monter vers la droite"
                             onPointerDown={e => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); jog.startJog('up-right'); }}
                             onPointerUp={e => { e.preventDefault(); jog.stopJog(); }}
                             onPointerCancel={e => { e.preventDefault(); jog.stopJog(); }} />
                     </div>
                     <div className="absolute bottom-[25px] left-[25px]">
-                        <PadButton icon={ArrowDownLeft}
+                        <PadButton icon={ArrowDownLeft} label="Descendre vers la gauche"
                             onPointerDown={e => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); jog.startJog('down-left'); }}
                             onPointerUp={e => { e.preventDefault(); jog.stopJog(); }}
                             onPointerCancel={e => { e.preventDefault(); jog.stopJog(); }} />
                     </div>
                     <div className="absolute bottom-[25px] right-[25px]">
-                        <PadButton icon={ArrowDownRight}
+                        <PadButton icon={ArrowDownRight} label="Descendre vers la droite"
                             onPointerDown={e => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); jog.startJog('down-right'); }}
                             onPointerUp={e => { e.preventDefault(); jog.stopJog(); }}
                             onPointerCancel={e => { e.preventDefault(); jog.stopJog(); }} />
@@ -137,7 +143,7 @@ export const TelescopeControls = ({ variant }: TelescopeControlsProps) => {
 
                     {/* Sync button */}
                     <div className="absolute bottom-[20px] left-[20px]">
-                        <PadButton icon={RotateCcw} glowColor="var(--astro-gold)" onClick={handleSync} />
+                        <PadButton icon={RotateCcw} glowColor="var(--astro-gold)" label="Synchroniser la position" onClick={handleSync} />
                     </div>
 
                     {/* Central target */}

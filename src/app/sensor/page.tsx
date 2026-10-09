@@ -15,6 +15,7 @@
  */
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import { X, RotateCcw } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -652,11 +653,11 @@ export default function SensorPage() {
                     <GuidanceArrow label="ALTITUDE" delta={deltaAlt} unit="°" />
                   </div>
                   <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                    <button style={{ ...styles.btn, flex: 1 }} onClick={setPark}>
-                      ↻ RECALIBRER
+                    <button style={{ ...styles.btn, flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }} onClick={setPark}>
+                      <RotateCcw size={14} aria-hidden /> RECALIBRER
                     </button>
-                    <button style={{ ...styles.btn, flex: 1, background: "#1a3a2a" }} onClick={() => setParkRef(null)}>
-                      ✕ EFFACER
+                    <button style={{ ...styles.btn, flex: 1, background: "#1a3a2a", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }} onClick={() => setParkRef(null)}>
+                      <X size={14} aria-hidden /> EFFACER
                     </button>
                   </div>
                 </>

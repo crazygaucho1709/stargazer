@@ -218,6 +218,7 @@ export function CapturePreviewModal() {
                     </div>
                     <div className="flex items-center gap-1">
                     <button onClick={() => (galleryOpen ? setGalleryOpen(false) : openGallery())}
+                        aria-label={galleryOpen ? "Fermer la galerie" : "Ouvrir la galerie"}
                         className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-hud-xs font-medium cursor-pointer transition-colors"
                         style={{
                             background: galleryOpen ? "rgba(147,197,253,0.15)" : "rgba(255,255,255,0.05)",
@@ -226,7 +227,8 @@ export function CapturePreviewModal() {
                         }}>
                         <Images size={12} /> {galleryOpen ? "Retour" : "Galerie"}
                     </button>
-                    <button onClick={handleClose} className="rounded-md p-1 cursor-pointer transition-colors"
+                    <button onClick={handleClose} className="rounded-md p-1 cursor-pointer transition-colors min-h-[var(--size-touch)]"
+                        aria-label={"Fermer l'aperçu"}
                         style={{ color: "rgba(255,255,255,0.4)" }}
                         onMouseEnter={e => (e.currentTarget.style.color = "white")}
                         onMouseLeave={e => (e.currentTarget.style.color = "rgba(255,255,255,0.4)")}>
@@ -276,7 +278,7 @@ export function CapturePreviewModal() {
                         {selected.size > 0 && (
                             <div className="sticky bottom-0 mt-3 flex justify-end">
                                 <button onClick={handleGalleryDelete}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-hud-2xs font-medium cursor-pointer"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-hud-2xs font-medium cursor-pointer min-h-[var(--size-touch)]"
                                     style={{ background: "rgba(252,165,165,0.15)", border: "1px solid rgba(252,165,165,0.4)", color: "#FCA5A5" }}>
                                     <Trash2 size={12} /> Supprimer {selected.size} sélection{selected.size > 1 ? "s" : ""}
                                 </button>
@@ -422,9 +424,10 @@ export function CapturePreviewModal() {
                             <div className="ml-auto flex items-center gap-2">
                                 {displayThumb && (
                                     <button
+                                        aria-label={"Améliorer l'image"}
                                         onClick={handleEnhance}
                                         disabled={enhancing}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-hud-2xs font-medium cursor-pointer transition-colors"
+                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-hud-2xs font-medium cursor-pointer transition-colors min-h-[var(--size-touch)]"
                                         style={{
                                             background: "rgba(196,181,253,0.12)",
                                             border: "1px solid rgba(196,181,253,0.35)",
@@ -438,7 +441,7 @@ export function CapturePreviewModal() {
                                 )}
                                 <button
                                     onClick={handleClose}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-hud-2xs font-medium cursor-pointer transition-colors"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-hud-2xs font-medium cursor-pointer transition-colors min-h-[var(--size-touch)]"
                                     style={{
                                         background: "rgba(134,239,172,0.12)",
                                         border: "1px solid rgba(134,239,172,0.35)",
@@ -449,9 +452,10 @@ export function CapturePreviewModal() {
                                 </button>
                                 {state.last_file && (
                                     <button
+                                        aria-label={"Supprimer la capture"}
                                         onClick={handleDiscard}
                                         disabled={deleting}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-hud-2xs font-medium cursor-pointer transition-colors"
+                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-hud-2xs font-medium cursor-pointer transition-colors min-h-[var(--size-touch)]"
                                         style={{
                                             background: "rgba(252,165,165,0.10)",
                                             border: "1px solid rgba(252,165,165,0.35)",

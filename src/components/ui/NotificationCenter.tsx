@@ -40,7 +40,7 @@ export const NotificationCenter = () => {
         <div className="relative" ref={panelRef}>
             {/* Bell button */}
             <button
-                className="relative p-2 rounded transition-colors cursor-pointer"
+                className="relative p-2 rounded transition-colors cursor-pointer min-h-[var(--size-touch)]"
                 style={{ color: criticalCount > 0 ? "#FC8181" : "#A0AEC0" }}
                 onMouseEnter={e => (e.currentTarget.style.color = "white")}
                 onMouseLeave={e => (e.currentTarget.style.color = criticalCount > 0 ? "#FC8181" : "#A0AEC0")}
@@ -76,7 +76,7 @@ export const NotificationCenter = () => {
                         <span className="hud-font text-white text-sm font-bold">NOTIFICATIONS</span>
                         {notifications.length > 0 && (
                             <button
-                                className="text-hud-xs px-2 py-0.5 rounded transition-colors cursor-pointer"
+                                className="text-hud-xs px-2 py-0.5 rounded transition-colors cursor-pointer min-h-[var(--size-touch)]"
                                 style={{ color: "#A0AEC0" }}
                                 onMouseEnter={e => (e.currentTarget.style.color = "white")}
                                 onMouseLeave={e => (e.currentTarget.style.color = "#A0AEC0")}
@@ -115,7 +115,7 @@ export const NotificationCenter = () => {
                                                 </p>
                                             </div>
                                             <button
-                                                className="p-0.5 rounded transition-colors cursor-pointer"
+                                                className="p-0.5 rounded transition-colors cursor-pointer min-h-[var(--size-touch)]"
                                                 style={{ color: "#718096" }}
                                                 onMouseEnter={e => (e.currentTarget.style.color = "white")}
                                                 onMouseLeave={e => (e.currentTarget.style.color = "#718096")}

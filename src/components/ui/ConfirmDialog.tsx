@@ -54,7 +54,7 @@ export const ConfirmDialog = ({
                 <p className="text-sm" style={{ color: "#CBD5E0" }}>{message}</p>
                 <div className="flex gap-4 w-full">
                     <button
-                        className="flex-1 h-10 rounded-lg text-sm font-medium transition-colors cursor-pointer disabled:opacity-40"
+                        className="flex-1 h-11 rounded-lg text-sm font-medium transition-colors cursor-pointer disabled:opacity-40"
                         style={{ color: "#A0AEC0", border: "1px solid rgba(255,255,255,0.2)" }}
                         onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
                         onMouseLeave={e => (e.currentTarget.style.background = "")}
@@ -64,7 +64,7 @@ export const ConfirmDialog = ({
                         {cancelLabel || "ANNULER"}
                     </button>
                     <button
-                        className="flex-1 flex items-center justify-center gap-2 h-10 rounded-lg text-sm font-bold text-black transition-colors cursor-pointer disabled:opacity-40"
+                        className="flex-1 flex items-center justify-center gap-2 h-11 rounded-lg text-sm font-bold text-black transition-colors cursor-pointer disabled:opacity-40"
                         style={{ background: btnBg }}
                         onMouseEnter={e => (e.currentTarget.style.background = btnHover)}
                         onMouseLeave={e => (e.currentTarget.style.background = btnBg)}
