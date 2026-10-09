@@ -70,21 +70,18 @@ def signed_angle(deg: float) -> float:
     return a - 360.0 if a > 180.0 else a
 
 
-AZ_DRIVER_OFFSET_DEG = 180.0
-"""Décalage de l'axe AZ entre l'angle publié par le driver et le référentiel
-des compteurs (celui de LIMIT_POS). Au repère trépied le driver annonce
-AXIS_AZ = 180° pour des compteurs à zéro. L'axe ALT n'a pas ce décalage."""
-
-
-def encoder_az_signed(driver_az_deg: Optional[float]) -> Optional[float]:
+def encoder_az_signed(encoder_az_deg: Optional[float]) -> Optional[float]:
     """Azimut encodeur signé (repère trépied = 0, ouest positif).
 
-    Appliquer signed_angle() directement sur l'angle du driver donnerait -177°
-    au repère au lieu de 0° — et donc une comparaison fausse avec les bornes.
+    L'entrée provient des COMPTEURS (TELESCOPE_ENCODER_STEPS convertis en
+    degrés), jamais de TELESCOPE_ENCODER_ANGLES : cette dernière propriété n'a
+    pas de relation stable avec les compteurs d'une session à l'autre — 179,5°
+    pour des compteurs à 359,5° le 5 août, 0° pour des compteurs à 0 le 6 —
+    alors que les compteurs sont le référentiel de LIMIT_POS.
     """
-    if driver_az_deg is None:
+    if encoder_az_deg is None:
         return None
-    return signed_angle(driver_az_deg - AZ_DRIVER_OFFSET_DEG)
+    return signed_angle(encoder_az_deg)
 
 
 def shortest_delta(from_deg: float, to_deg: float) -> float:

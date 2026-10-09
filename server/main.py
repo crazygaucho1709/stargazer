@@ -840,20 +840,27 @@ class INDIClient:
             # HORIZONTAL_COORD, ces valeurs ne passent pas par le modèle
             # d'alignement (donc ni fausses avant alignement, ni mouvantes après
             # chaque sync). Zéro posé à la mise sous tension.
-            if 'TELESCOPE_ENCODER_ANGLES' in xml_str:
+            # On lit les COMPTEURS (STEPS) et non TELESCOPE_ENCODER_ANGLES.
+            # ANGLES n'a pas de relation stable avec les compteurs d'une session
+            # à l'autre : le 5 août il valait 179,5 pour des compteurs à 359,5°,
+            # le 6 août il vaut 0 pour des compteurs à 0. Un offset de 180° codé
+            # en dur faisait donc lire -180° au repère du trépied, faussant la
+            # comparaison aux bornes. Les compteurs, eux, sont cohérents d'une
+            # session à l'autre ET constituent le référentiel de LIMIT_POS.
+            if 'TELESCOPE_ENCODER_STEPS' in xml_str:
                 m_az = re.search(r'name="AXIS_AZ"[^>]*>\s*([-\d.]+)', xml_str)
                 m_alt = re.search(r'name="AXIS_ALT"[^>]*>\s*([-\d.]+)', xml_str)
                 prev_az, prev_alt = self.encoder_az, self.encoder_alt
                 if m_az:
                     try:
-                        self.encoder_az = float(m_az.group(1))
+                        self.encoder_az = mount_safety.steps_to_deg(float(m_az.group(1)))
                         self.cordwrap_guard.update(self.encoder_az)
                         self.encoder_last_update = time.time()
                     except ValueError:
                         pass
                 if m_alt:
                     try:
-                        self.encoder_alt = float(m_alt.group(1))
+                        self.encoder_alt = mount_safety.steps_to_deg(float(m_alt.group(1)))
                         self.encoder_last_update = time.time()
                     except ValueError:
                         pass
@@ -1558,6 +1565,7 @@ def _jog_cancel_watchdog() -> None:
 
 
 JOG_DEFAULT_RATE = 5
+JOG_MAX_RATE = 8      # rangs réellement exposés par le NexStar 4SE : 1x..8x
 
 # Vérificateur de liaison : armé à chaque commande de mouvement, il contrôle
 # que la position a effectivement bougé. Sans lui, une liaison série morte
@@ -1613,7 +1621,10 @@ def _jog_rate_name() -> str:
         rate = int(float(raw))
     except (TypeError, ValueError):
         rate = JOG_DEFAULT_RATE
-    return f"{max(1, min(9, rate))}x"
+    # Le NexStar 4SE n'expose que 1x..8x : demander 9x fait rejeter la commande
+    # ("No ISwitch '9x'"), la vitesse reste vide et le moteur tourne à zéro —
+    # l'API répond success et le tube ne bouge pas.
+    return f"{max(1, min(JOG_MAX_RATE, rate))}x"
 
 
 @app.post("/mount/jog")
@@ -1816,7 +1827,7 @@ async def mount_rate(req: RateRequest):
     if not indi.connected:
         return {"success": False, "error": "INDI bridge not connected"}
 
-    rate_val = max(1, min(9, req.rate))
+    rate_val = max(1, min(JOG_MAX_RATE, req.rate))
     rate_name = f"{rate_val}x"
     logger.info(f"Setting slew rate on {device} to {rate_name}")
     ok = indi.send(f'<newSwitchVector device="{device}" name="TELESCOPE_SLEW_RATE"><oneSwitch name="{rate_name}">On</oneSwitch></newSwitchVector>')
@@ -3757,9 +3768,6 @@ def mount_status():
     # limites dégénérées minAz == maxAz relevées en config.
     # Ne pas remplacer par HORIZONTAL_COORD : celui-ci passe par le modèle
     # d'alignement et devient faux à chaque sync.
-    # L'axe AZ porte un décalage de 180° que l'axe ALT n'a pas : au repère
-    # trépied le driver annonce AXIS_AZ = 180° et AXIS_ALT = 0°. C'est le
-    # référentiel de LIMIT_POS, il faut donc retrancher 180 sur AZ seulement.
     az = mount_safety.encoder_az_signed(indi.encoder_az)
     alt = mount_safety.signed_angle(indi.encoder_alt) if indi.encoder_alt is not None else None
     return {
