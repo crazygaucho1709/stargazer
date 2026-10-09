@@ -28,7 +28,7 @@ import { SessionIndicator } from "@/components/ui/SessionIndicator";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { KeyboardShortcutsHint } from "@/components/ui/KeyboardShortcutsHint";
 import { useSessionLogger } from "@/hooks/useSessionLogger";
-import { Activity, Zap, Orbit, Clock, MapPin, Compass, Thermometer, Power } from "lucide-react";
+import { Activity, Zap, Orbit, Clock, MapPin, Compass, Thermometer, Power, ChevronUp, Crosshair, Play } from "lucide-react";
 import { PanelErrorBoundary } from "@/components/ui/PanelErrorBoundary";
 import { ReconnectBanner } from "@/components/ui/ReconnectBanner";
 import { ConnectionLostOverlay } from "@/components/ui/ConnectionLostOverlay";
@@ -88,6 +88,9 @@ export default function Home() {
     const [mounted, setMounted] = useState(false);
     const [showMiseEnStation, setShowMiseEnStation] = useState(false);
     const [showCapturePanel, setShowCapturePanel] = useState(false);
+    /* Vue affichee quand la fenetre ne peut pas tenir les trois colonnes.
+       Au-dessus de 1280px les trois sont montrees ensemble et cet etat dort. */
+    const [vue, setVue] = useState<"controle" | "ciel" | "capture">("ciel");
     const [wasConnected, setWasConnected] = useState(false);
 
     useEffect(() => {
@@ -173,12 +176,16 @@ export default function Home() {
     }, [setConnected, language, mounted]);
 
     if (!mounted) {
-        return <div className="h-screen w-screen bg-[#030509]" />;
+        return <div className="h-full w-full bg-[#030509]" />;
     }
 
     return (
         <div
-            style={{ height: '100dvh', width: '100dvw', paddingTop: 'env(safe-area-inset-top)' }}
+            /* 100% et non 100dvh : cette page vit dans un <main> qui a deja
+               deduit la barre d'etat des equipements. Reclamer la hauteur de
+               la fenetre entiere la faisait depasser de 32px, et la barre
+               d'etat du bas sortait de l'ecran. */
+            style={{ height: '100%', width: '100%', paddingTop: 'env(safe-area-inset-top)' }}
             className="relative overflow-hidden bg-[#030509]"
         >
             <GlobalLoader />
@@ -190,7 +197,7 @@ export default function Home() {
             <div className="flex flex-col h-full w-full relative z-20 pointer-events-none">
 
                 {/* ── Navbar ──────────────────────────────────────────────── */}
-                <div className="flex w-full h-14 px-6 items-center justify-between border-b border-white/5 bg-[rgba(3,5,9,0.85)] backdrop-blur-xl pointer-events-auto">
+                <div className="flex w-full h-14 px-3 2xl:px-6 items-center justify-between gap-3 border-b border-white/5 bg-[rgba(3,5,9,0.85)] backdrop-blur-xl pointer-events-auto">
 
                     {/* Logo */}
                     <div className="flex items-center gap-4">
@@ -204,10 +211,10 @@ export default function Home() {
                     </div>
 
                     {/* HUD metrics */}
-                    <div className="flex items-center gap-6 opacity-90">
+                    <div className="flex items-center gap-3 2xl:gap-5 opacity-90 min-w-0">
 
                         {/* Heure */}
-                        <div className="flex items-center gap-3">
+                        <div className="hidden 2xl:flex items-center gap-3">
                             <Clock size={16} color="var(--astro-starlight)" opacity={0.6} />
                             <div className="flex flex-col gap-0">
                                 <span className="text-hud-2xs text-[--astro-starlight] opacity-60">{t("SYS_TIME", language)}</span>
@@ -217,10 +224,10 @@ export default function Home() {
                                 </div>
                             </div>
                         </div>
-                        <div className="h-6 w-px bg-white/10" />
+                        <div className="hidden lg:block h-6 w-px bg-white/10" />
 
                         {/* GPS */}
-                        <div className="flex items-center gap-3">
+                        <div className="hidden 2xl:flex items-center gap-3">
                             <MapPin size={16} color="var(--astro-starlight)" opacity={0.6} />
                             <div className="flex flex-col gap-0">
                                 <span className="text-hud-2xs text-[--astro-starlight] opacity-60">{t("GPS_COORD", language)}</span>
@@ -231,10 +238,10 @@ export default function Home() {
                                 </span>
                             </div>
                         </div>
-                        <div className="h-6 w-px bg-white/10" />
+                        <div className="hidden lg:block h-6 w-px bg-white/10" />
 
                         {/* Alt/Az */}
-                        <div className="flex items-center gap-3">
+                        <div className="hidden lg:flex items-center gap-3">
                             <Compass size={16} color="var(--astro-gold)" />
                             <div className="flex flex-col gap-0">
                                 <span className="text-hud-2xs text-[--astro-starlight] opacity-60">{t("POSITION", language)}</span>
@@ -243,22 +250,22 @@ export default function Home() {
                                 </span>
                             </div>
                         </div>
-                        <div className="h-6 w-px bg-white/10" />
+                        <div className="hidden lg:block h-6 w-px bg-white/10" />
 
-                        <TwilightBadge lat={config.latitude} lon={config.longitude} />
-                        <div className="h-6 w-px bg-white/10" />
+                        <div className="hidden lg:block"><TwilightBadge lat={config.latitude} lon={config.longitude} /></div>
+                        <div className="hidden lg:block h-6 w-px bg-white/10" />
                         <VisionControls />
-                        <div className="h-6 w-px bg-white/10" />
+                        <div className="hidden lg:block h-6 w-px bg-white/10" />
 
-                        <HardwareState
+                        <div className="hidden xl:block"><HardwareState
                             name={t("ACTIVE_LINK", language)}
                             state={connected ? "idle" : "lost"}
                             detail={connected ? "SYS_STABLE" : "SYS_OFFLINE"}
-                        />
-                        <div className="h-6 w-px bg-white/10" />
+                        /></div>
+                        <div className="hidden lg:block h-6 w-px bg-white/10" />
 
                         {/* Météo */}
-                        <div className="flex items-center gap-3">
+                        <div className="hidden xl:flex items-center gap-3">
                             <Thermometer size={16} color="var(--astro-starlight)" opacity={0.6} />
                             <div className="flex flex-col gap-0">
                                 <span className="text-hud-2xs text-[--astro-starlight] opacity-60">{t("EXT_WEATHER", language)}</span>
@@ -296,10 +303,40 @@ export default function Home() {
                 </div>
 
                 {/* ── Main content ─────────────────────────────────────────── */}
-                <div className="flex flex-1 justify-between items-stretch px-5 pt-3 pb-3 min-h-0">
+                {/* Selecteur de vue — seulement quand les trois colonnes ne tiennent pas.
+                    Sans lui, reduire la fenetre rendait les commandes de monture
+                    inatteignables, ou pire : les colonnes se chevauchaient. */}
+                <div className="xl:hidden flex gap-1 px-3 pt-2 pointer-events-auto" role="tablist" aria-label="Vue">
+                    {([["controle", "Controle"], ["ciel", "Ciel"], ["capture", "Capture"]] as const).map(([k, libelle]) => (
+                        <button
+                            key={k}
+                            role="tab"
+                            aria-selected={vue === k}
+                            onClick={() => setVue(k)}
+                            className={[
+                                "flex-1 min-h-[var(--size-touch)] rounded-md border text-hud-2xs uppercase tracking-wider",
+                                "cursor-pointer transition-colors duration-200",
+                                vue === k
+                                    ? "border-[--astro-teal]/50 bg-[--astro-teal]/15 text-[--astro-teal]"
+                                    : "border-white/10 bg-white/5 text-[--astro-starlight]/70 hover:bg-white/10",
+                            ].join(" ")}
+                        >
+                            {libelle}
+                        </button>
+                    ))}
+                </div>
+
+                <div className="flex flex-1 items-stretch gap-2 px-3 pt-2 pb-3 min-h-0">
 
                     {/* Left column */}
-                    <div className="flex flex-col w-[340px] gap-3 h-full pointer-events-auto overflow-y-auto overflow-x-hidden pr-1 hud-scroll">
+                    <div className={[
+                        "flex-col gap-3 h-full pointer-events-auto overflow-y-auto overflow-x-hidden pr-1 hud-scroll",
+                        /* Largeur souple avec un plancher : une colonne de commandes
+                           ecrasee a 200px est inutilisable, elle doit disparaitre
+                           plutot que se tasser. */
+                        "w-full xl:w-[clamp(300px,24vw,360px)] xl:shrink-0",
+                        vue === "controle" ? "flex" : "hidden", "xl:flex",
+                    ].join(" ")}>
                         <PanelErrorBoundary name="Telescope">
                             <AstroPod title={t("MOUNT_NAVIGATOR", language)} glowColor="teal">
                                 <div className="flex flex-col gap-3">
@@ -308,10 +345,12 @@ export default function Home() {
                                     <div className="flex justify-between items-center w-full mt-1 text-hud-xs text-[--astro-starlight] opacity-80">
                                         <span>{t("ERR", language)} 0.04&quot;</span>
                                         <button
-                                            className="text-hud-2xs text-teal-300 hover:text-teal-100 transition-colors duration-150 cursor-pointer"
+                                            className="inline-flex items-center gap-1 min-h-[var(--size-touch)] px-2 text-hud-2xs text-teal-300 hover:text-teal-100 transition-colors duration-150 cursor-pointer"
                                             onClick={() => setShowMiseEnStation(!showMiseEnStation)}
                                         >
-                                            {showMiseEnStation ? "▲ Fermer wizard" : "⊕ Mise en station"}
+                                            {showMiseEnStation
+                                                ? <><ChevronUp size={13} aria-hidden /> Fermer wizard</>
+                                                : <><Crosshair size={13} aria-hidden /> Mise en station</>}
                                         </button>
                                     </div>
                                 </div>
@@ -329,7 +368,10 @@ export default function Home() {
 
                     {/* Center: Sky Map */}
                     <div
-                        className="flex-1 relative rounded-lg overflow-hidden mx-2"
+                        className={[
+                            "flex-1 min-w-0 relative rounded-lg overflow-hidden",
+                            vue === "ciel" ? "block" : "hidden", "xl:block",
+                        ].join(" ")}
                         style={{ contain: 'paint', pointerEvents: liveViewMode === "CANON" ? "none" : "auto" }}
                     >
                         <PanelErrorBoundary name="SkyMap">
@@ -338,7 +380,11 @@ export default function Home() {
                     </div>
 
                     {/* Right column */}
-                    <div className="flex flex-col w-[340px] gap-3 h-full pointer-events-auto overflow-y-auto overflow-x-hidden pl-1 hud-scroll">
+                    <div className={[
+                        "flex-col gap-3 h-full pointer-events-auto overflow-y-auto overflow-x-hidden pl-1 hud-scroll",
+                        "w-full xl:w-[clamp(300px,24vw,360px)] xl:shrink-0",
+                        vue === "capture" ? "flex" : "hidden", "xl:flex",
+                    ].join(" ")}>
                         <PanelErrorBoundary name="Camera">
                             <AstroPod title={t("IMAGING_SENSOR", language)} glowColor="teal">
                                 <div className="flex flex-col gap-3 w-full">
@@ -351,14 +397,16 @@ export default function Home() {
                                     </div>
                                     <button
                                         className={[
-                                            "w-full text-hud-2xs rounded-md py-1 px-2 text-center cursor-pointer border transition-colors duration-150",
+                                            "w-full min-h-[var(--size-touch)] inline-flex items-center justify-center gap-1 text-hud-2xs rounded-md py-1 px-2 cursor-pointer border transition-colors duration-150",
                                             showCapturePanel
                                                 ? "text-blue-300 bg-blue-400/10 border-blue-700 hover:text-blue-200 hover:border-blue-600"
                                                 : "text-white/50 bg-white/[0.03] border-white/10 hover:text-blue-200 hover:border-blue-600",
                                         ].join(" ")}
                                         onClick={() => setShowCapturePanel(!showCapturePanel)}
                                     >
-                                        {showCapturePanel ? "▲ Fermer séquence" : "▶ Séquence de capture"}
+                                        {showCapturePanel
+                                            ? <><ChevronUp size={13} aria-hidden /> Fermer séquence</>
+                                            : <><Play size={13} aria-hidden /> Séquence de capture</>}
                                     </button>
                                 </div>
                             </AstroPod>
@@ -373,34 +421,38 @@ export default function Home() {
                         </PanelErrorBoundary>
                     </div>
                 </div>
-            </div>
 
-            {/* ── Bottom status pill ────────────────────────────────────────── */}
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-30 pointer-events-auto">
-                <div className="astro-panel flex items-center gap-6 px-6 py-2 rounded-full bg-[rgba(10,20,40,0.85)] border border-white/10">
-                    <div className="flex items-center gap-3">
-                        <div className={connected ? "pulse-glow" : ""} style={{ color: connected ? "var(--astro-teal)" : "rgba(255,255,255,0.25)" }}>
-                            <Power size={14} />
-                        </div>
-                        <span className="text-hud-xs" style={{ color: connected ? "var(--astro-starlight)" : "rgba(255,255,255,0.25)" }}>
-                            {connected ? "BRIDGE_UP" : "BRIDGE_DOWN"}
-                        </span>
-                    </div>
-                    <div className="h-[14px] w-px bg-white/10" />
-                    <div className="flex items-center gap-3">
-                        <Activity size={14} color={isExposing ? "var(--astro-gold)" : "var(--astro-teal)"} />
-                        <div className="flex flex-col gap-0">
-                            <span className="text-hud-2xs text-[--astro-starlight] opacity-60">{t("SEQUENCE", language)}</span>
-                            <span
-                                className="text-hud-xs hud-font"
-                                style={{ color: isExposing ? "var(--astro-gold)" : "white" }}
-                            >
-                                {isExposing ? t("CAPTURING", language) : t("STANDBY", language)}
+                {/* ── Barre d'etat ──────────────────────────────────────────────
+                        Dans le flux, pas en absolu : la pastille centree d'avant se
+                        posait par-dessus la colonne de droite des que la fenetre
+                        retrecissait, et masquait les commandes de capture. */}
+                <div className="shrink-0 px-3 pb-2 pointer-events-auto">
+                    <div className="astro-panel flex items-center gap-4 flex-wrap px-3 py-1.5 rounded-lg bg-[rgba(10,20,40,0.85)] border border-white/10">
+                        <div className="flex items-center gap-3">
+                            <div className={connected ? "pulse-glow" : ""} style={{ color: connected ? "var(--astro-teal)" : "rgba(255,255,255,0.25)" }}>
+                                <Power size={14} />
+                            </div>
+                            <span className="text-hud-xs" style={{ color: connected ? "var(--astro-starlight)" : "rgba(255,255,255,0.25)" }}>
+                                {connected ? "BRIDGE_UP" : "BRIDGE_DOWN"}
                             </span>
+                        </div>
+                        <div className="h-[14px] w-px bg-white/10" />
+                        <div className="flex items-center gap-3">
+                            <Activity size={14} color={isExposing ? "var(--astro-gold)" : "var(--astro-teal)"} />
+                            <div className="flex flex-col gap-0">
+                                <span className="text-hud-2xs text-[--astro-starlight] opacity-60">{t("SEQUENCE", language)}</span>
+                                <span
+                                    className="text-hud-xs hud-font"
+                                    style={{ color: isExposing ? "var(--astro-gold)" : "white" }}
+                                >
+                                    {isExposing ? t("CAPTURING", language) : t("STANDBY", language)}
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
+
             <KeyboardShortcutsHint />
             <ReconnectBanner />
             <ConnectionLostOverlay />

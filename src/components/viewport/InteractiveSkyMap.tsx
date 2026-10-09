@@ -166,7 +166,7 @@ const InteractiveSkyMap: React.FC = () => {
                         </p>
                         <div className="flex gap-2">
                             <button
-                                className="flex flex-1 items-center justify-center gap-2 h-11 rounded-lg text-white font-medium cursor-pointer transition-colors"
+                                className="flex flex-1 items-center justify-center gap-2 h-[var(--size-touch)] rounded-lg text-white font-medium cursor-pointer transition-colors"
                                 style={{ background: "#2C7A7B" }}
                                 onMouseEnter={e => (e.currentTarget.style.background = "#285E61")}
                                 onMouseLeave={e => (e.currentTarget.style.background = "#2C7A7B")}
@@ -176,7 +176,7 @@ const InteractiveSkyMap: React.FC = () => {
                                 GoTo
                             </button>
                             <button
-                                className="flex flex-1 items-center justify-center gap-2 h-11 rounded-lg text-white font-medium cursor-pointer transition-colors"
+                                className="flex flex-1 items-center justify-center gap-2 h-[var(--size-touch)] rounded-lg text-white font-medium cursor-pointer transition-colors"
                                 style={{ background: "#C05621" }}
                                 onMouseEnter={e => (e.currentTarget.style.background = "#9C4221")}
                                 onMouseLeave={e => (e.currentTarget.style.background = "#C05621")}

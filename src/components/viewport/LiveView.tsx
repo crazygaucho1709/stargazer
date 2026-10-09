@@ -94,7 +94,7 @@ export const LiveView = () => {
                             </p>
                         </div>
                         <button
-                            className="w-full h-11 rounded-lg font-bold text-black transition-colors cursor-pointer"
+                            className="w-full h-[var(--size-touch)] rounded-lg font-bold text-black transition-colors cursor-pointer"
                             style={{ background: "var(--astro-gold)" }}
                             onMouseEnter={e => (e.currentTarget.style.background = "white")}
                             onMouseLeave={e => (e.currentTarget.style.background = "var(--astro-gold)")}
@@ -198,11 +198,19 @@ export const LiveView = () => {
                     }}
                 />
 
-                {/* Zoom Controls */}
+                {/* Commandes de zoom — uniquement en vue Canon.
+                    Elles zooment l'IMAGE de la camera : en vue carte du ciel, la
+                    carte recouvre le centre et ces boutons ne servaient a rien,
+                    tout en se posant par-dessus la colonne de droite.
+
+                    Posees en bas au centre et non sur le bord droit : les deux
+                    colonnes occupent les bords, le centre bas est la seule bande
+                    libre a toutes les largeurs. */}
+                {liveViewMode === "CANON" && (
                 <div
-                    className="absolute flex flex-col items-center gap-4 p-3 rounded-full z-20"
+                    className="absolute flex flex-row items-center gap-3 px-3 py-2 rounded-full z-20"
                     style={{
-                        right: "40px", top: "50%", transform: "translateY(-50%)",
+                        left: "50%", bottom: "24px", transform: "translateX(-50%)",
                         background: "rgba(10, 20, 40, 0.6)",
                         border: "1px solid rgba(255, 255, 255, 0.1)",
                         backdropFilter: "blur(10px)",
@@ -215,6 +223,7 @@ export const LiveView = () => {
                         onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "var(--astro-teal)"; }}
                         onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.7)"; }}
                         onClick={() => setZoom(Math.min(10, zoom + 0.5))}
+                        aria-label="Agrandir l'image"
                     >
                         <ZoomIn size={18} />
                     </button>
@@ -227,52 +236,37 @@ export const LiveView = () => {
                         onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "var(--astro-teal)"; }}
                         onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.7)"; }}
                         onClick={() => setZoom(Math.max(1, zoom - 0.5))}
+                        aria-label="Reduire l'image"
                     >
                         <ZoomOut size={18} />
                     </button>
                 </div>
+                )}
 
-                {/* Mode Toggle + Live View Controls */}
+                {/* Commande de flux Canon.
+
+                    Les deux onglets SKY MAP / LIVE SENSOR qui vivaient ici ont
+                    ete retires : la barre d'outils de la carte du ciel porte deja
+                    SKY et LIVE, et ce second jeu, pose en absolu au milieu de
+                    l'ecran, recouvrait le selecteur de vue sur telephone. Deux
+                    commandes pour un meme reglage, a deux endroits, dont une
+                    flottante -- il n'en reste qu'une, a sa place.
+
+                    Posee en bas, hors de l'axe des colonnes laterales. */}
+                {liveViewMode === "CANON" && (
                 <div
                     className="absolute flex items-center gap-2 p-1.5 rounded-full z-20"
                     style={{
-                        top: "100px", left: "50%", transform: "translateX(-50%)",
+                        bottom: "80px", left: "50%", transform: "translateX(-50%)",
                         background: "rgba(10, 20, 40, 0.7)",
                         border: "1px solid rgba(255,255,255,0.1)",
                         backdropFilter: "blur(10px)",
                         boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
                     }}
                 >
-                    <button
-                        className="flex items-center gap-1.5 h-11 px-6 rounded-full text-hud-xs hud-font transition-colors cursor-pointer"
-                        style={{
-                            background: liveViewMode === "NASA" ? "var(--astro-teal)" : "transparent",
-                            color: liveViewMode === "NASA" ? "black" : "rgba(255,255,255,0.7)",
-                        }}
-                        onMouseEnter={e => { if (liveViewMode !== "NASA") (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.1)"; }}
-                        onMouseLeave={e => { if (liveViewMode !== "NASA") (e.currentTarget as HTMLElement).style.background = "transparent"; }}
-                        onClick={() => setLiveViewMode("NASA")}
-                    >
-                        <Globe size={14} />
-                        {t("SKY_MAP", language)}
-                    </button>
-                    <button
-                        className="flex items-center gap-1.5 h-11 px-6 rounded-full text-hud-xs hud-font transition-colors cursor-pointer"
-                        style={{
-                            background: liveViewMode === "CANON" ? "var(--astro-gold)" : "transparent",
-                            color: liveViewMode === "CANON" ? "black" : "rgba(255,255,255,0.7)",
-                        }}
-                        onMouseEnter={e => { if (liveViewMode !== "CANON") (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.1)"; }}
-                        onMouseLeave={e => { if (liveViewMode !== "CANON") (e.currentTarget as HTMLElement).style.background = "transparent"; }}
-                        onClick={() => setLiveViewMode("CANON")}
-                    >
-                        <Camera size={14} />
-                        {t("LIVE_SENSOR", language)}
-                    </button>
-
-                    {liveViewMode === "CANON" && (
+                    {(
                         <button
-                            className="flex items-center gap-1 h-11 px-4 rounded-full text-hud-xs hud-font text-white transition-colors cursor-pointer"
+                            className="flex items-center gap-1 h-[var(--size-touch)] px-4 rounded-full text-hud-xs hud-font text-white transition-colors cursor-pointer"
                             style={{
                                 background: liveView.isLive ? "#E53E3E" : "#38A169",
                                 animation: liveView.isLive ? "pulse 1s infinite" : undefined,
@@ -289,6 +283,7 @@ export const LiveView = () => {
                         </button>
                     )}
                 </div>
+                )}
 
                 {/* Coordinate HUD */}
                 <div

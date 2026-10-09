@@ -62,8 +62,13 @@ export function Toaster() {
             <SonnerBridge />
             <Sonner
                 theme="dark"
-                position="top-right"
+                position="bottom-right"
                 visibleToasts={5}
+                /* En bas a droite, au-dessus de la barre d'etat. En haut a
+                   droite, les notifications se posaient sur la colonne de
+                   telemetrie et masquaient les onglets de vue -- or une
+                   notification parle souvent de ce qu'ils affichent. */
+                offset="56px"
                 toastOptions={{
                     style: {
                         background:     "rgba(10, 20, 40, 0.95)",

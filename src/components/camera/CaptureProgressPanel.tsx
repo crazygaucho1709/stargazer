@@ -231,7 +231,7 @@ export const CaptureProgressPanel = ({ onClose }: CaptureProgressPanelProps) => 
             <div className={`flex gap-2 ${capture.startError ? "mb-3" : ""}`}>
                 {!isRunning ? (
                     <button
-                        className="flex flex-1 items-center justify-center gap-1 h-11 rounded-lg text-sm font-medium text-white transition-colors cursor-pointer disabled:opacity-50"
+                        className="flex flex-1 items-center justify-center gap-1 h-[var(--size-touch)] rounded-lg text-sm font-medium text-white transition-colors cursor-pointer disabled:opacity-50"
                         style={{ background: "#3B82F6" }}
                         onMouseEnter={e => (e.currentTarget.style.background = "#2563EB")}
                         onMouseLeave={e => (e.currentTarget.style.background = "#3B82F6")}
@@ -243,7 +243,7 @@ export const CaptureProgressPanel = ({ onClose }: CaptureProgressPanelProps) => 
                     </button>
                 ) : (
                     <button
-                        className="flex flex-1 items-center justify-center gap-1 h-11 rounded-lg text-sm font-medium transition-colors cursor-pointer"
+                        className="flex flex-1 items-center justify-center gap-1 h-[var(--size-touch)] rounded-lg text-sm font-medium transition-colors cursor-pointer"
                         style={{ border: "1px solid #EF4444", color: "#EF4444" }}
                         onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(239,68,68,0.1)"; }}
                         onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ""; }}

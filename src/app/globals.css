@@ -53,8 +53,18 @@
   --text-hud-xl:  calc(1.75rem * var(--hud-scale, 1));   /* 28px */
 
   /* Cible tactile minimale (WCAG 2.2 / doigts froids, gants) */
-  --size-touch: 44px;
-  --size-touch-lg: 56px;
+  /* Dimension des cibles, pilotee par le PERIPHERIQUE DE POINTAGE et non
+     posee une fois pour toutes. Un seul jeton, parce que toutes les cibles
+     passent par lui : le changer redimensionne l'application entiere.
+
+     A la souris ou au trackpad, viser est precis au pixel et 44px partout
+     transforme un panneau d'instrument dense en borne tactile -- c'est
+     exactement le reproche fait le 8 octobre 2026 : "tres gros, tres
+     grossier". La valeur fine ci-dessous reste au-dessus du minimum
+     WCAG 2.2 AA (24px), qui est la regle applicable a la souris ;
+     les 44px sont une regle du DOIGT, et ne valent qu'au doigt. */
+  --size-touch: 30px;
+  --size-touch-lg: 38px;
 
   /* Rouge vision nocturne — au-delà de 620nm, préserve l'adaptation */
   --color-night-red:     #FF3B30;
@@ -280,24 +290,44 @@ h1, h2, h3, .hud-font {
   mix-blend-mode: multiply;
 }
 
-/* Deuxième couche : désature d'abord, pour que le multiply donne un rouge
-   uniforme quelle que soit la teinte de départ, et plafonne la luminosité. */
+/* Deuxième couche : l'assombrissement.
+
+   Volontairement un voile noir opaque, PAS un `backdrop-filter: brightness()`.
+   Le filtre de toile de fond a été essayé et abandonné le 8 octobre 2026 : le
+   minificateur voyait `backdrop-filter` et `-webkit-backdrop-filter` comme des
+   doublons et n'en gardait qu'UNE — la préfixée — si bien que la règle partait
+   en production sans effet, alors qu'elle était correcte dans la source. Un
+   voile noir ne dépend ni d'un préfixe, ni de la composition de la toile de
+   fond : il s'affiche partout et sa valeur se mesure directement.
+
+   Il passe SOUS le voile rouge pour que la teinte reste franche. */
 :root[data-vision="night"]::before {
   content: "";
   position: fixed;
   inset: 0;
   z-index: 2147482999;
   pointer-events: none;
-  backdrop-filter: grayscale(1) brightness(var(--night-brightness, 0.85));
-  -webkit-backdrop-filter: grayscale(1) brightness(var(--night-brightness, 0.85));
+  background: rgb(0 0 0 / var(--night-dim, 0.12));
 }
 
 :root[data-vision="night"] body { background-image: none; }
 
 /* La luminosité absolue compte autant que la teinte : un écran rouge trop
-   lumineux éblouit quand même. */
-:root[data-vision="night"][data-dim="1"] { --night-brightness: 0.58; }
-:root[data-vision="night"][data-dim="2"] { --night-brightness: 0.34; }
+   lumineux éblouit quand même. Trois paliers — voile léger au repos, puis deux
+   crans pour une nuit vraiment noire ou un œil déjà adapté. */
+:root[data-vision="night"][data-dim="1"] { --night-dim: 0.45; }
+:root[data-vision="night"][data-dim="2"] { --night-dim: 0.68; }
+
+/* Au doigt — telephone, tablette, ecran tactile — on reprend les 44px des
+   recommandations tactiles, et 56px pour les commandes de deplacement, qui
+   se manoeuvrent de nuit, parfois avec des gants. La requete porte sur le
+   pointeur PRINCIPAL : un iPad avec un clavier reste un appareil au doigt. */
+@media (pointer: coarse) {
+  :root {
+    --size-touch: 44px;
+    --size-touch-lg: 56px;
+  }
+}
 
 /* ══════════════════════════════════════════════════════════════════════════
    ACCESSIBILITÉ — s'applique à toute l'application

@@ -558,7 +558,7 @@ export const AutoAlignWizard = () => {
                             <button
                                 disabled={!allLimitsDefined}
                                 onClick={confirmZone}
-                                className="w-full flex items-center justify-center gap-1 h-11 rounded-lg text-hud-xs font-bold tracking-[0.1em] border transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                                className="w-full flex items-center justify-center gap-1 h-[var(--size-touch)] rounded-lg text-hud-xs font-bold tracking-[0.1em] border transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
                                 style={{ background: "rgba(0,255,209,0.1)", color: "var(--astro-teal)", borderColor: "rgba(0,255,209,0.3)" }}
                             >
                                 <Navigation size={12} />
@@ -689,7 +689,7 @@ export const AutoAlignWizard = () => {
                                 <Smartphone size={12} />{L("SYNC VIA TÉLÉPHONE (JOUR / TEST)", "SYNC VIA PHONE (DAY / TEST)")}
                             </button>
                             <button onClick={runAutoAlign}
-                                className="w-full flex items-center justify-center gap-1.5 h-11 rounded-lg text-hud-xs font-bold tracking-[0.08em] border transition-colors cursor-pointer"
+                                className="w-full flex items-center justify-center gap-1.5 h-[var(--size-touch)] rounded-lg text-hud-xs font-bold tracking-[0.08em] border transition-colors cursor-pointer"
                                 style={{ background: "rgba(0,255,209,0.08)", color: "var(--astro-teal)", borderColor: "rgba(0,255,209,0.25)" }}>
                                 <Zap size={12} />{L("ASTROMÉTRIE DIRECTE (NUIT)", "DIRECT ASTROMETRY (NIGHT)")}
                             </button>
@@ -764,7 +764,7 @@ export const AutoAlignWizard = () => {
                         <button
                             disabled={isSyncing || !phoneSensor.connected || phoneSensor.alpha == null}
                             onClick={syncFromPhone}
-                            className="w-full flex items-center justify-center gap-1.5 h-11 rounded-lg text-hud-xs font-bold tracking-[0.1em] border transition-colors cursor-pointer disabled:opacity-40"
+                            className="w-full flex items-center justify-center gap-1.5 h-[var(--size-touch)] rounded-lg text-hud-xs font-bold tracking-[0.1em] border transition-colors cursor-pointer disabled:opacity-40"
                             style={{ background: iphoneSyncDone ? "rgba(104,211,145,0.1)" : "rgba(147,112,219,0.12)", color: iphoneSyncDone ? "#68d391" : "#b39ddb", borderColor: iphoneSyncDone ? "rgba(104,211,145,0.3)" : "rgba(147,112,219,0.35)" }}
                         >
                             {isSyncing ? <Spinner size="xs" color="currentColor" /> : <Smartphone size={12} />}
@@ -778,7 +778,7 @@ export const AutoAlignWizard = () => {
                                     {L("TERMINER", "FINISH")}
                                 </button>
                                 <button onClick={runAutoAlign}
-                                    className="flex-[2] flex items-center justify-center gap-1 h-11 rounded-lg text-hud-xs font-bold tracking-[0.08em] border transition-colors cursor-pointer"
+                                    className="flex-[2] flex items-center justify-center gap-1 h-[var(--size-touch)] rounded-lg text-hud-xs font-bold tracking-[0.08em] border transition-colors cursor-pointer"
                                     style={{ background: "rgba(0,255,209,0.12)", color: "var(--astro-teal)", borderColor: "rgba(0,255,209,0.35)" }}>
                                     <Zap size={12} />{L("AFFINER PAR ASTROMÉTRIE", "REFINE WITH ASTROMETRY")}
                                 </button>

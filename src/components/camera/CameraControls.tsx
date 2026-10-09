@@ -17,21 +17,23 @@ function Spinner() {
     return <div className="w-3 h-3 rounded-full border-2 border-white/20 border-t-white animate-spin" />;
 }
 
-const ControlButton = ({ icon: DirIcon, onClick, glowColor = "var(--astro-teal)", isLoading = false, tooltip }: { icon: React.ElementType, onClick?: () => void, glowColor?: string, isLoading?: boolean, tooltip?: string }) => (
+const ControlButton = ({ icon: DirIcon, onClick, glowColor = "var(--astro-teal)", isLoading = false, tooltip }: { icon: React.ElementType, onClick?: () => void, glowColor?: string, isLoading?: boolean,
+    /* Obligatoire : ce bouton n'a jamais de texte, le typage garantit qu'il
+       porte toujours un nom pour un lecteur d'ecran. */
+    tooltip: string }) => (
     <Tooltip content={tooltip} showArrow>
         <button
-            className="w-9 h-11 flex items-center justify-center rounded-full transition-all duration-200 cursor-pointer"
+            className="w-[var(--size-touch)] h-[var(--size-touch)] flex items-center justify-center rounded-full transition-all duration-200 cursor-pointer"
+            aria-label={tooltip}
             style={{ color: "var(--astro-starlight)", background: "rgba(255,255,255,0.05)" }}
             onMouseEnter={e => {
                 const el = e.currentTarget as HTMLElement;
                 el.style.background = "rgba(255,255,255,0.1)";
-                el.style.transform = "scale(1.1)";
                 el.style.boxShadow = `0 0 15px ${glowColor}`;
             }}
             onMouseLeave={e => {
                 const el = e.currentTarget as HTMLElement;
                 el.style.background = "rgba(255,255,255,0.05)";
-                el.style.transform = "";
                 el.style.boxShadow = "";
             }}
             onClick={onClick}

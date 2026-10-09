@@ -1134,7 +1134,11 @@ Génère une séquence de capture optimale au format JSON strict:
                     borderBottom: '1px solid rgba(255,255,255,0.06)',
                 }}
             >
-                <div className="flex items-center gap-2 flex-nowrap">
+                {/* Defilement horizontal plutot que debordement : a 375px cette
+                    barre fait largement plus que la largeur de l'ecran, et
+                    flex-nowrap sans defilement la poussait hors cadre, rendant
+                    les derniers outils (catalogue, telrad, reset) inatteignables. */}
+                <div className="flex items-center gap-2 flex-nowrap overflow-x-auto hud-scroll min-w-0">
                     {/* Live/Sky mode buttons */}
                     <div className="flex items-center gap-1 flex-shrink-0">
                         <button
@@ -1277,6 +1281,7 @@ Génère une séquence de capture optimale au format JSON strict:
                                 border: '1px solid var(--astro-teal)',
                             }}
                             onClick={() => setShowSettings(!showSettings)}
+                            aria-label="Reglages de la carte du ciel"
                         >
                             <Layers size={12} />
                         </button>

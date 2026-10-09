@@ -1,7 +1,8 @@
 // src/components/ui/ConnectionStatusBar.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
+import { Network, Terminal, Telescope, Camera } from "lucide-react";
 import { useHealthFull } from "@/hooks/useHealthFull";
 import { useRecovery } from "@/hooks/useRecovery";
 import { notification } from "@/lib/notificationService";
@@ -38,7 +39,9 @@ function resolveColor(status: string | undefined, backendOffline: boolean): Stat
 }
 
 interface PillProps {
-  icon: string;
+  /* Un noeud, pas une chaine : les pictogrammes textuels (⬡ ⌁ ◎ ▣) dependent
+     des polices installees et tombent en caractere manquant sur un poste nu. */
+  icon: ReactNode;
   name: string;
   subtitle?: string;
   color: StatusColor;
@@ -62,7 +65,7 @@ function StatusPill({ icon, name, subtitle, color, latency }: PillProps) {
       flexShrink: 0, opacity: color === "offline" ? 0.45 : 1,
       maxWidth: "160px", overflow: "hidden",
     }}>
-      <span style={{ fontSize: "var(--text-hud-xs)", lineHeight: 1, flexShrink: 0 }}>{icon}</span>
+      <span style={{ lineHeight: 0, flexShrink: 0, display: "flex" }} aria-hidden>{icon}</span>
       <span style={{
         fontSize: "var(--text-hud-xs)", fontWeight: 500, color: "#CBD5E0", letterSpacing: "0.02em",
         whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
@@ -167,10 +170,10 @@ export const ConnectionStatusBar = () => {
           </>
         )}
 
-        <StatusPill icon="⬡" name="INDI" color={bc} latency={health?.bridge?.latency_ms} />
-        <StatusPill icon="⌁" name="SSH"  color={sc} latency={health?.ssh?.latency_ms} />
-        <StatusPill icon="◎" name="Mount" subtitle={health?.mount?.driver ? `${health.mount.driver}` : undefined} color={mc} />
-        <StatusPill icon="▣" name="Camera" subtitle={health?.camera?.type} color={cc} />
+        <StatusPill icon={<Network size={13} />} name="INDI" color={bc} latency={health?.bridge?.latency_ms} />
+        <StatusPill icon={<Terminal size={13} />} name="SSH"  color={sc} latency={health?.ssh?.latency_ms} />
+        <StatusPill icon={<Telescope size={13} />} name="Mount" subtitle={health?.mount?.driver ? `${health.mount.driver}` : undefined} color={mc} />
+        <StatusPill icon={<Camera size={13} />} name="Camera" subtitle={health?.camera?.type} color={cc} />
 
         <div style={{ flex: 1 }} />
 

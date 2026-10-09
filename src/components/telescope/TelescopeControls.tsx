@@ -11,6 +11,11 @@ import { useAstroAction } from "@/hooks/useAstroAction";
 import { useJog } from "@/hooks/useJog";
 import { notification } from "@/lib/notificationService";
 
+
+// Le NexStar 4SE n'expose que les rangs 1x..8x (releve sur TELESCOPE_SLEW_RATE).
+// Proposer 9x faisait rejeter la commande par le driver : la vitesse restait vide
+// et le moteur ne tournait pas, pendant que l'API repondait success.
+const JOG_MAX_RATE = 8;
 interface TelescopeControlsProps {
     variant: "pad" | "jog" | "guiding";
 }
@@ -160,16 +165,23 @@ export const TelescopeControls = ({ variant }: TelescopeControlsProps) => {
                     <div className="flex justify-between mb-1">
                         <span className="text-hud-xs text-white/40">1x</span>
                         <span className="text-hud-xs text-[--astro-teal] font-bold">{slewRate}x</span>
-                        <span className="text-hud-xs text-white/40">9x</span>
+                        <span className="text-hud-xs text-white/40">8x</span>
                     </div>
                     <input
-                        type="range" min={1} max={9} step={1} value={slewRate}
+                        type="range" min={1} max={JOG_MAX_RATE} step={1} value={slewRate}
                         onChange={e => handleRateChange(parseInt(e.target.value))}
                         className="slew-rate-slider"
+                        aria-label={`Vitesse de deplacement : ${slewRate} sur ${JOG_MAX_RATE}`}
                         style={{
-                            width: '100%', height: '8px', cursor: 'pointer',
+                            width: '100%', height: 'var(--size-touch)', cursor: 'pointer',
                             WebkitAppearance: 'none', appearance: 'none',
-                            background: `linear-gradient(to right, var(--astro-teal) 0%, var(--astro-teal) ${((slewRate - 1) / 8) * 100}%, rgba(255,255,255,0.2) ${((slewRate - 1) / 8) * 100}%, rgba(255,255,255,0.2) 100%)`,
+                            background: `linear-gradient(to right, var(--astro-teal) 0%, var(--astro-teal) ${((slewRate - 1) / (JOG_MAX_RATE - 1)) * 100}%, rgba(255,255,255,0.2) ${((slewRate - 1) / (JOG_MAX_RATE - 1)) * 100}%, rgba(255,255,255,0.2) 100%)`,
+                            // La piste reste fine a l'oeil, mais la zone sensible fait
+                            // toute la hauteur tactile : un curseur de 8px de haut est
+                            // inattrapable au doigt, de nuit et avec des gants.
+                            backgroundRepeat: 'no-repeat',
+                            backgroundSize: '100% 8px',
+                            backgroundPosition: 'center',
                             borderRadius: '4px', outline: 'none',
                         }}
                     />

@@ -311,7 +311,7 @@ const HardwareTab = ({ config, updateConfig, language }: any) => {
                         </Field>
                     </div>
                     <button
-                        className="flex items-center justify-center gap-2 w-full h-11 rounded text-sm border transition-colors cursor-pointer disabled:opacity-50"
+                        className="flex items-center justify-center gap-2 w-full h-[var(--size-touch)] rounded text-sm border transition-colors cursor-pointer disabled:opacity-50"
                         style={{ borderColor: "#00F0FF", color: "#00F0FF" }}
                         onMouseEnter={e => (e.currentTarget.style.background = "rgba(0,240,255,0.1)")}
                         onMouseLeave={e => (e.currentTarget.style.background = "")}
@@ -533,7 +533,7 @@ const MountTab = ({ config, updateConfig, language }: any) => {
                     <div className="h-px" style={{ background: "rgba(255,255,255,0.1)" }} />
                     <div className="w-full">
                         <p className="text-hud-xs mb-4" style={{ color: "rgba(255,255,255,0.7)" }}>{t("MNT_SLEW", language)}</p>
-                        <input type="range" min="0" max="9" step="1" value={config.slewSpeed} onChange={e => updateConfig({ slewSpeed: parseInt(e.target.value) })} style={{ width: "100%", accentColor: "#00F0FF" }} />
+                        <input type="range" min="1" max="8" step="1" value={config.slewSpeed} onChange={e => updateConfig({ slewSpeed: parseInt(e.target.value) })} style={{ width: "100%", accentColor: "#00F0FF" }} />
                         <div className="flex justify-between mt-2">
                             <span className="text-hud-2xs" style={{ color: "rgba(255,255,255,0.4)" }}>{t("MNT_FINE", language)}</span>
                             <span className="text-hud-2xs" style={{ color: "rgba(255,255,255,0.4)" }}>{t("MNT_MAX", language)}</span>
@@ -631,7 +631,7 @@ const CameraTab = ({ config, updateConfig, language }: any) => {
                         <input type="checkbox" checked={config.aiFocus} onChange={e => updateConfig({ aiFocus: e.target.checked })} style={{ accentColor: "var(--astro-gold)", width: "18px", height: "18px" }} />
                     </div>
                     <button
-                        className="flex items-center justify-center gap-2 w-full h-11 rounded-lg font-bold text-black cursor-pointer disabled:opacity-50"
+                        className="flex items-center justify-center gap-2 w-full h-[var(--size-touch)] rounded-lg font-bold text-black cursor-pointer disabled:opacity-50"
                         style={{ background: "var(--astro-gold)" }}
                         onMouseEnter={e => (e.currentTarget.style.background = "#e69c3a")}
                         onMouseLeave={e => (e.currentTarget.style.background = "var(--astro-gold)")}
@@ -659,7 +659,7 @@ const GamepadTab = ({ language }: any) => (
             <Gamepad2 size={48} style={{ color: "rgba(255,255,255,0.4)", marginBottom: "16px" }} />
             <h3 className="text-white font-bold mb-2">{t("GP_NO_PAD", language)}</h3>
             <p className="text-hud-xs mb-6" style={{ color: "rgba(255,255,255,0.5)" }}>{t("GP_NO_PAD_DESC", language)}</p>
-            <button className="h-11 px-4 rounded border text-sm transition-colors cursor-pointer" style={{ borderColor: "#00F0FF", color: "#00F0FF" }}
+            <button className="h-[var(--size-touch)] px-4 rounded border text-sm transition-colors cursor-pointer" style={{ borderColor: "#00F0FF", color: "#00F0FF" }}
                 onMouseEnter={e => (e.currentTarget.style.background = "rgba(0,240,255,0.1)")}
                 onMouseLeave={e => (e.currentTarget.style.background = "")}>
                 {t("GP_SCAN", language)}
@@ -784,7 +784,7 @@ const SystemTab = ({ config, updateConfig, language, setLanguage }: any) => {
                         </Field>
                     </div>
                     <button
-                        className="flex items-center justify-center gap-2 w-full h-11 rounded border text-sm transition-colors cursor-pointer disabled:opacity-50"
+                        className="flex items-center justify-center gap-2 w-full h-[var(--size-touch)] rounded border text-sm transition-colors cursor-pointer disabled:opacity-50"
                         style={{ borderColor: "#00F0FF", color: "#00F0FF" }}
                         onMouseEnter={e => (e.currentTarget.style.background = "rgba(0,240,255,0.1)")}
                         onMouseLeave={e => (e.currentTarget.style.background = "")}
@@ -853,7 +853,7 @@ const BridgeTab = ({ config, language }: any) => {
 
             <div className="flex gap-4">
                 <button
-                    className="flex flex-1 items-center justify-center gap-2 h-11 rounded-lg font-bold text-black cursor-pointer disabled:opacity-50"
+                    className="flex flex-1 items-center justify-center gap-2 h-[var(--size-touch)] rounded-lg font-bold text-black cursor-pointer disabled:opacity-50"
                     style={{ background: "var(--astro-gold)" }}
                     onMouseEnter={e => (e.currentTarget.style.background = "#e69c3a")}
                     onMouseLeave={e => (e.currentTarget.style.background = "var(--astro-gold)")}
@@ -864,7 +864,7 @@ const BridgeTab = ({ config, language }: any) => {
                     {language === 'fr' ? "Auto-Diagnostic & Fix" : "Auto-Diagnostic & Fix"}
                 </button>
                 <button
-                    className="flex flex-1 items-center justify-center gap-2 h-11 rounded-lg border transition-colors cursor-pointer disabled:opacity-50"
+                    className="flex flex-1 items-center justify-center gap-2 h-[var(--size-touch)] rounded-lg border transition-colors cursor-pointer disabled:opacity-50"
                     style={{ borderColor: "#FC8181", color: "#FC8181" }}
                     onMouseEnter={e => (e.currentTarget.style.background = "rgba(252,129,129,0.1)")}
                     onMouseLeave={e => (e.currentTarget.style.background = "")}

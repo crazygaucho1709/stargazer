@@ -427,7 +427,7 @@ export const CaptureAndStack = () => {
                 <div className="flex w-full gap-2">
                     {!isCapturing ? (
                         <button
-                            className="flex flex-[2] items-center justify-center gap-2 h-11 rounded-lg text-hud-xs font-bold tracking-[0.1em] text-black transition-all cursor-pointer disabled:opacity-50"
+                            className="flex flex-[2] items-center justify-center gap-2 h-[var(--size-touch)] rounded-lg text-hud-xs font-bold tracking-[0.1em] text-black transition-all cursor-pointer disabled:opacity-50"
                             style={{ background: "var(--astro-teal)" }}
                             onMouseEnter={e => (e.currentTarget.style.background = "white")}
                             onMouseLeave={e => (e.currentTarget.style.background = "var(--astro-teal)")}
@@ -439,7 +439,7 @@ export const CaptureAndStack = () => {
                         </button>
                     ) : (
                         <button
-                            className="flex flex-[2] items-center justify-center gap-2 h-11 rounded-lg text-hud-xs font-bold tracking-[0.1em] text-white transition-colors cursor-pointer"
+                            className="flex flex-[2] items-center justify-center gap-2 h-[var(--size-touch)] rounded-lg text-hud-xs font-bold tracking-[0.1em] text-white transition-colors cursor-pointer"
                             style={{ background: "#EF4444" }}
                             onMouseEnter={e => (e.currentTarget.style.background = "#DC2626")}
                             onMouseLeave={e => (e.currentTarget.style.background = "#EF4444")}
@@ -451,7 +451,7 @@ export const CaptureAndStack = () => {
                     )}
 
                     <button
-                        className="flex flex-1 items-center justify-center gap-2 h-11 rounded-lg text-hud-xs border transition-colors cursor-pointer disabled:opacity-50"
+                        className="flex flex-1 items-center justify-center gap-2 h-[var(--size-touch)] rounded-lg text-hud-xs border transition-colors cursor-pointer disabled:opacity-50"
                         style={{ borderColor: "rgba(0,255,209,0.3)", color: "var(--astro-teal)" }}
                         onMouseEnter={e => (e.currentTarget.style.background = "rgba(0,255,209,0.1)")}
                         onMouseLeave={e => (e.currentTarget.style.background = "")}
@@ -465,7 +465,7 @@ export const CaptureAndStack = () => {
 
                 {frames.length > 0 && !isCapturing && !isStacking && (
                     <button
-                        className="flex w-full items-center justify-center gap-2 h-11 rounded-lg text-hud-xs transition-colors cursor-pointer"
+                        className="flex w-full items-center justify-center gap-2 h-[var(--size-touch)] rounded-lg text-hud-xs transition-colors cursor-pointer"
                         style={{ color: "var(--astro-gold)" }}
                         onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
                         onMouseLeave={e => (e.currentTarget.style.background = "")}
