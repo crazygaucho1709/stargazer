@@ -68,3 +68,8 @@ scratch/
 
 # graphe de code genere
 graphify-out/
+
+# Local AI / Claude config
+.claude/
+CLAUDE.md
+.anthropic/
