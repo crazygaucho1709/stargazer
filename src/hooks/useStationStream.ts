@@ -31,6 +31,21 @@ export interface StationStreamSnapshot {
   health: NormalizedHealth | null;
   /** Mise en station automatique ; null si elle n'a jamais été lancée. */
   setup: StationSetupState | null;
+  /** Capteur du téléphone fixé sur le tube, tel que le backend le connaît. */
+  phone: RawPhoneSensor | null;
+}
+
+export interface RawPhoneSensor {
+  connected?: boolean;
+  alpha?: number | null;
+  beta?: number | null;
+  gamma?: number | null;
+  lat?: number | null;
+  lon?: number | null;
+  accuracy_m?: number | null;
+  timestamp?: string | null;
+  age_s?: number | null;
+  stale?: boolean;
 }
 
 interface StreamFrame {
@@ -41,6 +56,7 @@ interface StreamFrame {
   station?: StationStatusData;
   full?: RawHealthFull;
   setup?: StationSetupState | null;
+  phone?: RawPhoneSensor | null;
 }
 
 const STREAM_URL = "/api/station/stream";
@@ -54,6 +70,7 @@ const OFFLINE: Omit<StationStreamSnapshot, "loading"> = {
   station: null,
   health: null,
   setup: null,
+  phone: null,
 };
 
 let snapshot: StationStreamSnapshot = { loading: true, ...OFFLINE };
@@ -109,6 +126,7 @@ function open() {
       station: frame.station ?? null,
       health: frame.full ? normalizeHealthFull(frame.full) : snapshot.health,
       setup: frame.setup ?? null,
+      phone: frame.phone ?? null,
     });
   };
 

@@ -1638,6 +1638,9 @@ async def _station_stream_state() -> dict:
         "station": await station_status(),
         # Mise en station automatique : étapes et avancement (None si jamais lancée)
         "setup": _station_setup.snapshot() if _station_setup is not None else None,
+        # Capteur du téléphone fixé sur le tube : poussé ici pour que l'interface
+        # n'ouvre plus sa propre connexion ni n'interroge en boucle.
+        "phone": _phone_sensor_snapshot(),
     }
 
 
@@ -2787,8 +2790,9 @@ async def phone_sensor_ws(ws: WebSocket):
     await ws.accept()
     logger.info("Phone sensor WebSocket connected")
     active_phone_sensor_ws.add(ws)
-    with _phone_sensor_lock:
-        _phone_sensor["connected"] = True
+    # Ouvrir la connexion ne prouve rien : l'ordinateur ouvrait la même pour
+    # écouter, et le backend annonçait alors « téléphone connecté » sans
+    # téléphone. Seule une trame de mesures reçue le prouve (voir plus bas).
     try:
         while True:
             data = await ws.receive_json()
@@ -2820,6 +2824,17 @@ async def phone_sensor_ws(ws: WebSocket):
 PHONE_SENSOR_STALE_S = 5.0
 
 
+def _phone_sensor_snapshot() -> dict:
+    """État du capteur téléphone avec son âge ; partagé par l'API et le flux de station."""
+    with _phone_sensor_lock:
+        state = _phone_sensor.copy()
+        last = _phone_sensor_last_update
+    age = (time.time() - last) if last else None
+    state["age_s"] = round(age, 1) if age is not None else None
+    state["stale"] = (age is None) or (age > PHONE_SENSOR_STALE_S)
+    return state
+
+
 @app.get("/phone-sensor/state")
 async def get_phone_sensor_state():
     """État du capteur téléphone, AVEC son âge.
@@ -2830,13 +2845,7 @@ async def get_phone_sensor_state():
     consommateur doit pouvoir distinguer « le téléphone dit 180° » de « le
     téléphone disait 180° il y a dix minutes ».
     """
-    with _phone_sensor_lock:
-        state = _phone_sensor.copy()
-        last = _phone_sensor_last_update
-    age = (time.time() - last) if last else None
-    state["age_s"] = round(age, 1) if age is not None else None
-    state["stale"] = (age is None) or (age > PHONE_SENSOR_STALE_S)
-    return state
+    return _phone_sensor_snapshot()
 
 # --- STREAMING ---
 async def mjpeg_generator():

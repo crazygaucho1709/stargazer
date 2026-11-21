@@ -75,3 +75,11 @@ def test_station_hides_position_while_serial_link_fails(monkeypatch):
     monkeypatch.setattr(main.indi, "serial_error_ts", time.time())
     station = asyncio.run(main.station_status())
     assert station["encoder_alt"] is None and station["encoder_az"] is None
+
+
+def test_stream_carries_phone_sensor_with_freshness():
+    state = asyncio.run(main._station_stream_state())
+    phone = state["phone"]
+    assert "stale" in phone and "age_s" in phone
+    # Aucune mesure reçue : jamais « courant », quel que soit l'indicateur connecté.
+    assert phone["stale"] is True

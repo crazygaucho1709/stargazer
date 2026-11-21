@@ -1,6 +1,7 @@
 // src/components/telescope/CalibrationWizard.tsx
 "use client";
 
+import { usePhoneSensor } from "@/hooks/usePhoneSensor";
 import { useState, useEffect, useCallback } from "react";
 import {
     Telescope, Target, Settings2, Activity, MapPin, CheckCircle2, AlertTriangle, X
@@ -14,10 +15,6 @@ import { useLiveView } from "@/hooks/useLiveView";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface PhoneSensorData {
-    alpha: number | null; beta: number | null; gamma: number | null;
-    lat: number | null; lon: number | null; accuracy_m: number | null; connected: boolean;
-}
 
 function betaToAlt(beta: number | null): number | null {
     if (beta == null) return null;
@@ -70,30 +67,7 @@ export const CalibrationWizard = () => {
     const jog = useJog();
     const liveView = useLiveView();
 
-    const [phoneSensor, setPhoneSensor] = useState<PhoneSensorData>({
-        alpha: null, beta: null, gamma: null, lat: null, lon: null, accuracy_m: null, connected: false,
-    });
-
-    useEffect(() => {
-        let ws: WebSocket | null = null, timerId: NodeJS.Timeout | null = null, active = true;
-        const connect = () => {
-            if (!active) return;
-            const host = window.location.hostname, isHttps = window.location.protocol === "https:";
-            const wsUrl = isHttps ? `wss://${host}:${window.location.port}/ws/phone-sensor` : `ws://${host}:5005/ws/phone-sensor`;
-            ws = new WebSocket(wsUrl);
-            ws.onmessage = (evt) => {
-                try {
-                    const d = JSON.parse(evt.data);
-                    setPhoneSensor({ alpha: d.alpha ?? null, beta: d.beta ?? null, gamma: d.gamma ?? null, lat: d.lat ?? null, lon: d.lon ?? null, accuracy_m: d.accuracy_m ?? null, connected: !!d.connected });
-                } catch (_) {}
-            };
-            ws.onopen  = () => setPhoneSensor(prev => ({ ...prev, connected: true }));
-            ws.onclose = () => { setPhoneSensor(prev => ({ ...prev, connected: false })); if (active) timerId = setTimeout(connect, 3000); };
-            ws.onerror = () => ws?.close();
-        };
-        connect();
-        return () => { active = false; if (timerId) clearTimeout(timerId); ws?.close(); };
-    }, []);
+    const phoneSensor = usePhoneSensor();
 
     const getStepProgress = () => {
         const steps: CalibrationStep[] = ['connection', 'init-mount', 'park', 'limits-alt-max', 'limits-alt-min', 'limits-az-max', 'limits-az-min', 'camera-test', 'alignment', 'complete'];
@@ -108,7 +82,11 @@ export const CalibrationWizard = () => {
                 const res = await fetch(`/api/indi?endpoint=coords&ra=${selectedStar.ra}&dec=${selectedStar.dec}`);
                 const data = await res.json();
                 if (data.success && data.alt !== undefined && data.az !== undefined) setStarAltAz({ alt: data.alt, az: data.az });
-            } catch { /* silent */ }
+            } catch (err) {
+                notification.warning("Position de l'étoile non calculée", {
+                    source: "Calibration", description: err instanceof Error ? err.message : "Erreur réseau",
+                });
+            }
         };
         updatePos();
         const interval = setInterval(updatePos, 10000);

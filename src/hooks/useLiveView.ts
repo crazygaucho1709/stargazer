@@ -100,7 +100,10 @@ export function useLiveView(): UseLiveViewReturn {
         try {
           const j = await res.json();
           if (j.error) msg = j.error;
-        } catch {}
+        } catch {
+          // Réponse d'erreur sans corps JSON : le code HTTP ci-dessus reste le message affiché.
+          msg = `HTTP ${res.status} (réponse illisible)`;
+        }
         setStatus(`❌ ${msg}`);
         notification.error("Échec du live view", {
           description: msg,

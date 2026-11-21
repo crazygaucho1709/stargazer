@@ -1,3 +1,4 @@
+import { notification } from "@/lib/notificationService";
 /**
  * Plate Solving Service
  *
@@ -42,7 +43,9 @@ export const plateSolveLocal = async (imageUrl: string): Promise<SolvedPosition 
     // Convert the image URL to a base64 blob so the backend can SCP it to Astroberry
     const image_b64 = await imageUrlToBase64(imageUrl);
     if (!image_b64) {
-      console.warn('[plateSolve] Could not fetch image for local solve');
+      notification.warning("Résolution astrométrique : image illisible", {
+        source: "PlateSolve", description: "L'image à résoudre n'a pas pu être chargée.",
+      });
       return null;
     }
 
@@ -61,9 +64,13 @@ export const plateSolveLocal = async (imageUrl: string): Promise<SolvedPosition 
     if (data.success && typeof data.ra === 'number' && typeof data.dec === 'number') {
       return { ra: data.ra, dec: data.dec, confidence: 'high', source: 'local' };
     }
-    console.warn('[plateSolve] local solve returned:', data);
+    notification.warning("Résolution astrométrique locale sans résultat", {
+      source: "PlateSolve", description: typeof data?.error === "string" ? data.error : "Aucune position trouvée sur cette image.",
+    });
   } catch (e) {
-    console.warn('[plateSolve] local solve error:', e);
+    notification.warning("Résolution astrométrique locale en échec", {
+      source: "PlateSolve", description: e instanceof Error ? e.message : String(e),
+    });
   }
   return null;
 };
@@ -127,7 +134,9 @@ export const plateSolveCloud = async (imageUrl: string): Promise<SolvedPosition 
       }
     }
   } catch (e) {
-    console.warn('[plateSolve] cloud solve error:', e);
+    notification.warning("Résolution astrométrique en ligne en échec", {
+      source: "PlateSolve", description: e instanceof Error ? e.message : String(e),
+    });
   }
   return null;
 };

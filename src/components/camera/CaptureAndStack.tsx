@@ -138,7 +138,11 @@ export const CaptureAndStack = () => {
                 const metricRes = await fetch('/api/indi?endpoint=ccd/focus-metric');
                 const metricData = await metricRes.json();
                 if (metricData.success) measuredHfr = metricData.metric;
-            } catch { /* metric optional */ }
+            } catch (err) {
+                notification.warning("Mesure de netteté indisponible", {
+                    source: "Capture", description: err instanceof Error ? err.message : "Erreur réseau",
+                });
+            }
 
             const frame: CaptureFrame = {
                 id: `frame_${Date.now()}`,

@@ -5,6 +5,7 @@
  * AutoAlignWizard — Alignement 100% autonome
  */
 
+import { usePhoneSensor, PhoneSensorState } from "@/hooks/usePhoneSensor";
 import { useState, useRef, useCallback, useEffect } from "react";
 import {
     Satellite, Zap, Square, RotateCcw, CheckCircle2, AlertTriangle,
@@ -48,10 +49,6 @@ const STATE_LABELS: Record<AutoAlignState, { fr: string; en: string }> = {
 const LIMIT_KEYS = ['low', 'high', 'left', 'right'] as const;
 type LimitKey = typeof LIMIT_KEYS[number];
 
-interface PhoneSensorState {
-    alpha: number | null; beta: number | null; gamma: number | null;
-    lat: number | null; lon: number | null; accuracy_m: number | null; connected: boolean;
-}
 
 function betaToAlt(beta: number | null): number | null {
     if (beta == null) return null;
@@ -186,10 +183,9 @@ export const AutoAlignWizard = () => {
     const finalRa  = session.result?.sync?.ra_h ?? null;
     const finalDec = session.result?.sync?.dec ?? null;
 
-    const [phoneSensor, setPhoneSensor] = useState<PhoneSensorState>({
-        alpha: null, beta: null, gamma: null, lat: null, lon: null, accuracy_m: null, connected: false,
-    });
+    const phoneSensor = usePhoneSensor();
     const phoneSensorRef = useRef<PhoneSensorState>(phoneSensor);
+    const pollWarnedRef = useRef(false);
     const [phoneRaDec, setPhoneRaDec] = useState<{ ra: number; dec: number } | null>(null);
     const [isSyncing,      setIsSyncing]      = useState(false);
     const [iphoneSyncDone, setIphoneSyncDone] = useState(false);
@@ -244,7 +240,15 @@ export const AutoAlignWizard = () => {
                     if (conv.success && active) { setLiveAlt(conv.alt); setLiveAz(conv.az); }
                     else if (active) { setLiveAlt(0.0); setLiveAz(0.0); }
                 } else if (active) { setLiveAlt(0.0); setLiveAz(0.0); }
-            } catch { /* background poll — silent */ }
+            } catch (err) {
+                // Lecture répétée toutes les 2,5 s : on prévient une fois, pas à chaque essai.
+                if (active && !pollWarnedRef.current) {
+                    pollWarnedRef.current = true;
+                    notification.warning("Position de la monture non lue", {
+                        source: "AutoAlign", description: err instanceof Error ? err.message : "Erreur réseau",
+                    });
+                }
+            }
             finally {
                 if (active) { setIsPolling(false); timerId = setTimeout(poll, 2500); }
             }
@@ -257,27 +261,6 @@ export const AutoAlignWizard = () => {
     const stopLiveView  = liveView.stop;
 
     useEffect(() => { phoneSensorRef.current = phoneSensor; }, [phoneSensor]);
-
-    useEffect(() => {
-        let ws: WebSocket | null = null, timerId: NodeJS.Timeout | null = null, active = true;
-        const connect = () => {
-            if (!active) return;
-            const host = window.location.hostname, isHttps = window.location.protocol === "https:";
-            const wsUrl = isHttps ? `wss://${host}:${window.location.port}/ws/phone-sensor` : `ws://${host}:5005/ws/phone-sensor`;
-            ws = new WebSocket(wsUrl);
-            ws.onmessage = (evt) => {
-                try {
-                    const d = JSON.parse(evt.data);
-                    setPhoneSensor({ alpha: d.alpha ?? null, beta: d.beta ?? null, gamma: d.gamma ?? null, lat: d.lat ?? null, lon: d.lon ?? null, accuracy_m: d.accuracy_m ?? null, connected: !!d.connected });
-                } catch { /* ignore malformed */ }
-            };
-            ws.onopen  = () => setPhoneSensor(p => ({ ...p, connected: true }));
-            ws.onclose = () => { setPhoneSensor(p => ({ ...p, connected: false })); if (active) timerId = setTimeout(connect, 3000); };
-            ws.onerror = () => ws?.close();
-        };
-        connect();
-        return () => { active = false; if (timerId) clearTimeout(timerId); ws?.close(); };
-    }, []);
 
     useEffect(() => {
         if (phase !== 'iphone-coarse') return;
@@ -306,7 +289,11 @@ export const AutoAlignWizard = () => {
     const connectHardware = async () => {
         setIsConnectingMount(true);
         try { await fetch(clientApiUrl('/api/hardware/connect'), { method: 'POST' }); await new Promise(r => setTimeout(r, 2000)); }
-        catch { /* silent retry */ }
+        catch (err) {
+            notification.error("Connexion du matériel en échec", {
+                source: "AutoAlign", description: err instanceof Error ? err.message : "Erreur réseau",
+            });
+        }
         setIsConnectingMount(false);
     };
 
@@ -370,7 +357,12 @@ export const AutoAlignWizard = () => {
             if (!res.ok) return null;
             const data = await res.json();
             return data.success ? { ra: data.ra, dec: data.dec } : null;
-        } catch { return null; }
+        } catch (err) {
+            notification.warning("Conversion de coordonnées en échec", {
+                source: "AutoAlign", description: err instanceof Error ? err.message : "Erreur réseau",
+            });
+            return null;
+        }
     };
 
     const runAutoAlign = async () => {
