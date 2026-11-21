@@ -29,6 +29,7 @@ import { CaptureProgressPanel } from "@/components/camera/CaptureProgressPanel";
 import { CapturePreviewModal } from "@/components/camera/CapturePreviewModal";
 import { MiseEnStationWizard } from "@/components/telescope/MiseEnStationWizard";
 import { StationSetupCard } from "@/components/telescope/StationSetupCard";
+import { MountPositionReadout } from "@/components/telescope/MountPositionReadout";
 import { MountCalibration } from "@/components/telescope/MountCalibration";
 import { AIAssistant } from "@/components/ai/AIAssistant";
 import ObservatoryPanel from "@/components/observatory/ObservatoryPanel";
@@ -512,6 +513,7 @@ export default function Home() {
               {activePanel === "mount" && (
                 <PanelErrorBoundary name="Telescope">
                   <div className="flex flex-col gap-4">
+                    <MountPositionReadout />
                     <StationSetupCard />
                     <TelescopeControls variant="pad" />
                     <TrackingModeSelector />

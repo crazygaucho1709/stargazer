@@ -8,10 +8,15 @@ import { t } from "@/i18n/translations";
 import { notification } from "@/lib/notificationService";
 import { useJog } from "@/hooks/useJog";
 import { JogPad } from "./JogPad";
+import { useStationStream } from "@/hooks/useStationStream";
 
 export const MountCalibration = () => {
     const { mountLimits, setMountLimits, alt, az, language } = useStargazerStore();
     const [step, setStep] = useState<"idle" | "maxAlt" | "minAlt" | "maxAz" | "minAz">("idle");
+    // Limites affichées = limites appliquées par le backend. Celles du store
+    // sont des valeurs par défaut (15°–85°, 0°–360°) qui n'ont jamais protégé
+    // la monture et laissaient croire à une plage plus large que la vraie.
+    const applied = useStationStream().station?.limits;
     const jog = useJog();
 
     const handleSaveLimit = () => {
@@ -93,11 +98,11 @@ export const MountCalibration = () => {
                     <div className="flex items-center justify-between text-hud-xs opacity-80">
                         <div className="flex flex-col gap-0">
                             <span style={{ color: "var(--astro-teal)" }}>{t("CALIB_ALTITUDE", language)}</span>
-                            <span>{mountLimits.minAlt.toFixed(1)}° ➔ {mountLimits.maxAlt.toFixed(1)}°</span>
+                            <span>{applied ? `${applied.alt_min.toFixed(1)}° ➔ ${applied.alt_max.toFixed(1)}°` : "—"}</span>
                         </div>
                         <div className="flex flex-col items-end gap-0">
                             <span style={{ color: "var(--astro-teal)" }}>{t("CALIB_AZIMUTH", language)}</span>
-                            <span>{mountLimits.minAz.toFixed(1)}° ➔ {mountLimits.maxAz.toFixed(1)}°</span>
+                            <span>{applied ? `${applied.az_min.toFixed(1)}° ➔ ${applied.az_max.toFixed(1)}°` : "—"}</span>
                         </div>
                     </div>
 

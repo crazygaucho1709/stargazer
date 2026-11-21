@@ -55,3 +55,23 @@ def test_camera_alert_does_not_block_the_mount():
         '<message device="GPhoto CCD" timestamp="2026-11-21T05:36:40" '
         'message="[ERROR] Exposure failed"/>')
     assert client.serial_failing() is False
+
+
+def test_station_reports_applied_limits_and_position():
+    station = asyncio.run(main.station_status())
+    limits = station["limits"]
+    assert limits["alt_min"] < limits["alt_max"]
+    assert limits["az_min"] < limits["az_max"]
+    assert "encoder_alt" in station and "encoder_az" in station
+
+
+def test_station_hides_position_while_serial_link_fails(monkeypatch):
+    import time
+    monkeypatch.setattr(main.indi, "encoder_alt", 10.0)
+    monkeypatch.setattr(main.indi, "encoder_az", 20.0)
+    monkeypatch.setattr(main.indi, "serial_error_ts", 0.0)
+    assert asyncio.run(main.station_status())["encoder_alt"] == 10.0
+    # Erreur d'écriture toute récente : la position du driver ne vaut plus rien.
+    monkeypatch.setattr(main.indi, "serial_error_ts", time.time())
+    station = asyncio.run(main.station_status())
+    assert station["encoder_alt"] is None and station["encoder_az"] is None

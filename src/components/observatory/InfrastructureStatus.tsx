@@ -242,7 +242,7 @@ export const InfrastructureStatus = () => {
           icon={Activity}
           status={astro.reachable ? "ok" : "error"}
           metrics={[
-            { label: "Ping", value: astro.reachable ? (astro.ping_ms || "< 1") : "—", unit: astro.reachable ? "ms" : "" },
+            { label: "Latence", value: astro.reachable ? (astro.ping_ms ?? "—") : "—", unit: astro.reachable ? "ms" : "" },
             { label: "CPU",  value: astroCpu,  unit: astroCpu  !== "N/A" ? "%" : "" },
             { label: "Temp", value: astroTemp, unit: astroTemp !== "N/A" ? "°C" : "" },
             { label: "Alim.", value: astroPower.label },

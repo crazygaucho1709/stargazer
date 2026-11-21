@@ -7,6 +7,7 @@ import {
     Settings, Cpu, Radio, Zap, ShieldCheck, X, Camera, Telescope, Gamepad2, Compass, Layers, Wand2, Power, Globe, LocateFixed, Activity, RefreshCw, CheckCircle, XCircle, Loader, Wifi, WifiOff
 } from "lucide-react";
 import { useAiAuth } from "@/hooks/useAiAuth";
+import { useStationStream } from "@/hooks/useStationStream";
 import { useStargazerStore } from "@/store/useStargazerStore";
 import { t } from "@/i18n/translations";
 import { useEnvironmentData } from "@/hooks/useEnvironmentData";
@@ -345,6 +346,9 @@ const HardwareTab = ({ config, updateConfig, language }: any) => {
     const { execute, isPending } = useAstroAction();
     const [errors, setErrors] = useState<Record<string, string | null>>({});
     const setError = (field: string, msg: string | null) => setErrors(p => ({ ...p, [field]: msg }));
+    // Pilote réellement chargé sur la station : le champ ci-dessous n'est
+    // qu'une préférence enregistrée, il peut dater d'un ancien pilote.
+    const liveDriver = useStationStream().health?.mount?.driver;
 
     const handleTest = async () => {
         const urlErr = validateUrl(config.astroberryUrl);
@@ -395,6 +399,12 @@ const HardwareTab = ({ config, updateConfig, language }: any) => {
                             </select>
                         </Field>
                     </div>
+                    {liveDriver && (
+                        <p className="text-hud-xs text-slate-400 -mt-1">
+                            Pilote en service sur la station : <span className="text-slate-100">{liveDriver}</span>
+                            {liveDriver !== config.driverInstance && " — différent du réglage ci-dessus, qui n'est plus utilisé."}
+                        </p>
+                    )}
                     <button
                         className="flex items-center justify-center gap-2 w-full h-[var(--size-touch)] rounded text-sm border transition-colors cursor-pointer disabled:opacity-50"
                         style={{ borderColor: "#00F0FF", color: "#00F0FF" }}

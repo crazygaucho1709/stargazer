@@ -13,6 +13,8 @@ import { useStargazerStore } from "@/store/useStargazerStore";
 import { useHealthFull } from "@/hooks/useHealthFull";
 import { OBSERVATORY_LABELS, OBSERVATORY_COLORS, SubsystemHealth, SubsystemId, canObservatoryTransition, ObservatoryEvent } from "@/lib/observatoryMachine";
 import { SkeletonCard } from "@/components/ui/Skeleton";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { useStationReadiness } from "@/hooks/useStationReadiness";
 
 const SUBSYSTEM_ICONS: Record<SubsystemId, React.ElementType> = {
   mount: Telescope,
@@ -135,7 +137,11 @@ export default function ObservatoryPanel() {
   const isStarting = obsState === "STARTING" || obsState.includes("CONNECTING");
   const isCritical = obsState === "CRITICAL";
 
-  const healthColor = healthPct > 80 ? "#4ade80" : healthPct > 50 ? "#facc15" : "#f87171";
+  // Le badge reprend l'état unique de la station, pas le seul pourcentage de
+  // liens qui répondent : 100 % des liens peuvent répondre sans qu'on puisse observer.
+  const readiness = useStationReadiness();
+  const healthColor = readiness.level === "ready" ? "#4ade80" : readiness.level === "degraded" ? "#facc15" : "#f87171";
+  const [confirmShutdown, setConfirmShutdown] = useState(false);
 
   const [initializing, setInitializing] = useState(true);
 
@@ -227,7 +233,7 @@ export default function ObservatoryPanel() {
                 padding: "3px 10px",
               }}
             >
-              {healthPct}% HEALTH
+              <span title={`${healthPct} % des sous-systèmes répondent`}>{readiness.label}</span>
             </div>
           </div>
         </div>
@@ -341,7 +347,7 @@ export default function ObservatoryPanel() {
           </div>
           {isOnline && (
             <button
-              onClick={() => sendObservatoryEvent("SHUTDOWN")}
+              onClick={() => setConfirmShutdown(true)}
               style={{
                 background: "transparent",
                 border: "none",
@@ -354,9 +360,19 @@ export default function ObservatoryPanel() {
               }}
             >
               <Power size={12} />
-              SHUTDOWN
+              {language === "fr" ? "ARRÊTER" : "SHUTDOWN"}
             </button>
           )}
+          <ConfirmDialog
+            isOpen={confirmShutdown}
+            title="Arrêter l'observatoire ?"
+            message="La séquence d'arrêt de l'observatoire va démarrer. Il faudra le relancer pour observer de nouveau."
+            confirmLabel="Arrêter"
+            cancelLabel="Annuler"
+            variant="danger"
+            onConfirm={() => { setConfirmShutdown(false); sendObservatoryEvent("SHUTDOWN"); }}
+            onCancel={() => setConfirmShutdown(false)}
+          />
           {!isOnline && !isStarting && !isCritical && (
             <button
               onClick={() => sendObservatoryEvent("START")}

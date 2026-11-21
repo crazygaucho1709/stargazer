@@ -28,6 +28,11 @@ export interface StationStatusData {
   link_suspect: boolean;
   /** Le driver monture signale des erreurs d'écriture série : ordres non transmis. */
   serial_error?: boolean;
+  /** Position lue sur les encodeurs, en degrés ; null si rien de fiable. */
+  encoder_alt?: number | null;
+  encoder_az?: number | null;
+  /** Limites réellement appliquées par le backend. */
+  limits?: { alt_min: number; alt_max: number; az_min: number; az_max: number };
   /** Retard de l'image live sur le direct, en secondes ; null hors flux. */
   stream_lag_s?: number | null;
 }

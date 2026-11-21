@@ -72,6 +72,28 @@ def ping() -> bool:
         return False
 
 
+def link_latency_ms() -> "float | None":
+    """Temps de réponse du Pi, en millisecondes : délai jusqu'à sa bannière SSH.
+
+    Le backend joint souvent le Pi par un tunnel local (127.0.0.1:2222) : le
+    simple temps d'ouverture de la connexion mesurerait alors le Mac, pas le Pi
+    (0,2 ms affichés pour une liaison Wi-Fi à 11 ms). La bannière, elle, vient
+    du Pi : l'attendre traverse réellement la liaison. La valeur inclut le
+    démarrage de la session côté Pi, elle majore donc un ping.
+    """
+    import socket
+    import time as _time
+    try:
+        t0 = _time.perf_counter()
+        with socket.create_connection((ASTROBERRY_HOST, ASTROBERRY_PORT), timeout=2) as s:
+            s.settimeout(2)
+            if not s.recv(16):
+                return None
+        return round((_time.perf_counter() - t0) * 1000.0, 1)
+    except Exception:
+        return None
+
+
 def ping_ssh() -> bool:
     """Return True if Astroberry SSH port is reachable."""
     import socket
@@ -147,6 +169,7 @@ def get_status() -> Dict[str, Any]:
     return {
         "reachable": True,
         "ssh_reachable": True,
+        "ping_ms": link_latency_ms(),
         "cpu_percent": data.get("cpu", "N/A"),
         "temperature": data.get("temp", "N/A"),
         # Code brut de vcgencmd get_throttled (ex. 0x50005) : sous-tension du Pi

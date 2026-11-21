@@ -18,6 +18,15 @@ import { useRecovery } from "@/hooks/useRecovery";
 import { StationStatusData } from "@/hooks/useStationAutoInit";
 import { useStargazerStore } from "@/store/useStargazerStore";
 import { notification } from "@/lib/notificationService";
+import { useStationReadiness } from "@/hooks/useStationReadiness";
+import type { ReadinessLevel } from "@/lib/stationReadiness";
+
+const TONES: Record<ReadinessLevel, { bg: string; border: string; text: string; dot: string }> = {
+  ready:    { bg: "rgba(16, 185, 129, 0.12)",  border: "rgba(52, 211, 153, 0.32)",  text: "#6EE7B7", dot: "#34D399" },
+  degraded: { bg: "rgba(251, 191, 36, 0.12)",  border: "rgba(251, 191, 36, 0.36)",  text: "#FCD34D", dot: "#FBBF24" },
+  blocked:  { bg: "rgba(248, 113, 113, 0.14)", border: "rgba(248, 113, 113, 0.40)", text: "#FCA5A5", dot: "#F87171" },
+  offline:  { bg: "rgba(255, 255, 255, 0.05)", border: "rgba(255, 255, 255, 0.10)", text: "#CBD5E1", dot: "#64748B" },
+};
 
 type StatusKind = "ok" | "degraded" | "error" | "offline";
 
@@ -39,6 +48,8 @@ export function StationStatusPopover({ stationStatus }: { stationStatus?: Statio
   const { data: health, backendOffline, latencyMs } = useHealthFull();
   const { recovering, diagnose, recover } = useRecovery();
   const isConnected = useStargazerStore((s) => s.isConnected);
+  const readiness = useStationReadiness();
+  const tone = TONES[readiness.level];
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -129,24 +140,24 @@ export function StationStatusPopover({ stationStatus }: { stationStatus?: Statio
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        aria-label="État matériel de la station"
+        aria-label={`État de la station : ${readiness.label}. ${readiness.summary}`}
         className="inline-flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 h-8 rounded-xl text-xs font-medium transition-colors duration-150 cursor-pointer shrink-0"
         style={{
-          background: isLive ? "rgba(16, 185, 129, 0.12)" : "rgba(255, 255, 255, 0.05)",
-          border: `1px solid ${isLive ? "rgba(52, 211, 153, 0.32)" : "rgba(255, 255, 255, 0.10)"}`,
-          color: isLive ? "#6EE7B7" : "#CBD5E1",
+          background: tone.bg,
+          border: `1px solid ${tone.border}`,
+          color: tone.text,
         }}
       >
         <span
           className="w-2 h-2 rounded-full shrink-0"
           style={{
-            background: isLive ? "#34D399" : "#64748B",
-            boxShadow: isLive ? "0 0 8px #34D399" : "none",
+            background: tone.dot,
+            boxShadow: readiness.level === "offline" ? "none" : `0 0 8px ${tone.dot}`,
           }}
           aria-hidden
         />
         {isLive ? <Wifi size={13} aria-hidden /> : <WifiOff size={13} className="text-slate-400" aria-hidden />}
-        <span className="hidden sm:inline">{isLive ? "Station en ligne" : "Hors ligne"}</span>
+        <span className="hidden sm:inline">{readiness.label}</span>
         {latencyMs !== null && isLive && (
           <span className="hidden lg:inline text-hud-2xs text-emerald-300/70 hud-numeric">
             {latencyMs}ms
@@ -179,7 +190,7 @@ export function StationStatusPopover({ stationStatus }: { stationStatus?: Statio
             <div>
               <p className="text-xs font-semibold text-white">État de l&apos;observatoire</p>
               <p className="text-hud-2xs text-slate-400 mt-0.5">
-                {isLive ? "Tous les liens sont actifs" : "Navigation et préparation libres"}
+                {readiness.summary}
               </p>
             </div>
             {latencyMs !== null && (
@@ -188,6 +199,24 @@ export function StationStatusPopover({ stationStatus }: { stationStatus?: Statio
               </span>
             )}
           </div>
+
+          {readiness.issues.length > 0 && (
+            <ul className="flex flex-col gap-1" aria-label="Points à régler">
+              {readiness.issues.map((issue) => (
+                <li
+                  key={issue.text}
+                  className={`flex items-start gap-2 text-hud-xs ${issue.level === "blocked" ? "text-red-300" : "text-amber-300"}`}
+                >
+                  <span
+                    className="mt-1 w-1.5 h-1.5 rounded-full shrink-0"
+                    style={{ background: issue.level === "blocked" ? "#F87171" : "#FBBF24" }}
+                    aria-hidden
+                  />
+                  {issue.text}
+                </li>
+              ))}
+            </ul>
+          )}
 
           <div className="flex flex-col gap-1.5">
             {rows.map(({ icon: Icon, name, status, detail }) => {

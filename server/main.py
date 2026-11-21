@@ -3717,6 +3717,26 @@ async def station_set_location(req: StationLocationRequest):
     }
 
 
+def _station_position_and_limits() -> dict:
+    failing = indi.serial_failing()
+    alt = az = None
+    if not failing and indi.encoder_alt is not None and indi.encoder_az is not None:
+        alt = round(mount_safety.signed_angle(indi.encoder_alt), 2)
+        az = round(mount_safety.encoder_az_signed(indi.encoder_az), 2)
+    try:
+        cfg = ConfigService.load_config()
+    except Exception as e:
+        logger.error(f"Lecture des limites impossible : {e}")
+        cfg = None
+    alt_lo, alt_hi = mount_safety.load_alt_limits(cfg)
+    az_lo, az_hi = mount_safety.load_az_limits(cfg)
+    return {
+        "encoder_alt": alt,
+        "encoder_az": az,
+        "limits": {"alt_min": alt_lo, "alt_max": alt_hi, "az_min": az_lo, "az_max": az_hi},
+    }
+
+
 @app.get("/station/status")
 async def station_status():
     """Retourne l'état d'initialisation Vespera (lieu, heure, sync ciel) + fraîcheur encodeur."""
@@ -3736,6 +3756,10 @@ async def station_status():
         "polling_period_ms": MOUNT_POLLING_PERIOD_MS,
         "link_suspect": indi.link_suspect,
         "serial_error": indi.serial_failing(),
+        # Position lue sur les encodeurs (repère monture) et limites réellement
+        # appliquées : l'interface les affiche telles quelles, sans valeur par
+        # défaut de son côté. None tant que rien de fiable n'a été lu.
+        **_station_position_and_limits(),
         # Retard de l'image live sur le direct, en secondes (None hors flux)
         "stream_lag_s": indi.stream_lag.lag_s if indi.live_view_active else None,
     }
