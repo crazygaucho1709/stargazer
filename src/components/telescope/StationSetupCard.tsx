@@ -91,7 +91,7 @@ export function StationSetupCard() {
       {running && setup?.logs.length ? (
         <p role="status" className="text-hud-2xs text-slate-400 truncate">
           {/* Le journal du backend préfixe ses lignes d'un pictogramme : on ne garde que le texte. */}
-          {setup.logs[setup.logs.length - 1].replace(/^[^\p{L}\p{N}]+/u, "")}
+          {setup.logs[setup.logs.length - 1].replace(/^[^A-Za-zÀ-ÿ0-9]+/, "")}
         </p>
       ) : null}
 
