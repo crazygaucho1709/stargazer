@@ -74,3 +74,4 @@ graphify-out/
 CLAUDE.md
 .anthropic/
 .cache/
+server/station_horizon.json

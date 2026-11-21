@@ -42,6 +42,7 @@ from metrics import metrics
 import mount_safety
 import canon_zoom
 import stream_lag
+import station_setup
 
 class _MemStats:
     __slots__ = ("total", "used", "percent")
@@ -1580,6 +1581,8 @@ async def _station_stream_state() -> dict:
         "mount_connected": bool(getattr(indi, "mount_connected", False)),
         "ccd_connected": bool(getattr(indi, "ccd_connected", False)),
         "station": await station_status(),
+        # Mise en station automatique : étapes et avancement (None si jamais lancée)
+        "setup": _station_setup.snapshot() if _station_setup is not None else None,
     }
 
 
@@ -3520,9 +3523,18 @@ def mount_unpark():
 
 
 @app.post("/mount/abort")
-def mount_abort():
+async def mount_abort():
+    # L'arrêt part d'abord, sans condition. Ensuite seulement on coupe les
+    # séquences automatiques : sinon la mise en station ou l'alignement
+    # repartiraient vers la case suivante une seconde après le STOP.
     logger.warning(f"ABORT MOTION sent to mount: {indi.device_mount}")
     indi.send(f'<newSwitchVector device="{indi.device_mount}" name="TELESCOPE_ABORT_MOTION"><oneSwitch name="ABORT">On</oneSwitch></newSwitchVector>')
+    if _station_setup is not None and _station_setup.running:
+        logger.warning("STOP reçu : mise en station automatique interrompue")
+        asyncio.create_task(_station_setup.stop())
+    elif _autoalign_session is not None and _autoalign_session.running:
+        logger.warning("STOP reçu : alignement automatique interrompu")
+        asyncio.create_task(_autoalign_session.stop())
     return {"success": True, "message": "Abort motion command sent to mount"}
 
 
@@ -4907,6 +4919,79 @@ async def autoalign_session_start(req: AutoAlignSessionStartRequest):
         config_lon=req.lon,
     )
     return {"success": True, "session_id": sid}
+
+# ─── Mise en station automatique ─────────────────────────────────────────────
+
+_station_setup: Optional[station_setup.StationSetup] = None
+
+
+def _get_station_setup() -> station_setup.StationSetup:
+    global _station_setup
+    if _station_setup is None:
+        def _limits():
+            cfg = ConfigService.load_config()
+            alt_lo, alt_hi = mount_safety.load_alt_limits(cfg)
+            az_lo, az_hi = mount_safety.load_az_limits(cfg)
+            return alt_lo, alt_hi, az_lo, az_hi
+
+        def _encoders():
+            if indi.encoder_alt is None or indi.encoder_az is None:
+                return None, None
+            return (mount_safety.signed_angle(indi.encoder_alt),
+                    mount_safety.encoder_az_signed(indi.encoder_az))
+
+        def _fresh():
+            now = time.time()
+            return mount_safety.check_encoder_fresh(
+                mount_safety.position_proof_ts(
+                    indi.encoder_last_update, indi.mount_heartbeat_ts, now), now)
+
+        def _set_aligned(aligned: bool):
+            station_init_state["sky_synced"] = aligned
+            if aligned:
+                station_init_state["sky_synced_at"] = datetime.now(timezone.utc).isoformat()
+
+        _station_setup = station_setup.StationSetup(
+            indi=indi,
+            get_session=_get_autoalign_session,
+            slew=mount_slew_internal,
+            altaz_to_radec=_altaz_to_radec,
+            get_site=lambda: _get_site_location(indi, INDI_HOST),
+            get_limits=_limits,
+            encoder_position=_encoders,
+            position_fresh=_fresh,
+            focus_calibrate=focus_calibrate,
+            set_aligned=_set_aligned,
+            logger=logger,
+        )
+    return _station_setup
+
+
+@app.post("/station/setup/start")
+async def station_setup_start():
+    """Lance la mise en station automatique complète (balayage, limites,
+    alignement, focus numérique). La monture se déplace seule."""
+    setup = _get_station_setup()
+    if setup.running:
+        raise HTTPException(status_code=409, detail="Une mise en station est déjà en cours")
+    if _get_autoalign_session().running:
+        return {"success": False, "error": "Un alignement automatique est déjà en cours"}
+    setup.start()
+    return {"success": True}
+
+
+@app.post("/station/setup/stop")
+async def station_setup_stop():
+    setup = _get_station_setup()
+    if setup.running:
+        await setup.stop()
+    return {"success": True}
+
+
+@app.get("/station/setup/status")
+async def station_setup_status():
+    return _get_station_setup().snapshot()
+
 
 @app.post("/autoalign/session/stop")
 async def autoalign_session_stop():

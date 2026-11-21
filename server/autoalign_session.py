@@ -367,7 +367,11 @@ class AutoAlignSession:
     def start(self, zone: dict, *, target_pairs: int = 3, preview_exposure: float = 1.0,
               solve_exposure: float = 4.0, max_duration_s: int = 1800,
               use_ai: bool = False, dry_run: bool = False, device_mount: str = "",
-              config_lat: Optional[float] = None, config_lon: Optional[float] = None) -> str:
+              config_lat: Optional[float] = None, config_lon: Optional[float] = None,
+              grid: Optional[list] = None, score_only: bool = False) -> str:
+        """`grid` : cases déjà planifiées (remplace la grille fine calculée sur `zone`).
+        `score_only` : compter les étoiles de chaque case sans résoudre ni
+        synchroniser — c'est le balayage de la mise en station automatique."""
         if self.running:
             raise RuntimeError("Session déjà en cours")
         self.session_id = uuid.uuid4().hex[:12]
@@ -381,9 +385,18 @@ class AutoAlignSession:
         self._task = asyncio.get_event_loop().create_task(
             self._run(zone, target_pairs, preview_exposure, solve_exposure,
                       max_duration_s, use_ai, dry_run, device_mount,
-                      config_lat, config_lon)
+                      config_lat, config_lon, grid, score_only)
         )
         return self.session_id
+
+    async def wait(self) -> None:
+        """Attend la fin de la session en cours, quelle qu'en soit l'issue."""
+        if self._task is None:
+            return
+        try:
+            await self._task
+        except asyncio.CancelledError:
+            pass  # annulation déjà consignée dans self.result par _run
 
     async def stop(self):
         self._abort = True
@@ -401,8 +414,9 @@ class AutoAlignSession:
 
     async def _run(self, zone, target_pairs, preview_exposure, solve_exposure,
                    max_duration_s, use_ai, dry_run, device_mount,
-                   config_lat, config_lon):
+                   config_lat, config_lon, grid=None, score_only=False):
         started = time.time()
+        refused_in_a_row = 0
         dev_mount = device_mount or getattr(self.indi, "device_mount", "") or "Celestron GPS"
         dev_ccd = getattr(self.indi, "device_ccd", "") or "Canon DSLR EOS 600D"
         first_solve_done = False
@@ -459,8 +473,8 @@ class AutoAlignSession:
 
             # ── PLAN ─────────────────────────────────────────────────────────
             self._set_state("PLAN")
-            self.cells = build_scan_grid(zone["altMin"], zone["altMax"],
-                                         zone["azMin"], zone["azMax"])
+            self.cells = grid if grid is not None else build_scan_grid(
+                zone["altMin"], zone["altMax"], zone["azMin"], zone["azMax"])
             self._emit("grid", self.cells)
             self._log(f"🗺️ Grille: {len(self.cells)} cellules "
                       f"(pas {GRID_STEP_ALT:.2f}° alt / ~{GRID_STEP_AZ_EQ:.2f}° az)")
@@ -477,9 +491,30 @@ class AutoAlignSession:
 
                 ok = await self._process_cell(cell, dev_mount, dev_ccd,
                                               preview_exposure, solve_exposure,
-                                              use_ai, dry_run, first_solve_done)
+                                              use_ai, dry_run, first_solve_done,
+                                              score_only)
                 if ok:
                     first_solve_done = True
+
+                # Un pointage refusé par le garde-fou mécanique est attendu en
+                # bord de zone. Tout autre refus répété (liaison série, position
+                # périmée, monture muette) signifie qu'on ne maîtrise plus la
+                # monture : on s'arrête au lieu d'insister case après case.
+                err = cell.get("slew_error")
+                if err and not err.startswith("Mouvement refusé"):
+                    refused_in_a_row += 1
+                    if refused_in_a_row >= 3:
+                        raise RuntimeError(f"Trois pointages refusés d'affilée : {err}")
+                else:
+                    refused_in_a_row = 0
+
+            if score_only:
+                self._set_state("DONE")
+                self.result = {"success": True, "survey": True,
+                               "cells_visited": sum(1 for c in self.cells
+                                                    if c["status"] != "pending")}
+                self._log("✅ Balayage terminé")
+                return
 
             # ── SYNCING ──────────────────────────────────────────────────────
             if len(self.pairs) >= 2 and not dry_run:
@@ -519,7 +554,8 @@ class AutoAlignSession:
     # ── Traitement d'une cellule ──────────────────────────────────────────────
 
     async def _process_cell(self, cell, dev_mount, dev_ccd, preview_exposure,
-                            solve_exposure, use_ai, dry_run, first_solve_done) -> bool:
+                            solve_exposure, use_ai, dry_run, first_solve_done,
+                            score_only=False) -> bool:
         """Slew → settle → score → (capture → solve). Retourne True si paire ajoutée."""
         i = cell["i"]
         self._set_state("SLEWING")
@@ -535,6 +571,7 @@ class AutoAlignSession:
         res = await self.slew(dev_mount, ra_hours, dec_deg, False)
         if not res.get("success"):
             cell["status"] = "failed"
+            cell["slew_error"] = str(res.get("error") or "pointage refusé")
             self._emit("cell", cell)
             self._log(f"⚠️ Slew échoué: {res.get('error')}")
             return False
@@ -559,6 +596,12 @@ class AutoAlignSession:
         self._set_state("SCORING")
         score = await self._score_current_field(dev_ccd, preview_exposure)
         cell["star_count"] = score.get("star_count", 0)
+
+        if score_only:
+            cell["status"] = "scored"
+            self._emit("cell", cell)
+            self._log(f"  🔢 {cell['star_count']} étoile(s) vue(s)")
+            return False
 
         promising = score.get("promising", False)
 

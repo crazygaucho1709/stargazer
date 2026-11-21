@@ -16,6 +16,7 @@
 import { useEffect, useState } from "react";
 import { normalizeHealthFull, NormalizedHealth, RawHealthFull } from "@/lib/healthNormalize";
 import type { StationStatusData } from "@/hooks/useStationAutoInit";
+import type { StationSetupState } from "@/hooks/useStationSetup";
 
 export interface StationStreamSnapshot {
   /** Faux tant qu'aucune trame (ou aucun échec) n'est arrivé. */
@@ -28,6 +29,8 @@ export interface StationStreamSnapshot {
   station: StationStatusData | null;
   /** Rapport d'infrastructure, rafraîchi par le backend toutes les 5 s. */
   health: NormalizedHealth | null;
+  /** Mise en station automatique ; null si elle n'a jamais été lancée. */
+  setup: StationSetupState | null;
 }
 
 interface StreamFrame {
@@ -37,6 +40,7 @@ interface StreamFrame {
   ccd_connected?: boolean;
   station?: StationStatusData;
   full?: RawHealthFull;
+  setup?: StationSetupState | null;
 }
 
 const STREAM_URL = "/api/station/stream";
@@ -49,6 +53,7 @@ const OFFLINE: Omit<StationStreamSnapshot, "loading"> = {
   ccdConnected: false,
   station: null,
   health: null,
+  setup: null,
 };
 
 let snapshot: StationStreamSnapshot = { loading: true, ...OFFLINE };
@@ -103,6 +108,7 @@ function open() {
       ccdConnected: !!frame.ccd_connected,
       station: frame.station ?? null,
       health: frame.full ? normalizeHealthFull(frame.full) : snapshot.health,
+      setup: frame.setup ?? null,
     });
   };
 
