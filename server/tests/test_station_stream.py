@@ -70,7 +70,15 @@ def test_station_hides_position_while_serial_link_fails(monkeypatch):
     monkeypatch.setattr(main.indi, "encoder_alt", 10.0)
     monkeypatch.setattr(main.indi, "encoder_az", 20.0)
     monkeypatch.setattr(main.indi, "serial_error_ts", 0.0)
+    # Monture connectée et encodeurs lus à l'instant : la position est affichable.
+    monkeypatch.setattr(main.indi, "mount_connected", True)
+    monkeypatch.setattr(main.indi, "encoder_last_update", time.time())
+    monkeypatch.setattr(main.indi, "mount_heartbeat_ts", time.time())
     assert asyncio.run(main.station_status())["encoder_alt"] == 10.0
+    # Monture déconnectée : plus de position, même avec des valeurs en mémoire.
+    monkeypatch.setattr(main.indi, "mount_connected", False)
+    assert asyncio.run(main.station_status())["encoder_alt"] is None
+    monkeypatch.setattr(main.indi, "mount_connected", True)
     # Erreur d'écriture toute récente : la position du driver ne vaut plus rien.
     monkeypatch.setattr(main.indi, "serial_error_ts", time.time())
     station = asyncio.run(main.station_status())

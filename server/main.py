@@ -1083,8 +1083,7 @@ class INDIClient:
                         # Erreur d'écriture série = la monture ne reçoit plus
                         # d'ordres. Seule la monture est en série ; une alerte
                         # sans nom de pilote est comptée pour elle, par prudence.
-                        low = msg.lower()
-                        if "write error" in low or "input/output error" in low:
+                        if mount_safety.is_mount_silent_message(msg):
                             from_mount = (
                                 not dev_match
                                 or alert_dev == getattr(self, "device_mount", None)
@@ -3727,9 +3726,12 @@ async def station_set_location(req: StationLocationRequest):
 
 
 def _station_position_and_limits() -> dict:
-    failing = indi.serial_failing()
+    now = time.time()
+    proven = mount_safety.position_is_proven(
+        bool(indi.mount_connected), indi.serial_failing(),
+        mount_safety.position_proof_ts(indi.encoder_last_update, indi.mount_heartbeat_ts, now), now)
     alt = az = None
-    if not failing and indi.encoder_alt is not None and indi.encoder_az is not None:
+    if proven and indi.encoder_alt is not None and indi.encoder_az is not None:
         alt = round(mount_safety.signed_angle(indi.encoder_alt), 2)
         az = round(mount_safety.encoder_az_signed(indi.encoder_az), 2)
     try:
@@ -4503,12 +4505,17 @@ def mount_status():
     alt = mount_safety.signed_angle(indi.encoder_alt) if indi.encoder_alt is not None else None
     # Liaison série en panne : les valeurs du driver ne viennent pas de la
     # monture. Mieux vaut « pas de position » qu'un 0° / 0° qui a l'air vrai.
-    position_valid = not indi.serial_failing() and az is not None and alt is not None
-    if indi.serial_failing():
+    now = time.time()
+    proven = mount_safety.position_is_proven(
+        bool(indi.mount_connected), indi.serial_failing(),
+        mount_safety.position_proof_ts(indi.encoder_last_update, indi.mount_heartbeat_ts, now), now)
+    position_valid = proven and az is not None and alt is not None
+    if not proven:
         az = alt = None
     return {
         "position_valid": position_valid,
-        "position_error": SERIAL_LINK_ERROR if indi.serial_failing() else None,
+        "position_error": (SERIAL_LINK_ERROR if indi.serial_failing()
+                           else None if proven else "Position de la monture non lue"),
         "connected": indi.mount_connected,
         "ra": indi.mount_ra,
         "dec": indi.mount_dec,

@@ -123,6 +123,39 @@ bruit de quantification (1 pas encodeur ≈ 0,0000215°, mais le driver arrondit
 SERIAL_ERROR_HOLD_S = 15.0
 
 
+# Messages du driver qui signifient « la monture ne répond pas ». Les deux
+# premiers datent du 20 novembre 2026 (port série décroché) ; les suivants du
+# 21 novembre : monture rallumée, port ouvert sans erreur d'écriture, mais
+# aucun contrôleur moteur ne répond à la connexion.
+MOUNT_SILENT_MARKERS = (
+    "write error",
+    "input/output error",
+    "timeout error",
+    "got no response from target",
+    "cannot continue without connection to motor controllers",
+)
+
+
+def is_mount_silent_message(message: str) -> bool:
+    """Ce message du driver monture dit-il que la monture ne répond pas ?"""
+    low = (message or "").lower()
+    return any(marker in low for marker in MOUNT_SILENT_MARKERS)
+
+
+def position_is_proven(connected: bool, link_failing: bool, proof_ts: float, now_ts: float,
+                       max_age_s: float = 30.0) -> bool:
+    """Peut-on afficher la position des encodeurs comme une position actuelle ?
+
+    Non si la monture est déconnectée, si sa liaison est en échec, ou si la
+    dernière preuve de vie est trop ancienne : le 21 novembre 2026 l'interface
+    affichait encore −5,4° / 105,5° avec une monture déconnectée depuis trois
+    minutes.
+    """
+    if not connected or link_failing or proof_ts <= 0:
+        return False
+    return (now_ts - proof_ts) <= max_age_s
+
+
 def serial_link_failing(last_error_ts: float, now_ts: float,
                         hold_s: float = SERIAL_ERROR_HOLD_S) -> bool:
     """True tant qu'une erreur d'écriture série du driver monture est récente.

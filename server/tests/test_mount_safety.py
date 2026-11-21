@@ -76,3 +76,20 @@ def test_reconnexion_serie_attend_une_panne_installee():
 def test_reconnexion_serie_une_tentative_par_minute():
     assert not mount_safety.should_reconnect_serial(900.0, 970.0, 1000.0)
     assert mount_safety.should_reconnect_serial(900.0, 940.0, 1000.0)
+
+
+def test_monture_muette_reconnue_dans_les_messages_du_driver():
+    assert mount_safety.is_mount_silent_message("[ERROR] Write Error: Input/output error")
+    assert mount_safety.is_mount_silent_message("[ERROR] Timeout error")
+    assert mount_safety.is_mount_silent_message("[ERROR] Got no response from target ALT or AZM.")
+    assert mount_safety.is_mount_silent_message("[ERROR] Cannot continue without connection to motor controllers.")
+    assert not mount_safety.is_mount_silent_message("[INFO] Setting serial speed to 9600 baud.")
+
+
+def test_position_affichee_seulement_si_prouvee():
+    now = 1000.0
+    assert mount_safety.position_is_proven(True, False, 995.0, now)
+    assert not mount_safety.position_is_proven(False, False, 995.0, now)   # déconnectée
+    assert not mount_safety.position_is_proven(True, True, 995.0, now)     # liaison en échec
+    assert not mount_safety.position_is_proven(True, False, 900.0, now)    # preuve trop ancienne
+    assert not mount_safety.position_is_proven(True, False, 0.0, now)      # jamais lue
