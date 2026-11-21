@@ -4,29 +4,50 @@
 # Prérequis  : brew install caddy mkcert && ./scripts/setup-https.sh
 #
 # Ce fichier est lancé par PM2 (process: stargazer-https).
+#
+# Routage par blocs `handle` (mutuellement exclusifs, ordre = priorité) :
+#   1. WebSocket  /ws/*               → FastAPI:5005 (upgrade 101)
+#   2. Streams    /api/.../stream     → réécrits puis FastAPI:5005
+#   3. API directe (health, mount…)   → FastAPI:5005
+#   4. Tout le reste                  → Next.js:3001
 
 macmini.local:8443, 192.168.178.110:8443, localhost:8443 {
     tls certs/stargazer.pem certs/stargazer-key.pem
 
-    # WebSocket phone-sensor → FastAPI:5005
-    @ws {
-        path /ws/*
-    }
-    reverse_proxy @ws localhost:5005
-
-    # API FastAPI passthrough (health, stream, etc.)
-    @api {
-        path /api/indi/health-full /video_feed /phone-sensor/* /health* /ccd/* /mount/*
-    }
-    reverse_proxy @api localhost:5005
-
-    # Tout le reste → Next.js:3001
-    reverse_proxy localhost:3001
-
-    # Headers pour les capteurs iOS
+    # Headers pour les capteurs iOS (DeviceOrientation/Motion)
     header {
         Permissions-Policy "accelerometer=*, gyroscope=*, magnetometer=*"
         Access-Control-Allow-Origin "*"
+    }
+
+    # 1. WebSocket phone-sensor + framing → FastAPI (upgrade géré nativement par Caddy)
+    handle /ws/* {
+        reverse_proxy localhost:5005
+    }
+
+    # 2. Streams MJPEG/SSE réécrits vers les routes FastAPI directes
+    handle /api/indi/stream {
+        rewrite * /video_feed
+        reverse_proxy localhost:5005
+    }
+    handle /api/indi/coords/stream {
+        rewrite * /coords/stream
+        reverse_proxy localhost:5005
+    }
+    handle /api/logs/stream {
+        rewrite * /logs
+        reverse_proxy localhost:5005
+    }
+
+    # 3. API FastAPI directe (passthrough sans réécriture)
+    @backend path /video_feed /coords/stream /logs /health* /phone-sensor/* /ccd/* /mount/* /ai/*
+    handle @backend {
+        reverse_proxy localhost:5005
+    }
+
+    # 4. Tout le reste (UI + routes /api Next.js) → Next.js
+    handle {
+        reverse_proxy localhost:3001
     }
 
     log {

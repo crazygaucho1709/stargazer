@@ -8,11 +8,12 @@ import { DiagnosticsPanel } from "./DiagnosticsPanel";
 import { ActionButtons } from "./ActionButtons";
 import { LogStream } from "./LogStream";
 import { PhoneSensorWidget } from "./PhoneSensorWidget";
-import { TelescopeControls } from "@/components/telescope/TelescopeControls";
 import { useStargazerStore } from "@/store/useStargazerStore";
 import { useHealthFull } from "@/hooks/useHealthFull";
 import { OBSERVATORY_LABELS, OBSERVATORY_COLORS, SubsystemHealth, SubsystemId, canObservatoryTransition, ObservatoryEvent } from "@/lib/observatoryMachine";
 import { SkeletonCard } from "@/components/ui/Skeleton";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { useStationReadiness } from "@/hooks/useStationReadiness";
 
 const SUBSYSTEM_ICONS: Record<SubsystemId, React.ElementType> = {
   mount: Telescope,
@@ -135,7 +136,11 @@ export default function ObservatoryPanel() {
   const isStarting = obsState === "STARTING" || obsState.includes("CONNECTING");
   const isCritical = obsState === "CRITICAL";
 
-  const healthColor = healthPct > 80 ? "#4ade80" : healthPct > 50 ? "#facc15" : "#f87171";
+  // Le badge reprend l'état unique de la station, pas le seul pourcentage de
+  // liens qui répondent : 100 % des liens peuvent répondre sans qu'on puisse observer.
+  const readiness = useStationReadiness();
+  const healthColor = readiness.level === "ready" ? "#4ade80" : readiness.level === "degraded" ? "#facc15" : "#f87171";
+  const [confirmShutdown, setConfirmShutdown] = useState(false);
 
   const [initializing, setInitializing] = useState(true);
 
@@ -189,7 +194,7 @@ export default function ObservatoryPanel() {
           <div className="flex items-center gap-2">
             <Radio size={24} style={{ color }} />
             <h2 style={{ fontSize: 16, fontWeight: "bold", color: "white", letterSpacing: "0.1em", margin: 0 }}>
-              REMOTE OBSERVATORY CENTER
+              CENTRE DE CONTRÔLE
             </h2>
           </div>
           <div className="flex items-center gap-3">
@@ -227,7 +232,7 @@ export default function ObservatoryPanel() {
                 padding: "3px 10px",
               }}
             >
-              {healthPct}% HEALTH
+              <span title={`${healthPct} % des sous-systèmes répondent`}>{readiness.label}</span>
             </div>
           </div>
         </div>
@@ -341,7 +346,7 @@ export default function ObservatoryPanel() {
           </div>
           {isOnline && (
             <button
-              onClick={() => sendObservatoryEvent("SHUTDOWN")}
+              onClick={() => setConfirmShutdown(true)}
               style={{
                 background: "transparent",
                 border: "none",
@@ -354,9 +359,19 @@ export default function ObservatoryPanel() {
               }}
             >
               <Power size={12} />
-              SHUTDOWN
+              {language === "fr" ? "ARRÊTER" : "SHUTDOWN"}
             </button>
           )}
+          <ConfirmDialog
+            isOpen={confirmShutdown}
+            title="Arrêter l'observatoire ?"
+            message="La séquence d'arrêt de l'observatoire va démarrer. Il faudra le relancer pour observer de nouveau."
+            confirmLabel="Arrêter"
+            cancelLabel="Annuler"
+            variant="danger"
+            onConfirm={() => { setConfirmShutdown(false); sendObservatoryEvent("SHUTDOWN"); }}
+            onCancel={() => setConfirmShutdown(false)}
+          />
           {!isOnline && !isStarting && !isCritical && (
             <button
               onClick={() => sendObservatoryEvent("START")}
@@ -377,7 +392,7 @@ export default function ObservatoryPanel() {
           )}
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
-          {(Object.values(subsystems) as SubsystemHealth[]).map((sub) => (
+          {(Object.values(subsystems) as SubsystemHealth[]).filter((sub) => !UNEQUIPPED.includes(sub.id)).map((sub) => (
             <SubsystemCard key={sub.id} sub={sub} />
           ))}
         </div>
@@ -386,40 +401,34 @@ export default function ObservatoryPanel() {
       {/* Diagnostic précis + Reset All */}
       <DiagnosticsPanel />
 
-      {/* Health Section */}
-      <div>
-        <InfrastructureStatus />
-      </div>
+      {/* Le détail est replié : ce qui demande une action est déjà dit par le diagnostic ci-dessus. */}
+      <details>
+        <summary className="flex items-center min-h-[var(--size-touch)] cursor-pointer text-hud-xs font-semibold tracking-wider text-slate-300 hover:text-white">ÉTAT DÉTAILLÉ DE L&apos;INFRASTRUCTURE</summary>
+        <div className="pt-3">
+          <InfrastructureStatus />
+        </div>
+      </details>
 
-      {/* Phone Sensor + Mount control side by side */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 200px", gap: 16, alignItems: "start" }}
-        className="max-md:grid-cols-1"
-      >
-        <PhoneSensorWidget />
-        <div
-          style={{
-            background: "rgba(255,255,255,0.02)",
-            border: "1px solid rgba(255,255,255,0.07)",
-            borderRadius: 12,
-            padding: 16,
-          }}
+      <details>
+        <summary className="flex items-center min-h-[var(--size-touch)] cursor-pointer text-hud-xs font-semibold tracking-wider text-slate-300 hover:text-white">CAPTEUR DU TÉLÉPHONE</summary>
+        <div className="pt-3">
+          <PhoneSensorWidget />
+        </div>
+      </details>
+
+      <details>
+        <summary className="flex items-center min-h-[var(--size-touch)] cursor-pointer text-hud-xs font-semibold tracking-wider text-slate-300 hover:text-white">ACTIONS ET JOURNAL</summary>
+        <div style={{ display: "grid", gridTemplateColumns: "350px 1fr", gap: 32, alignItems: "start" }}
+          className="max-xl:grid-cols-1 pt-3"
         >
-          <p style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", letterSpacing: "0.15em", marginBottom: 12, margin: "0 0 12px" }}>RAQUETTE</p>
-          <TelescopeControls variant="pad" />
+          <div style={{ background: "rgba(255,255,255,0.02)", padding: 24, borderRadius: 16, border: "1px solid rgba(255,255,255,0.05)" }}>
+            <ActionButtons />
+          </div>
+          <div className="h-full">
+            <LogStream />
+          </div>
         </div>
-      </div>
-
-      {/* Main Content: Actions & Logs */}
-      <div style={{ display: "grid", gridTemplateColumns: "350px 1fr", gap: 32, alignItems: "start" }}
-        className="max-xl:grid-cols-1"
-      >
-        <div style={{ background: "rgba(255,255,255,0.02)", padding: 24, borderRadius: 16, border: "1px solid rgba(255,255,255,0.05)" }}>
-          <ActionButtons />
-        </div>
-        <div className="h-full">
-          <LogStream />
-        </div>
-      </div>
+      </details>
 
       {/* Safety Footer */}
       <div
@@ -435,7 +444,7 @@ export default function ObservatoryPanel() {
       >
         <Terminal size={16} color="#fecaca" />
         <span style={{ fontSize: 11, color: "#fee2e2", fontWeight: "bold" }}>
-          SAFETY NOTE: Always ensure the telescope is balanced and cables are free before remote slewing. In case of emergency, use &quot;ABORT ALL&quot;.
+          Sécurité : vérifiez que le télescope est équilibré et les câbles libres avant tout déplacement à distance. En cas d&apos;urgence, « Tout arrêter ».
         </span>
       </div>
     </div>

@@ -79,6 +79,9 @@ interface StargazerState {
     globalLoadingMessage: string;
     detectedCcd: string;
     detectedMount: string;
+    /** Un moteur de mise au point est annoncé par INDI. Faux par défaut. */
+    hasFocuser: boolean;
+    setHasFocuser: (v: boolean) => void;
     selectedObjectId: string | null;
     trackingRate: "SIDEREAL" | "LUNAR" | "SOLAR";
     isConfigMenuOpen: boolean;
@@ -117,7 +120,7 @@ const SESSION_CAPTURING: SessionState[] = ["CAPTURING", "STACKING"];
 export const useStargazerStore = create<StargazerState>()(
     persist(
         (set, get) => ({
-            language: "en",
+            language: "fr",
             vision: "day" as VisionMode,
             density: "normal" as DensityMode,
             dim: 0 as DimLevel,
@@ -179,11 +182,17 @@ export const useStargazerStore = create<StargazerState>()(
             ],
 
             // Legacy compat (computed)
-            get isSlewing() { return SESSION_SLEWING.includes(get().sessionState); },
-            get isExposing() { return SESSION_CAPTURING.includes(get().sessionState); },
+            // Champs réels, tenus à jour par l'abonnement en bas de fichier.
+            // Un accesseur `get isSlewing()` ne survit pas au premier `set` :
+            // zustand recopie l'état avec Object.assign, qui fige la valeur lue.
+            isSlewing: false,
+            isExposing: false,
             setSlewing: (status: boolean) => {
                 const state = get().sessionState;
-                if (status && state === "IDLE") set({ sessionState: "SLEWING" });
+                // Un pointage part aussi bien du repos que du suivi : sans
+                // TRACKING ici, seul le premier déplacement de la session
+                // était signalé à l'interface.
+                if (status && (state === "IDLE" || state === "TRACKING")) set({ sessionState: "SLEWING" });
                 else if (!status && SESSION_SLEWING.includes(state)) set({ sessionState: "TRACKING" });
             },
             setExposing: (status: boolean) => {
@@ -246,12 +255,23 @@ export const useStargazerStore = create<StargazerState>()(
             },
             setMountLimits: (limits) => set((state) => ({ mountLimits: { ...state.mountLimits, ...limits } })),
             setDetectedDevices: (detectedCcd, detectedMount) => set({ detectedCcd, detectedMount }),
+            hasFocuser: false,
+            setHasFocuser: (hasFocuser) => set({ hasFocuser }),
             setSelectedObjectId: (selectedObjectId) => set({ selectedObjectId }),
             setTrackingRate: (trackingRate) => set({ trackingRate }),
             setConfigMenuOpen: (isOpen) => set({ isConfigMenuOpen: isOpen }),
         }),
         {
             name: 'stargazer-storage',
+            // v1 : le français devient la langue par défaut. Les navigateurs
+            // qui avaient enregistré l'ancien défaut (anglais, jamais choisi
+            // par personne) passent au français une fois ; le choix reste
+            // ensuite modifiable dans la configuration.
+            version: 1,
+            migrate: (persisted, version) => {
+                const state = (persisted ?? {}) as Record<string, unknown>;
+                return version < 1 ? { ...state, language: "fr" } : state;
+            },
             partialize: (state) => ({
                 language: state.language,
                 vision: state.vision,
@@ -271,3 +291,13 @@ export const useStargazerStore = create<StargazerState>()(
         }
     )
 );
+
+// isSlewing / isExposing découlent de sessionState, quelle que soit l'action
+// qui l'a modifié (setSlewing, sendSessionEvent, réhydratation).
+useStargazerStore.subscribe((state) => {
+    const isSlewing = SESSION_SLEWING.includes(state.sessionState);
+    const isExposing = SESSION_CAPTURING.includes(state.sessionState);
+    if (state.isSlewing !== isSlewing || state.isExposing !== isExposing) {
+        useStargazerStore.setState({ isSlewing, isExposing });
+    }
+});

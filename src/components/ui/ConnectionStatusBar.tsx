@@ -2,32 +2,19 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { Network, Terminal, Telescope, Camera } from "lucide-react";
+import { Network, Terminal, Telescope, Camera, RefreshCw, Wifi, WifiOff } from "lucide-react";
 import { useHealthFull } from "@/hooks/useHealthFull";
 import { useRecovery } from "@/hooks/useRecovery";
+import { useStargazerStore } from "@/store/useStargazerStore";
 import { notification } from "@/lib/notificationService";
-
-interface DeviceHealth {
-  status: "ok" | "error" | "missing";
-  latency_ms?: number;
-  driver?: string;
-  type?: string;
-}
-
-interface HealthFull {
-  bridge: DeviceHealth;
-  ssh: DeviceHealth;
-  mount: DeviceHealth;
-  camera: DeviceHealth;
-}
 
 type StatusColor = "ok" | "degraded" | "error" | "offline";
 
-const COLOR_MAP: Record<StatusColor, string> = {
-  ok:      "#48BB78",
-  degraded:"#ECC94B",
-  error:   "#FC8181",
-  offline: "#4A5568",
+const STATUS_STYLE: Record<StatusColor, { dot: string; border: string; text: string }> = {
+  ok:       { dot: "#34D399", border: "rgba(52, 211, 153, 0.25)", text: "#CBD5E1" },
+  degraded: { dot: "#FBBF24", border: "rgba(251, 191, 36, 0.28)", text: "#FDE68A" },
+  error:    { dot: "#F87171", border: "rgba(248, 113, 113, 0.28)", text: "#FCA5A5" },
+  offline:  { dot: "#64748B", border: "rgba(148, 163, 184, 0.12)", text: "#94A3B8" },
 };
 
 function resolveColor(status: string | undefined, backendOffline: boolean): StatusColor {
@@ -39,8 +26,6 @@ function resolveColor(status: string | undefined, backendOffline: boolean): Stat
 }
 
 interface PillProps {
-  /* Un noeud, pas une chaine : les pictogrammes textuels (⬡ ⌁ ◎ ▣) dependent
-     des polices installees et tombent en caractere manquant sur un poste nu. */
   icon: ReactNode;
   name: string;
   subtitle?: string;
@@ -49,44 +34,51 @@ interface PillProps {
 }
 
 function StatusPill({ icon, name, subtitle, color, latency }: PillProps) {
-  const dotColor = COLOR_MAP[color];
+  const palette = STATUS_STYLE[color];
   const isOnline = color === "ok";
-  // Tronquer le subtitle au premier mot significatif (ex: "Celestron GPS" → "Celestron", "Canon DSLR EOS 600D" → "EOS 600D")
   const shortSub = subtitle
     ? subtitle.replace(/^Canon\s+DSLR\s+/i, "").replace(/^Celestron\s+/i, "").split(" ").slice(0, 2).join(" ")
     : undefined;
 
   return (
-    <div style={{
-      display: "flex", alignItems: "center", gap: "5px",
-      padding: "0 8px", height: "22px", borderRadius: "11px",
-      background: "rgba(255,255,255,0.04)",
-      border: "1px solid rgba(255,255,255,0.08)",
-      flexShrink: 0, opacity: color === "offline" ? 0.45 : 1,
-      maxWidth: "160px", overflow: "hidden",
-    }}>
-      <span style={{ lineHeight: 0, flexShrink: 0, display: "flex" }} aria-hidden>{icon}</span>
-      <span style={{
-        fontSize: "var(--text-hud-xs)", fontWeight: 500, color: "#CBD5E0", letterSpacing: "0.02em",
-        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-      }}>
+    <div
+      className="flex items-center gap-1.5 px-2.5 h-[22px] rounded-full shrink-0 max-w-[175px] overflow-hidden transition-colors duration-200"
+      style={{
+        background: "rgba(15, 23, 42, 0.72)",
+        border: `1px solid ${palette.border}`,
+        opacity: color === "offline" ? 0.65 : 1,
+      }}
+      title={subtitle ? `${name} — ${subtitle}` : name}
+    >
+      <span className="flex items-center shrink-0 opacity-75" aria-hidden>{icon}</span>
+      <span
+        className="text-hud-2xs font-medium tracking-[0.02em] whitespace-nowrap overflow-hidden text-ellipsis"
+        style={{ color: palette.text }}
+      >
         {name}
-        {shortSub && <span style={{ color: "#718096", marginLeft: "4px", fontWeight: 400 }}>{shortSub}</span>}
+        {shortSub && <span className="text-slate-400 ml-1 font-normal">{shortSub}</span>}
       </span>
       {latency !== undefined && (
-        <span style={{ fontSize: "var(--text-hud-xs)", color: "#718096", fontFamily: "monospace", whiteSpace: "nowrap", flexShrink: 0 }}>
+        <span className="text-hud-2xs text-slate-400 hud-numeric whitespace-nowrap shrink-0">
           {latency}ms
         </span>
       )}
       <span
         className={isOnline ? "status-dot-pulse" : undefined}
-        style={{ width: "6px", height: "6px", borderRadius: "50%", background: dotColor, flexShrink: 0 }}
+        style={{
+          width: "6px",
+          height: "6px",
+          borderRadius: "50%",
+          background: palette.dot,
+          boxShadow: isOnline ? `0 0 6px ${palette.dot}` : "none",
+          flexShrink: 0,
+        }}
       />
     </div>
   );
 }
 
-function RecoveryButton() {
+function ConnectActionButton({ backendOffline }: { backendOffline: boolean }) {
   const { recovering, diagnose, recover } = useRecovery();
   const [busy, setBusy] = useState(false);
 
@@ -94,15 +86,35 @@ function RecoveryButton() {
     if (busy || recovering) return;
     setBusy(true);
     try {
-      const diag = await diagnose();
-      if (diag && !diag.recoverable) {
-        notification.error("Reprise impossible : Raspberry Pi injoignable", {
-          description: `SSH ${diag.pi_ssh ? "OK" : "KO"} · INDI ${diag.pi_indi ? "OK" : "KO"} — vérifiez l'alimentation/réseau du Pi`,
-          source: "Recovery",
-        });
-        return;
+      if (backendOffline) {
+        const diag = await diagnose();
+        if (diag && !diag.recoverable) {
+          notification.error("Station injoignable", {
+            description: `SSH ${diag.pi_ssh ? "OK" : "KO"} · INDI ${diag.pi_indi ? "OK" : "KO"} — mode navigation libre actif`,
+            source: "Station",
+          });
+          return;
+        }
+        await recover();
+      } else {
+        const res = await fetch("/api/indi/connect", { method: "POST" });
+        if (!res.ok) {
+          notification.warning("Reconnexion en attente", {
+            description: "Aucun équipement détecté pour le moment. Navigation libre active.",
+            source: "Station",
+          });
+        } else {
+          notification.info("Connexion demandée", {
+            description: "Tentative de liaison avec la monture et la caméra…",
+            source: "Station",
+          });
+        }
       }
-      await recover();
+    } catch (err: unknown) {
+      notification.error("Échec de connexion station", {
+        description: err instanceof Error ? err.message : "Erreur réseau",
+        source: "Station",
+      });
     } finally {
       setBusy(false);
     }
@@ -111,98 +123,105 @@ function RecoveryButton() {
   const active = busy || recovering;
   return (
     <button
+      type="button"
       onClick={handleClick}
       disabled={active}
+      className="inline-flex items-center gap-1.5 px-2.5 h-[22px] rounded-full text-hud-2xs font-semibold tracking-[0.06em] uppercase transition-colors duration-150 cursor-pointer shrink-0"
       style={{
-        display: "flex", alignItems: "center", gap: "4px",
-        padding: "0 10px", height: "20px", borderRadius: "10px",
-        background: active ? "rgba(236,201,75,0.10)" : "rgba(236,201,75,0.15)",
-        border: "1px solid rgba(236,201,75,0.4)",
-        color: "#ECC94B", fontSize: "var(--text-hud-xs)", fontWeight: 600,
-        letterSpacing: "0.05em", cursor: active ? "wait" : "pointer",
-        fontFamily: "monospace",
+        background: active ? "color-mix(in srgb, var(--astro-teal) 8%, transparent)" : "color-mix(in srgb, var(--astro-teal) 12%, transparent)",
+        border: "1px solid color-mix(in srgb, var(--astro-teal) 35%, transparent)",
+        color: "var(--astro-teal)",
+        cursor: active ? "wait" : "pointer",
       }}
+      title="Tenter de connecter la station physique sans quitter la page"
     >
-      <span style={{
-        display: "inline-block",
-        animation: active ? "spin 1s linear infinite" : undefined,
-      }}>⟳</span>
-      {active ? "REPRISE..." : "REPRISE"}
+      <RefreshCw size={11} className={active ? "animate-spin" : ""} aria-hidden />
+      <span>{active ? "Connexion…" : "Connecter"}</span>
     </button>
   );
 }
 
 export const ConnectionStatusBar = () => {
-  // Source unique partagée — un seul poller pour toute l'app (voir useHealthFull)
   const { data: health, backendOffline, latencyMs: globalLatency } = useHealthFull();
+  const isConnected = useStargazerStore((s) => s.isConnected);
 
   const bc = resolveColor(health?.bridge?.status, backendOffline);
   const sc = resolveColor(health?.ssh?.status, backendOffline);
   const mc = resolveColor(health?.mount?.status, backendOffline);
   const cc = resolveColor(health?.camera?.status, backendOffline);
-  const isLive = !backendOffline && health !== null;
+
+  const isLive = !backendOffline && health !== null && isConnected;
+  const anyOffline = backendOffline || bc !== "ok" || mc !== "ok" || cc !== "ok";
 
   return (
     <>
       <style>{`
         @keyframes statusPulse {
           0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.4; transform: scale(0.85); }
+          50% { opacity: 0.45; transform: scale(0.85); }
         }
-        .status-dot-pulse { animation: statusPulse 2s ease-in-out infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .status-dot-pulse { animation: statusPulse 2.4s ease-in-out infinite; }
       `}</style>
 
-      <div style={{
-        position: "fixed", top: 0, left: 0, right: 0, zIndex: 9999,
-        height: "32px",
-        background: "rgba(5, 5, 10, 0.98)",
-        borderBottom: `1px solid ${backendOffline ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.06)"}`,
-        display: "flex", alignItems: "center",
-        paddingLeft: "12px", paddingRight: "12px", gap: "8px",
-      }}>
-        {backendOffline && (
-          <>
-            <span style={{ fontSize: "var(--text-hud-xs)", color: "#4A5568", fontFamily: "monospace", letterSpacing: "0.05em", marginRight: 4 }}>
-              BACKEND OFFLINE
-            </span>
-            <RecoveryButton />
-          </>
-        )}
+      <div
+        role="region"
+        aria-label="État matériel de la station"
+        className="fixed top-0 left-0 right-0 z-[var(--z-banner)] h-[34px] flex items-center gap-2 px-3 backdrop-blur-xl select-none"
+        style={{
+          background: "rgba(3, 6, 14, 0.92)",
+          borderBottom: "1px solid rgba(148, 163, 184, 0.10)",
+        }}
+      >
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar min-w-0">
+          <StatusPill icon={<Network size={12} />} name="INDI" color={bc} latency={health?.bridge?.latency_ms} />
+          <StatusPill icon={<Terminal size={12} />} name="SSH" color={sc} latency={health?.ssh?.latency_ms} />
+          <StatusPill
+            icon={<Telescope size={12} />}
+            name="Mount"
+            subtitle={health?.mount?.driver ? `${health.mount.driver}` : undefined}
+            color={mc}
+          />
+          <StatusPill
+            icon={<Camera size={12} />}
+            name="Camera"
+            subtitle={health?.camera?.type}
+            color={cc}
+          />
+        </div>
 
-        <StatusPill icon={<Network size={13} />} name="INDI" color={bc} latency={health?.bridge?.latency_ms} />
-        <StatusPill icon={<Terminal size={13} />} name="SSH"  color={sc} latency={health?.ssh?.latency_ms} />
-        <StatusPill icon={<Telescope size={13} />} name="Mount" subtitle={health?.mount?.driver ? `${health.mount.driver}` : undefined} color={mc} />
-        <StatusPill icon={<Camera size={13} />} name="Camera" subtitle={health?.camera?.type} color={cc} />
+        <div className="flex-1 min-w-[8px]" />
 
-        <div style={{ flex: 1 }} />
+        {anyOffline && <ConnectActionButton backendOffline={backendOffline} />}
 
         {globalLatency !== null && (
-          <span style={{ fontSize: "var(--text-hud-xs)", color: "#4A5568", fontFamily: "monospace" }}>
+          <span className="hidden sm:inline text-hud-2xs text-slate-500 hud-numeric">
             {globalLatency}ms
           </span>
         )}
 
-        <div style={{
-          display: "flex", alignItems: "center", gap: "5px",
-          padding: "0 8px", height: "18px", borderRadius: "9px",
-          background: isLive ? "rgba(72,187,120,0.12)" : "rgba(74,85,104,0.12)",
-          border: `1px solid ${isLive ? "rgba(72,187,120,0.3)" : "rgba(74,85,104,0.2)"}`,
-        }}>
+        <div
+          className="flex items-center gap-1.5 px-2.5 h-[22px] rounded-full shrink-0"
+          style={{
+            background: isLive ? "rgba(52, 211, 153, 0.12)" : "rgba(148, 163, 184, 0.10)",
+            border: `1px solid ${isLive ? "rgba(52, 211, 153, 0.35)" : "rgba(148, 163, 184, 0.22)"}`,
+          }}
+          title={isLive ? "Station connectée et opérationnelle" : "Station hors ligne — navigation et configuration libres"}
+        >
+          {isLive ? (
+            <Wifi size={11} color="#34D399" aria-hidden />
+          ) : (
+            <WifiOff size={11} color="#94A3B8" aria-hidden />
+          )}
           <span
-            className={isLive ? "status-dot-pulse" : undefined}
-            style={{ width: "5px", height: "5px", borderRadius: "50%", background: isLive ? "#48BB78" : "#4A5568" }}
-          />
-          <span style={{
-            fontSize: "var(--text-hud-2xs)", fontWeight: 700, letterSpacing: "0.08em",
-            color: isLive ? "#48BB78" : "#4A5568", fontFamily: "monospace",
-          }}>
-            {isLive ? "LIVE" : "OFFLINE"}
+            className="text-hud-2xs font-bold tracking-[0.08em] uppercase hud-numeric"
+            style={{ color: isLive ? "#34D399" : "#CBD5E1" }}
+          >
+            {isLive ? "LIVE" : "HORS LIGNE"}
           </span>
         </div>
       </div>
 
-      <div style={{ height: "32px", flexShrink: 0 }} />
+      <div className="h-[34px] shrink-0" />
     </>
   );
 };

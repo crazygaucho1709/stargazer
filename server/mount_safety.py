@@ -116,6 +116,142 @@ MOTION_PROOF_MIN_DEG = 0.02
 bruit de quantification (1 pas encodeur ≈ 0,0000215°, mais le driver arrondit)."""
 
 
+# Durée pendant laquelle la liaison série reste tenue pour défaillante après
+# la dernière erreur d'écriture du driver. Un driver dont le port a décroché
+# en émet plusieurs par seconde : 15 s de silence prouvent qu'il écrit de
+# nouveau, sans qu'un trou d'une seconde suffise à rouvrir les mouvements.
+SERIAL_ERROR_HOLD_S = 15.0
+
+
+# Messages du driver qui signifient « la monture ne répond pas ». Les deux
+# premiers datent du 20 novembre 2026 (port série décroché) ; les suivants du
+# 21 novembre : monture rallumée, port ouvert sans erreur d'écriture, mais
+# aucun contrôleur moteur ne répond à la connexion.
+MOUNT_SILENT_MARKERS = (
+    "write error",
+    "input/output error",
+    "timeout error",
+    "got no response from target",
+    "cannot continue without connection to motor controllers",
+)
+
+
+def is_mount_silent_message(message: str) -> bool:
+    """Ce message du driver monture dit-il que la monture ne répond pas ?"""
+    low = (message or "").lower()
+    return any(marker in low for marker in MOUNT_SILENT_MARKERS)
+
+
+def position_is_proven(connected: bool, link_failing: bool, proof_ts: float, now_ts: float,
+                       max_age_s: float = 30.0) -> bool:
+    """Peut-on afficher la position des encodeurs comme une position actuelle ?
+
+    Non si la monture est déconnectée, si sa liaison est en échec, ou si la
+    dernière preuve de vie est trop ancienne : le 21 novembre 2026 l'interface
+    affichait encore −5,4° / 105,5° avec une monture déconnectée depuis trois
+    minutes.
+    """
+    if not connected or link_failing or proof_ts <= 0:
+        return False
+    return (now_ts - proof_ts) <= max_age_s
+
+
+def serial_link_failing(last_error_ts: float, now_ts: float,
+                        hold_s: float = SERIAL_ERROR_HOLD_S) -> bool:
+    """True tant qu'une erreur d'écriture série du driver monture est récente.
+
+    Incident du 20 novembre 2026 : sous-tension du Pi, l'adaptateur USB-série
+    décroche puis revient, le driver garde l'ancien port et toutes ses
+    écritures échouent (« Write Error: Input/output error »). La monture ne
+    reçoit plus rien, mais le driver republie sa dernière position et le
+    backend annonçait « monture connectée ».
+    """
+    return last_error_ts > 0 and (now_ts - last_error_ts) < hold_s
+
+
+# Reconnexion automatique du driver monture après une coupure série.
+# 20 s d'erreurs continues : ce n'est plus un accroc passager, le driver écrit
+# dans un port qui n'existe plus. Une tentative par minute au plus, pour ne pas
+# marteler un adaptateur réellement débranché.
+SERIAL_RECONNECT_AFTER_S = 20.0
+SERIAL_RECONNECT_MIN_INTERVAL_S = 60.0
+
+
+def should_reconnect_serial(failing_since_ts: float, last_attempt_ts: float, now_ts: float,
+                            after_s: float = SERIAL_RECONNECT_AFTER_S,
+                            min_interval_s: float = SERIAL_RECONNECT_MIN_INTERVAL_S) -> bool:
+    """Faut-il fermer puis rouvrir le port série du driver monture ?
+
+    Incident du 21 novembre 2026 : l'adaptateur USB-série décroche 96 s après
+    le démarrage du Pi et revient aussitôt, mais le driver garde l'ancien port.
+    Toutes ses écritures échouent pendant 15 minutes, jusqu'à un redémarrage à
+    la main. Déconnecter puis reconnecter le driver suffit à rouvrir le port.
+    """
+    if failing_since_ts <= 0 or (now_ts - failing_since_ts) < after_s:
+        return False
+    return last_attempt_ts <= 0 or (now_ts - last_attempt_ts) >= min_interval_s
+
+
+HEARTBEAT_MAX_ENCODER_GAP_S = 30.0
+"""Durée maximale pendant laquelle le battement EQUATORIAL_EOD_COORD peut tenir
+lieu de preuve de vie sans nouvelle trame d'encodeurs.
+
+Le driver n'émet TELESCOPE_ENCODER_STEPS que par intermittence : écarts mesurés
+jusqu'à 16,6 s le 20 novembre 2026 (Pi bridé), pour un seuil de péremption de
+4 s. Le battement EOD comble ces trous. Mais sans borne, il rafraîchissait la
+preuve de vie indéfiniment : si les trames d'encodeurs cessaient pour de bon,
+le contrôle de fraîcheur passait toujours, alors que le garde-fou du GoTo
+compare la consigne à ces mêmes encodeurs, désormais figés."""
+
+
+def position_proof_ts(encoder_ts: Optional[float], heartbeat_ts: Optional[float],
+                      now_ts: float,
+                      max_gap_s: float = HEARTBEAT_MAX_ENCODER_GAP_S) -> Optional[float]:
+    """Horodatage à soumettre à check_encoder_fresh.
+
+    Le battement EOD n'est retenu que si une trame d'encodeurs est arrivée
+    depuis moins de max_gap_s ; au-delà, seule compte la dernière trame
+    d'encodeurs, et le contrôle de fraîcheur refuse le mouvement.
+    """
+    if not encoder_ts:
+        return encoder_ts
+    if heartbeat_ts and (now_ts - encoder_ts) <= max_gap_s:
+        return max(heartbeat_ts, encoder_ts)
+    return encoder_ts
+
+
+MODEL_ENCODER_MAX_GAP_DEG = 5.0
+"""Écart toléré entre la hauteur que le modèle de pointage attribue à la
+position courante et la hauteur lue sur l'encodeur (absolue : tube horizontal
+= 0°)."""
+
+
+def check_model_matches_encoder(model_alt_deg: Optional[float],
+                                encoder_alt_deg: Optional[float],
+                                max_gap_deg: float = MODEL_ENCODER_MAX_GAP_DEG
+                                ) -> Tuple[bool, Optional[str]]:
+    """Refuse un GoTo tant que le modèle de pointage contredit les encodeurs.
+
+    Incident du 20 novembre 2026 : monture non alignée, tube à l'horizontale.
+    Le modèle situait la visée 30° SOUS l'horizon. Le garde-fou raisonnait en
+    écart « cible − position du modèle » : viser 15° de hauteur lui semblait
+    une montée de 45°, donc sans danger. Le pilote, lui, a appliqué son propre
+    calcul et a descendu le tube à −30,5° sur l'encodeur, face à un mur.
+    Un écart cible/modèle ne vaut rien si le modèle est faux : on exige donc
+    d'abord qu'il concorde avec la seule mesure fiable, l'encodeur.
+    """
+    if model_alt_deg is None or encoder_alt_deg is None:
+        return False, ("Hauteur de la monture inconnue (modèle ou encodeur) — "
+                       "GoTo refusé")
+    gap = abs(model_alt_deg - encoder_alt_deg)
+    if gap > max_gap_deg:
+        return False, (f"Modèle de pointage non calé : il situe le tube à "
+                       f"{model_alt_deg:+.0f}° de hauteur, l'encodeur lit "
+                       f"{encoder_alt_deg:+.0f}° (écart {gap:.0f}°). Lancez la mise en "
+                       f"station avant tout GoTo.")
+    return True, None
+
+
 def check_encoder_fresh(last_update_ts: Optional[float], now_ts: float,
                         max_age_s: float = ENCODER_STALE_S) -> Tuple[bool, Optional[str]]:
     """Vérifie que la position encodeur est encore rafraîchie.

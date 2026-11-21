@@ -138,7 +138,11 @@ export const CaptureAndStack = () => {
                 const metricRes = await fetch('/api/indi?endpoint=ccd/focus-metric');
                 const metricData = await metricRes.json();
                 if (metricData.success) measuredHfr = metricData.metric;
-            } catch { /* metric optional */ }
+            } catch (err) {
+                notification.warning("Mesure de netteté indisponible", {
+                    source: "Capture", description: err instanceof Error ? err.message : "Erreur réseau",
+                });
+            }
 
             const frame: CaptureFrame = {
                 id: `frame_${Date.now()}`,
@@ -220,7 +224,7 @@ export const CaptureAndStack = () => {
     };
 
     return (
-        <div className="flex flex-col gap-4 w-full p-4 astro-panel" style={{ border: "1px solid rgba(0, 255, 209, 0.1)" }}>
+        <div className="flex flex-col gap-4 w-full p-4 astro-panel" style={{ border: "1px solid color-mix(in srgb, var(--astro-teal) 10%, transparent)" }}>
             {/* Header */}
             <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
@@ -240,7 +244,7 @@ export const CaptureAndStack = () => {
                     </span>
                     <span
                         className="text-hud-2xs px-2 py-0.5 rounded-full border"
-                        style={{ background: "rgba(0,255,209,0.1)", color: "var(--astro-teal)", borderColor: "rgba(0,255,209,0.3)" }}
+                        style={{ background: "color-mix(in srgb, var(--astro-teal) 10%, transparent)", color: "var(--astro-teal)", borderColor: "color-mix(in srgb, var(--astro-teal) 30%, transparent)" }}
                     >
                         {frames.length}/{numFrames} SUBFRAMES
                     </span>
@@ -302,7 +306,7 @@ export const CaptureAndStack = () => {
 
             {/* Capture Progress HUD */}
             {isCapturing && (
-                <div className="relative p-3 rounded" style={{ background: "rgba(0,255,209,0.05)", border: "1px solid rgba(0,255,209,0.2)" }}>
+                <div className="relative p-3 rounded" style={{ background: "color-mix(in srgb, var(--astro-teal) 5%, transparent)", border: "1px solid color-mix(in srgb, var(--astro-teal) 20%, transparent)" }}>
                     <div className="flex items-center justify-between mb-2">
                         <span className="text-hud-xs font-bold" style={{ color: "var(--astro-teal)" }}>ACQUISITION IN PROGRESS</span>
                         <div className="flex items-center gap-2">
@@ -452,8 +456,8 @@ export const CaptureAndStack = () => {
 
                     <button
                         className="flex flex-1 items-center justify-center gap-2 h-[var(--size-touch)] rounded-lg text-hud-xs border transition-colors cursor-pointer disabled:opacity-50"
-                        style={{ borderColor: "rgba(0,255,209,0.3)", color: "var(--astro-teal)" }}
-                        onMouseEnter={e => (e.currentTarget.style.background = "rgba(0,255,209,0.1)")}
+                        style={{ borderColor: "color-mix(in srgb, var(--astro-teal) 30%, transparent)", color: "var(--astro-teal)" }}
+                        onMouseEnter={e => (e.currentTarget.style.background = "color-mix(in srgb, var(--astro-teal) 10%, transparent)")}
                         onMouseLeave={e => (e.currentTarget.style.background = "")}
                         disabled={isFocusing || isCapturing}
                         onClick={() => setShowAutofocus(true)}

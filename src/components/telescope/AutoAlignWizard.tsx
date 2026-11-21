@@ -5,6 +5,7 @@
  * AutoAlignWizard — Alignement 100% autonome
  */
 
+import { usePhoneSensor, PhoneSensorState } from "@/hooks/usePhoneSensor";
 import { useState, useRef, useCallback, useEffect } from "react";
 import {
     Satellite, Zap, Square, RotateCcw, CheckCircle2, AlertTriangle,
@@ -48,10 +49,6 @@ const STATE_LABELS: Record<AutoAlignState, { fr: string; en: string }> = {
 const LIMIT_KEYS = ['low', 'high', 'left', 'right'] as const;
 type LimitKey = typeof LIMIT_KEYS[number];
 
-interface PhoneSensorState {
-    alpha: number | null; beta: number | null; gamma: number | null;
-    lat: number | null; lon: number | null; accuracy_m: number | null; connected: boolean;
-}
 
 function betaToAlt(beta: number | null): number | null {
     if (beta == null) return null;
@@ -127,7 +124,7 @@ const SkyDome = ({ zone, limits, cells = [], liveAlt, liveAz }: {
                     const r = R * (1 - alt / 90);
                     return <ellipse key={alt} cx={CX} cy={CY} rx={r} ry={r * 0.38} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="0.5" strokeDasharray="3,3" />;
                 })}
-                {zonePath && <path d={zonePath} fill="rgba(0,255,209,0.08)" stroke="rgba(0,255,209,0.3)" strokeWidth="1" />}
+                {zonePath && <path d={zonePath} style={{ fill: "color-mix(in srgb, var(--astro-teal) 8%, transparent)", stroke: "color-mix(in srgb, var(--astro-teal) 30%, transparent)" }} strokeWidth="1" />}
                 {LIMIT_KEYS.map(key => {
                     const lp = limits[key]; if (!lp) return null;
                     const p = toXY(lp.alt, lp.az);
@@ -186,10 +183,9 @@ export const AutoAlignWizard = () => {
     const finalRa  = session.result?.sync?.ra_h ?? null;
     const finalDec = session.result?.sync?.dec ?? null;
 
-    const [phoneSensor, setPhoneSensor] = useState<PhoneSensorState>({
-        alpha: null, beta: null, gamma: null, lat: null, lon: null, accuracy_m: null, connected: false,
-    });
+    const phoneSensor = usePhoneSensor();
     const phoneSensorRef = useRef<PhoneSensorState>(phoneSensor);
+    const pollWarnedRef = useRef(false);
     const [phoneRaDec, setPhoneRaDec] = useState<{ ra: number; dec: number } | null>(null);
     const [isSyncing,      setIsSyncing]      = useState(false);
     const [iphoneSyncDone, setIphoneSyncDone] = useState(false);
@@ -244,7 +240,15 @@ export const AutoAlignWizard = () => {
                     if (conv.success && active) { setLiveAlt(conv.alt); setLiveAz(conv.az); }
                     else if (active) { setLiveAlt(0.0); setLiveAz(0.0); }
                 } else if (active) { setLiveAlt(0.0); setLiveAz(0.0); }
-            } catch { /* background poll — silent */ }
+            } catch (err) {
+                // Lecture répétée toutes les 2,5 s : on prévient une fois, pas à chaque essai.
+                if (active && !pollWarnedRef.current) {
+                    pollWarnedRef.current = true;
+                    notification.warning("Position de la monture non lue", {
+                        source: "AutoAlign", description: err instanceof Error ? err.message : "Erreur réseau",
+                    });
+                }
+            }
             finally {
                 if (active) { setIsPolling(false); timerId = setTimeout(poll, 2500); }
             }
@@ -257,27 +261,6 @@ export const AutoAlignWizard = () => {
     const stopLiveView  = liveView.stop;
 
     useEffect(() => { phoneSensorRef.current = phoneSensor; }, [phoneSensor]);
-
-    useEffect(() => {
-        let ws: WebSocket | null = null, timerId: NodeJS.Timeout | null = null, active = true;
-        const connect = () => {
-            if (!active) return;
-            const host = window.location.hostname, isHttps = window.location.protocol === "https:";
-            const wsUrl = isHttps ? `wss://${host}:${window.location.port}/ws/phone-sensor` : `ws://${host}:5005/ws/phone-sensor`;
-            ws = new WebSocket(wsUrl);
-            ws.onmessage = (evt) => {
-                try {
-                    const d = JSON.parse(evt.data);
-                    setPhoneSensor({ alpha: d.alpha ?? null, beta: d.beta ?? null, gamma: d.gamma ?? null, lat: d.lat ?? null, lon: d.lon ?? null, accuracy_m: d.accuracy_m ?? null, connected: !!d.connected });
-                } catch { /* ignore malformed */ }
-            };
-            ws.onopen  = () => setPhoneSensor(p => ({ ...p, connected: true }));
-            ws.onclose = () => { setPhoneSensor(p => ({ ...p, connected: false })); if (active) timerId = setTimeout(connect, 3000); };
-            ws.onerror = () => ws?.close();
-        };
-        connect();
-        return () => { active = false; if (timerId) clearTimeout(timerId); ws?.close(); };
-    }, []);
 
     useEffect(() => {
         if (phase !== 'iphone-coarse') return;
@@ -306,7 +289,11 @@ export const AutoAlignWizard = () => {
     const connectHardware = async () => {
         setIsConnectingMount(true);
         try { await fetch(clientApiUrl('/api/hardware/connect'), { method: 'POST' }); await new Promise(r => setTimeout(r, 2000)); }
-        catch { /* silent retry */ }
+        catch (err) {
+            notification.error("Connexion du matériel en échec", {
+                source: "AutoAlign", description: err instanceof Error ? err.message : "Erreur réseau",
+            });
+        }
         setIsConnectingMount(false);
     };
 
@@ -370,7 +357,12 @@ export const AutoAlignWizard = () => {
             if (!res.ok) return null;
             const data = await res.json();
             return data.success ? { ra: data.ra, dec: data.dec } : null;
-        } catch { return null; }
+        } catch (err) {
+            notification.warning("Conversion de coordonnées en échec", {
+                source: "AutoAlign", description: err instanceof Error ? err.message : "Erreur réseau",
+            });
+            return null;
+        }
     };
 
     const runAutoAlign = async () => {
@@ -416,7 +408,7 @@ export const AutoAlignWizard = () => {
             {/* Header */}
             <div className="flex items-start justify-between">
                 <div className="flex items-center gap-2">
-                    <div className="p-1.5 rounded-md" style={{ background: "rgba(0,255,209,0.1)" }}>
+                    <div className="p-1.5 rounded-md" style={{ background: "color-mix(in srgb, var(--astro-teal) 10%, transparent)" }}>
                         <Satellite size={16} style={{ color: "var(--astro-teal)" }} />
                     </div>
                     <div className="flex flex-col gap-0">
@@ -432,9 +424,9 @@ export const AutoAlignWizard = () => {
                 </div>
                 <span className="inline-flex items-center px-2 py-1 rounded text-hud-2xs border"
                     style={{
-                        background: phase === 'complete' ? 'rgba(72,187,120,0.18)' : phase === 'failed' ? 'rgba(245,101,101,0.18)' : isRunning ? 'rgba(0,255,209,0.12)' : 'rgba(255,255,255,0.06)',
+                        background: phase === 'complete' ? 'rgba(72,187,120,0.18)' : phase === 'failed' ? 'rgba(245,101,101,0.18)' : isRunning ? 'color-mix(in srgb, var(--astro-teal) 12%, transparent)' : 'rgba(255,255,255,0.06)',
                         color: phase === 'complete' ? '#68d391' : phase === 'failed' ? '#fc8181' : isRunning ? 'var(--astro-teal)' : 'rgba(255,255,255,0.5)',
-                        borderColor: phase === 'complete' ? 'rgba(72,187,120,0.3)' : phase === 'failed' ? 'rgba(245,101,101,0.3)' : isRunning ? 'rgba(0,255,209,0.25)' : 'rgba(255,255,255,0.08)',
+                        borderColor: phase === 'complete' ? 'rgba(72,187,120,0.3)' : phase === 'failed' ? 'rgba(245,101,101,0.3)' : isRunning ? 'color-mix(in srgb, var(--astro-teal) 25%, transparent)' : 'rgba(255,255,255,0.08)',
                     }}>
                     {phase.replace(/-/g, ' ').toUpperCase()}
                 </span>
@@ -559,7 +551,7 @@ export const AutoAlignWizard = () => {
                                 disabled={!allLimitsDefined}
                                 onClick={confirmZone}
                                 className="w-full flex items-center justify-center gap-1 h-[var(--size-touch)] rounded-lg text-hud-xs font-bold tracking-[0.1em] border transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
-                                style={{ background: "rgba(0,255,209,0.1)", color: "var(--astro-teal)", borderColor: "rgba(0,255,209,0.3)" }}
+                                style={{ background: "color-mix(in srgb, var(--astro-teal) 10%, transparent)", color: "var(--astro-teal)", borderColor: "color-mix(in srgb, var(--astro-teal) 30%, transparent)" }}
                             >
                                 <Navigation size={12} />
                                 {L("CONFIRMER LA ZONE ET LANCER", "CONFIRM ZONE AND START")}
@@ -646,7 +638,7 @@ export const AutoAlignWizard = () => {
             {/* PHASE : ZONE CONFIRM */}
             {phase === 'zone-confirm' && zone && (
                 <div className="flex flex-col gap-3">
-                    <div className="p-3 rounded-lg" style={{ background: "rgba(0,255,209,0.04)", border: "1px solid rgba(0,255,209,0.15)" }}>
+                    <div className="p-3 rounded-lg" style={{ background: "color-mix(in srgb, var(--astro-teal) 4%, transparent)", border: "1px solid color-mix(in srgb, var(--astro-teal) 15%, transparent)" }}>
                         <span className="text-hud-2xs font-bold tracking-[0.1em] block mb-2" style={{ color: "var(--astro-teal)" }}>
                             {L("✅ ZONE ENREGISTRÉE — RÉCAPITULATIF", "✅ ZONE RECORDED — SUMMARY")}
                         </span>
@@ -690,7 +682,7 @@ export const AutoAlignWizard = () => {
                             </button>
                             <button onClick={runAutoAlign}
                                 className="w-full flex items-center justify-center gap-1.5 h-[var(--size-touch)] rounded-lg text-hud-xs font-bold tracking-[0.08em] border transition-colors cursor-pointer"
-                                style={{ background: "rgba(0,255,209,0.08)", color: "var(--astro-teal)", borderColor: "rgba(0,255,209,0.25)" }}>
+                                style={{ background: "color-mix(in srgb, var(--astro-teal) 8%, transparent)", color: "var(--astro-teal)", borderColor: "color-mix(in srgb, var(--astro-teal) 25%, transparent)" }}>
                                 <Zap size={12} />{L("ASTROMÉTRIE DIRECTE (NUIT)", "DIRECT ASTROMETRY (NIGHT)")}
                             </button>
                         </div>
@@ -737,7 +729,7 @@ export const AutoAlignWizard = () => {
                     </div>
 
                     {phoneRaDec && (
-                        <div className="p-3 rounded-lg" style={{ background: "rgba(0,255,209,0.04)", border: "1px solid rgba(0,255,209,0.15)" }}>
+                        <div className="p-3 rounded-lg" style={{ background: "color-mix(in srgb, var(--astro-teal) 4%, transparent)", border: "1px solid color-mix(in srgb, var(--astro-teal) 15%, transparent)" }}>
                             <span className="text-hud-2xs block mb-2 tracking-[0.08em]" style={{ color: "rgba(255,255,255,0.4)" }}>
                                 {L("COORDONNÉES CALCULÉES (MàJ ~2s)", "CALCULATED COORDINATES (updated ~2s)")}
                             </span>
@@ -779,7 +771,7 @@ export const AutoAlignWizard = () => {
                                 </button>
                                 <button onClick={runAutoAlign}
                                     className="flex-[2] flex items-center justify-center gap-1 h-[var(--size-touch)] rounded-lg text-hud-xs font-bold tracking-[0.08em] border transition-colors cursor-pointer"
-                                    style={{ background: "rgba(0,255,209,0.12)", color: "var(--astro-teal)", borderColor: "rgba(0,255,209,0.35)" }}>
+                                    style={{ background: "color-mix(in srgb, var(--astro-teal) 12%, transparent)", color: "var(--astro-teal)", borderColor: "color-mix(in srgb, var(--astro-teal) 35%, transparent)" }}>
                                     <Zap size={12} />{L("AFFINER PAR ASTROMÉTRIE", "REFINE WITH ASTROMETRY")}
                                 </button>
                             </div>
@@ -895,7 +887,7 @@ export const AutoAlignWizard = () => {
                             <button
                                 onClick={() => { setPhase('limits-setup'); setLogs([]); }}
                                 className="flex-1 flex items-center justify-center gap-1 h-10 rounded-lg text-hud-xs font-bold tracking-[0.1em] border transition-colors cursor-pointer"
-                                style={{ background: phase === 'complete' ? 'rgba(72,187,120,0.12)' : 'rgba(0,255,209,0.08)', color: phase === 'complete' ? '#68d391' : 'var(--astro-teal)', borderColor: phase === 'complete' ? 'rgba(72,187,120,0.3)' : 'rgba(0,255,209,0.25)' }}>
+                                style={{ background: phase === 'complete' ? 'rgba(72,187,120,0.12)' : 'color-mix(in srgb, var(--astro-teal) 8%, transparent)', color: phase === 'complete' ? '#68d391' : 'var(--astro-teal)', borderColor: phase === 'complete' ? 'rgba(72,187,120,0.3)' : 'color-mix(in srgb, var(--astro-teal) 25%, transparent)' }}>
                                 <RotateCcw size={12} />{phase === 'complete' ? L("REFAIRE L'ALIGNEMENT", "RE-ALIGN") : L("RECOMMENCER", "RESTART")}
                             </button>
                         )}

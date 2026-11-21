@@ -22,16 +22,64 @@ export interface UseLiveViewReturn {
   isLive: boolean;
   /** Texte de statut court ("LIVE", "Starting...", "❌ ...", "") */
   status: string;
+  /** Loupe du boîtier Canon : niveau et centre normalisé (0..1) sur le capteur. */
+  cameraZoom: CameraZoom;
+  /** Règle la loupe du boîtier. Sans x/y, garde le centre courant. */
+  setCameraZoom: (level: CameraZoomLevel, x?: number, y?: number) => Promise<void>;
+  isZooming: boolean;
 }
+
+export type CameraZoomLevel = 1 | 5 | 10;
+export interface CameraZoom { level: CameraZoomLevel; x: number; y: number }
+
+const FULL_FRAME: CameraZoom = { level: 1, x: 0.5, y: 0.5 };
 
 export function useLiveView(): UseLiveViewReturn {
   const [streamUrl, setStreamUrl] = useState<string | null>(null);
   const [isLive, setIsLive] = useState(false);
   const [status, setStatus] = useState("");
+  const [cameraZoom, setCameraZoomState] = useState<CameraZoom>(FULL_FRAME);
+  const [isZooming, setIsZooming] = useState(false);
+  const cameraZoomRef = useRef<CameraZoom>(FULL_FRAME);
+
+  const applyZoomState = useCallback((z: CameraZoom) => {
+    cameraZoomRef.current = z;
+    setCameraZoomState(z);
+  }, []);
+
+  const setCameraZoom = useCallback(
+    async (level: CameraZoomLevel, x?: number, y?: number) => {
+      const cur = cameraZoomRef.current;
+      setIsZooming(true);
+      try {
+        const res = await fetch(clientApiUrl("/api/indi/liveview"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "zoom", level, x: x ?? cur.x, y: y ?? cur.y }),
+        });
+        const data: { success?: boolean; error?: string; level?: CameraZoomLevel; x?: number; y?: number } =
+          await res.json().catch(() => ({ success: false, error: `HTTP ${res.status}` }));
+        if (!res.ok || data.success === false) {
+          throw new Error(data.error || `HTTP ${res.status}`);
+        }
+        // Le backend renvoie le centre réellement appliqué (recalé dans le capteur)
+        applyZoomState({ level: data.level ?? level, x: data.x ?? 0.5, y: data.y ?? 0.5 });
+      } catch (err: unknown) {
+        notification.error("Échec de la loupe Canon", {
+          description: err instanceof Error ? err.message : "Impossible de régler le zoom du boîtier",
+          source: "Caméra",
+        });
+      } finally {
+        setIsZooming(false);
+      }
+    },
+    [applyZoomState]
+  );
 
   const start = useCallback(async () => {
     if (isLive) return; // Déjà actif
 
+    applyZoomState(FULL_FRAME); // un flux qui démarre est en plein champ
     setStatus("Starting...");
 
     // Timeout 12s : Canon prend ~4s (délai miroir) — si ça dépasse, INDI ou caméra non dispo
@@ -52,7 +100,10 @@ export function useLiveView(): UseLiveViewReturn {
         try {
           const j = await res.json();
           if (j.error) msg = j.error;
-        } catch {}
+        } catch {
+          // Réponse d'erreur sans corps JSON : le code HTTP ci-dessus reste le message affiché.
+          msg = `HTTP ${res.status} (réponse illisible)`;
+        }
         setStatus(`❌ ${msg}`);
         notification.error("Échec du live view", {
           description: msg,
@@ -83,10 +134,11 @@ export function useLiveView(): UseLiveViewReturn {
       setStatus(`❌ ${msg}`);
       notification.error("Échec du live view", { description: msg, source: "Caméra" });
     }
-  }, [isLive]);
+  }, [isLive, applyZoomState]);
 
   const stop = useCallback(async () => {
     // Mise à jour UI immédiate avant même la réponse réseau
+    applyZoomState(FULL_FRAME);
     setIsLive(false);
     setStreamUrl(null);
     setStatus("");
@@ -104,7 +156,7 @@ export function useLiveView(): UseLiveViewReturn {
         source: "Caméra",
       });
     }
-  }, []);
+  }, [applyZoomState]);
 
-  return { start, stop, streamUrl, isLive, status };
+  return { start, stop, streamUrl, isLive, status, cameraZoom, setCameraZoom, isZooming };
 }

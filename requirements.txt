@@ -9,3 +9,4 @@ flask-cors
 psutil
 python-dotenv
 websockets
+certifi

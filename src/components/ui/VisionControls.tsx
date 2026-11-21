@@ -1,3 +1,4 @@
+// src/components/ui/VisionControls.tsx
 "use client";
 
 import React, { useEffect } from "react";
@@ -7,16 +8,7 @@ import { useStargazerStore } from "@/store/useStargazerStore";
 
 /**
  * Réglages de confort d'observation : vision nocturne, assombrissement,
- * densité typographique.
- *
- * C'est le réglage le plus utilisé d'une soirée et le plus pénible à trouver
- * dans un menu quand on a les mains prises : il reste donc en permanence dans
- * l'en-tête, pas dans la configuration.
- *
- * Les trois réglages sont appliqués en attributs sur <html>, d'où le CSS les
- * reprend. Passer par le document plutôt que par des classes React permet au
- * filtre de vision nocturne de couvrir TOUTE l'application d'un coup — y
- * compris les mille styles inline hérités que rien d'autre n'atteindrait.
+ * densité typographique. Appliqués en attributs sur <html>.
  */
 export function VisionControls({ className }: { className?: string }) {
   const { vision, density, dim, setVision, setDensity, setDim } = useStargazerStore();
@@ -31,30 +23,25 @@ export function VisionControls({ className }: { className?: string }) {
   const night = vision === "night";
 
   return (
-    <div className={clsx("flex items-center gap-1", className)}>
+    <div className={clsx("flex items-center gap-1.5", className)}>
       <button
         type="button"
         onClick={() => setVision(night ? "day" : "night")}
         aria-pressed={night}
         aria-label={night ? "Désactiver la vision nocturne" : "Activer la vision nocturne"}
-        title={night ? "Vision nocturne active" : "Vision nocturne"}
+        title={night ? "Vision nocturne active (620nm+)" : "Passer en vision nocturne"}
         className={clsx(
-          "inline-flex items-center gap-2 rounded-lg border px-3 min-h-[var(--size-touch)]",
-          "text-hud-2xs uppercase tracking-wider cursor-pointer transition-colors duration-200",
-          night
-            ? "border-[--astro-teal]/50 bg-[--astro-teal]/15 text-[--astro-teal]"
-            : "border-white/10 bg-white/5 text-[--astro-starlight]/80 hover:bg-white/10",
+          "hud-toolbar-btn text-hud-2xs uppercase tracking-wider font-medium",
+          night && "!border-[--astro-teal]/50 !bg-[--astro-teal]/15 !text-[--astro-teal]",
         )}
       >
-        {night ? <Moon size={16} aria-hidden /> : <Sun size={16} aria-hidden />}
-        <span className="hidden sm:inline">{night ? "Nuit" : "Jour"}</span>
+        {night ? <Moon size={14} aria-hidden /> : <Sun size={14} aria-hidden />}
+        <span className="hidden md:inline">{night ? "Nuit" : "Jour"}</span>
       </button>
 
-      {/* L'assombrissement n'a de sens qu'en vision nocturne : un écran rouge
-          trop lumineux éblouit tout autant qu'un écran blanc. */}
       {night && (
         <div
-          className="flex items-center gap-0.5 rounded-lg border border-white/10 bg-white/5 p-0.5"
+          className="flex items-center gap-0.5 rounded-lg border border-white/10 bg-white/[0.04] p-0.5"
           role="group"
           aria-label="Niveau d'assombrissement"
         >
@@ -66,11 +53,11 @@ export function VisionControls({ className }: { className?: string }) {
               aria-pressed={dim === lvl}
               aria-label={`Assombrissement niveau ${lvl}`}
               className={clsx(
-                "min-h-[var(--size-touch)] w-9 rounded-md text-hud-2xs cursor-pointer",
-                "transition-colors duration-200 mono-font",
+                "min-h-[calc(var(--size-touch)-4px)] w-7 rounded-md text-hud-2xs cursor-pointer",
+                "transition-colors duration-150 hud-numeric font-semibold",
                 dim === lvl
                   ? "bg-[--astro-teal]/20 text-[--astro-teal]"
-                  : "text-[--astro-starlight]/60 hover:bg-white/10",
+                  : "text-slate-400 hover:bg-white/10 hover:text-white",
               )}
             >
               {lvl}
@@ -87,15 +74,12 @@ export function VisionControls({ className }: { className?: string }) {
           )
         }
         aria-label={`Densité d'affichage : ${density}. Changer.`}
-        title={`Densité : ${density}`}
-        className={clsx(
-          "inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3",
-          "min-h-[var(--size-touch)] text-hud-2xs uppercase tracking-wider",
-          "text-[--astro-starlight]/80 hover:bg-white/10 cursor-pointer transition-colors duration-200",
-        )}
+        title={`Densité HUD : ${density}`}
+        // Masqué sous 640px : la barre du haut n'a pas la place.
+        className="hud-toolbar-btn max-sm:!hidden text-hud-2xs uppercase tracking-wider font-medium"
       >
-        <Type size={16} aria-hidden />
-        <span className="hidden sm:inline">
+        <Type size={14} aria-hidden />
+        <span className="hidden xl:inline">
           {density === "compact" ? "Compact" : density === "normal" ? "Normal" : "Extérieur"}
         </span>
       </button>

@@ -16,6 +16,7 @@ import { useCallback, useState } from "react";
 import { AlertTriangle, CheckCircle2, XCircle, Wrench, Activity, Loader2, ShieldCheck } from "lucide-react";
 import { notification } from "@/lib/notificationService";
 import { useHealthFull, refreshHealth } from "@/hooks/useHealthFull";
+import { useStationReadiness } from "@/hooks/useStationReadiness";
 
 type Severity = "critical" | "warning" | "info";
 
@@ -199,6 +200,7 @@ export function DiagnosticsPanel() {
 
   const issues = diagnose(raw);
   const healthy = loaded && issues.length === 0;
+  const readiness = useStationReadiness();
 
   const runFix = useCallback(async (issue: Issue) => {
     if (!issue.fix) return;
@@ -285,7 +287,7 @@ export function DiagnosticsPanel() {
           }}
         >
           {resetting ? <Loader2 size={13} className="animate-spin" /> : <Wrench size={13} />}
-          {resetting ? "RÉCUPÉRATION…" : "RESET ALL"}
+          {resetting ? "RÉCUPÉRATION…" : "TOUT RÉPARER"}
         </button>
       </div>
 
@@ -293,7 +295,11 @@ export function DiagnosticsPanel() {
       {healthy && (
         <div className="flex items-center gap-3" style={{ padding: "10px 12px", borderRadius: 8, background: "rgba(74,222,128,0.06)", border: "1px solid rgba(74,222,128,0.25)" }}>
           <ShieldCheck size={18} color="#4ade80" />
-          <span style={{ fontSize: 12, color: "#86efac" }}>Tous les systèmes sont nominaux.</span>
+          <span style={{ fontSize: 12, color: "#86efac" }}>
+            {readiness.level === "ready" || readiness.issues.length === 0
+              ? "Tous les systèmes sont nominaux."
+              : `Aucune panne à réparer. À régler avant d'observer : ${readiness.issues.map((i) => i.text).join(" · ")}`}
+          </span>
         </div>
       )}
 

@@ -10,17 +10,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { Smartphone, Compass, Navigation, MapPin, RotateCcw, Wifi, WifiOff } from "lucide-react";
 import { useStargazerStore } from "@/store/useStargazerStore";
+import { usePhoneSensor } from "@/hooks/usePhoneSensor";
 
-interface PhoneSensorState {
-  connected: boolean;
-  alpha: number | null;   // azimut compas 0-360°
-  beta: number | null;    // pitch
-  gamma: number | null;   // roll
-  lat: number | null;
-  lon: number | null;
-  accuracy_m: number | null;
-  timestamp: string | null;
-}
 
 function betaToAlt(beta: number | null): number | null {
   if (beta == null) return null;
@@ -39,24 +30,9 @@ function deltaAz(current: number, target: number): number {
 }
 
 export function PhoneSensorWidget() {
-  const [data, setData] = useState<PhoneSensorState | null>(null);
+  const data = usePhoneSensor();
   const [parkTarget, setParkTarget] = useState<{ az: number; alt: number } | null>(null);
   const { updateConfig, language } = useStargazerStore();
-
-  const fetchState = useCallback(async () => {
-    try {
-      const res = await fetch("/api/phone-sensor", { cache: "no-store" });
-      if (res.ok) setData(await res.json());
-    } catch {
-      // backend offline
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchState();
-    const id = setInterval(fetchState, 2000);
-    return () => clearInterval(id);
-  }, [fetchState]);
 
   const syncGps = () => {
     if (data?.lat != null && data?.lon != null) {

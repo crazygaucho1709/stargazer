@@ -184,7 +184,7 @@ export const AutofocusWizard = ({
 
     return (
         <div
-            className="fixed inset-0 z-[10000] flex items-center justify-center"
+            className="fixed inset-0 z-[calc(var(--z-modal)+1)] flex items-center justify-center"
             style={{ background: "rgba(0,0,0,0.8)", backdropFilter: "blur(8px)" }}
             onClick={onClose}
         >

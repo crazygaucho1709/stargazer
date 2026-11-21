@@ -30,7 +30,7 @@ export const CaptureProgress = () => {
                     position: "fixed",
                     bottom: "100px",
                     right: "40px",
-                    zIndex: 10000,
+                    zIndex: "calc(var(--z-modal) + 1)",
                     width: "340px",
                     background: "rgba(10, 15, 30, 0.9)",
                     backdropFilter: "blur(16px)",

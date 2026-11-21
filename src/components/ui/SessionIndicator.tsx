@@ -25,19 +25,25 @@ export const SessionIndicator = () => {
     const label = STATE_LABELS[sessionState][lang];
     const color = STATE_COLORS[sessionState];
     const IconComp = STATE_ICONS[sessionState];
-    const glows = sessionState === "ERROR" || sessionState === "SLEWING";
+    const glows = sessionState === "ERROR" || sessionState === "SLEWING" || sessionState === "CAPTURING";
 
     return (
         <div
-            className="flex items-center gap-2 px-3 py-1 rounded-full"
-            style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.08)" }}
+            className="inline-flex items-center gap-2 px-2.5 min-h-[var(--size-touch)] rounded-lg shrink-0"
+            style={{
+                background: "rgba(15, 23, 42, 0.65)",
+                border: "1px solid rgba(148, 163, 184, 0.16)",
+            }}
+            role="status"
+            aria-label={`État de session : ${label}`}
         >
-            <div
-                className={`w-1.5 h-1.5 rounded-full ${sessionState === "CAPTURING" ? "ping-slow" : ""}`}
+            <span
+                className={`w-1.5 h-1.5 rounded-full shrink-0 ${sessionState === "CAPTURING" ? "ping-slow" : ""}`}
                 style={{ background: color, boxShadow: glows ? `0 0 8px ${color}` : "none" }}
+                aria-hidden
             />
-            <IconComp size={12} style={{ color }} />
-            <span className="hud-font text-hud-xs font-bold tracking-[0.08em]" style={{ color }}>
+            <IconComp size={13} style={{ color }} aria-hidden />
+            <span className="hud-font text-hud-2xs font-semibold tracking-[0.08em] whitespace-nowrap" style={{ color }}>
                 {label}
             </span>
         </div>

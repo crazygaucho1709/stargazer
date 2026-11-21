@@ -185,7 +185,7 @@ export function CapturePreviewModal() {
                 barre de statut (9999), quel que soit le mode de vue actif */}
             <div
                 className="fixed inset-0"
-                style={{ background: "rgba(0,0,0,0.72)", backdropFilter: "blur(4px)", zIndex: 10000 }}
+                style={{ background: "rgba(0,0,0,0.72)", backdropFilter: "blur(4px)", zIndex: "calc(var(--z-modal) + 1)" }}
                 onClick={handleClose}
             />
 
@@ -193,7 +193,7 @@ export function CapturePreviewModal() {
             <div
                 className="fixed flex flex-col"
                 style={{
-                    zIndex: 10001,
+                    zIndex: "calc(var(--z-modal) + 2)",
                     top: "50%", left: "50%",
                     transform: "translate(-50%, -50%)",
                     width: "min(92vw, 780px)",

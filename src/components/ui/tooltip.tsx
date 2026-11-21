@@ -85,7 +85,7 @@ export const Tooltip = React.forwardRef<HTMLDivElement, TooltipProps>(
           role="tooltip"
           style={{
             position: "absolute",
-            zIndex: 9999,
+            zIndex: "var(--z-tooltip)",
             whiteSpace: "nowrap",
             background: "rgba(30,40,60,0.95)",
             border: "1px solid rgba(255,255,255,0.12)",

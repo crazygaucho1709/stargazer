@@ -40,6 +40,9 @@ from concurrent.futures import ThreadPoolExecutor
 from log_config import setup_logging, JSONFormatter
 from metrics import metrics
 import mount_safety
+import canon_zoom
+import stream_lag
+import station_setup
 
 class _MemStats:
     __slots__ = ("total", "used", "percent")
@@ -95,6 +98,28 @@ INDI_PORT = int(os.getenv("INDI_PORT", "7624"))
 # Noms de monture reconnus, tous drivers confondus. "AUX" et "Celestron" sont
 # indispensables depuis la bascule vers indi_celestron_aux ("Celestron AUX").
 MOUNT_DEVICE_KEYWORDS = ("GPS", "Mount", "NexStar", "Telescope", "AUX", "Celestron")
+
+SERIAL_LINK_ERROR = (
+    "Liaison série de la monture en échec : le driver signale des erreurs d'écriture, les ordres ne lui parviennent plus. Reconnectez le driver et vérifiez l'alimentation du Pi et l'adaptateur USB avant toute manœuvre."
+)
+# Cadence de rafraîchissement des encodeurs (ms) — doit rester strictement < ENCODER_STALE_S * 1000
+MOUNT_POLLING_PERIOD_MS = 1000
+
+# État partagé de l'initialisation automatique (façon Vespera / Stellina)
+station_init_state: dict = {
+    "location_source": None,
+    "lat": None,
+    "lon": None,
+    "elevation": 0.0,
+    "time_synced_at": None,
+    "auto_init_done": False,
+    "sky_synced": False,
+    "sky_sync_ra_deg": None,
+    "sky_sync_dec_deg": None,
+    "sky_sync_rotation_deg": None,
+    "sky_synced_at": None,
+    "last_ai_comment": None,
+}
 # Délai accordé au téléchargement d'une image APRÈS la fin de l'exposition.
 # 35,8 Mo de RAW à ~2 Mo/s depuis le Pi 3B = ~18 s au mieux, davantage quand le
 # bus USB est partagé avec l'ethernet. Surchargeable si le matériel change.
@@ -362,6 +387,11 @@ class INDIClient:
         self.mount_slew_state: str = "Idle"
         self.ccd_exposure_state: str = "Idle"
         self.live_view_active: bool = False
+        self.stream_lag = stream_lag.LagTracker()
+        # (pilote, message) → (horodatage de la dernière écriture, répétitions tues)
+        self._alert_seen: dict[tuple[str, str], tuple[float, int]] = {}
+        # Loupe du live view Canon : (niveau, centre x, centre y) normalisés.
+        self.live_zoom: tuple = (1, 0.5, 0.5)
         self._restore_live_view_after_capture: bool = False
         self._event_loop: Optional[asyncio.AbstractEventLoop] = None
         self.lat: float = -17.6333 # Tahiti default
@@ -372,6 +402,8 @@ class INDIClient:
         self.encoder_alt: float | None = None
         # Horodatage de la dernière trame TELESCOPE_ENCODER_ANGLES reçue.
         self.encoder_last_update: float = 0.0
+        # Horodatage du dernier battement sain du driver monture (encodeurs ou coords non-Alert).
+        self.mount_heartbeat_ts: float = 0.0
         # Horodatage du dernier CHANGEMENT de valeur d'encodeur. C'est la seule
         # vraie preuve de vie : le 5 août 2026, le driver a continué de
         # republier une position figée (trames fraîches, valeur morte) pendant
@@ -382,6 +414,16 @@ class INDIClient:
         # position n'a pas varié. Tout nouveau mouvement est refusé jusqu'à ce
         # qu'un changement de valeur soit observé (reconnexion driver comprise).
         self.link_suspect: bool = False
+        # Horodatage de la dernière erreur d'écriture série du driver monture.
+        self.serial_error_ts: float = 0.0
+        # Début de la panne série en cours, et dernière tentative de reconnexion
+        # automatique du driver (voir mount_safety.should_reconnect_serial).
+        self.serial_failing_since: float = 0.0
+        self.serial_reconnect_ts: float = 0.0
+        # Jusqu'à cet instant, une reconnexion du driver ne doit PAS reposer le
+        # point neutre du câble : la monture n'a pas été rallumée, son azimut
+        # courant n'est pas le repère du trépied.
+        self._keep_cordwrap_neutral_until: float = 0.0
         self.cordwrap_guard = mount_safety.CordWrapGuard()
         # {label ISO ("100", "1600", "Auto") : nom du switch ("ISO1"...)},
         # rempli à la découverte de CCD_ISO — voir process_message.
@@ -585,6 +627,14 @@ class INDIClient:
             az_min, az_max = mount_safety.load_az_limits(cfg)
             time.sleep(2.0)  # laisse le driver finir sa séquence de connexion
 
+            # Cadence de rafraîchissement des encodeurs. Doit rester << ENCODER_STALE_S.
+            # Envoyée ici (et non seulement dans _safe_connect_device) : la monture
+            # « Celestron AUX » n'y passe jamais, le driver gardait donc son défaut
+            # et l'âge de position dépassait le seuil de péremption.
+            self.send(f'<newNumberVector device="{device}" name="POLLING_PERIOD">'
+                      f'<oneNumber name="PERIOD_MS">{MOUNT_POLLING_PERIOD_MS}</oneNumber></newNumberVector>')
+            time.sleep(0.3)
+
             self.send(
                 f'<newNumberVector device="{device}" name="LIMIT_POS">'
                 f'<oneNumber name="SLEW_LIMIT_AXIS1_MIN">{az_min}</oneNumber>'
@@ -600,9 +650,42 @@ class INDIClient:
                 time.sleep(0.6)
             logger.info(f"🛡 Limites mécaniques appliquées sur {device} : "
                         f"az {az_min}→{az_max}°, alt {alt_min - 2.0}→{alt_max}° (référentiel encodeur)")
+            self._auto_init_station(device, cfg)
         except Exception as e:
             logger.error(f"Échec d'application des limites mécaniques sur {device} : {e} — "
                          f"la monture n'est PAS protégée, mouvements à éviter")
+
+    def _auto_init_station(self, device: str, cfg: Optional[dict] = None):
+        """Pousse automatiquement lieu (gpsd -> navigateur -> config) et heure UTC à la connexion."""
+        try:
+            from autoalign_session import _query_gpsd
+            lat = lon = elev = None
+            source = None
+
+            gps = _query_gpsd(INDI_HOST, timeout=1.5)
+            if gps:
+                lat, lon, elev, source = gps["lat"], gps["lon"], gps.get("elev", 0.0), "gpsd"
+            elif station_init_state.get("lat") is not None and station_init_state.get("lon") is not None:
+                lat = float(station_init_state["lat"])
+                lon = float(station_init_state["lon"])
+                elev = float(station_init_state.get("elevation") or 0.0)
+                source = station_init_state.get("location_source") or "browser"
+            else:
+                cfg = cfg or ConfigService.load_config()
+                try:
+                    c_lat = float(cfg.get("latitude"))
+                    c_lon = float(cfg.get("longitude"))
+                    if -90.0 <= c_lat <= 90.0 and -180.0 <= c_lon <= 180.0:
+                        lat, lon, elev, source = c_lat, c_lon, 0.0, "config"
+                except (TypeError, ValueError):
+                    pass
+
+            if lat is None or lon is None:
+                lat, lon, elev, source = -17.6333, -149.6000, 0.0, "fallback"
+
+            _push_station_geo_and_time(device, lat, lon, elev, source)
+        except Exception as e:
+            logger.warning(f"Auto-init station ignorée pour {device} : {e}")
 
     def _safe_connect_device(self, device: str):
         """Send the 'Safe Connect' sequence for a single INDI device.
@@ -629,14 +712,18 @@ class INDIClient:
                 time.sleep(0.2)
             
             # 4. Mount-specific: reduce polling period for responsive state feedback.
-            #    2 s is fast enough for the NexStar serial link without flooding it.
+            #    1 s : DOIT rester nettement sous mount_safety.ENCODER_STALE_S (4 s).
+            #    Avec 5000 ms, l'âge de la position encodeur oscillait entre 0 et 5 s et
+            #    dépassait régulièrement le seuil : jogs/GoTo refusés par intermittence
+            #    (« Position encodeur figée depuis 5s ») alors que la liaison était saine.
+            #    Ne PAS relever ce délai sans relever le seuil de péremption en conscience.
             #    Do NOT send TRACK_SIDEREAL here — the Celestron GPS driver activates
             #    sidereal tracking automatically after a successful connection and the
             #    TRACK command causes a multi-second "Busy" window that blocks jog.
             is_mount = any(kw in device for kw in ["Celestron", "GPS", "NexStar", "Mount"])
             if is_mount:
                 self.send(f'<newNumberVector device="{device}" name="POLLING_PERIOD">'
-                          f'<oneNumber name="PERIOD_MS">5000</oneNumber></newNumberVector>')
+                          f'<oneNumber name="PERIOD_MS">1000</oneNumber></newNumberVector>')
 
             # 5. THE FINAL SWITCH: Trigger the actual connection
             self.send(
@@ -711,6 +798,38 @@ class INDIClient:
             self._close_socket()
             self.connected = False
 
+    def _reconnect_mount_serial(self, device: str):
+        """Ferme puis rouvre le port série du driver monture, sans rien bouger.
+
+        Se termine par un ordre d'arrêt inconditionnel : pendant la coupure,
+        aucun STOP n'a pu atteindre la monture. Si elle était en mouvement,
+        c'est le premier ordre qu'elle doit recevoir.
+        """
+        if not device:
+            logger.error("⛔ Reconnexion série impossible — driver monture inconnu")
+            return
+        logger.warning(f"🔌 Liaison série en panne depuis plus de "
+                       f"{mount_safety.SERIAL_RECONNECT_AFTER_S:.0f} s — reconnexion du driver {device}")
+        try:
+            self._keep_cordwrap_neutral_until = time.time() + 30.0
+            self.send(f'<newSwitchVector device="{device}" name="CONNECTION">'
+                      f'<oneSwitch name="DISCONNECT">On</oneSwitch>'
+                      f'<oneSwitch name="CONNECT">Off</oneSwitch>'
+                      f'</newSwitchVector>')
+            time.sleep(2.0)
+            self._safe_connect_device(device)
+            time.sleep(4.0)
+            self.send(f'<newSwitchVector device="{device}" name="TELESCOPE_ABORT_MOTION">'
+                      f'<oneSwitch name="ABORT">On</oneSwitch></newSwitchVector>')
+            logger.info(f"🔌 Driver {device} reconnecté, ordre d'arrêt envoyé — "
+                        "la liaison est jugée rétablie après 15 s sans erreur")
+        except Exception as e:
+            logger.error(f"⛔ Reconnexion série du driver {device} échouée : {e}")
+
+    def serial_failing(self) -> bool:
+        """La liaison série de la monture est-elle en échec d'écriture ?"""
+        return mount_safety.serial_link_failing(self.serial_error_ts, time.time())
+
     def send(self, xml):
         with self.socket_lock:
             if self.sock and self.connected:
@@ -781,7 +900,8 @@ class INDIClient:
                             # sans réapplication, plus rien ne protège de la collision
                             # Canon/fourche ni de l'enroulement du câble.
                             if not prev_mount_connected:
-                                self.cordwrap_guard.set_neutral(self.encoder_az or 0.0)
+                                if time.time() >= self._keep_cordwrap_neutral_until:
+                                    self.cordwrap_guard.set_neutral(self.encoder_az or 0.0)
                                 threading.Thread(target=self._apply_axis_limits,
                                                  args=(dev_name,), daemon=True).start()
                     elif any(kw in dev_name for kw in ["CCD", "Camera", "DSLR", "EOS", "GPhoto"]):
@@ -835,6 +955,16 @@ class INDIClient:
                 elif state == "Ok": self.mount_slew_state = "Idle"
                 elif state == "Alert": self.mount_slew_state = "Error"
 
+                # Celestron AUX publie EQUATORIAL_EOD_COORD chaque seconde mais n'émet
+                # TELESCOPE_ENCODER_STEPS que toutes les ~5-6s (ou au changement de pas).
+                # Si les encodeurs ont déjà été reçus et que le driver répond sans Alert,
+                # on rafraîchit le battement monture pour éviter de faux refus de jog.
+                # Liaison série en échec : le driver publie encore, mais rien ne
+                # vient de la monture. Ce battement ne prouve alors rien.
+                if (state != "Alert" and self.encoder_az is not None
+                        and self.encoder_alt is not None and not self.serial_failing()):
+                    self.mount_heartbeat_ts = time.time()
+
             # 2.4 Encodeurs bruts (driver celestron_aux) — référentiel MONTURE.
             # Seule source fiable pour la sécurité mécanique : contrairement à
             # HORIZONTAL_COORD, ces valeurs ne passent pas par le modèle
@@ -851,17 +981,28 @@ class INDIClient:
                 m_az = re.search(r'name="AXIS_AZ"[^>]*>\s*([-\d.]+)', xml_str)
                 m_alt = re.search(r'name="AXIS_ALT"[^>]*>\s*([-\d.]+)', xml_str)
                 prev_az, prev_alt = self.encoder_az, self.encoder_alt
+                # Une trame reçue pendant que les écritures série échouent n'est
+                # pas une lecture de la monture : le driver republie ses propres
+                # valeurs (0 / 0 s'il n'a jamais rien lu, vu le 21 novembre 2026).
+                # Elle ne rafraîchit donc pas la preuve de vie.
+                link_alive = not self.serial_failing()
                 if m_az:
                     try:
                         self.encoder_az = mount_safety.steps_to_deg(float(m_az.group(1)))
                         self.cordwrap_guard.update(self.encoder_az)
-                        self.encoder_last_update = time.time()
+                        if link_alive:
+                            now_ts = time.time()
+                            self.encoder_last_update = now_ts
+                            self.mount_heartbeat_ts = now_ts
                     except ValueError:
                         pass
                 if m_alt:
                     try:
                         self.encoder_alt = mount_safety.steps_to_deg(float(m_alt.group(1)))
-                        self.encoder_last_update = time.time()
+                        if link_alive:
+                            now_ts = time.time()
+                            self.encoder_last_update = now_ts
+                            self.mount_heartbeat_ts = now_ts
                     except ValueError:
                         pass
                 # Distinguer « trame reçue » de « valeur changée ». Le driver
@@ -923,7 +1064,45 @@ class INDIClient:
                 if msg_match:
                     msg = msg_match.group(1)
                     if "Alert" in xml_str or "error" in msg.lower():
-                        logger.error(f"INDI Hardware Alert: {msg}")
+                        # Le pilote en cause est nommé : sans lui, « Write Error »
+                        # ne dit pas si c'est la monture ou la caméra. Une alerte
+                        # identique n'est écrite qu'une fois par 10 s, avec le
+                        # nombre de répétitions — un pilote en panne en émet
+                        # plusieurs par seconde et noyait tout le reste du journal.
+                        dev_match = re.search(r'device="([^"]+)"', xml_str)
+                        alert_dev = dev_match.group(1) if dev_match else "pilote inconnu"
+                        alert_key = (alert_dev, msg)
+                        now_ts = time.time()
+                        first_ts, repeats = self._alert_seen.get(alert_key, (0.0, 0))
+                        if now_ts - first_ts >= 10.0:
+                            suffix = f" (×{repeats + 1} en 10 s)" if repeats else ""
+                            logger.error(f"INDI Hardware Alert [{alert_dev}]: {msg}{suffix}")
+                            self._alert_seen[alert_key] = (now_ts, 0)
+                        else:
+                            self._alert_seen[alert_key] = (first_ts, repeats + 1)
+                        # Erreur d'écriture série = la monture ne reçoit plus
+                        # d'ordres. Seule la monture est en série ; une alerte
+                        # sans nom de pilote est comptée pour elle, par prudence.
+                        if mount_safety.is_mount_silent_message(msg):
+                            from_mount = (
+                                not dev_match
+                                or alert_dev == getattr(self, "device_mount", None)
+                                or any(kw in alert_dev for kw in MOUNT_DEVICE_KEYWORDS)
+                            )
+                            if from_mount:
+                                if not self.serial_failing():
+                                    logger.error(
+                                        "⛔ Liaison série de la monture en échec d'écriture — "
+                                        "GoTo et jog refusés jusqu'à 15 s sans erreur.")
+                                    self.serial_failing_since = now_ts
+                                self.serial_error_ts = now_ts
+                                if mount_safety.should_reconnect_serial(
+                                        self.serial_failing_since, self.serial_reconnect_ts, now_ts):
+                                    self.serial_reconnect_ts = now_ts
+                                    threading.Thread(
+                                        target=self._reconnect_mount_serial,
+                                        args=(getattr(self, "device_mount", None) or alert_dev,),
+                                        daemon=True).start()
                         # If mount reports not aligned, update state
                         if "not aligned" in msg.lower():
                             self.mount_slew_state = "Not Aligned"
@@ -1032,6 +1211,33 @@ class INDIClient:
         self.ccd_connected = False
         self._close_socket()
 
+    def _track_stream_lag(self, data: bytes) -> None:
+        """Mesure le retard du flux live et vide la file s'il dépasse le seuil."""
+        m = re.search(rb'timestamp="([^"]+)"', data[:800])
+        frame_ts = stream_lag.parse_indi_timestamp(m.group(1).decode(errors="replace")) if m else None
+        if frame_ts is None:
+            return
+        now_ts = time.time()
+        lag = self.stream_lag.note(frame_ts, now_ts)
+        if not self.stream_lag.should_flush(now_ts) or _canon_zoom_lock.locked():
+            return
+        # Relancer le flux jette les images en attente côté Pi : c'est la seule
+        # façon de revenir au direct. Hors du thread de réception, pour ne pas
+        # bloquer la lecture du socket pendant la pause.
+        self.stream_lag.last_flush_ts = now_ts
+        dev = (self.device_ccd or "GPhoto CCD").strip()
+        logger.warning(f"[LiveView] Flux en retard de {lag:.0f} s — relance pour revenir au direct")
+
+        def _flush():
+            _send_stream_switch(dev, "STREAM_OFF")
+            time.sleep(0.8)
+            if self.live_view_active:
+                _send_stream_switch(dev, "STREAM_ON")
+            self.stream_lag.reset()
+            self.stream_lag.last_flush_ts = time.time()
+
+        threading.Thread(target=_flush, daemon=True).start()
+
     def process_blobs(self, data, prop_name="unknown"):
         """
         Extract image data from INDI <defBLOB> or <setBLOB> elements.
@@ -1101,6 +1307,9 @@ class INDIClient:
                             _capture_state["preview_label"] = ""
                             _capture_state["capture_started"] = None
                     return
+
+                if is_viewfinder_frame and self.live_view_active:
+                    self._track_stream_lag(data)
 
                 # Update latest frame first for real-time display
                 with self.frame_condition:
@@ -1415,6 +1624,67 @@ async def coords_stream(request: Request):
         },
     )
 
+STATION_STREAM_PERIOD_S = 1.0      # état léger : liaison + station
+STATION_STREAM_FULL_PERIOD_S = 5.0  # rapport d'infrastructure (pm2, SSH) : coûteux
+
+
+async def _station_stream_state() -> dict:
+    """État léger poussé par /station/stream : aucun appel système ni réseau."""
+    return {
+        "indi_connected": bool(getattr(indi, "connected", False)),
+        "mount_connected": bool(getattr(indi, "mount_connected", False)),
+        "ccd_connected": bool(getattr(indi, "ccd_connected", False)),
+        "station": await station_status(),
+        # Mise en station automatique : étapes et avancement (None si jamais lancée)
+        "setup": _station_setup.snapshot() if _station_setup is not None else None,
+        # Capteur du téléphone fixé sur le tube : poussé ici pour que l'interface
+        # n'ouvre plus sa propre connexion ni n'interroge en boucle.
+        "phone": _phone_sensor_snapshot(),
+    }
+
+
+@app.get("/station/stream")
+async def station_stream(request: Request):
+    """SSE — un seul flux pour ce que l'interface interrogeait en boucle :
+    /health (2 s, 0,5 s en pointage), /station/status (3 s), /health/full (5 s).
+
+    L'état léger part chaque seconde. Le rapport d'infrastructure, qui lance
+    pm2 et interroge le Pi, est calculé à part toutes les 5 s pour ne jamais
+    retarder l'état léger : c'est lui qui signale une liaison perdue.
+    """
+    async def event_generator():
+        full_task: asyncio.Task | None = None
+        last_full = 0.0
+        try:
+            while True:
+                if await request.is_disconnected():
+                    break
+                payload = await _station_stream_state()
+
+                now = time.time()
+                if full_task is None and now - last_full >= STATION_STREAM_FULL_PERIOD_S:
+                    full_task = asyncio.create_task(health_full())
+                if full_task is not None and full_task.done():
+                    try:
+                        payload["full"] = full_task.result()
+                    except Exception as e:
+                        logger.warning(f"[StationStream] Rapport d'infrastructure en échec : {e}")
+                        payload["full_error"] = str(e)
+                    full_task = None
+                    last_full = time.time()
+
+                yield f"data: {json.dumps(payload, default=str)}\n\n"
+                await asyncio.sleep(STATION_STREAM_PERIOD_S)
+        finally:
+            if full_task is not None and not full_task.done():
+                full_task.cancel()
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
 @app.get("/metrics")
 async def prometheus_metrics():
     return PlainTextResponse(metrics.generate_prometheus(), media_type="text/plain")
@@ -1566,6 +1836,7 @@ def _jog_cancel_watchdog() -> None:
 
 JOG_DEFAULT_RATE = 5
 JOG_MAX_RATE = 8      # rangs réellement exposés par le NexStar 4SE : 1x..8x
+_current_jog_rate: Optional[int] = None
 
 # Vérificateur de liaison : armé à chaque commande de mouvement, il contrôle
 # que la position a effectivement bougé. Sans lui, une liaison série morte
@@ -1608,22 +1879,18 @@ def _motion_verify_arm(device: str, origin: tuple[float, float]) -> None:
 
 
 def _jog_rate_name() -> str:
-    """Rang de vitesse à appliquer aux jogs manuels, borné au domaine 1..9.
+    """Rang de vitesse à appliquer aux jogs manuels, borné au domaine 1..8.
 
-    Lu dans la config (slewSpeed) pour rester réglable depuis l'UI.
-
-    Le driver démarre avec TELESCOPE_SLEW_RATE vide : une commande MOTION_*
-    est alors acceptée puis exécutée à vitesse nulle, l'API répond success et
-    le tube ne bouge pas. Il faut donc toujours en imposer un.
+    Priorité : dernière vitesse demandée via /mount/rate (_current_jog_rate),
+    sinon config (slewSpeed).
     """
+    if _current_jog_rate is not None:
+        return f"{max(1, min(JOG_MAX_RATE, _current_jog_rate))}x"
     try:
         raw = (ConfigService.load_config() or {}).get("slewSpeed", JOG_DEFAULT_RATE)
         rate = int(float(raw))
     except (TypeError, ValueError):
         rate = JOG_DEFAULT_RATE
-    # Le NexStar 4SE n'expose que 1x..8x : demander 9x fait rejeter la commande
-    # ("No ISwitch '9x'"), la vitesse reste vide et le moteur tourne à zéro —
-    # l'API répond success et le tube ne bouge pas.
     return f"{max(1, min(JOG_MAX_RATE, rate))}x"
 
 
@@ -1688,7 +1955,18 @@ async def mount_jog(req: JogRequest):
             logger.error(f"⛔ Jog refusé — {msg}")
             return {"success": False, "error": msg}
 
-        fresh, why = mount_safety.check_encoder_fresh(indi.encoder_last_update, time.time())
+        # Troisième contrôle : le driver dit lui-même qu'il n'arrive plus à
+        # écrire. Ne concerne que le départ d'un mouvement — l'arrêt, traité
+        # plus haut, part toujours.
+        if indi.serial_failing():
+            logger.error(f"⛔ Jog refusé — {SERIAL_LINK_ERROR}")
+            return {"success": False, "error": SERIAL_LINK_ERROR}
+
+        fresh, why = mount_safety.check_encoder_fresh(
+            mount_safety.position_proof_ts(
+                indi.encoder_last_update, indi.mount_heartbeat_ts, time.time()),
+            time.time()
+        )
         if not fresh:
             logger.error(f"⛔ Jog refusé — {why}")
             return {"success": False, "error": why}
@@ -1821,6 +2099,7 @@ async def mount_jog(req: JogRequest):
 
 @app.post("/mount/rate")
 async def mount_rate(req: RateRequest):
+    global _current_jog_rate
     device = req.device
     if not device or (indi.device_mount and device != indi.device_mount):
         device = indi.device_mount
@@ -1828,6 +2107,13 @@ async def mount_rate(req: RateRequest):
         return {"success": False, "error": "INDI bridge not connected"}
 
     rate_val = max(1, min(JOG_MAX_RATE, req.rate))
+    _current_jog_rate = rate_val
+    try:
+        cfg = ConfigService.load_config()
+        cfg["slewSpeed"] = rate_val
+        ConfigService.save_config(cfg)
+    except Exception:
+        pass
     rate_name = f"{rate_val}x"
     logger.info(f"Setting slew rate on {device} to {rate_name}")
     ok = indi.send(f'<newSwitchVector device="{device}" name="TELESCOPE_SLEW_RATE"><oneSwitch name="{rate_name}">On</oneSwitch></newSwitchVector>')
@@ -1864,7 +2150,15 @@ async def mount_slew_internal(device: str, ra: float, dec: float, sync: bool = F
         logger.error(f"⛔ Slew refusé — {msg}")
         return {"success": False, "error": msg}
 
-    fresh, why = mount_safety.check_encoder_fresh(indi.encoder_last_update, time.time())
+    if indi.serial_failing() and not sync:
+        logger.error(f"⛔ Slew refusé — {SERIAL_LINK_ERROR}")
+        return {"success": False, "error": SERIAL_LINK_ERROR}
+
+    fresh, why = mount_safety.check_encoder_fresh(
+        mount_safety.position_proof_ts(
+            indi.encoder_last_update, indi.mount_heartbeat_ts, time.time()),
+        time.time()
+    )
     if not fresh and not sync:
         logger.error(f"⛔ Slew refusé — {why}")
         return {"success": False, "error": why}
@@ -1902,6 +2196,11 @@ async def mount_slew_internal(device: str, ra: float, dec: float, sync: bool = F
                 # Décalage cible/courant en coordonnées ciel, appliqué aux encodeurs
                 sky_alt_now, sky_az_now = _radec_to_altaz(
                     indi.mount_ra / 15.0, indi.mount_dec, site["lat"], site["lon"])
+                ok, reason = mount_safety.check_model_matches_encoder(
+                    sky_alt_now, mount_safety.signed_angle(cur_alt))
+                if not ok:
+                    logger.error(f"GoTo REFUSÉ par le garde-fou mécanique : {reason}")
+                    return {"success": False, "error": f"Mouvement refusé — {reason}"}
                 enc_target_alt = mount_safety.signed_angle(cur_alt) + (target_alt - sky_alt_now)
                 d_az = mount_safety.shortest_delta(sky_az_now, target_az)
                 ok, reason = mount_safety.check_altitude(enc_target_alt, ConfigService.load_config())
@@ -1960,6 +2259,12 @@ async def mount_slew_internal(device: str, ra: float, dec: float, sync: bool = F
         except ImportError:
             pass
 
+        if sync:
+            # Toute synchronisation sur des coordonnées célestes cale le modèle
+            # de la monture : c'est ce que l'interface attend pour cesser de
+            # marquer la position « non alignée ». Seul « Identifier » le notait.
+            station_init_state["sky_synced"] = True
+            station_init_state["sky_synced_at"] = datetime.now(timezone.utc).isoformat()
         return {"success": True, "message": f"{'Sync' if sync else 'Slew'} initiated to {ra}, {dec}", "state": "Busy"}
     except Exception as e:
         logger.error(f"Slew internal error: {e}")
@@ -2062,6 +2367,8 @@ async def mount_sync_master(req: SyncMasterRequest):
     
     indi.send(f'<newNumberVector device="{device}" name="EQUATORIAL_EOD_COORD"><oneNumber name="RA">{eq.ra.hour}</oneNumber><oneNumber name="DEC">{eq.dec.deg}</oneNumber></newNumberVector>')
     indi.send(f'<newSwitchVector device="{device}" name="ON_COORD_SET"><oneSwitch name="SYNC">On</oneSwitch></newSwitchVector>')
+    station_init_state["sky_synced"] = True
+    station_init_state["sky_synced_at"] = datetime.now(timezone.utc).isoformat()
     return {"success": True}
 @app.post("/slew")
 async def slew_telescope(req: SlewRequest):
@@ -2482,8 +2789,9 @@ async def phone_sensor_ws(ws: WebSocket):
     await ws.accept()
     logger.info("Phone sensor WebSocket connected")
     active_phone_sensor_ws.add(ws)
-    with _phone_sensor_lock:
-        _phone_sensor["connected"] = True
+    # Ouvrir la connexion ne prouve rien : l'ordinateur ouvrait la même pour
+    # écouter, et le backend annonçait alors « téléphone connecté » sans
+    # téléphone. Seule une trame de mesures reçue le prouve (voir plus bas).
     try:
         while True:
             data = await ws.receive_json()
@@ -2515,6 +2823,17 @@ async def phone_sensor_ws(ws: WebSocket):
 PHONE_SENSOR_STALE_S = 5.0
 
 
+def _phone_sensor_snapshot() -> dict:
+    """État du capteur téléphone avec son âge ; partagé par l'API et le flux de station."""
+    with _phone_sensor_lock:
+        state = _phone_sensor.copy()
+        last = _phone_sensor_last_update
+    age = (time.time() - last) if last else None
+    state["age_s"] = round(age, 1) if age is not None else None
+    state["stale"] = (age is None) or (age > PHONE_SENSOR_STALE_S)
+    return state
+
+
 @app.get("/phone-sensor/state")
 async def get_phone_sensor_state():
     """État du capteur téléphone, AVEC son âge.
@@ -2525,13 +2844,7 @@ async def get_phone_sensor_state():
     consommateur doit pouvoir distinguer « le téléphone dit 180° » de « le
     téléphone disait 180° il y a dix minutes ».
     """
-    with _phone_sensor_lock:
-        state = _phone_sensor.copy()
-        last = _phone_sensor_last_update
-    age = (time.time() - last) if last else None
-    state["age_s"] = round(age, 1) if age is not None else None
-    state["stale"] = (age is None) or (age > PHONE_SENSOR_STALE_S)
-    return state
+    return _phone_sensor_snapshot()
 
 # --- STREAMING ---
 async def mjpeg_generator():
@@ -2657,6 +2970,14 @@ async def _restore_live_view(dev: str):
     await asyncio.sleep(2.5)
     indi.send(f'<newSwitchVector device="{dev}" name="CCD_VIDEO_STREAM"><oneSwitch name="STREAM_ON">On</oneSwitch></newSwitchVector>')
     indi.live_view_active = True
+    # Le boîtier revient en plein champ après une pose : on remet la loupe où
+    # l'opérateur l'avait laissée, sinon l'interface afficherait ×5 à tort.
+    level, cx, cy = indi.live_zoom
+    if level != 1:
+        await asyncio.sleep(0.5)
+        x, y, _, _ = canon_zoom.zoom_window(level, cx, cy)
+        for cmd in canon_zoom.zoom_commands(dev, level, x, y):
+            indi.send(cmd)
     logger.info(f"[Capture] Live view restauré.")
 
 
@@ -2698,7 +3019,13 @@ async def ccd_stream_start():
     indi.send(f'<newSwitchVector device="{dev}" name="CCD_STREAM_ENCODER"><oneSwitch name="MJPEG">On</oneSwitch></newSwitchVector>')
 
     # ── Step 4: FPS cap ──────────────────────────────────────────────────────
-    indi.send(f'<newNumberVector device="{dev}" name="LIMITS"><oneNumber name="LIMITS_PREVIEW_FPS">30</oneNumber></newNumberVector>')
+    # 30 images/s demandées, ~1 passée par le Wi-Fi du Pi : la file grossissait
+    # sans fin (49 s de retard après une minute). On ne demande que ce que la
+    # liaison transporte ; le suivi de retard relance le flux si ça déborde.
+    indi.send(f'<newNumberVector device="{dev}" name="LIMITS">'
+              f'<oneNumber name="LIMITS_BUFFER_MAX">512</oneNumber>'
+              f'<oneNumber name="LIMITS_PREVIEW_FPS">{LIVE_PREVIEW_FPS}</oneNumber></newNumberVector>')
+    indi.stream_lag.reset()
 
     # ── Step 5: Live view size (largest) ─────────────────────────────────────
     indi.send(f'<newSwitchVector device="{dev}" name="liveviewsize"><oneSwitch name="liveviewsize0">On</oneSwitch></newSwitchVector>')
@@ -2714,6 +3041,13 @@ async def ccd_stream_start():
     indi.send(f'<newSwitchVector device="{dev}" name="CCD_VIDEO_STREAM"><oneSwitch name="STREAM_ON">On</oneSwitch></newSwitchVector>')
 
     indi.live_view_active = True
+    # Un flux qui démarre est toujours en plein champ. On le demande au boîtier
+    # plutôt que de le supposer : il garde la loupe d'une session à l'autre, et
+    # une image agrandie fausserait la résolution astrométrique.
+    # L'état réel de la loupe se lit sur la première image : le boîtier la
+    # garde parfois d'une session à l'autre.
+    await asyncio.sleep(1.0)
+    indi.live_zoom = (5, 0.5, 0.5) if _live_frame_is_zoomed() else (1, 0.5, 0.5)
     logger.info(f"[LiveView] STREAM_ON sent to {dev}")
     return {"success": True}
 
@@ -2729,11 +3063,159 @@ async def ccd_stream_stop():
     if not indi.connected:
         return {"success": False, "error": "INDI bridge not connected"}
     indi.live_view_active = False
+    # Sortir de la loupe avant de couper : le boîtier ne doit pas la garder
+    # en mémoire pour le prochain flux (plate solving, auto-alignement).
+    indi.live_zoom = (1, 0.5, 0.5)
     # Stop stream first, then lower mirror — order matters for the 600D
     indi.send(f'<newSwitchVector device="{dev}" name="CCD_VIDEO_STREAM"><oneSwitch name="STREAM_OFF">On</oneSwitch></newSwitchVector>')
     await asyncio.sleep(0.5)
     indi.send(f'<newSwitchVector device="{dev}" name="viewfinder"><oneSwitch name="viewfinder1">On</oneSwitch></newSwitchVector>')
     return {"success": True}
+
+
+# Une seule manœuvre de loupe à la fois : deux boucles d'essais entrelacées
+# se mesureraient l'une l'autre.
+_canon_zoom_lock = asyncio.Lock()
+
+
+class CcdZoomRequest(BaseModel):
+    """Loupe du live view Canon. x, y : centre voulu, normalisé sur l'image."""
+    level: int = 1
+    x: float = 0.5
+    y: float = 0.5
+
+
+# Taille des images du live view du 600D : plein champ, et loupe (×5 comme ×10).
+# C'est le seul retour fiable sur l'état réel de la loupe : le driver répond
+# « Ok » à toutes les commandes, qu'elles aient pris ou non.
+LIVE_FULL_FRAME_WIDTH = 1056
+# Cadence demandée au driver pour le flux live (images par seconde).
+LIVE_PREVIEW_FPS = 1
+LIVE_ZOOM_FRAME_WIDTH = 1024
+
+
+def _live_frame_is_zoomed() -> bool | None:
+    """True si la dernière image du flux est une image de loupe, None si inconnue."""
+    raw = indi.latest_frame
+    if not raw:
+        return None
+    try:
+        from PIL import Image
+        import io as _io
+        width = Image.open(_io.BytesIO(raw)).size[0]
+    except Exception as e:
+        logger.warning(f"[LiveView] Taille de l'image live illisible : {e}")
+        return None
+    if width == LIVE_ZOOM_FRAME_WIDTH:
+        return True
+    if width == LIVE_FULL_FRAME_WIDTH:
+        return False
+    return None
+
+
+def _send_stream_switch(dev: str, element: str) -> None:
+    indi.send(f'<newSwitchVector device="{dev}" name="CCD_VIDEO_STREAM">'
+              f'<oneSwitch name="{element}">On</oneSwitch></newSwitchVector>')
+
+
+async def _wait_live_zoom_state(zoomed: bool, timeout_s: float = 4.5) -> bool:
+    """Attend que l'image live montre l'état voulu. Le flux tourne à une image
+    par seconde : un contrôle à délai fixe tombait parfois avant l'image qui
+    portait le changement, et annonçait un échec alors que la loupe avait pris."""
+    deadline = time.time() + timeout_s
+    while time.time() < deadline:
+        if _live_frame_is_zoomed() is zoomed:
+            return True
+        await asyncio.sleep(0.3)
+    return False
+
+
+async def _apply_canon_zoom(dev: str, level: int, x: int, y: int) -> tuple[bool, bool]:
+    """Règle la loupe et VÉRIFIE sur l'image qu'elle a pris. Renvoie (réussi, vérifié).
+
+    Mesuré sur le 600D le 20 novembre 2026 : une même commande prend une fois
+    sur deux environ pour entrer en loupe, et presque jamais pour en sortir,
+    sans que l'ordre ou l'espacement des commandes y change quoi que ce soit.
+    D'où une boucle fermée : on envoie, on regarde la taille de l'image, on
+    recommence. Deux chemins, parce que les deux sens ne se comportent pas
+    pareil :
+      - entrée en loupe : flux actif, 2 essais ;
+      - retour plein champ : flux mis en pause le temps de la commande, seule
+        façon qui a marché à chaque fois (4 sur 4).
+    Passer de ×5 à ×10 ne change pas la taille de l'image : envoyé une fois,
+    signalé comme non vérifié.
+    """
+    position, zoom = canon_zoom.zoom_commands(dev, level, x, y)
+
+    if level == 1:
+        for attempt in range(1, 4):
+            if attempt > 1:
+                # Le driver ignore une valeur identique à la dernière reçue :
+                # renvoyer « 1 » ne ferait rien. On repasse par ×5 pour que le
+                # nouvel essai soit une vraie commande.
+                indi.send(canon_zoom.zoom_commands(dev, 5, x, y)[1])
+                await asyncio.sleep(0.6)
+            _send_stream_switch(dev, "STREAM_OFF")
+            await asyncio.sleep(0.8)
+            indi.send(position)
+            await asyncio.sleep(0.4)
+            indi.send(zoom)
+            await asyncio.sleep(0.4)
+            _send_stream_switch(dev, "STREAM_ON")
+            if await _wait_live_zoom_state(False):
+                logger.info(f"[LiveView] Plein champ rétabli (essai {attempt})")
+                return True, True
+        return False, True
+
+    already_zoomed = _live_frame_is_zoomed() is True
+    # Deux essais seulement : mesuré sur 16 manœuvres, quand le premier ne
+    # prend pas, les suivants ne prennent presque jamais non plus (2 sur 30).
+    # Mieux vaut rendre la main en 5 s avec un échec clair que bloquer 17 s.
+    for attempt in range(1, 3):
+        if attempt > 1:
+            # Même raison : le driver ne transmet au boîtier qu'une valeur qui
+            # change. Six envois de « 5 » d'affilée n'en font qu'un seul (échec
+            # constaté le 20 novembre, 6 essais pour rien). On repasse par ×1.
+            indi.send(canon_zoom.zoom_commands(dev, 1, 0, 0)[1])
+            await asyncio.sleep(0.6)
+        indi.send(position)
+        await asyncio.sleep(0.4)
+        indi.send(zoom)
+        if already_zoomed:
+            await asyncio.sleep(1.5)
+            return True, False   # ×5 ↔ ×10 ou déplacement : rien à mesurer
+        if await _wait_live_zoom_state(True):
+            logger.info(f"[LiveView] Loupe ×{level} prise (essai {attempt})")
+            return True, True
+    return False, True
+
+
+@app.post("/ccd/zoom")
+async def ccd_zoom(req: CcdZoomRequest):
+    if _autoalign_session is not None and _autoalign_session.running:
+        return {"success": False,
+                "error": "Session d'auto-alignement en cours — le live view est piloté par la session."}
+    if req.level not in canon_zoom.ZOOM_LEVELS:
+        return {"success": False, "error": f"Niveau de zoom invalide : {req.level} (1, 5 ou 10)"}
+    if not indi.connected:
+        return {"success": False, "error": "INDI bridge not connected"}
+    if not indi.live_view_active:
+        return {"success": False,
+                "error": "La loupe Canon n'existe qu'en live view — démarrez le flux d'abord"}
+
+    dev = (indi.device_ccd or "Canon DSLR EOS 600D").strip()
+    x, y, cx, cy = canon_zoom.zoom_window(req.level, req.x, req.y)
+    async with _canon_zoom_lock:
+        ok, verified = await _apply_canon_zoom(dev, req.level, x, y)
+    if not ok:
+        still = "reste en loupe" if req.level == 1 else "reste en plein champ"
+        logger.error(f"[LiveView] Loupe ×{req.level} refusée par le boîtier ({still})")
+        return {"success": False,
+                "error": f"Le boîtier n'a pas pris la commande : l'image {still}. Réessayez."}
+    indi.live_zoom = (req.level, cx, cy)
+    logger.info(f"[LiveView] Loupe ×{req.level} en ({x},{y}) sur {dev}"
+                f"{'' if verified else ' — non vérifiable sur l image'}")
+    return {"success": True, "level": req.level, "x": cx, "y": cy, "verified": verified}
 
 # ─── Empilement : darks, pile, conseils IA ───────────────────────────────────
 
@@ -3109,9 +3591,18 @@ def mount_unpark():
 
 
 @app.post("/mount/abort")
-def mount_abort():
+async def mount_abort():
+    # L'arrêt part d'abord, sans condition. Ensuite seulement on coupe les
+    # séquences automatiques : sinon la mise en station ou l'alignement
+    # repartiraient vers la case suivante une seconde après le STOP.
     logger.warning(f"ABORT MOTION sent to mount: {indi.device_mount}")
     indi.send(f'<newSwitchVector device="{indi.device_mount}" name="TELESCOPE_ABORT_MOTION"><oneSwitch name="ABORT">On</oneSwitch></newSwitchVector>')
+    if _station_setup is not None and _station_setup.running:
+        logger.warning("STOP reçu : mise en station automatique interrompue")
+        asyncio.create_task(_station_setup.stop())
+    elif _autoalign_session is not None and _autoalign_session.running:
+        logger.warning("STOP reçu : alignement automatique interrompu")
+        asyncio.create_task(_autoalign_session.stop())
     return {"success": True, "message": "Abort motion command sent to mount"}
 
 
@@ -3166,6 +3657,248 @@ async def mount_init_station(req: InitStationRequest):
         "utc": utc_str,
         "tracking": True,
         "message": "GPS, heure et suivi sidéral initialisés"
+    }
+
+
+def _push_station_geo_and_time(device: str, lat: float, lon: float, elev: float = 0.0, source: str = "browser") -> str:
+    """Envoie GEOGRAPHIC_COORD et TIME_UTC à la monture INDI et met à jour station_init_state."""
+    now_utc = datetime.now(timezone.utc)
+    utc_str = now_utc.strftime("%Y-%m-%dT%H:%M:%S")
+    if device and indi.connected and indi.mount_connected:
+        indi.send(
+            f'<newNumberVector device="{device}" name="GEOGRAPHIC_COORD">'
+            f'<oneNumber name="LAT">{lat}</oneNumber>'
+            f'<oneNumber name="LONG">{lon}</oneNumber>'
+            f'<oneNumber name="ELEV">{elev}</oneNumber>'
+            f'</newNumberVector>'
+        )
+        time.sleep(0.2)
+        indi.send(
+            f'<newTextVector device="{device}" name="TIME_UTC">'
+            f'<oneText name="UTC">{utc_str}</oneText>'
+            f'<oneText name="OFFSET">0</oneText>'
+            f'</newTextVector>'
+        )
+        station_init_state["auto_init_done"] = True
+        station_init_state["time_synced_at"] = now_utc.isoformat()
+        logger.info(f"📍 Auto-Init Station ({source}): lat={lat:.4f}, lon={lon:.4f}, UTC={utc_str}")
+    station_init_state["location_source"] = source
+    station_init_state["lat"] = lat
+    station_init_state["lon"] = lon
+    station_init_state["elevation"] = elev
+    return utc_str
+
+
+class StationLocationRequest(BaseModel):
+    lat: float
+    lon: float
+    elevation: float = 0.0
+    source: str = "browser"
+
+
+@app.post("/station/location")
+async def station_set_location(req: StationLocationRequest):
+    """Reçoit la position GPS (navigateur/téléphone ou gpsd) et l'applique dès que la monture est en ligne."""
+    if not (-90.0 <= req.lat <= 90.0 and -180.0 <= req.lon <= 180.0):
+        raise HTTPException(status_code=400, detail="Coordonnées GPS invalides")
+    try:
+        cfg = ConfigService.load_config()
+        cfg["latitude"] = str(round(req.lat, 5))
+        cfg["longitude"] = str(round(req.lon, 5))
+        ConfigService.save_config(cfg)
+    except Exception as e:
+        logger.warning(f"Impossible de persister lat/lon dans config: {e}")
+
+    utc_str = await asyncio.to_thread(
+        _push_station_geo_and_time,
+        indi.device_mount or "",
+        req.lat,
+        req.lon,
+        req.elevation,
+        req.source,
+    )
+    return {
+        "success": True,
+        "pushed_to_mount": bool(indi.connected and indi.mount_connected),
+        "utc": utc_str,
+        **station_init_state,
+    }
+
+
+def _station_position_and_limits() -> dict:
+    now = time.time()
+    proven = mount_safety.position_is_proven(
+        bool(indi.mount_connected), indi.serial_failing(),
+        mount_safety.position_proof_ts(indi.encoder_last_update, indi.mount_heartbeat_ts, now), now)
+    alt = az = None
+    if proven and indi.encoder_alt is not None and indi.encoder_az is not None:
+        alt = round(mount_safety.signed_angle(indi.encoder_alt), 2)
+        az = round(mount_safety.encoder_az_signed(indi.encoder_az), 2)
+    try:
+        cfg = ConfigService.load_config()
+    except Exception as e:
+        logger.error(f"Lecture des limites impossible : {e}")
+        cfg = None
+    alt_lo, alt_hi = mount_safety.load_alt_limits(cfg)
+    az_lo, az_hi = mount_safety.load_az_limits(cfg)
+    return {
+        "encoder_alt": alt,
+        "encoder_az": az,
+        "limits": {"alt_min": alt_lo, "alt_max": alt_hi, "az_min": az_lo, "az_max": az_hi},
+    }
+
+
+@app.get("/station/status")
+async def station_status():
+    """Retourne l'état d'initialisation Vespera (lieu, heure, sync ciel) + fraîcheur encodeur."""
+    now = time.time()
+    hb = mount_safety.position_proof_ts(indi.encoder_last_update, indi.mount_heartbeat_ts, now)
+    encoder_age_s = (
+        round(max(0.0, now - hb), 2)
+        if hb > 0
+        else None
+    )
+    return {
+        **station_init_state,
+        "mount_connected": indi.mount_connected,
+        "ccd_connected": indi.ccd_connected,
+        "encoder_age_s": encoder_age_s,
+        "encoder_stale_s": mount_safety.ENCODER_STALE_S,
+        "polling_period_ms": MOUNT_POLLING_PERIOD_MS,
+        "link_suspect": indi.link_suspect,
+        "serial_error": indi.serial_failing(),
+        # Position lue sur les encodeurs (repère monture) et limites réellement
+        # appliquées : l'interface les affiche telles quelles, sans valeur par
+        # défaut de son côté. None tant que rien de fiable n'a été lu.
+        **_station_position_and_limits(),
+        # Retard de l'image live sur le direct, en secondes (None hors flux)
+        "stream_lag_s": indi.stream_lag.lag_s if indi.live_view_active else None,
+    }
+
+
+class IdentifySkyRequest(BaseModel):
+    exposure: float = 4.0
+    use_ai_diagnosis: bool = True
+    sync_mount: bool = True
+    use_latest: bool = False
+
+
+@app.post("/station/identify-sky")
+async def station_identify_sky(req: IdentifySkyRequest):
+    """Workflow Vespera/Stellina : capture courte -> diagnostic IA -> blind solve-field -> SYNC monture."""
+    img_bytes: bytes | None = None
+
+    if req.use_latest and indi.latest_frame:
+        img_bytes = indi.latest_frame
+    else:
+        if not indi.connected or not indi.ccd_connected:
+            return {
+                "success": False,
+                "stage": "camera",
+                "error": "Caméra hors ligne — connectez la caméra pour identifier le ciel",
+            }
+        # Stop live view if active so CCD capture doesn't contend on USB
+        try:
+            await ccd_stream_stop(indi.device_ccd or "Canon DSLR EOS 600D")
+            await asyncio.sleep(0.3)
+        except Exception:
+            pass
+
+        cap_res = await ccd_capture_internal(
+            indi.device_ccd or "Canon DSLR EOS 600D",
+            exposure=max(1.0, min(15.0, req.exposure)),
+            preview=True,
+        )
+        if not cap_res.get("success"):
+            return {
+                "success": False,
+                "stage": "capture",
+                "error": cap_res.get("error") or "Échec de la capture",
+            }
+        img_path = cap_res.get("path") or indi.latest_image_path
+        if img_path and os.path.exists(img_path):
+            with open(img_path, "rb") as f:
+                img_bytes = f.read()
+        elif indi.latest_frame:
+            img_bytes = indi.latest_frame
+
+    if not img_bytes or len(img_bytes) < 100:
+        return {"success": False, "stage": "capture", "error": "Image capturée vide ou invalide"}
+
+    # Diagnostic IA rapide (non bloquant si Gemini indisponible)
+    ai_diag: dict | None = None
+    if req.use_ai_diagnosis:
+        try:
+            def _run_ai_diag() -> dict | None:
+                arr = np.frombuffer(img_bytes, np.uint8)
+                mat = cv2.imdecode(arr, cv2.IMREAD_COLOR)
+                if mat is None:
+                    return None
+                h, w = mat.shape[:2]
+                if max(h, w) > 800:
+                    scale = 800.0 / max(h, w)
+                    mat = cv2.resize(mat, (int(w * scale), int(h * scale)))
+                ok, buf = cv2.imencode(".jpg", mat, [cv2.IMWRITE_JPEG_QUALITY, 82])
+                if not ok:
+                    return None
+                b64 = base64.b64encode(buf.tobytes()).decode()
+                prompt = (
+                    "Tu es un copilote d'astrophotographie. Analyse cette image issue d'un télescope "
+                    "pour savoir si elle est exploitable pour un plate-solve astrométrique. "
+                    'Réponds UNIQUEMENT en JSON : {"usable": <true|false>, '
+                    '"issue": "<ok|cap_on|clouds|blur|dark>", '
+                    '"suggested_exposure": <nombre ou null>, '
+                    '"comment": "<diagnostic bref et utile en français>"}'
+                )
+                return _call_gemini_vision(prompt, b64, temperature=0.0)
+
+            ai_diag = await asyncio.to_thread(_run_ai_diag)
+            if ai_diag and ai_diag.get("comment"):
+                station_init_state["last_ai_comment"] = ai_diag["comment"]
+            if ai_diag and ai_diag.get("usable") is False and ai_diag.get("issue") == "cap_on":
+                return {
+                    "success": False,
+                    "stage": "ai_diagnosis",
+                    "ai_diagnostic": ai_diag,
+                    "error": ai_diag.get("comment") or "Cache objectif encore en place détecté par l'IA",
+                }
+        except Exception as e:
+            logger.warning(f"[IdentifySky] Diagnostic IA ignoré: {e}")
+
+    # Blind plate-solve local sur Mac Mini (/opt/homebrew/bin/solve-field)
+    solve_res = await asyncio.to_thread(_solve_frame, img_bytes, None, None, None)
+    if not solve_res.get("success"):
+        return {
+            "success": False,
+            "stage": "platesolve",
+            "ai_diagnostic": ai_diag,
+            "error": solve_res.get("error") or "Échec du plate-solving",
+        }
+
+    ra_h = float(solve_res["ra"])
+    dec_d = float(solve_res["dec"])
+    ra_deg = ra_h * 15.0
+    rot_deg = solve_res.get("rotation_deg")
+
+    synced = False
+    if req.sync_mount and indi.connected and indi.mount_connected and indi.device_mount:
+        sync_res = await mount_slew_internal(indi.device_mount, ra_h, dec_d, sync=True)
+        synced = bool(sync_res.get("success"))
+
+    station_init_state["sky_synced"] = synced or station_init_state.get("sky_synced", False)
+    station_init_state["sky_sync_ra_deg"] = round(ra_deg, 5)
+    station_init_state["sky_sync_dec_deg"] = round(dec_d, 5)
+    station_init_state["sky_sync_rotation_deg"] = rot_deg
+    station_init_state["sky_synced_at"] = datetime.now(timezone.utc).isoformat()
+
+    return {
+        "success": True,
+        "ra_h": ra_h,
+        "ra_deg": ra_deg,
+        "dec_deg": dec_d,
+        "rotation_deg": rot_deg,
+        "synced": synced,
+        "ai_diagnostic": ai_diag,
     }
 
 
@@ -3770,7 +4503,19 @@ def mount_status():
     # d'alignement et devient faux à chaque sync.
     az = mount_safety.encoder_az_signed(indi.encoder_az)
     alt = mount_safety.signed_angle(indi.encoder_alt) if indi.encoder_alt is not None else None
+    # Liaison série en panne : les valeurs du driver ne viennent pas de la
+    # monture. Mieux vaut « pas de position » qu'un 0° / 0° qui a l'air vrai.
+    now = time.time()
+    proven = mount_safety.position_is_proven(
+        bool(indi.mount_connected), indi.serial_failing(),
+        mount_safety.position_proof_ts(indi.encoder_last_update, indi.mount_heartbeat_ts, now), now)
+    position_valid = proven and az is not None and alt is not None
+    if not proven:
+        az = alt = None
     return {
+        "position_valid": position_valid,
+        "position_error": (SERIAL_LINK_ERROR if indi.serial_failing()
+                           else None if proven else "Position de la monture non lue"),
         "connected": indi.mount_connected,
         "ra": indi.mount_ra,
         "dec": indi.mount_dec,
@@ -4177,8 +4922,15 @@ def _solve_frame(image_bytes: bytes,
             return {"success": False, "error": "Solved but could not parse RA/DEC from solve-field output"}
 
         ra_hours = ra_deg / 15.0
-        logger.info(f"Plate solve SUCCESS: RA={ra_hours:.5f}h DEC={dec_deg:.5f}°")
-        return {"success": True, "ra": ra_hours, "dec": dec_deg}
+        rot_deg = None
+        m_rot = re.search(r"Field rotation angle:\s*up is\s*([+-]?\d+\.?\d*)\s*degrees", result.stdout)
+        if m_rot:
+            try:
+                rot_deg = float(m_rot.group(1))
+            except ValueError:
+                rot_deg = None
+        logger.info(f"Plate solve SUCCESS: RA={ra_hours:.5f}h DEC={dec_deg:.5f}° rot={rot_deg}")
+        return {"success": True, "ra": ra_hours, "dec": dec_deg, "rotation_deg": rot_deg}
 
     except subprocess.TimeoutExpired:
         return {"success": False, "error": "solve-field timed out (>180s). Try shorter exposure or brighter field."}
@@ -4274,6 +5026,87 @@ async def autoalign_session_start(req: AutoAlignSessionStartRequest):
         config_lon=req.lon,
     )
     return {"success": True, "session_id": sid}
+
+# ─── Mise en station automatique ─────────────────────────────────────────────
+
+_station_setup: Optional[station_setup.StationSetup] = None
+
+
+def _get_station_setup() -> station_setup.StationSetup:
+    global _station_setup
+    if _station_setup is None:
+        def _limits():
+            cfg = ConfigService.load_config()
+            alt_lo, alt_hi = mount_safety.load_alt_limits(cfg)
+            az_lo, az_hi = mount_safety.load_az_limits(cfg)
+            return alt_lo, alt_hi, az_lo, az_hi
+
+        def _encoders():
+            if indi.encoder_alt is None or indi.encoder_az is None:
+                return None, None
+            return (mount_safety.signed_angle(indi.encoder_alt),
+                    mount_safety.encoder_az_signed(indi.encoder_az))
+
+        def _fresh():
+            now = time.time()
+            return mount_safety.check_encoder_fresh(
+                mount_safety.position_proof_ts(
+                    indi.encoder_last_update, indi.mount_heartbeat_ts, now), now)
+
+        def _model_altitude(site: dict):
+            alt, _az = _radec_to_altaz(indi.mount_ra / 15.0, indi.mount_dec,
+                                       site["lat"], site["lon"])
+            return alt
+
+        def _set_aligned(aligned: bool):
+            station_init_state["sky_synced"] = aligned
+            if aligned:
+                station_init_state["sky_synced_at"] = datetime.now(timezone.utc).isoformat()
+
+        _station_setup = station_setup.StationSetup(
+            indi=indi,
+            get_session=_get_autoalign_session,
+            slew=mount_slew_internal,
+            altaz_to_radec=_altaz_to_radec,
+            get_site=lambda: _get_site_location(indi, INDI_HOST),
+            push_site_time=lambda site: _push_station_geo_and_time(
+                indi.device_mount, site["lat"], site["lon"], 0.0, site.get("source", "setup")),
+            model_altitude=_model_altitude,
+            get_limits=_limits,
+            encoder_position=_encoders,
+            position_fresh=_fresh,
+            focus_calibrate=focus_calibrate,
+            set_aligned=_set_aligned,
+            logger=logger,
+        )
+    return _station_setup
+
+
+@app.post("/station/setup/start")
+async def station_setup_start():
+    """Lance la mise en station automatique complète (balayage, limites,
+    alignement, focus numérique). La monture se déplace seule."""
+    setup = _get_station_setup()
+    if setup.running:
+        raise HTTPException(status_code=409, detail="Une mise en station est déjà en cours")
+    if _get_autoalign_session().running:
+        return {"success": False, "error": "Un alignement automatique est déjà en cours"}
+    setup.start()
+    return {"success": True}
+
+
+@app.post("/station/setup/stop")
+async def station_setup_stop():
+    setup = _get_station_setup()
+    if setup.running:
+        await setup.stop()
+    return {"success": True}
+
+
+@app.get("/station/setup/status")
+async def station_setup_status():
+    return _get_station_setup().snapshot()
+
 
 @app.post("/autoalign/session/stop")
 async def autoalign_session_stop():

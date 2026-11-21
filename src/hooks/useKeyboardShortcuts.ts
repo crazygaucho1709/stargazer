@@ -4,6 +4,7 @@
 import { useEffect, useRef, useCallback } from "react";
 import { useStargazerStore } from "@/store/useStargazerStore";
 import { useJog, JogDirection } from "@/hooks/useJog";
+import { useGoTo } from "@/hooks/useGoTo";
 import { clientApiUrl } from "@/lib/clientApi";
 import { notification } from "@/lib/notificationService";
 
@@ -28,7 +29,8 @@ const ARROW_TO_DIR: Record<string, JogDirection> = {
 
 export function useKeyboardShortcuts(): void {
   const { isConnected, config, updateConfig, detectedMount } = useStargazerStore();
-  const { startJog, stopJog, activeDir } = useJog();
+  const { startJog, stopJog } = useJog();
+  const { abort } = useGoTo();
 
   // Track which arrow keys are currently held to avoid re-triggering on key repeat
   const heldKeys = useRef<Set<string>>(new Set());
@@ -78,10 +80,26 @@ export function useKeyboardShortcuts(): void {
 
   const onKeyDown = useCallback(
     (e: KeyboardEvent) => {
+      const key = e.key;
+
+      // Échap arrête la monture. Traité avant toute autre condition : un ordre
+      // d'arrêt ne dépend ni de l'état de la liaison, ni du champ qui a le focus.
+      if (key === "Escape") {
+        if (activeDirRef.current !== null) {
+          e.preventDefault();
+          stopJog();
+          activeDirRef.current = null;
+          heldKeys.current.clear();
+        }
+        if (useStargazerStore.getState().isSlewing) {
+          e.preventDefault();
+          abort();
+        }
+        return;
+      }
+
       if (!isConnected) return;
       if (isInputFocused()) return;
-
-      const key = e.key;
 
       if (ARROW_TO_DIR[key]) {
         e.preventDefault();
@@ -94,16 +112,6 @@ export function useKeyboardShortcuts(): void {
         const dir = ARROW_TO_DIR[key];
         activeDirRef.current = dir;
         startJog(dir);
-        return;
-      }
-
-      if (key === "Escape") {
-        e.preventDefault();
-        if (activeDirRef.current !== null) {
-          stopJog();
-          activeDirRef.current = null;
-          heldKeys.current.clear();
-        }
         return;
       }
 
@@ -125,7 +133,7 @@ export function useKeyboardShortcuts(): void {
         return;
       }
     },
-    [isConnected, startJog, stopJog, handleToggleTracking, handleSlewSpeed]
+    [isConnected, startJog, stopJog, abort, handleToggleTracking, handleSlewSpeed]
   );
 
   const onKeyUp = useCallback(

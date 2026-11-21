@@ -63,26 +63,12 @@ function calculateLST(date: Date, lon: number): number {
  * Julian Day from Date.
  */
 function julianDay(date: Date): number {
-  const y = date.getUTCFullYear();
-  const m = date.getUTCMonth() + 1;
-  const d = date.getUTCDate() +
-    date.getUTCHours() / 24 +
-    date.getUTCMinutes() / 1440 +
-    date.getUTCSeconds() / 86400;
-
-  const a = Math.floor((14 - m) / 12);
-  const yy = y + 4800 - a;
-  const mm = m + 12 * a - 3;
-
-  return (
-    d +
-    Math.floor((153 * mm + 2) / 5) +
-    365 * yy +
-    Math.floor(yy / 4) -
-    Math.floor(yy / 100) +
-    Math.floor(yy / 400) -
-    32045
-  );
+  // Jour julien direct depuis l'heure Unix (2440587.5 = 1er janvier 1970, 0h UTC).
+  // L'ancienne version additionnait la fraction de jour au numéro de jour
+  // julien entier, qui commence à MIDI : le résultat avait 12 h d'avance, donc
+  // le temps sidéral aussi. Toutes les hauteurs étaient calculées pour un ciel
+  // tourné d'un demi-tour — Aldébaran donnée à −47° alors qu'elle était à +33°.
+  return date.getTime() / 86400000 + 2440587.5;
 }
 
 /**

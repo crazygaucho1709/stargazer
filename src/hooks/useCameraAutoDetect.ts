@@ -4,6 +4,10 @@
 import { useEffect, useRef } from "react";
 import { useStargazerStore } from "@/store/useStargazerStore";
 import { notification } from "@/lib/notificationService";
+import { useStationStream } from "@/hooks/useStationStream";
+
+/** Délai laissé à la caméra pour s'annoncer avant de dire qu'il n'y en a pas. */
+const CAMERA_GRACE_MS = 20_000;
 
 interface IndiDevice {
     name: string;
@@ -23,14 +27,31 @@ export function useCameraAutoDetect(): void {
     const setLiveViewMode = useStargazerStore((s) => s.setLiveViewMode);
     const setDetectedDevices = useStargazerStore((s) => s.setDetectedDevices);
     const detectedMount = useStargazerStore((s) => s.detectedMount);
+    const setHasFocuser = useStargazerStore((s) => s.setHasFocuser);
     const hasRunRef = useRef(false);
+    // Le backend annonce la caméra dans son flux d'état. On attend ce signal
+    // avant de lister les appareils : interrogée dès la connexion, la liste
+    // arrivait vide et déclenchait « Aucune caméra INDI détectée » à chaque
+    // chargement, caméra pourtant connectée.
+    const ccdConnected = useStationStream().ccdConnected;
+
+    useEffect(() => {
+        if (!isConnected || ccdConnected) return;
+        const timer = setTimeout(() => {
+            notification.warning("Aucune caméra INDI détectée", {
+                source: "AutoDetect",
+                description: "Vérifiez la connexion INDI et les pilotes chargés",
+            });
+        }, CAMERA_GRACE_MS);
+        return () => clearTimeout(timer);
+    }, [isConnected, ccdConnected]);
 
     useEffect(() => {
         if (!isConnected) {
             hasRunRef.current = false;
             return;
         }
-        if (hasRunRef.current) return;
+        if (!ccdConnected || hasRunRef.current) return;
         hasRunRef.current = true;
 
         async function detect() {
@@ -39,6 +60,7 @@ export function useCameraAutoDetect(): void {
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const devices: IndiDevice[] = await res.json();
 
+                setHasFocuser(devices.some((d) => /focus/i.test(d.name)));
                 const ccdDevice    = devices.find((d) => isCcd(d.name));
                 const canonDevice  = devices.find((d) => isCanon(d.name));
 
@@ -57,9 +79,9 @@ export function useCameraAutoDetect(): void {
                         description: "Mode Canon DSLR activé",
                     });
                 } else {
-                    notification.warning("Aucune caméra INDI détectée", {
+                    notification.warning("Caméra connectée mais non reconnue", {
                         source: "AutoDetect",
-                        description: "Vérifiez la connexion INDI et les pilotes chargés",
+                        description: `Appareils INDI annoncés : ${devices.map((d) => d.name).join(", ") || "aucun"}`,
                     });
                 }
             } catch (err) {
@@ -72,5 +94,5 @@ export function useCameraAutoDetect(): void {
         }
 
         detect();
-    }, [isConnected, setLiveViewMode, setDetectedDevices, detectedMount]);
+    }, [isConnected, ccdConnected, setLiveViewMode, setDetectedDevices, setHasFocuser, detectedMount]);
 }

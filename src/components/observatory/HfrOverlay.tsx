@@ -59,7 +59,7 @@ export const HfrOverlay = () => {
                 padding: "1.25rem",
                 border: `1px solid ${getStatusColor()}`,
                 boxShadow: `0 15px 40px rgba(0,0,0,0.6), 0 0 20px ${getStatusColor()}33`,
-                zIndex: 1400,
+                zIndex: "var(--z-overlay)",
                 minWidth: "260px",
             }}
         >

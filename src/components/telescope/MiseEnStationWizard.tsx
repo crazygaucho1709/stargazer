@@ -9,6 +9,7 @@
  * Étape 3: Alignement stellaire
  */
 
+import { usePhoneSensor } from "@/hooks/usePhoneSensor";
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
     CheckCircle2, AlertTriangle, Navigation,
@@ -173,12 +174,14 @@ interface MiseEnStationWizardProps {
 
 export const MiseEnStationWizard = ({ onClose }: MiseEnStationWizardProps) => {
     const { config, updateConfig } = useStargazerStore();
-    const wsRef = useRef<WebSocket | null>(null);
-    const [wsConnected, setWsConnected] = useState(false);
-    const [sensor, setSensor] = useState<SensorData>({
-        beta: null, gamma: null, alpha: null,
-        lat: null, lon: null, alt_gps: null, compassAccuracy: null,
-    });
+    // Capteur du téléphone : lu dans le flux de la station, comme partout.
+    // Le backend ne transmet ni l'altitude GPS ni la précision de la boussole.
+    const phone = usePhoneSensor();
+    const wsConnected = phone.connected;
+    const sensor: SensorData = {
+        beta: phone.beta, gamma: phone.gamma, alpha: phone.alpha,
+        lat: phone.lat, lon: phone.lon, alt_gps: null, compassAccuracy: null,
+    };
 
     const [step, setStep] = useState<Step>(0);
     const [initResult, setInitResult] = useState<string | null>(null);
@@ -208,51 +211,25 @@ export const MiseEnStationWizard = ({ onClose }: MiseEnStationWizardProps) => {
         }
     }, [config.latitude, config.longitude]);
 
-    // ─── WebSocket phone sensor ──────────────────────────────────────────────
-
-    const connectWs = useCallback(() => {
-        const host = (config.astroberryUrl || "localhost").replace(/^https?:\/\//, "").replace(/:\d+$/, "");
-        const protocol = typeof window !== "undefined" && window.location.protocol === "https:" ? "wss" : "ws";
-        const port = protocol === "wss" ? "8443" : "5005";
-        const url = `${protocol}://${host}:${port}/ws/phone-sensor`;
-
-        const ws = new WebSocket(url);
-        wsRef.current = ws;
-        ws.onopen = () => setWsConnected(true);
-        ws.onclose = () => {
-            setWsConnected(false);
-            setTimeout(connectWs, 3000);
-        };
-        ws.onerror = () => ws.close();
-        ws.onmessage = (evt) => {
-            try {
-                const d = JSON.parse(evt.data);
-                setSensor({
-                    beta: d.beta ?? null, gamma: d.gamma ?? null, alpha: d.alpha ?? null,
-                    lat: d.lat ?? null, lon: d.lon ?? null, alt_gps: d.alt ?? null,
-                    compassAccuracy: d.compassAccuracy ?? null,
-                });
-            } catch (_) {}
-        };
-    }, [config.astroberryUrl]);
-
-    useEffect(() => {
-        connectWs();
-        return () => { wsRef.current?.close(); };
-    }, [connectWs]);
-
     // ─── Fetch GPS from phone orientation API ─────────────────────────────────
 
-    const handleUsePhoneGps = async () => {
+    const handleUsePhoneGps = () => {
         setGpsLoading(true);
         try {
-            const res = await fetch("/api/hardware/orientation");
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const data = await res.json() as { latitude?: number; longitude?: number; accuracy_m?: number };
-            const lat = data.latitude;
-            const lon = data.longitude;
+            const data = phone;
+            if (!data.connected) {
+                throw new Error("Téléphone non connecté — ouvrez la page /sensor sur le téléphone");
+            }
+            if (data.stale) {
+                throw new Error("Dernière position trop ancienne — gardez la page /sensor ouverte au premier plan");
+            }
+            const lat = data.lat;
+            const lon = data.lon;
             const accuracy = data.accuracy_m ?? null;
-            if (lat == null || lon == null || !isValidLatLon(lat, lon)) {
+            if (lat == null || lon == null) {
+                throw new Error("Le téléphone n'a pas encore transmis de position — autorisez la localisation sur la page /sensor");
+            }
+            if (!isValidLatLon(lat, lon)) {
                 throw new Error("Coordonnées invalides retournées par le téléphone");
             }
             setResolvedLat(lat);

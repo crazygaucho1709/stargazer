@@ -59,7 +59,7 @@ export const GlobalLoader = () => {
         <AnimatePresence>
             {isGlobalLoading && (
                 <motion.div
-                    className="fixed inset-0 flex items-center justify-center overflow-hidden z-[9999]"
+                    className="fixed inset-0 flex items-center justify-center overflow-hidden z-[var(--z-modal)]"
                     style={{ background: "rgba(2, 4, 8, 0.95)", backdropFilter: "blur(40px)" }}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}

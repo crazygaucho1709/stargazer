@@ -2,13 +2,15 @@
 "use client";
 
 import {
-    ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Target, RotateCcw,
+    ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Square, RotateCcw,
     ArrowUpLeft, ArrowUpRight, ArrowDownLeft, ArrowDownRight, Moon, Sun, Star,
 } from "lucide-react";
 import React from "react";
 import { useStargazerStore } from "@/store/useStargazerStore";
 import { useAstroAction } from "@/hooks/useAstroAction";
-import { useJog } from "@/hooks/useJog";
+import { useJog, JogDirection } from "@/hooks/useJog";
+import { useStationStream } from "@/hooks/useStationStream";
+import { useGoTo } from "@/hooks/useGoTo";
 import { notification } from "@/lib/notificationService";
 
 
@@ -26,24 +28,33 @@ interface PadButtonProps {
     /** Nom accessible : le bouton n'a qu'une icône, sans lui un lecteur
      *  d'écran annonce « bouton » sans rien d'autre. */
     label: string;
+    /** Commande inactive (station hors ligne). Volontairement PAS l'attribut
+     *  `disabled` : un bouton désactivé pendant un appui ne reçoit plus
+     *  pointerup, et le relâchement doit toujours pouvoir arrêter la monture. */
+    inactive?: boolean;
     onClick?: () => void;
     onPointerDown?: (e: React.PointerEvent) => void;
     onPointerUp?: (e: React.PointerEvent) => void;
     onPointerCancel?: (e: React.PointerEvent) => void;
 }
 
-const PadButton = ({ icon: DirIcon, glowColor = "var(--astro-teal)", label, onClick, onPointerDown, onPointerUp, onPointerCancel }: PadButtonProps) => (
+const PadButton = ({ icon: DirIcon, glowColor = "var(--astro-teal)", label, inactive = false, onClick, onPointerDown, onPointerUp, onPointerCancel }: PadButtonProps) => (
     <button
+        type="button"
         aria-label={label}
+        aria-disabled={inactive}
         // 40px etait sous la norme de 44px, et hover:scale agrandissait la cible
         // au moment meme ou le doigt se pose : elle se derobait sous l'appui.
-        className="w-12 h-12 flex items-center justify-center rounded-full text-[--astro-starlight] bg-white/5 transition-colors duration-200 hover:bg-white/15 active:text-black cursor-pointer"
+        className={[
+            "w-12 h-12 flex items-center justify-center rounded-full text-[--astro-starlight] bg-white/5 transition-colors duration-200",
+            inactive ? "opacity-35 cursor-not-allowed" : "hover:bg-white/15 active:text-black cursor-pointer",
+        ].join(" ")}
         style={{ touchAction: "none" }}
         onClick={onClick}
         onPointerDown={onPointerDown}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerCancel}
-        onMouseEnter={e => (e.currentTarget.style.boxShadow = `0 0 15px ${glowColor}`)}
+        onMouseEnter={e => { if (!inactive) e.currentTarget.style.boxShadow = `0 0 15px ${glowColor}`; }}
         onMouseLeave={e => (e.currentTarget.style.boxShadow = "")}
     >
         <DirIcon size={20} />
@@ -51,16 +62,25 @@ const PadButton = ({ icon: DirIcon, glowColor = "var(--astro-teal)", label, onCl
 );
 
 export const TelescopeControls = ({ variant }: TelescopeControlsProps) => {
-    const { isSlewing, setSlewing, config, detectedMount } = useStargazerStore();
+    const { isSlewing, isConnected, config, detectedMount } = useStargazerStore();
     const { execute } = useAstroAction();
     const jog = useJog();
+    const { abort } = useGoTo();
     const [slewRate, setSlewRate] = React.useState(5);
+    // Liaison monture en panne (erreurs d'écriture série, ou mouvement resté
+    // sans effet) : le backend refuserait tout départ, on le montre ici au
+    // lieu de laisser l'opérateur appuyer dans le vide. Le STOP reste actif.
+    const station = useStationStream().station;
+    const linkDown = !!(station?.serial_error || station?.link_suspect);
+    const offline = !isConnected || linkDown;
 
     const JOG_TIMEOUT = 3000;
 
     const handleRateChange = async (value: number) => {
-        const prevDir = jog.activeDir;
-        if (prevDir) jog.stopJog();
+        // Un changement de vitesse arrête le déplacement en cours et ne le
+        // relance pas : le relancer après l'attente réseau pouvait remettre la
+        // monture en mouvement alors que le doigt avait déjà quitté la touche.
+        jog.stopJog();
         setSlewRate(value);
         await execute('/api/indi/mount', `SET RATE ${value}x`, {
             body: { action: 'rate', rate: value, device: detectedMount, ip: config.astroberryUrl },
@@ -68,15 +88,42 @@ export const TelescopeControls = ({ variant }: TelescopeControlsProps) => {
             timeout: JOG_TIMEOUT,
             retries: 0,
         });
-        if (prevDir) jog.startJog(prevDir);
     };
 
     const handleSync = async () => {
+        if (offline) return;
         await execute('/api/mount/sync_current', "SYNCING MOUNT", {
             method: 'POST',
             showGlobalLoader: true,
         });
     };
+
+    // Arrêt général : coupe le déplacement manuel ET le pointage automatique.
+    // Jamais conditionné à l'état de la liaison ni à ce que l'interface croit
+    // savoir du mouvement — l'ordre part toujours.
+    const handleStop = () => {
+        jog.stopJog();
+        abort();
+    };
+
+    // Liaison perdue pendant un appui : on coupe sans attendre le relâchement.
+    const stopJog = jog.stopJog;
+    React.useEffect(() => {
+        if (offline) stopJog();
+    }, [offline, stopJog]);
+
+    const padHandlers = (dir: JogDirection) => ({
+        inactive: offline,
+        onPointerDown: (e: React.PointerEvent<HTMLButtonElement>) => {
+            e.preventDefault();
+            if (offline) return;
+            e.currentTarget.setPointerCapture(e.pointerId);
+            jog.startJog(dir);
+        },
+        // Le relâchement arrête toujours, hors ligne compris.
+        onPointerUp: (e: React.PointerEvent) => { e.preventDefault(); jog.stopJog(); },
+        onPointerCancel: (e: React.PointerEvent) => { e.preventDefault(); jog.stopJog(); },
+    });
 
     if (variant === "jog" || variant === "guiding") return null;
 
@@ -96,68 +143,48 @@ export const TelescopeControls = ({ variant }: TelescopeControlsProps) => {
 
                     {/* Cardinal pads */}
                     <div className="absolute top-[15px]">
-                        <PadButton icon={ChevronUp} label="Monter le tube"
-                            onPointerDown={e => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); jog.startJog('up'); }}
-                            onPointerUp={e => { e.preventDefault(); jog.stopJog(); }}
-                            onPointerCancel={e => { e.preventDefault(); jog.stopJog(); }} />
+                        <PadButton icon={ChevronUp} label="Monter le tube" {...padHandlers('up')} />
                     </div>
                     <div className="absolute bottom-[15px]">
-                        <PadButton icon={ChevronDown} label="Descendre le tube"
-                            onPointerDown={e => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); jog.startJog('down'); }}
-                            onPointerUp={e => { e.preventDefault(); jog.stopJog(); }}
-                            onPointerCancel={e => { e.preventDefault(); jog.stopJog(); }} />
+                        <PadButton icon={ChevronDown} label="Descendre le tube" {...padHandlers('down')} />
                     </div>
                     <div className="absolute left-[15px]">
-                        <PadButton icon={ChevronLeft} label="Tourner vers la gauche"
-                            onPointerDown={e => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); jog.startJog('left'); }}
-                            onPointerUp={e => { e.preventDefault(); jog.stopJog(); }}
-                            onPointerCancel={e => { e.preventDefault(); jog.stopJog(); }} />
+                        <PadButton icon={ChevronLeft} label="Tourner vers la gauche" {...padHandlers('left')} />
                     </div>
                     <div className="absolute right-[15px]">
-                        <PadButton icon={ChevronRight} label="Tourner vers la droite"
-                            onPointerDown={e => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); jog.startJog('right'); }}
-                            onPointerUp={e => { e.preventDefault(); jog.stopJog(); }}
-                            onPointerCancel={e => { e.preventDefault(); jog.stopJog(); }} />
+                        <PadButton icon={ChevronRight} label="Tourner vers la droite" {...padHandlers('right')} />
                     </div>
 
                     {/* Diagonal pads */}
                     <div className="absolute top-[25px] left-[25px]">
-                        <PadButton icon={ArrowUpLeft} label="Monter vers la gauche"
-                            onPointerDown={e => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); jog.startJog('up-left'); }}
-                            onPointerUp={e => { e.preventDefault(); jog.stopJog(); }}
-                            onPointerCancel={e => { e.preventDefault(); jog.stopJog(); }} />
+                        <PadButton icon={ArrowUpLeft} label="Monter vers la gauche" {...padHandlers('up-left')} />
                     </div>
                     <div className="absolute top-[25px] right-[25px]">
-                        <PadButton icon={ArrowUpRight} label="Monter vers la droite"
-                            onPointerDown={e => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); jog.startJog('up-right'); }}
-                            onPointerUp={e => { e.preventDefault(); jog.stopJog(); }}
-                            onPointerCancel={e => { e.preventDefault(); jog.stopJog(); }} />
+                        <PadButton icon={ArrowUpRight} label="Monter vers la droite" {...padHandlers('up-right')} />
                     </div>
                     <div className="absolute bottom-[25px] left-[25px]">
-                        <PadButton icon={ArrowDownLeft} label="Descendre vers la gauche"
-                            onPointerDown={e => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); jog.startJog('down-left'); }}
-                            onPointerUp={e => { e.preventDefault(); jog.stopJog(); }}
-                            onPointerCancel={e => { e.preventDefault(); jog.stopJog(); }} />
+                        <PadButton icon={ArrowDownLeft} label="Descendre vers la gauche" {...padHandlers('down-left')} />
                     </div>
                     <div className="absolute bottom-[25px] right-[25px]">
-                        <PadButton icon={ArrowDownRight} label="Descendre vers la droite"
-                            onPointerDown={e => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); jog.startJog('down-right'); }}
-                            onPointerUp={e => { e.preventDefault(); jog.stopJog(); }}
-                            onPointerCancel={e => { e.preventDefault(); jog.stopJog(); }} />
+                        <PadButton icon={ArrowDownRight} label="Descendre vers la droite" {...padHandlers('down-right')} />
                     </div>
 
                     {/* Sync button */}
                     <div className="absolute bottom-[20px] left-[20px]">
-                        <PadButton icon={RotateCcw} glowColor="var(--astro-gold)" label="Synchroniser la position" onClick={handleSync} />
+                        <PadButton icon={RotateCcw} glowColor="var(--astro-gold)" label="Synchroniser la position" inactive={offline} onClick={handleSync} />
                     </div>
 
-                    {/* Central target */}
-                    <div
-                        className={`w-[46px] h-[46px] rounded-full border-2 bg-[rgba(10,20,40,0.8)] flex items-center justify-center z-[2] ${isSlewing ? "pulse-glow" : ""}`}
-                        style={{ borderColor: isSlewing ? "var(--astro-gold)" : "var(--astro-teal)" }}
+                    {/* Arrêt général — toujours actif, y compris hors ligne */}
+                    <button
+                        type="button"
+                        onClick={handleStop}
+                        aria-label="Arrêter la monture"
+                        title="Arrêter la monture (Échap)"
+                        className={`w-[46px] h-[46px] rounded-full border-2 border-(--color-danger) bg-(--color-danger)/15 text-(--color-danger) flex flex-col items-center justify-center gap-0.5 z-[2] cursor-pointer transition-colors duration-150 hover:bg-(--color-danger)/30 active:bg-(--color-danger) active:text-black ${isSlewing ? "bg-(--color-danger)/35" : ""}`}
                     >
-                        <Target size={20} style={{ color: isSlewing ? "var(--astro-gold)" : "var(--astro-teal)" }} />
-                    </div>
+                        <Square size={12} fill="currentColor" aria-hidden />
+                        <span className="text-hud-2xs leading-none font-bold tracking-wider">STOP</span>
+                    </button>
                 </div>
 
                 {/* Slew rate slider */}
@@ -170,10 +197,11 @@ export const TelescopeControls = ({ variant }: TelescopeControlsProps) => {
                     <input
                         type="range" min={1} max={JOG_MAX_RATE} step={1} value={slewRate}
                         onChange={e => handleRateChange(parseInt(e.target.value))}
-                        className="slew-rate-slider"
+                        disabled={offline}
+                        className={`slew-rate-slider ${offline ? "opacity-35" : ""}`}
                         aria-label={`Vitesse de deplacement : ${slewRate} sur ${JOG_MAX_RATE}`}
                         style={{
-                            width: '100%', height: 'var(--size-touch)', cursor: 'pointer',
+                            width: '100%', height: 'var(--size-touch)', cursor: offline ? 'not-allowed' : 'pointer',
                             WebkitAppearance: 'none', appearance: 'none',
                             background: `linear-gradient(to right, var(--astro-teal) 0%, var(--astro-teal) ${((slewRate - 1) / (JOG_MAX_RATE - 1)) * 100}%, rgba(255,255,255,0.2) ${((slewRate - 1) / (JOG_MAX_RATE - 1)) * 100}%, rgba(255,255,255,0.2) 100%)`,
                             // La piste reste fine a l'oeil, mais la zone sensible fait
@@ -186,6 +214,14 @@ export const TelescopeControls = ({ variant }: TelescopeControlsProps) => {
                         }}
                     />
                 </div>
+
+                {offline && (
+                    <p role="status" className={`pt-1 text-hud-xs text-center ${linkDown ? "text-red-300" : "text-slate-400"}`}>
+                        {linkDown
+                            ? "Liaison monture en panne — commandes inactives"
+                            : "Station hors ligne — commandes inactives"}
+                    </p>
+                )}
             </div>
         );
     }
@@ -204,7 +240,7 @@ const RATE_OPTIONS: { rate: TrackRate; label: string; icon: React.ElementType; d
 ];
 
 export const TrackingModeSelector = () => {
-    const { trackingRate, setTrackingRate, config, detectedMount } = useStargazerStore();
+    const { trackingRate, setTrackingRate, config, detectedMount, isConnected } = useStargazerStore();
     const [loading, setLoading] = React.useState<TrackRate | null>(null);
 
     const handleSelect = async (rate: TrackRate) => {
@@ -240,10 +276,10 @@ export const TrackingModeSelector = () => {
                         <button
                             key={rate}
                             title={desc}
-                            disabled={isLoading}
+                            disabled={isLoading || !isConnected}
                             onClick={() => handleSelect(rate)}
                             className={[
-                                "flex items-center gap-1 h-7 px-2 rounded-md border text-hud-xs transition-colors duration-150 cursor-pointer",
+                                "flex items-center gap-1 h-7 px-2 rounded-md border text-hud-xs transition-colors duration-150 cursor-pointer disabled:opacity-35 disabled:cursor-not-allowed",
                                 active
                                     ? "bg-teal-600 text-white border-teal-400 hover:bg-teal-500"
                                     : "bg-white/[0.04] text-white/60 border-white/10 hover:bg-white/[0.08] hover:text-white",

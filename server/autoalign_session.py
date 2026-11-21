@@ -35,6 +35,76 @@ GRID_STEP_ALT = FOV_H_DEG * 0.8   # ~0.5°
 GRID_STEP_AZ_EQ = FOV_W_DEG * 0.8  # ~0.75° à l'équateur, divisé par cos(alt)
 
 PAIRS_FILE = os.path.join(os.path.dirname(__file__), "autoalign_pairs.json")
+DEFECTS_FILE = os.path.join(os.path.dirname(__file__), "hot_pixels.json")
+
+# Fond d'image (0-255) au-delà duquel une image live n'est pas un ciel nocturne :
+# façade éclairée, lampadaire, aube. Compter des « étoiles » dessus n'a pas de sens.
+NIGHT_SKY_MAX_BACKGROUND = 90.0
+
+
+class DefectMap:
+    """Carte des pixels chauds du capteur, apprise pendant le balayage.
+
+    Le 20 novembre 2026, tube face à un mur, le compteur a annoncé 96 étoiles.
+    Ce capteur compte des centaines de pixels chauds (489 relevés le 5 août) :
+    des points qui s'allument seuls, d'autant plus que le capteur est chaud.
+
+    Principe : d'une case du balayage à l'autre, la monture change de direction,
+    donc les vraies étoiles changent de place sur l'image. Un point qui reste au
+    MÊME endroit dans plusieurs directions différentes est un défaut du capteur.
+    Aucune manipulation demandée à l'opérateur, pas de bouchon à poser.
+    """
+
+    CELL = 3            # tolérance de position, en pixels
+    MIN_POINTINGS = 3   # vu dans au moins 3 directions différentes…
+    MIN_SHARE = 0.4     # …et dans au moins 40 % des directions observées
+
+    def __init__(self, path: str = DEFECTS_FILE):
+        self.path = path
+        self.size: Optional[tuple] = None
+        self.defects: set = set()
+        self._seen: dict = {}
+        self._pointings: set = set()
+        self._load()
+
+    def _load(self) -> None:
+        try:
+            with open(self.path) as f:
+                data = json.load(f)
+            self.size = tuple(data["size"])
+            self.defects = {tuple(c) for c in data["cells"]}
+        except (OSError, ValueError, KeyError, TypeError):
+            pass  # pas encore de carte, ou fichier illisible : on repart de zéro
+
+    def save(self) -> None:
+        if self.size is None:
+            return
+        with open(self.path, "w") as f:
+            json.dump({"size": list(self.size), "saved_at": time.time(),
+                       "cells": sorted(list(c) for c in self.defects)}, f)
+
+    def _key(self, x: float, y: float) -> tuple:
+        return int(x) // self.CELL, int(y) // self.CELL
+
+    def is_defect(self, x: float, y: float, size: Optional[tuple] = None) -> bool:
+        # Une carte apprise en plein champ ne vaut pas pour une image de loupe.
+        if size is not None and self.size is not None and tuple(size) != self.size:
+            return False
+        kx, ky = self._key(x, y)
+        return any((kx + dx, ky + dy) in self.defects
+                   for dx in (-1, 0, 1) for dy in (-1, 0, 1))
+
+    def observe(self, points: list, pointing_id, size: tuple) -> None:
+        """Enregistre les points vus dans une direction donnée."""
+        size = tuple(size)
+        if self.size != size:           # autre format d'image : on recommence
+            self.size, self.defects, self._seen, self._pointings = size, set(), {}, set()
+        self._pointings.add(pointing_id)
+        for x, y in points:
+            self._seen.setdefault(self._key(x, y), set()).add(pointing_id)
+        need = max(self.MIN_POINTINGS, self.MIN_SHARE * len(self._pointings))
+        learned = {k for k, v in self._seen.items() if len(v) >= need}
+        self.defects |= learned
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -144,7 +214,8 @@ def _fits_to_gray16(fits_bytes: bytes) -> np.ndarray:
     return cv2.cvtColor(arr, code) if code is not None else arr
 
 
-def score_frame(image_bytes: bytes, debayer_fits: Optional[Callable[[bytes], bytes]] = None) -> dict:
+def score_frame(image_bytes: bytes, debayer_fits: Optional[Callable[[bytes], bytes]] = None,
+                defects: Optional["DefectMap"] = None) -> dict:
     """Compte les étoiles détectables dans une frame JPEG (live view) ou FITS.
 
     FITS : analyse en 16-bit natif, seuil MAD absolu (med + 8σ) — un champ vide
@@ -152,7 +223,8 @@ def score_frame(image_bytes: bytes, debayer_fits: Optional[Callable[[bytes], byt
     JPEG live view : analyse 8-bit classique.
     Retourne {star_count, max_flux, background, sigma, promising, error?}."""
     result = {"star_count": 0, "max_flux": 0.0, "background": 0.0,
-              "sigma": 0.0, "promising": False}
+              "sigma": 0.0, "promising": False, "points": [], "hot_ignored": 0}
+    is_live_jpeg = False
     try:
         if image_bytes[:6] == b"SIMPLE":
             gray = _fits_to_gray16(image_bytes).astype(np.float32)
@@ -169,6 +241,7 @@ def score_frame(image_bytes: bytes, debayer_fits: Optional[Callable[[bytes], byt
                 result["error"] = "decode failed"
                 return result
             gray = img.astype(np.float32)
+            is_live_jpeg = True
             saturation_ceiling = 250.0
             snr_k = 5.0
             min_area, max_area = 2.0, 400.0
@@ -178,6 +251,10 @@ def score_frame(image_bytes: bytes, debayer_fits: Optional[Callable[[bytes], byt
         sigma = max(1.4826 * mad, 1.0)
         result["background"] = round(med, 1)
         result["sigma"] = round(sigma, 2)
+        result["frame_size"] = (int(gray.shape[1]), int(gray.shape[0]))
+        if is_live_jpeg and med > NIGHT_SKY_MAX_BACKGROUND:
+            result["error"] = "fond trop clair pour un ciel nocturne"
+            return result
         if med > saturation_ceiling * 0.8:  # image cramée
             result["error"] = "saturated or flat"
             return result
@@ -192,6 +269,17 @@ def score_frame(image_bytes: bytes, debayer_fits: Optional[Callable[[bytes], byt
             if not (min_area <= area <= max_area):
                 continue
             x, y, w, h = cv2.boundingRect(c)
+            # Une étoile est ronde. Le grain d'une façade, un fil, un reflet
+            # ne le sont pas. Réservé au live view : en pose longue une étoile
+            # filée est allongée et reste une étoile.
+            if is_live_jpeg and w * h > 9:
+                if not (0.5 <= w / max(h, 1) <= 2.0) or area / (w * h) < 0.35:
+                    continue
+            cx, cy = x + w / 2.0, y + h / 2.0
+            result["points"].append((int(cx), int(cy)))
+            if defects is not None and defects.is_defect(cx, cy, result["frame_size"]):
+                result["hot_ignored"] += 1
+                continue
             sub = np.clip(gray[y:y + h, x:x + w] - med, 0, None)
             flux = float(sub.sum())
             # SNR approx : flux / (sigma * sqrt(aire))
@@ -314,6 +402,9 @@ class AutoAlignSession:
         self._abort = False
         self._subscribers: list[asyncio.Queue] = []
         self._camera_lock = asyncio.Lock()  # sérialise live-view ↔ capture
+        self.defects = DefectMap()
+        self._cell_points: dict = {}
+        self._pointing = 0
 
     # ── Événements SSE ────────────────────────────────────────────────────────
 
@@ -367,7 +458,11 @@ class AutoAlignSession:
     def start(self, zone: dict, *, target_pairs: int = 3, preview_exposure: float = 1.0,
               solve_exposure: float = 4.0, max_duration_s: int = 1800,
               use_ai: bool = False, dry_run: bool = False, device_mount: str = "",
-              config_lat: Optional[float] = None, config_lon: Optional[float] = None) -> str:
+              config_lat: Optional[float] = None, config_lon: Optional[float] = None,
+              grid: Optional[list] = None, score_only: bool = False) -> str:
+        """`grid` : cases déjà planifiées (remplace la grille fine calculée sur `zone`).
+        `score_only` : compter les étoiles de chaque case sans résoudre ni
+        synchroniser — c'est le balayage de la mise en station automatique."""
         if self.running:
             raise RuntimeError("Session déjà en cours")
         self.session_id = uuid.uuid4().hex[:12]
@@ -378,12 +473,22 @@ class AutoAlignSession:
         self.result = None
         self.site = None
         self._abort = False
+        self._cell_points = {}
         self._task = asyncio.get_event_loop().create_task(
             self._run(zone, target_pairs, preview_exposure, solve_exposure,
                       max_duration_s, use_ai, dry_run, device_mount,
-                      config_lat, config_lon)
+                      config_lat, config_lon, grid, score_only)
         )
         return self.session_id
+
+    async def wait(self) -> None:
+        """Attend la fin de la session en cours, quelle qu'en soit l'issue."""
+        if self._task is None:
+            return
+        try:
+            await self._task
+        except asyncio.CancelledError:
+            pass  # annulation déjà consignée dans self.result par _run
 
     async def stop(self):
         self._abort = True
@@ -401,8 +506,9 @@ class AutoAlignSession:
 
     async def _run(self, zone, target_pairs, preview_exposure, solve_exposure,
                    max_duration_s, use_ai, dry_run, device_mount,
-                   config_lat, config_lon):
+                   config_lat, config_lon, grid=None, score_only=False):
         started = time.time()
+        refused_in_a_row = 0
         dev_mount = device_mount or getattr(self.indi, "device_mount", "") or "Celestron GPS"
         dev_ccd = getattr(self.indi, "device_ccd", "") or "Canon DSLR EOS 600D"
         first_solve_done = False
@@ -459,8 +565,8 @@ class AutoAlignSession:
 
             # ── PLAN ─────────────────────────────────────────────────────────
             self._set_state("PLAN")
-            self.cells = build_scan_grid(zone["altMin"], zone["altMax"],
-                                         zone["azMin"], zone["azMax"])
+            self.cells = grid if grid is not None else build_scan_grid(
+                zone["altMin"], zone["altMax"], zone["azMin"], zone["azMax"])
             self._emit("grid", self.cells)
             self._log(f"🗺️ Grille: {len(self.cells)} cellules "
                       f"(pas {GRID_STEP_ALT:.2f}° alt / ~{GRID_STEP_AZ_EQ:.2f}° az)")
@@ -477,9 +583,44 @@ class AutoAlignSession:
 
                 ok = await self._process_cell(cell, dev_mount, dev_ccd,
                                               preview_exposure, solve_exposure,
-                                              use_ai, dry_run, first_solve_done)
+                                              use_ai, dry_run, first_solve_done,
+                                              score_only)
                 if ok:
                     first_solve_done = True
+
+                # Un pointage refusé par le garde-fou mécanique est attendu en
+                # bord de zone. Tout autre refus répété (liaison série, position
+                # périmée, monture muette) signifie qu'on ne maîtrise plus la
+                # monture : on s'arrête au lieu d'insister case après case.
+                err = cell.get("slew_error")
+                if err and not err.startswith("Mouvement refusé"):
+                    refused_in_a_row += 1
+                    if refused_in_a_row >= 3:
+                        raise RuntimeError(f"Trois pointages refusés d'affilée : {err}")
+                else:
+                    refused_in_a_row = 0
+
+            if score_only:
+                # Les premières cases ont été comptées avant que la carte des
+                # pixels chauds ne soit apprise : on les recompte avec la carte
+                # complète, puis on l'enregistre pour les prochaines sessions.
+                for cell in self.cells:
+                    seen = self._cell_points.get(cell["i"])
+                    if cell.get("status") == "scored" and seen:
+                        pts, size = seen
+                        cell["star_count"] = sum(
+                            1 for (x, y) in pts if not self.defects.is_defect(x, y, size))
+                try:
+                    self.defects.save()
+                    self._log(f"🧹 {len(self.defects.defects)} pixels chauds mémorisés et ignorés")
+                except OSError as e:
+                    self._log(f"⚠️ Carte des pixels chauds non enregistrée : {e}")
+                self._set_state("DONE")
+                self.result = {"success": True, "survey": True,
+                               "cells_visited": sum(1 for c in self.cells
+                                                    if c["status"] != "pending")}
+                self._log("✅ Balayage terminé")
+                return
 
             # ── SYNCING ──────────────────────────────────────────────────────
             if len(self.pairs) >= 2 and not dry_run:
@@ -519,7 +660,8 @@ class AutoAlignSession:
     # ── Traitement d'une cellule ──────────────────────────────────────────────
 
     async def _process_cell(self, cell, dev_mount, dev_ccd, preview_exposure,
-                            solve_exposure, use_ai, dry_run, first_solve_done) -> bool:
+                            solve_exposure, use_ai, dry_run, first_solve_done,
+                            score_only=False) -> bool:
         """Slew → settle → score → (capture → solve). Retourne True si paire ajoutée."""
         i = cell["i"]
         self._set_state("SLEWING")
@@ -535,6 +677,7 @@ class AutoAlignSession:
         res = await self.slew(dev_mount, ra_hours, dec_deg, False)
         if not res.get("success"):
             cell["status"] = "failed"
+            cell["slew_error"] = str(res.get("error") or "pointage refusé")
             self._emit("cell", cell)
             self._log(f"⚠️ Slew échoué: {res.get('error')}")
             return False
@@ -549,6 +692,20 @@ class AutoAlignSession:
         self._set_state("SETTLING")
         await asyncio.sleep(3.0)
 
+        # Case planifiée en angles encodeur (balayage de mise en station) : on
+        # vérifie que la monture est bien allée où on l'attendait. Un écart
+        # franc signifie que le modèle de pointage est faux — continuer
+        # reviendrait à promener le tube à l'aveugle.
+        want = cell.get("enc_alt")
+        got = getattr(self.indi, "encoder_alt", None)
+        if want is not None and got is not None:
+            got = got - 360.0 if got > 180.0 else got
+            cell["enc_alt_reached"] = round(got, 1)
+            if abs(got - want) > 8.0:
+                raise RuntimeError(
+                    f"La monture n'est pas allée où on l'attendait : hauteur visée "
+                    f"{want:+.0f}°, encodeur {got:+.0f}°. Balayage arrêté.")
+
         if dry_run:
             cell["status"] = "scored"
             cell["star_count"] = -1
@@ -556,9 +713,16 @@ class AutoAlignSession:
             return False
 
         # ── SCORING ──────────────────────────────────────────────────────────
+        self._pointing = i
         self._set_state("SCORING")
         score = await self._score_current_field(dev_ccd, preview_exposure)
         cell["star_count"] = score.get("star_count", 0)
+
+        if score_only:
+            cell["status"] = "scored"
+            self._emit("cell", cell)
+            self._log(f"  🔢 {cell['star_count']} étoile(s) vue(s)")
+            return False
 
         promising = score.get("promising", False)
 
@@ -677,10 +841,13 @@ class AutoAlignSession:
             for _ in range(3):
                 frame = await self._grab_live_frame()
                 if frame:
-                    s = score_frame(frame, self.debayer_fits)
+                    s = score_frame(frame, self.debayer_fits, self.defects)
                     s["_jpeg"] = frame
                     if s["star_count"] > best.get("star_count", 0) or "star_count" not in best:
                         best = s
+            if best.get("points") and best.get("frame_size"):
+                self._cell_points[self._pointing] = (best["points"], best["frame_size"])
+                self.defects.observe(best["points"], self._pointing, best["frame_size"])
             if best.get("promising") or best.get("star_count", 0) > 0:
                 return best
             # Live view vide → tenter une capture courte (plus sensible)

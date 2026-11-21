@@ -2,100 +2,72 @@
 "use client";
 
 /**
- * useHealthFull — source unique de vérité pour l'état santé de l'infrastructure.
+ * useHealthFull — état santé de l'infrastructure.
  *
- * Un SEUL poller au niveau module, partagé par tous les composants abonnés
- * (ref-counté). N composants montés = 1 seule requête /api/indi/health-full
- * toutes les 5 s, au lieu d'un poller par composant. Réduit drastiquement la
- * charge backend + SSH vers le Pi.
- *
- * - `refreshHealth()` force un rafraîchissement immédiat (boutons REFRESH,
- *   après un correctif / Reset All).
- * - Le poller démarre au premier abonné et s'arrête au dernier démonté.
+ * Les données arrivent par le flux partagé useStationStream : plus aucune
+ * interrogation périodique ici. `refreshHealth()` reste disponible pour forcer
+ * un rapport immédiat (boutons REFRESH, après un correctif / Reset All).
  */
 
 import { useEffect, useState } from "react";
+import { applyHealth, useStationStream } from "@/hooks/useStationStream";
+import type { NormalizedHealth } from "@/lib/healthNormalize";
+import { notification } from "@/lib/notificationService";
 
 export interface HealthSnapshot {
-  /** Payload normalisé complet : { bridge, ssh, mount, camera, _raw } */
-  data: any | null;
-  /** Payload backend brut (mac_mini, astroberry, indi_bridge, mount, camera, kstars) */
+  /** Rapport mis en forme : { bridge, ssh, mount, camera, _raw } */
+  data: NormalizedHealth | null;
+  /** Rapport backend brut (mac_mini, astroberry, indi_bridge, mount, camera, kstars).
+   *  Laissé non typé, comme avant : ses consommateurs (diagnostic, panneau
+   *  d'infrastructure) lisent des dizaines de champs que rien ne décrit encore. */
   raw: any | null;
   backendOffline: boolean;
+  /** Durée du dernier rapport demandé à la main ; null tant qu'aucun ne l'a été. */
   latencyMs: number | null;
   loading: boolean;
 }
 
-let snapshot: HealthSnapshot = {
-  data: null,
-  raw: null,
-  backendOffline: false,
-  latencyMs: null,
-  loading: true,
-};
-
-const subscribers = new Set<() => void>();
-let intervalId: ReturnType<typeof setInterval> | null = null;
+let lastRefreshMs: number | null = null;
+const latencyListeners = new Set<() => void>();
 let inFlight = false;
-const POLL_MS = 5000;
 
-function notify() {
-  subscribers.forEach((fn) => fn());
-}
-
-async function poll() {
+/** Demande un rapport immédiat, partagé par tous les abonnés. */
+export async function refreshHealth() {
   if (inFlight) return;
   inFlight = true;
   const t0 = Date.now();
   try {
     const res = await fetch("/api/indi/health-full", { cache: "no-store", signal: AbortSignal.timeout(6000) });
-    const latency = Date.now() - t0;
-    if (res.status === 503 || res.status === 502) {
-      snapshot = { data: null, raw: null, backendOffline: true, latencyMs: null, loading: false };
-    } else if (!res.ok) {
-      snapshot = { ...snapshot, backendOffline: false, latencyMs: latency, loading: false };
-    } else {
-      const json = await res.json();
-      snapshot = { data: json, raw: json._raw ?? null, backendOffline: false, latencyMs: latency, loading: false };
-    }
-  } catch {
-    snapshot = { data: null, raw: null, backendOffline: true, latencyMs: null, loading: false };
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    applyHealth((await res.json()) as NormalizedHealth);
+    lastRefreshMs = Date.now() - t0;
+    latencyListeners.forEach((fn) => fn());
+  } catch (err: unknown) {
+    notification.error("Rapport d'infrastructure indisponible", {
+      description: err instanceof Error ? err.message : "Backend injoignable",
+      source: "Station",
+    });
   } finally {
     inFlight = false;
-    notify();
   }
-}
-
-function startPolling() {
-  if (intervalId) return;
-  poll();
-  intervalId = setInterval(poll, POLL_MS);
-}
-
-function stopPolling() {
-  if (intervalId) {
-    clearInterval(intervalId);
-    intervalId = null;
-  }
-}
-
-/** Force an immediate refresh (shared across all subscribers). */
-export function refreshHealth() {
-  poll();
 }
 
 export function useHealthFull(): HealthSnapshot {
+  const stream = useStationStream();
   const [, force] = useState(0);
 
   useEffect(() => {
     const cb = () => force((n) => n + 1);
-    subscribers.add(cb);
-    startPolling();
-    return () => {
-      subscribers.delete(cb);
-      if (subscribers.size === 0) stopPolling();
-    };
+    latencyListeners.add(cb);
+    return () => { latencyListeners.delete(cb); };
   }, []);
 
-  return snapshot;
+  return {
+    data: stream.health,
+    raw: stream.health?._raw ?? null,
+    backendOffline: !stream.loading && !stream.online,
+    latencyMs: stream.online ? lastRefreshMs : null,
+    // « Chargement » couvre aussi l'attente du premier rapport, ~2 s après la connexion.
+    loading: stream.loading || (stream.online && stream.health === null),
+  };
 }

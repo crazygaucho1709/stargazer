@@ -125,7 +125,7 @@ export const LogStream = () => {
                 <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
                     <Terminal size={16} color="#00F0FF" />
                     <span style={{ fontSize: "var(--text-hud-sm)", fontWeight: "bold", letterSpacing: "0.1em", color: "rgba(255,255,255,0.9)" }}>
-                        UNIFIED LOGS
+                        JOURNAL
                     </span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
@@ -144,7 +144,7 @@ export const LogStream = () => {
                         value={filter}
                         onChange={(e) => setFilter(e.target.value)}
                     >
-                        <option value="ALL" style={{ background: '#111' }}>ALL SOURCES</option>
+                        <option value="ALL" style={{ background: '#111' }}>TOUTES LES SOURCES</option>
                         <option value="BACKEND" style={{ background: '#111' }}>BACKEND</option>
                         <option value="INDI" style={{ background: '#111' }}>INDI</option>
                         <option value="KSTARS" style={{ background: '#111' }}>KSTARS</option>
@@ -196,7 +196,7 @@ export const LogStream = () => {
                         gap: "0.5rem",
                     }}>
                         <Terminal size={40} color="white" />
-                        <span style={{ fontSize: "var(--text-hud-sm)", color: "white" }}>Waiting for logs...</span>
+                        <span style={{ fontSize: "var(--text-hud-sm)", color: "white" }}>En attente du journal…</span>
                     </div>
                 ) : (
                     <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
