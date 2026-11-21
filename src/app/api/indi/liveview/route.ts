@@ -32,6 +32,27 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true });
     }
 
+    // Loupe du live view Canon (×1 / ×5 / ×10), centrée sur un point normalisé
+    if (action === 'zoom') {
+      const res = await fetch(`${BRIDGE_URL}/ccd/zoom`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ level: body.level, x: body.x, y: body.y }),
+        // Le backend vérifie sur l'image que la loupe a pris et réessaie :
+        // jusqu'à ~14 s dans le pire cas.
+        signal: AbortSignal.timeout(20_000),
+      });
+      const data: { success?: boolean; error?: string; level?: number; x?: number; y?: number } =
+        await res.json().catch(() => ({ success: false, error: 'Invalid JSON from bridge' }));
+      if (!res.ok || data.success === false) {
+        return NextResponse.json(
+          { success: false, error: data.error || `Bridge returned ${res.status}` },
+          { status: 503 }
+        );
+      }
+      return NextResponse.json({ success: true, level: data.level, x: data.x, y: data.y });
+    }
+
     // Reconnect camera only (surgical — does NOT restart indiserver)
     if (action === 'reconnect-camera') {
       const res = await fetch(`${BRIDGE_URL}/ccd/reconnect`, {

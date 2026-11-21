@@ -179,11 +179,17 @@ export const useStargazerStore = create<StargazerState>()(
             ],
 
             // Legacy compat (computed)
-            get isSlewing() { return SESSION_SLEWING.includes(get().sessionState); },
-            get isExposing() { return SESSION_CAPTURING.includes(get().sessionState); },
+            // Champs réels, tenus à jour par l'abonnement en bas de fichier.
+            // Un accesseur `get isSlewing()` ne survit pas au premier `set` :
+            // zustand recopie l'état avec Object.assign, qui fige la valeur lue.
+            isSlewing: false,
+            isExposing: false,
             setSlewing: (status: boolean) => {
                 const state = get().sessionState;
-                if (status && state === "IDLE") set({ sessionState: "SLEWING" });
+                // Un pointage part aussi bien du repos que du suivi : sans
+                // TRACKING ici, seul le premier déplacement de la session
+                // était signalé à l'interface.
+                if (status && (state === "IDLE" || state === "TRACKING")) set({ sessionState: "SLEWING" });
                 else if (!status && SESSION_SLEWING.includes(state)) set({ sessionState: "TRACKING" });
             },
             setExposing: (status: boolean) => {
@@ -271,3 +277,13 @@ export const useStargazerStore = create<StargazerState>()(
         }
     )
 );
+
+// isSlewing / isExposing découlent de sessionState, quelle que soit l'action
+// qui l'a modifié (setSlewing, sendSessionEvent, réhydratation).
+useStargazerStore.subscribe((state) => {
+    const isSlewing = SESSION_SLEWING.includes(state.sessionState);
+    const isExposing = SESSION_CAPTURING.includes(state.sessionState);
+    if (state.isSlewing !== isSlewing || state.isExposing !== isExposing) {
+        useStargazerStore.setState({ isSlewing, isExposing });
+    }
+});

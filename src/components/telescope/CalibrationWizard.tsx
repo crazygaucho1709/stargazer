@@ -211,7 +211,7 @@ export const CalibrationWizard = () => {
     if (step.step === 'idle') {
         return (
             <div className="flex flex-col gap-4 w-full">
-                <div className="astro-panel p-6 w-full text-center" style={{ border: "1px solid rgba(0, 255, 209, 0.2)" }}>
+                <div className="astro-panel p-6 w-full text-center" style={{ border: "1px solid color-mix(in srgb, var(--astro-teal) 20%, transparent)" }}>
                     <Settings2 size={32} style={{ color: "var(--astro-teal)", margin: "0 auto 16px" }} className="ping-slow" />
                     <p className="text-hud-md font-bold tracking-[0.2em] text-white mb-2">
                         {language === 'fr' ? 'CALIBRATION SYSTÈME' : 'SYSTEM CALIBRATION'}
@@ -236,7 +236,7 @@ export const CalibrationWizard = () => {
     // ─── Active wizard ────────────────────────────────────────────────────────
 
     return (
-        <div className="astro-panel flex flex-col gap-4 w-full p-4" style={{ border: "1px solid rgba(0, 255, 209, 0.1)" }}>
+        <div className="astro-panel flex flex-col gap-4 w-full p-4" style={{ border: "1px solid color-mix(in srgb, var(--astro-teal) 10%, transparent)" }}>
             {/* Header & Progress */}
             <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between">
@@ -262,7 +262,7 @@ export const CalibrationWizard = () => {
 
             {/* Limits Dashboard */}
             {LIMIT_DASHBOARD_STEPS.includes(step.step) && (
-                <div className="p-3 rounded" style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(0,255,209,0.12)" }}>
+                <div className="p-3 rounded" style={{ background: "rgba(0,0,0,0.3)", border: "1px solid color-mix(in srgb, var(--astro-teal) 12%, transparent)" }}>
                     <div className="flex items-center justify-between mb-2">
                         <span className="text-hud-2xs font-bold tracking-[0.12em]" style={{ color: "rgba(255,255,255,0.4)" }}>SLEW LIMITS</span>
                         <span className="text-hud-2xs" style={{ color: "rgba(255,255,255,0.3)" }}>{recordedInSession.size}/4 enregistrées</span>
@@ -277,7 +277,7 @@ export const CalibrationWizard = () => {
                             const isCurrent = step.step === limitStep, isDone = recordedInSession.has(key);
                             return (
                                 <div key={key} className="flex items-center gap-1.5 p-2 rounded"
-                                    style={{ background: isCurrent ? 'rgba(0,255,209,0.08)' : 'rgba(255,255,255,0.02)', border: `1px solid ${isCurrent ? 'rgba(0,255,209,0.35)' : isDone ? 'rgba(72,199,142,0.3)' : 'rgba(255,255,255,0.05)'}` }}>
+                                    style={{ background: isCurrent ? 'color-mix(in srgb, var(--astro-teal) 8%, transparent)' : 'rgba(255,255,255,0.02)', border: `1px solid ${isCurrent ? 'color-mix(in srgb, var(--astro-teal) 35%, transparent)' : isDone ? 'rgba(72,199,142,0.3)' : 'rgba(255,255,255,0.05)'}` }}>
                                     {isDone ? <CheckCircle2 size={12} className="text-green-400" /> : isCurrent ? <Target size={12} style={{ color: "var(--astro-teal)" }} /> : <MapPin size={12} style={{ color: "rgba(255,255,255,0.2)" }} />}
                                     <div className="flex flex-col gap-0 flex-1 min-w-0">
                                         <span className="text-hud-2xs tracking-[0.06em]" style={{ color: "rgba(255,255,255,0.4)" }}>{label}</span>
@@ -298,7 +298,7 @@ export const CalibrationWizard = () => {
 
             {/* Live View HUD */}
             {videoActive && (
-                <div className="bg-black rounded overflow-hidden relative h-[180px]" style={{ border: "1px solid rgba(0, 255, 209, 0.3)" }}>
+                <div className="bg-black rounded overflow-hidden relative h-[180px]" style={{ border: "1px solid color-mix(in srgb, var(--astro-teal) 30%, transparent)" }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={`/api/indi/latest-image?ip=${bridgeIp}&t=${imageTime}`} style={{ width: '100%', height: '100%', objectFit: 'contain' }} alt="Live" />
                     {/* HUD Overlays */}
@@ -309,7 +309,7 @@ export const CalibrationWizard = () => {
                             <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-px h-2.5" style={{ background: "var(--astro-teal)" }} />
                             <div className="absolute left-0 top-1/2 -translate-y-1/2 h-px w-2.5" style={{ background: "var(--astro-teal)" }} />
                             <div className="absolute right-0 top-1/2 -translate-y-1/2 h-px w-2.5" style={{ background: "var(--astro-teal)" }} />
-                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 rounded-full" style={{ border: "1px solid rgba(0,255,209,0.3)" }} />
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 rounded-full" style={{ border: "1px solid color-mix(in srgb, var(--astro-teal) 30%, transparent)" }} />
                         </div>
                         {/* Corner accents */}
                         {[["top-[10px] left-[10px] border-t border-l", ""], ["top-[10px] right-[10px] border-t border-r", ""], ["bottom-[10px] left-[10px] border-b border-l", ""], ["bottom-[10px] right-[10px] border-b border-r", ""]].map(([cls], i) => (
@@ -402,7 +402,7 @@ export const CalibrationWizard = () => {
                     <div className="flex flex-col gap-3 p-3 rounded" style={{ background: "rgba(0,0,0,0.2)" }}>
                         <select
                             className="w-full p-2 rounded text-hud-2xs border cursor-pointer"
-                            style={{ background: "black", color: "var(--astro-teal)", border: "1px solid rgba(0,255,209,0.2)" }}
+                            style={{ background: "black", color: "var(--astro-teal)", border: "1px solid color-mix(in srgb, var(--astro-teal) 20%, transparent)" }}
                             onChange={e => setSelectedStar(BRIGHT_STARS.find(s => s.name === e.target.value) || BRIGHT_STARS[0])}
                         >
                             {BRIGHT_STARS.map(s => <option key={s.name} value={s.name}>{s.name.toUpperCase()}</option>)}

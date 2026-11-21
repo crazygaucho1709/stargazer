@@ -11,7 +11,7 @@
  *  - waitForSlew s'abonne au SSE /coords/stream — zéro polling HTTP
  */
 
-import { useRef, useState, useCallback } from "react";
+import { useRef, useCallback } from "react";
 import { useStargazerStore } from "@/store/useStargazerStore";
 import { notification } from "@/lib/notificationService";
 import { clientApiUrl } from "@/lib/clientApi";
@@ -31,7 +31,10 @@ export interface UseGoToReturn {
 
 export function useGoTo(): UseGoToReturn {
   const { config, detectedMount, setSlewing } = useStargazerStore();
-  const [isSlewing, setIsSlewing] = useState(false);
+  // Lu dans le store, alimenté par le flux de coordonnées : un état local
+  // n'était jamais remis à zéro à l'arrivée et ignorait l'arrêt demandé
+  // depuis un autre composant.
+  const isSlewing = useStargazerStore((s) => s.isSlewing);
   const abortRef = useRef(false);
   const gotoAbortRef = useRef<AbortController | null>(null);
 
@@ -49,7 +52,6 @@ export function useGoTo(): UseGoToReturn {
       const controller = new AbortController();
       gotoAbortRef.current = controller;
 
-      setIsSlewing(true);
       setSlewing(true);
 
       try {
@@ -80,7 +82,6 @@ export function useGoTo(): UseGoToReturn {
           description: err?.message || "Impossible de démarrer le pointage",
           source: "Monture",
         });
-        setIsSlewing(false);
         setSlewing(false);
         return false;
       }
@@ -112,7 +113,6 @@ export function useGoTo(): UseGoToReturn {
         source: "Monture",
       });
     } finally {
-      setIsSlewing(false);
       setSlewing(false);
     }
   }, [config.astroberryUrl, getDevice, setSlewing]);
@@ -130,7 +130,6 @@ export function useGoTo(): UseGoToReturn {
           settled = true;
           if (timeoutId) clearTimeout(timeoutId);
           es?.close();
-          setIsSlewing(false);
           setSlewing(false);
           resolve(result);
         };

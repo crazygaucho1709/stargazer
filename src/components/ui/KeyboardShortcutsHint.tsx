@@ -32,7 +32,7 @@ export function KeyboardShortcutsHint() {
         position: "fixed",
         bottom: "1.25rem",
         left: "1.25rem",
-        zIndex: 9000,
+        zIndex: "var(--z-banner)",
         display: "flex",
         flexDirection: "column",
         alignItems: "flex-start",

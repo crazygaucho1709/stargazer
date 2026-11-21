@@ -4,13 +4,13 @@
 export interface CelestialObject {
   id: string;
   name: string;
-  catalog: 'Messier' | 'NGC' | 'Caldwell' | 'IC';
+  catalog: 'Messier' | 'NGC' | 'Caldwell' | 'IC' | 'Stellarium';
   ra: string;  // Format: "05h 34m 32s"
   dec: string; // Format: "-05° 27' 00\""
   ra_deg: number;
   dec_deg: number;
   magnitude: number;
-  type: 'Galaxy' | 'Nebula' | 'Star Cluster' | 'Planetary Nebula' | 'Supernova Remnant' | 'Double Star';
+  type: 'Galaxy' | 'Nebula' | 'Star Cluster' | 'Planetary Nebula' | 'Supernova Remnant' | 'Double Star' | 'Star' | 'Planet' | 'Other';
   constellation: string;
   size_arcmin: string;
   description: string;

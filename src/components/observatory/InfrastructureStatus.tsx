@@ -172,6 +172,17 @@ export const InfrastructureStatus = () => {
   })();
   const astroTemp = astroTempNum ?? "N/A";
 
+  // Alimentation du Pi, d'après vcgencmd get_throttled. Bit 0 : sous-tension
+  // en cours ; bit 16 : sous-tension survenue depuis le démarrage. C'est elle
+  // qui fait décrocher l'adaptateur série de la monture.
+  const astroPower = (() => {
+    const code = astro.reachable ? parseInt(String(astro.throttled ?? ""), 16) : NaN;
+    if (Number.isNaN(code)) return { label: "N/A", detail: "" };
+    if (code & 0x1) return { label: "Sous-tension", detail: "Pi en sous-tension : risque de décrochage USB de la monture" };
+    if (code & 0x10000) return { label: "Instable", detail: "Sous-tension survenue depuis le démarrage du Pi" };
+    return { label: "OK", detail: "" };
+  })();
+
   // INDI devices: the SSH-polled list (astro.indi_devices) is flaky. Fall back to
   // the authoritative bridge-level device connections when it's empty.
   const polledDevices = (astro.indi_devices || "").split(/\s+/).filter(Boolean);
@@ -234,8 +245,11 @@ export const InfrastructureStatus = () => {
             { label: "Ping", value: astro.reachable ? (astro.ping_ms || "< 1") : "—", unit: astro.reachable ? "ms" : "" },
             { label: "CPU",  value: astroCpu,  unit: astroCpu  !== "N/A" ? "%" : "" },
             { label: "Temp", value: astroTemp, unit: astroTemp !== "N/A" ? "°C" : "" },
+            { label: "Alim.", value: astroPower.label },
           ]}
-          details={astro.reachable ? `SSH Connected • ${astro.uptime || "N/A"}` : "Unreachable via SSH"}
+          details={astro.reachable
+            ? `${astroPower.detail ? `${astroPower.detail} • ` : ""}SSH Connected • ${astro.uptime || "N/A"}`
+            : "Unreachable via SSH"}
         />
 
         <StatusCard

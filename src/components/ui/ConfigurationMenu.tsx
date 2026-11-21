@@ -2,8 +2,9 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
-    Settings, Cpu, Radio, Zap, ShieldCheck, X, Camera, Telescope, Gamepad2, Compass, Layers, Wand2, Power, Globe, LocateFixed, Activity, RefreshCw, CheckCircle, XCircle, Loader
+    Settings, Cpu, Radio, Zap, ShieldCheck, X, Camera, Telescope, Gamepad2, Compass, Layers, Wand2, Power, Globe, LocateFixed, Activity, RefreshCw, CheckCircle, XCircle, Loader, Wifi, WifiOff
 } from "lucide-react";
 import { useAiAuth } from "@/hooks/useAiAuth";
 import { useStargazerStore } from "@/store/useStargazerStore";
@@ -46,133 +47,217 @@ export const ConfigurationMenu = () => {
 
     useEffect(() => { setMounted(true); }, []);
 
-    const { config, updateConfig, language, setLanguage, setConfigMenuOpen } = useStargazerStore();
+    const { config, updateConfig, language, setLanguage, setConfigMenuOpen, isConnected } = useStargazerStore();
 
     const onOpen = () => { setIsOpen(true); setConfigMenuOpen(true); };
-    const onClose = () => { setIsOpen(false); setConfigMenuOpen(false); };
+    const onClose = useCallback(() => { setIsOpen(false); setConfigMenuOpen(false); }, [setConfigMenuOpen]);
 
     useEffect(() => () => { setConfigMenuOpen(false); }, [setConfigMenuOpen]);
 
+    useEffect(() => {
+        if (!isOpen) return;
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (e.key === "Escape") onClose();
+        };
+        window.addEventListener("keydown", onKeyDown);
+        return () => window.removeEventListener("keydown", onKeyDown);
+    }, [isOpen, onClose]);
+
     const tabs = [
-        { id: "autoalign",   label: language === 'fr' ? "ALIGNEMENT & CALIBRATION" : "ALIGNMENT & CALIBRATION", icon: LocateFixed },
+        { id: "autoalign",   label: language === 'fr' ? "Alignement & Calibration" : "Alignment & Calibration", icon: LocateFixed },
         { id: "hardware",    label: t("TAB_HARDWARE", language),                               icon: Cpu },
         { id: "mount",       label: t("TAB_MOUNT", language),                                  icon: Telescope },
         { id: "camera",      label: t("TAB_CAMERA", language),                                 icon: Camera },
-        { id: "objects",     label: language === 'fr' ? "CATALOGUE" : "CATALOG",              icon: Compass },
+        { id: "objects",     label: language === 'fr' ? "Catalogue" : "Catalog",               icon: Compass },
         { id: "capture",     label: t("TAB_CAPTURE", language),                                icon: Layers },
         { id: "gamepad",     label: t("TAB_GAMEPAD", language),                                icon: Gamepad2 },
         { id: "system",      label: t("TAB_SYSTEM", language),                                 icon: Globe },
-        { id: "bridge",      label: language === 'fr' ? "RÉSEAU & LOGS" : "NETWORK & LOGS",  icon: Activity },
-        { id: "observatory", label: language === 'fr' ? "OBSERVATOIRE" : "OBSERVATORY",       icon: Radio },
+        { id: "bridge",      label: language === 'fr' ? "Réseau & Logs" : "Network & Logs",    icon: Activity },
+        { id: "observatory", label: language === 'fr' ? "Observatoire" : "Observatory",        icon: Radio },
     ];
 
     return (
         <>
             <button
+                type="button"
                 aria-label="Configuration"
-                className="p-2 rounded transition-all duration-[400ms] cursor-pointer min-h-[var(--size-touch)]"
-                style={{ color: "var(--astro-teal)" }}
-                onMouseEnter={e => {
-                    (e.currentTarget as HTMLElement).style.background = "rgba(0, 240, 255, 0.1)";
-                    (e.currentTarget as HTMLElement).style.transform = "rotate(90deg)";
-                }}
-                onMouseLeave={e => {
-                    (e.currentTarget as HTMLElement).style.background = "";
-                    (e.currentTarget as HTMLElement).style.transform = "";
-                }}
+                title="Configuration et outils de l'observatoire"
+                className="hud-toolbar-btn group !px-2.5"
+                style={{ color: "var(--astro-teal)", borderColor: "color-mix(in srgb, var(--astro-teal) 28%, transparent)" }}
                 onClick={onOpen}
             >
-                <Settings size={22} />
+                <Settings size={16} className="transition-transform duration-300 group-hover:rotate-45" aria-hidden />
+                <span className="hidden 2xl:inline text-hud-2xs uppercase tracking-wider font-semibold">
+                    {language === "fr" ? "Config" : "Config"}
+                </span>
             </button>
 
             {mounted && createPortal(
-                <>
-                    {/* Backdrop */}
+                <AnimatePresence>
                     {isOpen && (
-                        <div
-                            className="fixed inset-0 z-[9998]"
-                            style={{ background: "rgba(0,0,0,0.8)", backdropFilter: "blur(20px)" }}
-                            onClick={onClose}
-                        />
-                    )}
-
-                    {/* Sliding Panel */}
-                    <div
-                        className="fixed top-[5%] h-[90vh] w-[90vw] max-w-[1200px] flex flex-col overflow-hidden z-[9999] text-white transition-all duration-[400ms]"
-                        style={{
-                            right: isOpen ? "5%" : "-100%",
-                            background: "rgba(5, 5, 10, 0.95)",
-                            border: "1px solid rgba(0, 240, 255, 0.2)",
-                            borderRadius: "16px",
-                            boxShadow: "-5px 0 50px rgba(0,240,255,0.1)",
-                            transitionTimingFunction: "cubic-bezier(0.4, 0, 0.2, 1)",
-                        }}
-                    >
-                        {/* Header */}
-                        <div
-                            className="relative flex items-center gap-4 p-6"
-                            style={{ borderBottom: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.02)" }}
-                        >
-                            <Wand2 size={24} style={{ color: "#00F0FF" }} />
-                            <div className="flex flex-col gap-0">
-                                <h2 className="hud-font font-bold tracking-[0.1em] text-lg">{t("CONFIG_TITLE", language)}</h2>
-                                <span className="text-hud-xs tracking-[0.2em]" style={{ color: "rgba(255,255,255,0.5)" }}>{t("CONFIG_SUBTITLE", language)}</span>
-                            </div>
-                            <button
-                                aria-label={"Fermer la configuration"}
-                                className="absolute top-6 right-6 p-2 rounded transition-colors cursor-pointer min-h-[var(--size-touch)]"
-                                style={{ color: "rgba(255,255,255,0.6)" }}
-                                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(255,51,51,0.2)"; (e.currentTarget as HTMLElement).style.color = "var(--astro-gold)"; }}
-                                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ""; (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.6)"; }}
+                        <>
+                            {/* Scrim */}
+                            <motion.div
+                                key="cfg-backdrop"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                transition={{ duration: 0.18 }}
+                                className="fixed inset-0 z-[var(--z-drawer)] bg-black/75 backdrop-blur-md"
                                 onClick={onClose}
+                            />
+
+                            {/* Modal Shell */}
+                            <motion.div
+                                key="cfg-panel"
+                                role="dialog"
+                                aria-modal="true"
+                                aria-label={t("CONFIG_TITLE", language)}
+                                initial={{ opacity: 0, scale: 0.97, y: 12 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.97, y: 12 }}
+                                transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+                                className="fixed inset-3 sm:inset-6 lg:inset-y-8 lg:inset-x-auto lg:left-1/2 lg:-translate-x-1/2 lg:w-[min(1220px,92vw)] flex flex-col overflow-hidden z-[calc(var(--z-drawer)+1)] text-slate-100 rounded-2xl"
+                                style={{
+                                    background: "rgba(6, 11, 22, 0.97)",
+                                    border: "1px solid rgba(148, 163, 184, 0.18)",
+                                    boxShadow: "0 28px 90px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255,255,255,0.08)",
+                                }}
                             >
-                                <X size={24} />
-                            </button>
-                        </div>
-
-                        {/* Body */}
-                        <div className="flex flex-1 overflow-hidden">
-                            {/* Sidebar */}
-                            <div className="flex flex-col gap-2 w-[280px] p-4 overflow-y-auto" style={{ borderRight: "1px solid rgba(255,255,255,0.05)", background: "rgba(0,0,0,0.2)" }}>
-                                {tabs.map(tab => {
-                                    const active = activeTab === tab.id;
-                                    const Ico = tab.icon;
-                                    return (
-                                        <button
-                                            key={tab.id}
-                                            className="flex items-center gap-3 w-full py-3 px-3 rounded text-left transition-colors cursor-pointer min-h-[var(--size-touch)]"
+                                {/* Header */}
+                                <div
+                                    className="flex items-center justify-between gap-4 px-5 py-4 shrink-0"
+                                    style={{
+                                        borderBottom: "1px solid rgba(148, 163, 184, 0.12)",
+                                        background: "rgba(15, 23, 42, 0.55)",
+                                    }}
+                                >
+                                    <div className="flex items-center gap-3 min-w-0">
+                                        <div
+                                            className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
                                             style={{
-                                                background: active ? "rgba(0, 240, 255, 0.1)" : "transparent",
-                                                color: active ? "#00F0FF" : "rgba(255,255,255,0.7)",
-                                                borderLeft: active ? "3px solid #00F0FF" : "3px solid transparent",
+                                                background: "color-mix(in srgb, var(--astro-teal) 10%, transparent)",
+                                                border: "1px solid color-mix(in srgb, var(--astro-teal) 28%, transparent)",
                                             }}
-                                            onMouseEnter={e => { if (!active) (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.05)"; }}
-                                            onMouseLeave={e => { if (!active) (e.currentTarget as HTMLElement).style.background = "transparent"; }}
-                                            onClick={() => setActiveTab(tab.id)}
                                         >
-                                            <Ico size={20} />
-                                            <span className="text-hud-sm font-bold tracking-[0.05em]">{tab.label.toUpperCase()}</span>
-                                        </button>
-                                    );
-                                })}
-                            </div>
+                                            <Wand2 size={18} style={{ color: "var(--astro-teal)" }} aria-hidden />
+                                        </div>
+                                        <div className="flex flex-col min-w-0">
+                                            <h2 className="hud-font font-bold tracking-[0.12em] text-sm sm:text-base truncate">
+                                                {t("CONFIG_TITLE", language)}
+                                            </h2>
+                                            <span className="text-hud-2xs tracking-[0.14em] text-slate-400 truncate">
+                                                {t("CONFIG_SUBTITLE", language)}
+                                            </span>
+                                        </div>
+                                    </div>
 
-                            {/* Content */}
-                            <div className="flex-1 p-8 overflow-y-auto custom-scrollbar">
-                                {activeTab === "autoalign"   && <AlignmentTab language={language} />}
-                                {activeTab === "hardware"    && <HardwareTab config={config} updateConfig={updateConfig} language={language} />}
-                                {activeTab === "mount"       && <MountTab config={config} updateConfig={updateConfig} language={language} />}
-                                {activeTab === "camera"      && <CameraTab config={config} updateConfig={updateConfig} language={language} />}
-                                {activeTab === "objects"     && <ObjectsTab language={language} />}
-                                {activeTab === "capture"     && <CaptureAndStack />}
-                                {activeTab === "gamepad"     && <GamepadTab language={language} />}
-                                {activeTab === "system"      && <SystemTab config={config} updateConfig={updateConfig} language={language} setLanguage={setLanguage} />}
-                                {activeTab === "bridge"      && <BridgeTab config={config} language={language} />}
-                                {activeTab === "observatory" && <ObservatoryPanel />}
-                            </div>
-                        </div>
-                    </div>
-                </>,
+                                    <div className="flex items-center gap-3 shrink-0">
+                                        <div
+                                            className="hidden md:flex items-center gap-2 px-3 py-1 rounded-full text-hud-2xs"
+                                            style={{
+                                                background: isConnected ? "rgba(52, 211, 153, 0.10)" : "rgba(148, 163, 184, 0.10)",
+                                                border: `1px solid ${isConnected ? "rgba(52, 211, 153, 0.28)" : "rgba(148, 163, 184, 0.20)"}`,
+                                                color: isConnected ? "#34D399" : "#CBD5E1",
+                                            }}
+                                        >
+                                            {isConnected ? <Wifi size={12} aria-hidden /> : <WifiOff size={12} aria-hidden />}
+                                            <span>
+                                                {isConnected
+                                                    ? (language === "fr" ? "Station en ligne" : "Station online")
+                                                    : (language === "fr" ? "Hors ligne · Paramétrage local actif" : "Offline · Local config active")}
+                                            </span>
+                                        </div>
+
+                                        <button
+                                            type="button"
+                                            aria-label="Fermer la configuration"
+                                            className="hud-toolbar-btn !px-2 text-slate-400 hover:!text-white hover:!border-red-400/40 hover:!bg-red-500/15"
+                                            onClick={onClose}
+                                        >
+                                            <X size={18} />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Mobile/Tablet horizontal tabs (< lg) */}
+                                <div className="lg:hidden flex items-center gap-1.5 px-3 py-2 overflow-x-auto border-b border-white/[0.08] bg-slate-950/50 shrink-0">
+                                    {tabs.map(tab => {
+                                        const active = activeTab === tab.id;
+                                        const Ico = tab.icon;
+                                        return (
+                                            <button
+                                                key={tab.id}
+                                                type="button"
+                                                onClick={() => setActiveTab(tab.id)}
+                                                className={[
+                                                    "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors cursor-pointer shrink-0 border",
+                                                    active
+                                                        ? "bg-[--astro-teal]/15 text-[--astro-teal] border-[--astro-teal]/40"
+                                                        : "bg-white/[0.03] text-slate-300 border-white/[0.06] hover:bg-white/[0.07]",
+                                                ].join(" ")}
+                                            >
+                                                <Ico size={14} aria-hidden />
+                                                <span>{tab.label}</span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* Body */}
+                                <div className="flex flex-1 min-h-0 overflow-hidden">
+                                    {/* Desktop Sidebar */}
+                                    <nav
+                                        aria-label="Sections de configuration"
+                                        className="hidden lg:flex flex-col gap-1 w-[248px] p-3 overflow-y-auto hud-scroll shrink-0"
+                                        style={{
+                                            borderRight: "1px solid rgba(148, 163, 184, 0.10)",
+                                            background: "rgba(3, 7, 18, 0.55)",
+                                        }}
+                                    >
+                                        {tabs.map(tab => {
+                                            const active = activeTab === tab.id;
+                                            const Ico = tab.icon;
+                                            return (
+                                                <button
+                                                    key={tab.id}
+                                                    type="button"
+                                                    className={[
+                                                        "flex items-center gap-3 w-full py-2.5 px-3 rounded-lg text-left transition-colors duration-150 cursor-pointer min-h-[var(--size-touch)]",
+                                                        active
+                                                            ? "bg-[--astro-teal]/12 text-[--astro-teal] font-semibold"
+                                                            : "text-slate-300 hover:bg-white/[0.05] hover:text-white font-medium",
+                                                    ].join(" ")}
+                                                    style={{
+                                                        borderLeft: active ? "2px solid var(--astro-teal)" : "2px solid transparent",
+                                                    }}
+                                                    onClick={() => setActiveTab(tab.id)}
+                                                >
+                                                    <Ico size={16} className="shrink-0" aria-hidden />
+                                                    <span className="text-hud-xs tracking-[0.04em] truncate">{tab.label}</span>
+                                                </button>
+                                            );
+                                        })}
+                                    </nav>
+
+                                    {/* Content */}
+                                    <div className="flex-1 p-5 sm:p-7 overflow-y-auto hud-scroll">
+                                        {activeTab === "autoalign"   && <AlignmentTab language={language} />}
+                                        {activeTab === "hardware"    && <HardwareTab config={config} updateConfig={updateConfig} language={language} />}
+                                        {activeTab === "mount"       && <MountTab config={config} updateConfig={updateConfig} language={language} />}
+                                        {activeTab === "camera"      && <CameraTab config={config} updateConfig={updateConfig} language={language} />}
+                                        {activeTab === "objects"     && <ObjectsTab language={language} />}
+                                        {activeTab === "capture"     && <CaptureAndStack />}
+                                        {activeTab === "gamepad"     && <GamepadTab language={language} />}
+                                        {activeTab === "system"      && <SystemTab config={config} updateConfig={updateConfig} language={language} setLanguage={setLanguage} />}
+                                        {activeTab === "bridge"      && <BridgeTab config={config} language={language} />}
+                                        {activeTab === "observatory" && <ObservatoryPanel />}
+                                    </div>
+                                </div>
+                            </motion.div>
+                        </>
+                    )}
+                </AnimatePresence>,
                 document.body
             )}
         </>
@@ -220,7 +305,7 @@ const AlignmentTab = ({ language }: { language: string }) => {
             </div>
 
             {mode === "auto" ? (
-                <div className="p-6 rounded-lg" style={{ background: "rgba(0,255,209,0.04)", border: "1px solid rgba(0,255,209,0.18)" }}>
+                <div className="p-6 rounded-lg" style={{ background: "color-mix(in srgb, var(--astro-teal) 4%, transparent)", border: "1px solid color-mix(in srgb, var(--astro-teal) 18%, transparent)" }}>
                     <div className="flex items-center gap-3 mb-4">
                         <LocateFixed size={24} style={{ color: "var(--astro-teal)" }} />
                         <div className="flex flex-col gap-0">

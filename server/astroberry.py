@@ -109,6 +109,7 @@ def get_status() -> Dict[str, Any]:
     result = _run(
         "echo CPU:$(top -bn1 | grep 'Cpu(s)' | awk '{print $2}' | cut -d. -f1); "
         "echo TEMP:$(vcgencmd measure_temp 2>/dev/null | cut -d= -f2 || echo N/A); "
+        "echo THROTTLED:$(vcgencmd get_throttled 2>/dev/null | cut -d= -f2 || echo N/A); "
         "echo MEM:$(free -m | awk 'NR==2{printf \"%s/%s\", $3, $2}'); "
         "echo UPTIME:$(uptime -p 2>/dev/null || uptime); "
         "echo INDI_PID:$(pgrep -x indiserver || echo 0); "
@@ -148,6 +149,8 @@ def get_status() -> Dict[str, Any]:
         "ssh_reachable": True,
         "cpu_percent": data.get("cpu", "N/A"),
         "temperature": data.get("temp", "N/A"),
+        # Code brut de vcgencmd get_throttled (ex. 0x50005) : sous-tension du Pi
+        "throttled": data.get("throttled", "N/A"),
         "memory": data.get("mem", "N/A"),
         "uptime": data.get("uptime", "N/A"),
         "indi_running": indi_pid > 0,

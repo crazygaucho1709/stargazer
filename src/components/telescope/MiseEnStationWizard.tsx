@@ -246,13 +246,27 @@ export const MiseEnStationWizard = ({ onClose }: MiseEnStationWizardProps) => {
     const handleUsePhoneGps = async () => {
         setGpsLoading(true);
         try {
-            const res = await fetch("/api/hardware/orientation");
+            // /api/hardware/orientation n'a jamais existé (404 systématique) :
+            // l'état du capteur téléphone est servi par /api/phone-sensor.
+            const res = await fetch("/api/phone-sensor", { cache: "no-store" });
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const data = await res.json() as { latitude?: number; longitude?: number; accuracy_m?: number };
-            const lat = data.latitude;
-            const lon = data.longitude;
+            const data = await res.json() as {
+                connected?: boolean; stale?: boolean;
+                lat?: number | null; lon?: number | null; accuracy_m?: number | null;
+            };
+            if (!data.connected) {
+                throw new Error("Téléphone non connecté — ouvrez la page /sensor sur le téléphone");
+            }
+            if (data.stale) {
+                throw new Error("Dernière position trop ancienne — gardez la page /sensor ouverte au premier plan");
+            }
+            const lat = data.lat;
+            const lon = data.lon;
             const accuracy = data.accuracy_m ?? null;
-            if (lat == null || lon == null || !isValidLatLon(lat, lon)) {
+            if (lat == null || lon == null) {
+                throw new Error("Le téléphone n'a pas encore transmis de position — autorisez la localisation sur la page /sensor");
+            }
+            if (!isValidLatLon(lat, lon)) {
                 throw new Error("Coordonnées invalides retournées par le téléphone");
             }
             setResolvedLat(lat);

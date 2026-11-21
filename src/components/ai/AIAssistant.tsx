@@ -17,7 +17,6 @@ export const AIAssistant = () => {
         windSpeed?: number;
         humidity?: number;
         cloudCover?: number;
-        seeing?: number;
         sunrise?: string;
         sunset?: string;
     }>({});
@@ -34,14 +33,18 @@ export const AIAssistant = () => {
                 : { lat: -17.6797, lon: -149.4068 }; // Tahiti fallback
             try {
                 const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,cloud_cover&daily=sunrise,sunset&timezone=auto`);
-                if (res.ok) {
+                if (!res.ok) {
+                    notification.error("Erreur météo", {
+                        source: "Météo",
+                        description: `Open-Meteo a répondu HTTP ${res.status}`,
+                    });
+                } else {
                     const data = await res.json();
                     setWeather({
                         temperature: data.current?.temperature_2m,
                         windSpeed: data.current?.wind_speed_10m,
                         humidity: data.current?.relative_humidity_2m,
                         cloudCover: data.current?.cloud_cover,
-                        seeing: 2.5, // Not provided by open-meteo easily, using placeholder
                         sunrise: data.daily?.sunrise?.[0]?.split('T')?.[1],
                         sunset: data.daily?.sunset?.[0]?.split('T')?.[1],
                     });
@@ -79,18 +82,11 @@ export const AIAssistant = () => {
         else if (weather.humidity && weather.humidity > 70) score -= 10;
         else if (weather.humidity && weather.humidity > 60) score -= 5;
 
-        if (weather.seeing) {
-            if (weather.seeing > 1.5) score -= 15;
-            else if (weather.seeing > 1.2) score -= 10;
-            else if (weather.seeing < 0.5) score += 10;
-        }
-
         return score;
     };
 
     const getConditionText = () => {
-        if (loading) return t("AI_ANALYSIS_OK", language);
-        if (!weather.cloudCover) return t("AI_ANALYSIS_OK", language);
+        if (loading || weather.cloudCover === undefined) return "--";
         const score = getObservationScore();
         if (score >= 85) return language === 'fr' ? "Excellentes conditions" : "Excellent conditions";
         if (score >= 70) return language === 'fr' ? "Bonnes conditions" : "Good conditions";
@@ -100,7 +96,8 @@ export const AIAssistant = () => {
     };
 
     const getAdviceTitle = () => {
-        if (loading || weather.cloudCover === undefined) return t("AI_ADVICE_TITLE_EXCELLENT", language);
+        if (loading) return "…";
+        if (weather.cloudCover === undefined) return language === 'fr' ? "Pas de données" : "No data";
         const score = getObservationScore();
         if (score >= 85) return t("AI_ADVICE_TITLE_EXCELLENT", language);
         if (score >= 70) return t("AI_ADVICE_TITLE_GOOD", language);
@@ -110,10 +107,15 @@ export const AIAssistant = () => {
     };
 
     const getAdviceDescription = () => {
-        if (loading || weather.cloudCover === undefined) {
+        if (loading) {
             return language === 'fr'
                 ? "Analyse des conditions en cours..."
                 : "Analysing conditions...";
+        }
+        if (weather.cloudCover === undefined) {
+            return language === 'fr'
+                ? "Météo indisponible : aucun conseil ne peut être donné."
+                : "Weather unavailable: no advice can be given.";
         }
         const score = getObservationScore();
 
@@ -173,7 +175,11 @@ export const AIAssistant = () => {
                         {language.toUpperCase()}
                     </button>
                     <span style={{ fontSize: "var(--text-hud-xs)", color: "var(--astro-teal)" }}>
-                        {loading ? "Loading..." : t("AI_ANALYSIS_OK", language)}
+                        {loading
+                            ? (language === 'fr' ? "Chargement…" : "Loading…")
+                            : weather.cloudCover === undefined
+                                ? (language === 'fr' ? "Indisponible" : "Unavailable")
+                                : t("AI_ANALYSIS_OK", language)}
                     </span>
                 </div>
             </div>
@@ -193,14 +199,13 @@ export const AIAssistant = () => {
                     <div className="flex items-start justify-between mb-2">
                         <div className="flex flex-col gap-0">
                             <span style={{ fontSize: "var(--text-hud-md)", fontWeight: "bold", color: "var(--astro-teal)" }}>
-                                {t("AI_SEEING", language)} {loading ? "--" : (weather.seeing?.toFixed(1) || "--")}&quot;
+                                {language === 'fr' ? 'NUAGES' : 'CLOUDS'}{" "}
+                                {loading || weather.cloudCover === undefined ? "--" : `${weather.cloudCover.toFixed(0)}%`}
                             </span>
                             <span style={{ fontSize: "var(--text-hud-2xs)", opacity: 0.6 }}>
-                                {weather.cloudCover !== undefined ? (
-                                    weather.cloudCover > 50
-                                        ? `${weather.cloudCover.toFixed(0)}% ${language === 'fr' ? 'nuages' : 'clouds'}`
-                                        : `${(100 - weather.cloudCover).toFixed(0)}% ${language === 'fr' ? 'dégagé' : 'clear'} ${weather.cloudCover < 20 ? '(OPT)' : ''}`
-                                ) : "--"}
+                                {weather.cloudCover !== undefined
+                                    ? `${(100 - weather.cloudCover).toFixed(0)}% ${language === 'fr' ? 'dégagé' : 'clear'}`
+                                    : "--"}
                             </span>
                         </div>
                         <div className="flex flex-col items-end gap-0">
@@ -212,13 +217,6 @@ export const AIAssistant = () => {
                                 )}
                                 <span style={{ fontSize: "var(--text-hud-sm)", fontWeight: "bold" }}>{getConditionText()}</span>
                             </div>
-                            <span style={{ fontSize: "var(--text-hud-2xs)", opacity: 0.6 }}>
-                                {weather.cloudCover !== undefined ? (
-                                    weather.cloudCover > 50
-                                        ? `${(100 - weather.cloudCover).toFixed(0)}% ${language === 'fr' ? 'dégagé' : 'clear'}`
-                                        : `${weather.cloudCover.toFixed(0)}% ${language === 'fr' ? 'nuages' : 'clouds'}`
-                                ) : "--"}
-                            </span>
                         </div>
                     </div>
 
@@ -250,7 +248,7 @@ export const AIAssistant = () => {
                             ) : (
                                 <Cloud size={14} color="rgba(255,255,255,0.7)" />
                             )}
-                            <span>{loading ? "--" : (weather.cloudCover || 0)}%</span>
+                            <span>{loading || weather.cloudCover === undefined ? "--" : weather.cloudCover}%</span>
                         </div>
                     </div>
                 </div>
@@ -326,12 +324,7 @@ export const AIAssistant = () => {
                             {getAdviceTitle()}
                         </span>
                         <p style={{ fontSize: "var(--text-hud-xs)", opacity: 0.85, lineHeight: 1.5, margin: 0 }}>
-                            {getAdviceDescription()}{" "}
-                            {t("AI_HORIZON_LIMITS", language)}{" "}
-                            <span style={{ color: "var(--astro-teal)", fontWeight: "bold" }}>
-                                3h45 {t("AI_CONTINUOUS_TRACKING", language)}
-                            </span>{" "}
-                            {t("AI_ON_ORION", language)}
+                            {getAdviceDescription()}
                         </p>
                     </div>
                 </div>

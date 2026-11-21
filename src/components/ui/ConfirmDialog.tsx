@@ -36,7 +36,7 @@ export const ConfirmDialog = ({
 
     return createPortal(
         <div
-            className="fixed inset-0 flex items-center justify-center z-[9999]"
+            className="fixed inset-0 flex items-center justify-center z-[var(--z-modal)]"
             style={{ background: "rgba(0,0,0,0.85)", backdropFilter: "blur(10px)" }}
             onClick={onCancel}
         >

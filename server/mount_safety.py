@@ -116,6 +116,26 @@ MOTION_PROOF_MIN_DEG = 0.02
 bruit de quantification (1 pas encodeur ≈ 0,0000215°, mais le driver arrondit)."""
 
 
+# Durée pendant laquelle la liaison série reste tenue pour défaillante après
+# la dernière erreur d'écriture du driver. Un driver dont le port a décroché
+# en émet plusieurs par seconde : 15 s de silence prouvent qu'il écrit de
+# nouveau, sans qu'un trou d'une seconde suffise à rouvrir les mouvements.
+SERIAL_ERROR_HOLD_S = 15.0
+
+
+def serial_link_failing(last_error_ts: float, now_ts: float,
+                        hold_s: float = SERIAL_ERROR_HOLD_S) -> bool:
+    """True tant qu'une erreur d'écriture série du driver monture est récente.
+
+    Incident du 20 novembre 2026 : sous-tension du Pi, l'adaptateur USB-série
+    décroche puis revient, le driver garde l'ancien port et toutes ses
+    écritures échouent (« Write Error: Input/output error »). La monture ne
+    reçoit plus rien, mais le driver republie sa dernière position et le
+    backend annonçait « monture connectée ».
+    """
+    return last_error_ts > 0 and (now_ts - last_error_ts) < hold_s
+
+
 def check_encoder_fresh(last_update_ts: Optional[float], now_ts: float,
                         max_age_s: float = ENCODER_STALE_S) -> Tuple[bool, Optional[str]]:
     """Vérifie que la position encodeur est encore rafraîchie.

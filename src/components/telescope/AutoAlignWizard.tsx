@@ -127,7 +127,7 @@ const SkyDome = ({ zone, limits, cells = [], liveAlt, liveAz }: {
                     const r = R * (1 - alt / 90);
                     return <ellipse key={alt} cx={CX} cy={CY} rx={r} ry={r * 0.38} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="0.5" strokeDasharray="3,3" />;
                 })}
-                {zonePath && <path d={zonePath} fill="rgba(0,255,209,0.08)" stroke="rgba(0,255,209,0.3)" strokeWidth="1" />}
+                {zonePath && <path d={zonePath} style={{ fill: "color-mix(in srgb, var(--astro-teal) 8%, transparent)", stroke: "color-mix(in srgb, var(--astro-teal) 30%, transparent)" }} strokeWidth="1" />}
                 {LIMIT_KEYS.map(key => {
                     const lp = limits[key]; if (!lp) return null;
                     const p = toXY(lp.alt, lp.az);
@@ -416,7 +416,7 @@ export const AutoAlignWizard = () => {
             {/* Header */}
             <div className="flex items-start justify-between">
                 <div className="flex items-center gap-2">
-                    <div className="p-1.5 rounded-md" style={{ background: "rgba(0,255,209,0.1)" }}>
+                    <div className="p-1.5 rounded-md" style={{ background: "color-mix(in srgb, var(--astro-teal) 10%, transparent)" }}>
                         <Satellite size={16} style={{ color: "var(--astro-teal)" }} />
                     </div>
                     <div className="flex flex-col gap-0">
@@ -432,9 +432,9 @@ export const AutoAlignWizard = () => {
                 </div>
                 <span className="inline-flex items-center px-2 py-1 rounded text-hud-2xs border"
                     style={{
-                        background: phase === 'complete' ? 'rgba(72,187,120,0.18)' : phase === 'failed' ? 'rgba(245,101,101,0.18)' : isRunning ? 'rgba(0,255,209,0.12)' : 'rgba(255,255,255,0.06)',
+                        background: phase === 'complete' ? 'rgba(72,187,120,0.18)' : phase === 'failed' ? 'rgba(245,101,101,0.18)' : isRunning ? 'color-mix(in srgb, var(--astro-teal) 12%, transparent)' : 'rgba(255,255,255,0.06)',
                         color: phase === 'complete' ? '#68d391' : phase === 'failed' ? '#fc8181' : isRunning ? 'var(--astro-teal)' : 'rgba(255,255,255,0.5)',
-                        borderColor: phase === 'complete' ? 'rgba(72,187,120,0.3)' : phase === 'failed' ? 'rgba(245,101,101,0.3)' : isRunning ? 'rgba(0,255,209,0.25)' : 'rgba(255,255,255,0.08)',
+                        borderColor: phase === 'complete' ? 'rgba(72,187,120,0.3)' : phase === 'failed' ? 'rgba(245,101,101,0.3)' : isRunning ? 'color-mix(in srgb, var(--astro-teal) 25%, transparent)' : 'rgba(255,255,255,0.08)',
                     }}>
                     {phase.replace(/-/g, ' ').toUpperCase()}
                 </span>
@@ -559,7 +559,7 @@ export const AutoAlignWizard = () => {
                                 disabled={!allLimitsDefined}
                                 onClick={confirmZone}
                                 className="w-full flex items-center justify-center gap-1 h-[var(--size-touch)] rounded-lg text-hud-xs font-bold tracking-[0.1em] border transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
-                                style={{ background: "rgba(0,255,209,0.1)", color: "var(--astro-teal)", borderColor: "rgba(0,255,209,0.3)" }}
+                                style={{ background: "color-mix(in srgb, var(--astro-teal) 10%, transparent)", color: "var(--astro-teal)", borderColor: "color-mix(in srgb, var(--astro-teal) 30%, transparent)" }}
                             >
                                 <Navigation size={12} />
                                 {L("CONFIRMER LA ZONE ET LANCER", "CONFIRM ZONE AND START")}
@@ -646,7 +646,7 @@ export const AutoAlignWizard = () => {
             {/* PHASE : ZONE CONFIRM */}
             {phase === 'zone-confirm' && zone && (
                 <div className="flex flex-col gap-3">
-                    <div className="p-3 rounded-lg" style={{ background: "rgba(0,255,209,0.04)", border: "1px solid rgba(0,255,209,0.15)" }}>
+                    <div className="p-3 rounded-lg" style={{ background: "color-mix(in srgb, var(--astro-teal) 4%, transparent)", border: "1px solid color-mix(in srgb, var(--astro-teal) 15%, transparent)" }}>
                         <span className="text-hud-2xs font-bold tracking-[0.1em] block mb-2" style={{ color: "var(--astro-teal)" }}>
                             {L("✅ ZONE ENREGISTRÉE — RÉCAPITULATIF", "✅ ZONE RECORDED — SUMMARY")}
                         </span>
@@ -690,7 +690,7 @@ export const AutoAlignWizard = () => {
                             </button>
                             <button onClick={runAutoAlign}
                                 className="w-full flex items-center justify-center gap-1.5 h-[var(--size-touch)] rounded-lg text-hud-xs font-bold tracking-[0.08em] border transition-colors cursor-pointer"
-                                style={{ background: "rgba(0,255,209,0.08)", color: "var(--astro-teal)", borderColor: "rgba(0,255,209,0.25)" }}>
+                                style={{ background: "color-mix(in srgb, var(--astro-teal) 8%, transparent)", color: "var(--astro-teal)", borderColor: "color-mix(in srgb, var(--astro-teal) 25%, transparent)" }}>
                                 <Zap size={12} />{L("ASTROMÉTRIE DIRECTE (NUIT)", "DIRECT ASTROMETRY (NIGHT)")}
                             </button>
                         </div>
@@ -737,7 +737,7 @@ export const AutoAlignWizard = () => {
                     </div>
 
                     {phoneRaDec && (
-                        <div className="p-3 rounded-lg" style={{ background: "rgba(0,255,209,0.04)", border: "1px solid rgba(0,255,209,0.15)" }}>
+                        <div className="p-3 rounded-lg" style={{ background: "color-mix(in srgb, var(--astro-teal) 4%, transparent)", border: "1px solid color-mix(in srgb, var(--astro-teal) 15%, transparent)" }}>
                             <span className="text-hud-2xs block mb-2 tracking-[0.08em]" style={{ color: "rgba(255,255,255,0.4)" }}>
                                 {L("COORDONNÉES CALCULÉES (MàJ ~2s)", "CALCULATED COORDINATES (updated ~2s)")}
                             </span>
@@ -779,7 +779,7 @@ export const AutoAlignWizard = () => {
                                 </button>
                                 <button onClick={runAutoAlign}
                                     className="flex-[2] flex items-center justify-center gap-1 h-[var(--size-touch)] rounded-lg text-hud-xs font-bold tracking-[0.08em] border transition-colors cursor-pointer"
-                                    style={{ background: "rgba(0,255,209,0.12)", color: "var(--astro-teal)", borderColor: "rgba(0,255,209,0.35)" }}>
+                                    style={{ background: "color-mix(in srgb, var(--astro-teal) 12%, transparent)", color: "var(--astro-teal)", borderColor: "color-mix(in srgb, var(--astro-teal) 35%, transparent)" }}>
                                     <Zap size={12} />{L("AFFINER PAR ASTROMÉTRIE", "REFINE WITH ASTROMETRY")}
                                 </button>
                             </div>
@@ -895,7 +895,7 @@ export const AutoAlignWizard = () => {
                             <button
                                 onClick={() => { setPhase('limits-setup'); setLogs([]); }}
                                 className="flex-1 flex items-center justify-center gap-1 h-10 rounded-lg text-hud-xs font-bold tracking-[0.1em] border transition-colors cursor-pointer"
-                                style={{ background: phase === 'complete' ? 'rgba(72,187,120,0.12)' : 'rgba(0,255,209,0.08)', color: phase === 'complete' ? '#68d391' : 'var(--astro-teal)', borderColor: phase === 'complete' ? 'rgba(72,187,120,0.3)' : 'rgba(0,255,209,0.25)' }}>
+                                style={{ background: phase === 'complete' ? 'rgba(72,187,120,0.12)' : 'color-mix(in srgb, var(--astro-teal) 8%, transparent)', color: phase === 'complete' ? '#68d391' : 'var(--astro-teal)', borderColor: phase === 'complete' ? 'rgba(72,187,120,0.3)' : 'color-mix(in srgb, var(--astro-teal) 25%, transparent)' }}>
                                 <RotateCcw size={12} />{phase === 'complete' ? L("REFAIRE L'ALIGNEMENT", "RE-ALIGN") : L("RECOMMENCER", "RESTART")}
                             </button>
                         )}

@@ -73,3 +73,4 @@ graphify-out/
 .claude/
 CLAUDE.md
 .anthropic/
+.cache/
