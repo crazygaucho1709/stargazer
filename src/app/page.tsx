@@ -323,8 +323,11 @@ export default function Home() {
             <button
               type="button"
               onClick={() => setLiveViewMode("NASA")}
-              className="inline-flex items-center gap-1.5 px-2.5 h-7 rounded-lg text-xs font-medium transition-colors cursor-pointer"
+              aria-label="Carte du ciel"
+              aria-pressed={liveViewMode !== "CANON"}
+              className="inline-flex items-center gap-1.5 px-2.5 rounded-lg text-xs font-medium transition-colors cursor-pointer"
               style={{
+                minHeight: "max(28px, var(--size-touch))",
                 background: liveViewMode !== "CANON" ? "color-mix(in srgb, var(--astro-teal) 16%, transparent)" : "transparent",
                 color: liveViewMode !== "CANON" ? "var(--astro-teal)" : "#94A3B8",
               }}
@@ -335,8 +338,11 @@ export default function Home() {
             <button
               type="button"
               onClick={() => setLiveViewMode("CANON")}
-              className="inline-flex items-center gap-1.5 px-2.5 h-7 rounded-lg text-xs font-medium transition-colors cursor-pointer"
+              aria-label="Vue en direct de la caméra"
+              aria-pressed={liveViewMode === "CANON"}
+              className="inline-flex items-center gap-1.5 px-2.5 rounded-lg text-xs font-medium transition-colors cursor-pointer"
               style={{
+                minHeight: "max(28px, var(--size-touch))",
                 background: liveViewMode === "CANON" ? "rgba(255, 179, 71, 0.16)" : "transparent",
                 color: liveViewMode === "CANON" ? "var(--astro-gold)" : "#94A3B8",
               }}
@@ -591,7 +597,7 @@ export default function Home() {
       {/* ── FLOATING BOTTOM SPATIAL DOCK ─────────────────────────────────── */}
       <nav
         aria-label="Barre d'outils de l'observatoire"
-        className="hud-glass fixed bottom-3 left-1/2 -translate-x-1/2 z-[var(--z-hud)] flex items-center gap-1 p-1.5 rounded-2xl max-w-[calc(100vw-24px)]"
+        className="hud-glass fixed bottom-3 left-1/2 -translate-x-1/2 z-[var(--z-hud)] flex items-center gap-0.5 sm:gap-1 p-1.5 rounded-2xl max-w-[calc(100vw-24px)] overflow-x-auto"
       >
         {DOCK_ITEMS.map(({ id, label, icon: Icon }) => {
           const active = activePanel === id;
@@ -601,15 +607,17 @@ export default function Home() {
               type="button"
               onClick={() => togglePanel(id)}
               aria-pressed={active}
-              className="relative inline-flex items-center gap-2 px-3 sm:px-3.5 h-10 rounded-xl text-xs font-medium transition-all duration-150 cursor-pointer whitespace-nowrap"
+              aria-label={label}
+              className="relative inline-flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-2 px-1.5 sm:px-3.5 rounded-xl text-hud-2xs sm:text-xs font-medium transition-colors duration-150 cursor-pointer whitespace-nowrap"
               style={{
+                minHeight: "max(40px, var(--size-touch))",
                 background: active ? "color-mix(in srgb, var(--astro-teal) 14%, transparent)" : "transparent",
                 color: active ? "var(--astro-teal)" : "#CBD5E1",
                 border: active ? "1px solid color-mix(in srgb, var(--astro-teal) 35%, transparent)" : "1px solid transparent",
               }}
             >
               <Icon size={16} aria-hidden />
-              <span className="hidden sm:inline">{label}</span>
+              <span>{label}</span>
               {active && (
                 <span
                   aria-hidden

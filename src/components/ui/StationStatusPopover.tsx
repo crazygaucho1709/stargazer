@@ -141,8 +141,9 @@ export function StationStatusPopover({ stationStatus }: { stationStatus?: Statio
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-label={`État de la station : ${readiness.label}. ${readiness.summary}`}
-        className="inline-flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 h-8 rounded-xl text-xs font-medium transition-colors duration-150 cursor-pointer shrink-0"
+        className="inline-flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 rounded-xl text-xs font-medium transition-colors duration-150 cursor-pointer shrink-0"
         style={{
+          minHeight: "max(32px, var(--size-touch))",
           background: tone.bg,
           border: `1px solid ${tone.border}`,
           color: tone.text,

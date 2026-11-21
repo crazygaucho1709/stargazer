@@ -7,6 +7,7 @@ import {
     Settings, Cpu, Radio, Zap, ShieldCheck, X, Camera, Telescope, Gamepad2, Compass, Layers, Wand2, Power, Globe, LocateFixed, Activity, RefreshCw, CheckCircle, XCircle, Loader, Wifi, WifiOff
 } from "lucide-react";
 import { useAiAuth } from "@/hooks/useAiAuth";
+import { useStationReadiness } from "@/hooks/useStationReadiness";
 import { useStationStream } from "@/hooks/useStationStream";
 import { useStargazerStore } from "@/store/useStargazerStore";
 import { t } from "@/i18n/translations";
@@ -42,6 +43,8 @@ const INPUT_STYLE = { background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255
 const SELECT_STYLE: React.CSSProperties = { width: "100%", background: "rgba(0,0,0,0.5)", border: "1px solid rgba(255,255,255,0.2)", color: "white", padding: "8px", borderRadius: "4px" };
 
 export const ConfigurationMenu = () => {
+    // Même état que la pastille de l'en-tête : une seule vérité sur la station.
+    const readiness = useStationReadiness();
     const [isOpen, setIsOpen] = useState(false);
     const [activeTab, setActiveTab] = useState("hardware");
     const [mounted, setMounted] = useState(false);
@@ -165,7 +168,7 @@ export const ConfigurationMenu = () => {
                                             {isConnected ? <Wifi size={12} aria-hidden /> : <WifiOff size={12} aria-hidden />}
                                             <span>
                                                 {isConnected
-                                                    ? (language === "fr" ? "Station en ligne" : "Station online")
+                                                    ? readiness.label
                                                     : (language === "fr" ? "Hors ligne · Paramétrage local actif" : "Offline · Local config active")}
                                             </span>
                                         </div>

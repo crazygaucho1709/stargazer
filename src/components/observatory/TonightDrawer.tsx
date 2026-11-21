@@ -24,6 +24,16 @@ const FILTERS = [
   { id: "Planetary", label: "Planétaires" },
 ] as const;
 
+/** Types du catalogue (en anglais dans les données) affichés en français. */
+const TYPE_FR: Record<string, string> = {
+  "Nebula": "Nébuleuse",
+  "Galaxy": "Galaxie",
+  "Star Cluster": "Amas d'étoiles",
+  "Planetary Nebula": "Nébuleuse planétaire",
+  "Supernova Remnant": "Reste de supernova",
+  "Double Star": "Étoile double",
+};
+
 type FilterId = (typeof FILTERS)[number]["id"];
 
 export function TonightDrawer({
@@ -190,7 +200,7 @@ export function TonightDrawer({
                     <span className="text-xs text-slate-200 truncate">{item.name}</span>
                   </div>
                   <p className="text-hud-2xs text-slate-400 mt-0.5 truncate">
-                    {item.type} · {item.constellation} · mag {item.magnitude.toFixed(1)}
+                    {TYPE_FR[item.type] ?? item.type} · {item.constellation} · mag {item.magnitude.toFixed(1)}
                   </p>
                 </div>
 

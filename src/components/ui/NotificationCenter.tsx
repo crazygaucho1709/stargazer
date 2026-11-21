@@ -80,6 +80,9 @@ export const NotificationCenter = () => {
                     aria-label="Centre de notifications"
                     className="fixed flex flex-col rounded-xl overflow-hidden z-[var(--z-popover)] astro-panel"
                     style={{
+                        // .astro-panel pose « position: relative » et l'emportait
+                        // sur la classe « fixed » : le panneau partait en bas de page.
+                        position: "fixed",
                         top: "92px",
                         right: "16px",
                         width: "min(380px, calc(100vw - 32px))",

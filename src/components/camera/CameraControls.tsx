@@ -141,7 +141,7 @@ export const CameraControls = ({ variant = "standard" }: CameraControlsProps) =>
 
                     {/* Central shutter button — positioned OUTSIDE Tooltip so centering is exact */}
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[2]">
-                        <Tooltip content={isExposing ? "EXPOSURE IN PROGRESS" : "START EXPOSURE"} showArrow>
+                        <Tooltip content={isExposing ? "Pose en cours" : "Lancer une pose"} showArrow>
                             <button
                                 type="button"
                                 aria-label={isExposing ? "Exposition en cours" : "Déclencher une pose"}
@@ -281,12 +281,12 @@ export const CameraControls = ({ variant = "standard" }: CameraControlsProps) =>
                             <Eye size={14} style={{ color: "var(--astro-gold)" }} />
                             <div className="flex flex-col gap-0">
                                 <div className="flex items-center gap-1">
-                                    <span className="text-hud-xs font-bold tracking-[0.05em]" style={{ color: "rgba(255,255,255,0.9)" }}>HFR OVERLAY</span>
-                                    <Tooltip content="Superimposes Half Flux Radius (HFR) metrics on the direct view to help you visualize focus quality across the field." showArrow>
+                                    <span className="text-hud-xs font-bold tracking-[0.05em]" style={{ color: "rgba(255,255,255,0.9)" }}>MESURE DE NETTETÉ</span>
+                                    <Tooltip content="Affiche sur la vue directe la taille des étoiles (HFR) : plus elle est petite, plus la mise au point est nette." showArrow>
                                         <HelpCircle size={12} style={{ color: "rgba(255,255,255,0.4)", cursor: "help" }} />
                                     </Tooltip>
                                 </div>
-                                <span className="text-hud-2xs" style={{ color: "rgba(255,255,255,0.5)" }}>Real-time star metrics</span>
+                                <span className="text-hud-2xs" style={{ color: "rgba(255,255,255,0.5)" }}>Taille des étoiles en direct</span>
                             </div>
                         </div>
                         <Switch

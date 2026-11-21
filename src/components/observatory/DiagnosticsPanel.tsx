@@ -287,7 +287,7 @@ export function DiagnosticsPanel() {
           }}
         >
           {resetting ? <Loader2 size={13} className="animate-spin" /> : <Wrench size={13} />}
-          {resetting ? "RÉCUPÉRATION…" : "RESET ALL"}
+          {resetting ? "RÉCUPÉRATION…" : "TOUT RÉPARER"}
         </button>
       </div>
 

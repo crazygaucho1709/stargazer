@@ -266,20 +266,20 @@ export const AIAssistant = () => {
                         <div className="flex items-center gap-2">
                             <Moon size={16} color="var(--astro-gold)" />
                             <span style={{ fontSize: "var(--text-hud-sm)", fontWeight: "bold", letterSpacing: "0.1em", color: "rgba(255,255,255,0.8)" }}>
-                                EPHEMERIS
+                                ÉPHÉMÉRIDES
                             </span>
                         </div>
                     </div>
                     <div className="flex items-center justify-between" style={{ fontSize: "var(--text-hud-xs)" }}>
                         <div className="flex flex-col gap-0">
-                            <span style={{ opacity: 0.6, fontSize: "var(--text-hud-2xs)" }}>SUNRISE</span>
+                            <span style={{ opacity: 0.6, fontSize: "var(--text-hud-2xs)" }}>LEVER</span>
                             <div className="flex items-center gap-1">
                                 <Sun size={12} color="#F6AD55" />
                                 <span style={{ fontWeight: "bold" }}>{weather.sunrise || "--:--"}</span>
                             </div>
                         </div>
                         <div className="flex flex-col items-end gap-0">
-                            <span style={{ opacity: 0.6, fontSize: "var(--text-hud-2xs)" }}>SUNSET</span>
+                            <span style={{ opacity: 0.6, fontSize: "var(--text-hud-2xs)" }}>COUCHER</span>
                             <div className="flex items-center gap-1">
                                 <Moon size={12} color="#7986CB" />
                                 <span style={{ fontWeight: "bold" }}>{weather.sunset || "--:--"}</span>

@@ -120,7 +120,7 @@ const SESSION_CAPTURING: SessionState[] = ["CAPTURING", "STACKING"];
 export const useStargazerStore = create<StargazerState>()(
     persist(
         (set, get) => ({
-            language: "en",
+            language: "fr",
             vision: "day" as VisionMode,
             density: "normal" as DensityMode,
             dim: 0 as DimLevel,
@@ -263,6 +263,15 @@ export const useStargazerStore = create<StargazerState>()(
         }),
         {
             name: 'stargazer-storage',
+            // v1 : le français devient la langue par défaut. Les navigateurs
+            // qui avaient enregistré l'ancien défaut (anglais, jamais choisi
+            // par personne) passent au français une fois ; le choix reste
+            // ensuite modifiable dans la configuration.
+            version: 1,
+            migrate: (persisted, version) => {
+                const state = (persisted ?? {}) as Record<string, unknown>;
+                return version < 1 ? { ...state, language: "fr" } : state;
+            },
             partialize: (state) => ({
                 language: state.language,
                 vision: state.vision,

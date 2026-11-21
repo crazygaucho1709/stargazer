@@ -203,7 +203,7 @@ export const InfrastructureStatus = () => {
   return (
     <div className="flex flex-col gap-4 w-full">
       <div className="flex items-center justify-between w-full">
-        <span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", letterSpacing: "0.1em" }}>STATUS OVERVIEW</span>
+        <span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", letterSpacing: "0.1em" }}>ÉTAT DÉTAILLÉ</span>
         <button
           onClick={() => refreshHealth()}
           style={{
@@ -218,7 +218,7 @@ export const InfrastructureStatus = () => {
           }}
         >
           <RefreshCw size={12} />
-          REFRESH
+          ACTUALISER
         </button>
       </div>
 
@@ -232,9 +232,9 @@ export const InfrastructureStatus = () => {
           metrics={[
             { label: "CPU",     value: mac.cpu_percent ?? 0,     unit: "%" },
             { label: "RAM",     value: mac.memory_used_gb ?? 0,  unit: " GB" },
-            { label: "Storage", value: mac.disk_percent ?? 0,    unit: "%" },
+            { label: "Disque", value: mac.disk_percent ?? 0,    unit: "%" },
           ]}
-          details={`Backend UP • ${backendRestarts} restarts`}
+          details={`Backend en service • ${backendRestarts} redémarrages`}
         />
 
         <StatusCard
@@ -248,7 +248,7 @@ export const InfrastructureStatus = () => {
             { label: "Alim.", value: astroPower.label },
           ]}
           details={astro.reachable
-            ? `${astroPower.detail ? `${astroPower.detail} • ` : ""}SSH Connected • ${astro.uptime || "N/A"}`
+            ? `${astroPower.detail ? `${astroPower.detail} • ` : ""}SSH connecté • ${astro.uptime || "N/A"}`
             : "Unreachable via SSH"}
         />
 
@@ -258,8 +258,8 @@ export const InfrastructureStatus = () => {
           status={indi.connected ? "ok" : "error"}
           metrics={[
             { label: "PID",     value: astro.indi_pid || "N/A" },
-            { label: "Devices", value: indiDeviceList.length },
-            { label: "Uptime",  value: astro.uptime || "N/A" },
+            { label: "Appareils", value: indiDeviceList.length },
+            { label: "En service",  value: astro.uptime || "N/A" },
           ]}
           details={indiDeviceList.length > 0 ? indiDeviceList.join(", ") : "No devices"}
         />
@@ -271,7 +271,7 @@ export const InfrastructureStatus = () => {
           metrics={[
             { label: "RA",     value: formatRa(mount.ra) },
             { label: "DEC",    value: formatDec(mount.dec) },
-            { label: "Status", value: mount.parked ? "PARKED" : mount.tracking ? "TRACKING" : "IDLE" },
+            { label: "État", value: mount.parked ? "RANGÉE" : mount.tracking ? "SUIVI" : "AU REPOS" },
           ]}
           details={mountDetails}
         />
@@ -281,11 +281,11 @@ export const InfrastructureStatus = () => {
           icon={HardDrive}
           status={data?.camera?.connected ? "ok" : "warning"}
           metrics={[
-            { label: "Model",   value: data?.camera?.device  || "None" },
-            { label: "Battery", value: data?.camera?.battery || "N/A" },
-            { label: "Storage", value: data?.camera?.space   || "N/A" },
+            { label: "Modèle",   value: data?.camera?.device  || "Aucun" },
+            { label: "Batterie", value: data?.camera?.battery || "N/A" },
+            { label: "Carte", value: data?.camera?.space   || "N/A" },
           ]}
-          details={data?.camera?.connected ? "Ready for capture" : "Camera disconnected"}
+          details={data?.camera?.connected ? "Prête à photographier" : "Caméra déconnectée"}
         />
 
 {/* KStars est optionnel : sa carte n'apparaît que s'il tourne. */}
@@ -296,7 +296,7 @@ export const InfrastructureStatus = () => {
           // Optionnel : le contrôle passe par le bridge INDI, KStars n'est pas requis.
           status={data?.kstars?.running ? "ok" : "warning"}
           metrics={[
-            { label: "Status",  value: data?.kstars?.running ? "RUNNING" : "STOPPED" },
+            { label: "État",  value: data?.kstars?.running ? "EN SERVICE" : "ARRÊTÉ" },
             { label: "Profile", value: data?.kstars?.ekos_profile || "Nexstar4SE" },
             { label: "PID",     value: data?.kstars?.pid || "N/A" },
           ]}

@@ -75,25 +75,25 @@ export const ActionButtons = () => {
             {/* Mount Control */}
             <div>
                 <p style={{ fontSize: "var(--text-hud-sm)", fontWeight: "bold", color: "rgba(255,255,255,0.6)", marginBottom: "0.75rem", letterSpacing: "0.1em" }}>
-                    MOUNT CONTROL
+                    MONTURE
                 </p>
                 <div style={{ display: "flex", gap: "0.75rem" }}>
                     <ActionBtn
-                        label="PARK MOUNT"
+                        label="RANGER LA MONTURE"
                         icon={Anchor}
                         colorScheme="yellow"
                         onClick={() => execute('/api/mount/park', 'PARK MOUNT')}
                         isLoading={isPending}
                     />
                     <ActionBtn
-                        label="UNPARK"
+                        label="SORTIR DU RANGEMENT"
                         icon={Compass}
                         colorScheme="green"
                         onClick={() => execute('/api/mount/unpark', 'UNPARK MOUNT')}
                         isLoading={isPending}
                     />
                     <ActionBtn
-                        label="ABORT ALL"
+                        label="TOUT ARRÊTER"
                         icon={ShieldAlert}
                         colorScheme="red"
                         variant="solid"
@@ -115,13 +115,13 @@ export const ActionButtons = () => {
                 </p>
                 <div style={{ display: "flex", width: "100%", gap: "0.75rem" }}>
                     <ActionBtn
-                        label="LAUNCH EKOS"
+                        label="LANCER EKOS"
                         icon={Rocket}
                         onClick={() => execute('/api/indi/launch_ekos', 'LAUNCH EKOS')}
                         isLoading={isPending}
                     />
                     <ActionBtn
-                        label="REBOOT ASTROBERRY"
+                        label="REDÉMARRER LE PI"
                         icon={Power}
                         colorScheme="red"
                         onClick={() => {
