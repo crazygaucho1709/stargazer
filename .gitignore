@@ -75,3 +75,4 @@ CLAUDE.md
 .anthropic/
 .cache/
 server/station_horizon.json
+server/hot_pixels.json
