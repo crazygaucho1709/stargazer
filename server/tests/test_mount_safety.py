@@ -29,3 +29,23 @@ def test_check_encoder_fresh_bounds():
 def test_motion_proven_threshold():
     assert mount_safety.motion_proven((10.0, 20.0), 10.0, 20.0) is False
     assert mount_safety.motion_proven((10.0, 20.0), 10.05, 20.0) is True
+
+
+def test_eod_heartbeat_bridges_short_encoder_gaps():
+    """Les encodeurs n'arrivent que par intermittence : le battement comble le trou."""
+    ts = mount_safety.position_proof_ts(encoder_ts=1000.0, heartbeat_ts=1016.0, now_ts=1017.0)
+    assert ts == 1016.0
+    assert mount_safety.check_encoder_fresh(ts, 1017.0)[0] is True
+
+
+def test_eod_heartbeat_cannot_vouch_for_silent_encoders():
+    """Encodeurs muets au-delà de la borne : le battement ne vaut plus preuve de vie."""
+    gap = mount_safety.HEARTBEAT_MAX_ENCODER_GAP_S
+    now = 1000.0 + gap + 5
+    ts = mount_safety.position_proof_ts(encoder_ts=1000.0, heartbeat_ts=now - 0.5, now_ts=now)
+    assert ts == 1000.0
+    assert mount_safety.check_encoder_fresh(ts, now)[0] is False
+
+
+def test_no_encoder_frame_means_no_proof():
+    assert not mount_safety.position_proof_ts(0.0, 1234.0, 1235.0)

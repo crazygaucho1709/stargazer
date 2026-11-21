@@ -1903,7 +1903,9 @@ async def mount_jog(req: JogRequest):
             return {"success": False, "error": SERIAL_LINK_ERROR}
 
         fresh, why = mount_safety.check_encoder_fresh(
-            indi.mount_heartbeat_ts or indi.encoder_last_update, time.time()
+            mount_safety.position_proof_ts(
+                indi.encoder_last_update, indi.mount_heartbeat_ts, time.time()),
+            time.time()
         )
         if not fresh:
             logger.error(f"⛔ Jog refusé — {why}")
@@ -2093,7 +2095,9 @@ async def mount_slew_internal(device: str, ra: float, dec: float, sync: bool = F
         return {"success": False, "error": SERIAL_LINK_ERROR}
 
     fresh, why = mount_safety.check_encoder_fresh(
-        indi.mount_heartbeat_ts or indi.encoder_last_update, time.time()
+        mount_safety.position_proof_ts(
+            indi.encoder_last_update, indi.mount_heartbeat_ts, time.time()),
+        time.time()
     )
     if not fresh and not sync:
         logger.error(f"⛔ Slew refusé — {why}")
@@ -3070,7 +3074,7 @@ async def _apply_canon_zoom(dev: str, level: int, x: int, y: int) -> tuple[bool,
     Passer de ×5 à ×10 ne change pas la taille de l'image : envoyé une fois,
     signalé comme non vérifié.
     """
-    position, zoom, _ = canon_zoom.zoom_commands(dev, level, x, y)
+    position, zoom = canon_zoom.zoom_commands(dev, level, x, y)
 
     if level == 1:
         for attempt in range(1, 4):
@@ -3645,7 +3649,7 @@ async def station_set_location(req: StationLocationRequest):
 async def station_status():
     """Retourne l'état d'initialisation Vespera (lieu, heure, sync ciel) + fraîcheur encodeur."""
     now = time.time()
-    hb = indi.mount_heartbeat_ts or indi.encoder_last_update
+    hb = mount_safety.position_proof_ts(indi.encoder_last_update, indi.mount_heartbeat_ts, now)
     encoder_age_s = (
         round(max(0.0, now - hb), 2)
         if hb > 0

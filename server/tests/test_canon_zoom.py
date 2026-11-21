@@ -35,12 +35,11 @@ def test_invalid_level_rejected():
         canon_zoom.zoom_window(3, 0.5, 0.5)
 
 
-def test_level_is_always_followed_by_a_position():
-    """Un niveau envoyé en dernier reste sans effet sur le boîtier."""
+def test_sequence_is_position_then_level():
+    """La fenêtre est placée avant le changement de niveau."""
     for level, x, y in [(10, 100, 200), (5, 2074, 1382), (1, 0, 0)]:
         cmds = canon_zoom.zoom_commands("GPhoto CCD", level, x, y)
-        assert len(cmds) == 3
+        assert len(cmds) == 2
         # Le driver multiplie la position par 5 : on la lui envoie divisée.
         assert 'name="eoszoomposition"' in cmds[0] and f">{round(x / 5)},{round(y / 5)}<" in cmds[0]
         assert 'name="eoszoom"' in cmds[1] and f">{level}<" in cmds[1]
-        assert cmds[2] == cmds[0]

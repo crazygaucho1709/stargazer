@@ -136,6 +136,34 @@ def serial_link_failing(last_error_ts: float, now_ts: float,
     return last_error_ts > 0 and (now_ts - last_error_ts) < hold_s
 
 
+HEARTBEAT_MAX_ENCODER_GAP_S = 30.0
+"""Durée maximale pendant laquelle le battement EQUATORIAL_EOD_COORD peut tenir
+lieu de preuve de vie sans nouvelle trame d'encodeurs.
+
+Le driver n'émet TELESCOPE_ENCODER_STEPS que par intermittence : écarts mesurés
+jusqu'à 16,6 s le 20 novembre 2026 (Pi bridé), pour un seuil de péremption de
+4 s. Le battement EOD comble ces trous. Mais sans borne, il rafraîchissait la
+preuve de vie indéfiniment : si les trames d'encodeurs cessaient pour de bon,
+le contrôle de fraîcheur passait toujours, alors que le garde-fou du GoTo
+compare la consigne à ces mêmes encodeurs, désormais figés."""
+
+
+def position_proof_ts(encoder_ts: Optional[float], heartbeat_ts: Optional[float],
+                      now_ts: float,
+                      max_gap_s: float = HEARTBEAT_MAX_ENCODER_GAP_S) -> Optional[float]:
+    """Horodatage à soumettre à check_encoder_fresh.
+
+    Le battement EOD n'est retenu que si une trame d'encodeurs est arrivée
+    depuis moins de max_gap_s ; au-delà, seule compte la dernière trame
+    d'encodeurs, et le contrôle de fraîcheur refuse le mouvement.
+    """
+    if not encoder_ts:
+        return encoder_ts
+    if heartbeat_ts and (now_ts - encoder_ts) <= max_gap_s:
+        return max(heartbeat_ts, encoder_ts)
+    return encoder_ts
+
+
 def check_encoder_fresh(last_update_ts: Optional[float], now_ts: float,
                         max_age_s: float = ENCODER_STALE_S) -> Tuple[bool, Optional[str]]:
     """Vérifie que la position encodeur est encore rafraîchie.

@@ -4,7 +4,7 @@
 import { useStargazerStore } from "@/store/useStargazerStore";
 import { t } from "@/i18n/translations";
 import { Crosshair, Camera, Globe, ZoomIn, ZoomOut, Play, Square, AlertTriangle, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { HfrOverlay } from "@/components/observatory/HfrOverlay";
 import { CaptureProgress } from "@/components/observatory/CaptureProgress";
 import { useLiveView, CameraZoomLevel } from "@/hooks/useLiveView";
@@ -31,6 +31,21 @@ export const LiveView = () => {
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [liveViewMode]);
+
+    // Arrêt du flux au démontage. La page ne rend cette vue qu'en mode Live :
+    // revenir à la carte du ciel la démonte, et l'effet ci-dessus, qui réagit
+    // au changement de mode, ne s'exécute alors jamais. Sans ce nettoyage le
+    // boîtier restait en live view, miroir relevé, et la pose suivante
+    // relançait le flux derrière une carte du ciel.
+    const isLiveRef = useRef(false);
+    isLiveRef.current = liveView.isLive;
+    const stopRef = useRef(liveView.stop);
+    stopRef.current = liveView.stop;
+    useEffect(() => {
+        return () => {
+            if (isLiveRef.current) stopRef.current();
+        };
+    }, []);
 
     useEffect(() => {
         if (isConfigMenuOpen && liveView.isLive) {

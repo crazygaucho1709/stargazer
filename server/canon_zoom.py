@@ -51,14 +51,14 @@ def zoom_window(level: int, cx: float, cy: float,
 
 
 def zoom_commands(device: str, level: int, x: int, y: int) -> list[str]:
-    """Commandes INDI à envoyer, dans l'ordre : position, niveau, position.
+    """Commandes INDI à envoyer, dans l'ordre : position, puis niveau.
 
-    Mesuré sur le 600D le 20 novembre 2026 : un changement de niveau envoyé en
-    dernier reste sans effet, bien que le driver réponde « Ok ». L'image ne
-    change (1056×704 → 1024×680 en ×5) que lorsqu'une autre commande le suit.
-    Position puis niveau ne zoomait donc jamais, et le retour en ×1 non plus.
-    La position est envoyée avant ET après : avant pour que la fenêtre soit
-    déjà placée, après pour faire prendre le niveau. Valable aussi pour ×1.
+    Deux commandes suffisent. Une première version en envoyait trois (la
+    position une seconde fois après le niveau), sur la foi d'essais qui
+    semblaient montrer qu'un niveau envoyé en dernier restait sans effet.
+    C'était faux : le flux live avait jusqu'à 49 s de retard et l'image
+    examinée datait d'avant la commande. Flux remis au direct, position puis
+    niveau ont pris 6 fois sur 6 (20 novembre 2026).
     """
     def text(name: str, value: str) -> str:
         return (f'<newTextVector device="{device}" name="{name}">'
@@ -70,4 +70,4 @@ def zoom_commands(device: str, level: int, x: int, y: int) -> list[str]:
     # donc la position en pixels capteur divisée par ce facteur.
     position = text("eoszoomposition",
                     f"{round(x / DRIVER_POSITION_SCALE)},{round(y / DRIVER_POSITION_SCALE)}")
-    return [position, text("eoszoom", str(level)), position]
+    return [position, text("eoszoom", str(level))]
