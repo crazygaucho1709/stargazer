@@ -164,6 +164,38 @@ def position_proof_ts(encoder_ts: Optional[float], heartbeat_ts: Optional[float]
     return encoder_ts
 
 
+MODEL_ENCODER_MAX_GAP_DEG = 5.0
+"""Écart toléré entre la hauteur que le modèle de pointage attribue à la
+position courante et la hauteur lue sur l'encodeur (absolue : tube horizontal
+= 0°)."""
+
+
+def check_model_matches_encoder(model_alt_deg: Optional[float],
+                                encoder_alt_deg: Optional[float],
+                                max_gap_deg: float = MODEL_ENCODER_MAX_GAP_DEG
+                                ) -> Tuple[bool, Optional[str]]:
+    """Refuse un GoTo tant que le modèle de pointage contredit les encodeurs.
+
+    Incident du 20 novembre 2026 : monture non alignée, tube à l'horizontale.
+    Le modèle situait la visée 30° SOUS l'horizon. Le garde-fou raisonnait en
+    écart « cible − position du modèle » : viser 15° de hauteur lui semblait
+    une montée de 45°, donc sans danger. Le pilote, lui, a appliqué son propre
+    calcul et a descendu le tube à −30,5° sur l'encodeur, face à un mur.
+    Un écart cible/modèle ne vaut rien si le modèle est faux : on exige donc
+    d'abord qu'il concorde avec la seule mesure fiable, l'encodeur.
+    """
+    if model_alt_deg is None or encoder_alt_deg is None:
+        return False, ("Hauteur de la monture inconnue (modèle ou encodeur) — "
+                       "GoTo refusé")
+    gap = abs(model_alt_deg - encoder_alt_deg)
+    if gap > max_gap_deg:
+        return False, (f"Modèle de pointage non calé : il situe le tube à "
+                       f"{model_alt_deg:+.0f}° de hauteur, l'encodeur lit "
+                       f"{encoder_alt_deg:+.0f}° (écart {gap:.0f}°). Lancez la mise en "
+                       f"station avant tout GoTo.")
+    return True, None
+
+
 def check_encoder_fresh(last_update_ts: Optional[float], now_ts: float,
                         max_age_s: float = ENCODER_STALE_S) -> Tuple[bool, Optional[str]]:
     """Vérifie que la position encodeur est encore rafraîchie.

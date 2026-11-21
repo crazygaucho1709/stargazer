@@ -51,6 +51,8 @@ MIN_STARS_FOR_SKY = 3
 MIN_SKY_CELLS = 3
 # Au-delà, la correction numérique ne rattrape plus le flou.
 HFR_PHYSICAL_REFOCUS = 6.0
+# Écart de hauteur toléré entre modèle et encodeur juste après le calage.
+COARSE_SYNC_MAX_GAP_DEG = 3.0
 
 STEPS = [
     ("precheck", "Vérifications"),
@@ -186,6 +188,8 @@ class StationSetup:
       slew            : mount_slew_internal(device, ra_hours, dec_deg, sync)
       altaz_to_radec  : (alt, az, lat, lon) → (ra_hours, dec_deg)
       get_site        : coroutine () → {lat, lon, source}
+      push_site_time  : (site) → None, envoie lieu et heure au pilote (bloquant)
+      model_altitude  : (site) → hauteur que le modèle attribue à la visée courante
       get_limits      : () → (alt_min, alt_max, az_min, az_max) en angles encodeur
       encoder_position: () → (alt, az_signé) en degrés, ou (None, None)
       position_fresh  : () → (bool, raison)
@@ -195,7 +199,7 @@ class StationSetup:
     """
 
     def __init__(self, *, indi, get_session, slew, altaz_to_radec, get_site,
-                 get_limits, encoder_position, position_fresh, focus_calibrate,
+                 push_site_time, model_altitude, get_limits, encoder_position, position_fresh, focus_calibrate,
                  set_aligned, logger, reference_az: float = 180.0,
                  horizon_file: str = HORIZON_FILE):
         self.indi = indi
@@ -203,6 +207,8 @@ class StationSetup:
         self.slew = slew
         self.altaz_to_radec = altaz_to_radec
         self.get_site = get_site
+        self.push_site_time = push_site_time
+        self.model_altitude = model_altitude
         self.get_limits = get_limits
         self.encoder_position = encoder_position
         self.position_fresh = position_fresh
@@ -394,6 +400,11 @@ class StationSetup:
         """
         alt, az = self.encoder_position()
         site = await self.get_site()
+        # Le pilote convertit ciel ↔ moteurs avec SON lieu et SON heure. S'ils
+        # diffèrent des nôtres, un GoTo part ailleurs que prévu : le 20 novembre
+        # 2026, viser 15° de hauteur a mené le tube à −30°. On les lui impose.
+        await asyncio.to_thread(self.push_site_time, site)
+        await asyncio.sleep(self.settle_s)
         compass_az = encoder_to_compass_az(az, self.reference_az)
         ra_h, dec = self.altaz_to_radec(alt, compass_az, site["lat"], site["lon"])
         dev = getattr(self.indi, "device_mount", "") or ""
@@ -406,6 +417,13 @@ class StationSetup:
         # marquée « non alignée » jusqu'à la reconnaissance du ciel.
         self.set_aligned(False)
         await asyncio.sleep(self.settle_s)
+        # Preuve que le calage a pris : le modèle doit maintenant situer le
+        # tube à la hauteur lue sur l'encodeur. Sinon on ne bouge pas.
+        model_alt = self.model_altitude(site)
+        if abs(model_alt - alt) > COARSE_SYNC_MAX_GAP_DEG:
+            raise SetupError(
+                f"Le calage n'a pas pris : le modèle situe le tube à {model_alt:+.0f}° "
+                f"de hauteur, l'encodeur lit {alt:+.0f}°. Aucun déplacement n'a été lancé.")
 
     async def _run_session(self, **kwargs) -> dict:
         session = self.get_session()

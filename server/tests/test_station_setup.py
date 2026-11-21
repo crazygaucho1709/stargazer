@@ -118,7 +118,7 @@ class FakeSession:
         self._release.set()
 
 
-def _make(tmp_path, session, indi=None, focus=None, slew_ok=True):
+def _make(tmp_path, session, indi=None, focus=None, slew_ok=True, model_alt=0.0):
     events = {"aligned": [], "slews": []}
 
     async def slew(dev, ra, dec, sync):
@@ -134,6 +134,8 @@ def _make(tmp_path, session, indi=None, focus=None, slew_ok=True):
     setup = ss.StationSetup(
         indi=indi or FakeIndi(), get_session=lambda: session, slew=slew,
         altaz_to_radec=lambda alt, az, lat, lon: (5.0, -5.0), get_site=site,
+        push_site_time=lambda s: events.setdefault("pushed", []).append(s),
+        model_altitude=lambda s: model_alt,
         get_limits=lambda: (0.0, 70.0, -85.0, 85.0),
         encoder_position=lambda: (0.0, 0.0), position_fresh=lambda: (True, None),
         focus_calibrate=focus_calibrate, set_aligned=events["aligned"].append,
@@ -218,3 +220,19 @@ def test_stop_during_survey_aborts_and_nothing_restarts(tmp_path):
     assert setup.state == "ABORTED"
     assert len(session.calls) == 1            # aucun alignement lancé après l'arrêt
     assert True not in events["aligned"]
+
+
+def test_site_and_time_are_pushed_before_any_move(tmp_path):
+    session = FakeSession()
+    setup, events = _make(tmp_path, session)
+    _run(setup)
+    assert events["pushed"] and events["pushed"][0]["lat"] == -17.6
+
+
+def test_coarse_sync_that_did_not_take_blocks_every_move(tmp_path):
+    """Modèle toujours 30° sous l'encodeur après le calage : on ne balaie pas."""
+    session = FakeSession()
+    setup, _ = _make(tmp_path, session, model_alt=-30.0)
+    _run(setup)
+    assert setup.state == "FAILED" and setup.result["step"] == "coarse_sync"
+    assert session.calls == []

@@ -2139,6 +2139,11 @@ async def mount_slew_internal(device: str, ra: float, dec: float, sync: bool = F
                 # Décalage cible/courant en coordonnées ciel, appliqué aux encodeurs
                 sky_alt_now, sky_az_now = _radec_to_altaz(
                     indi.mount_ra / 15.0, indi.mount_dec, site["lat"], site["lon"])
+                ok, reason = mount_safety.check_model_matches_encoder(
+                    sky_alt_now, mount_safety.signed_angle(cur_alt))
+                if not ok:
+                    logger.error(f"GoTo REFUSÉ par le garde-fou mécanique : {reason}")
+                    return {"success": False, "error": f"Mouvement refusé — {reason}"}
                 enc_target_alt = mount_safety.signed_angle(cur_alt) + (target_alt - sky_alt_now)
                 d_az = mount_safety.shortest_delta(sky_az_now, target_az)
                 ok, reason = mount_safety.check_altitude(enc_target_alt, ConfigService.load_config())
@@ -4946,6 +4951,11 @@ def _get_station_setup() -> station_setup.StationSetup:
                 mount_safety.position_proof_ts(
                     indi.encoder_last_update, indi.mount_heartbeat_ts, now), now)
 
+        def _model_altitude(site: dict):
+            alt, _az = _radec_to_altaz(indi.mount_ra / 15.0, indi.mount_dec,
+                                       site["lat"], site["lon"])
+            return alt
+
         def _set_aligned(aligned: bool):
             station_init_state["sky_synced"] = aligned
             if aligned:
@@ -4957,6 +4967,9 @@ def _get_station_setup() -> station_setup.StationSetup:
             slew=mount_slew_internal,
             altaz_to_radec=_altaz_to_radec,
             get_site=lambda: _get_site_location(indi, INDI_HOST),
+            push_site_time=lambda site: _push_station_geo_and_time(
+                indi.device_mount, site["lat"], site["lon"], 0.0, site.get("source", "setup")),
+            model_altitude=_model_altitude,
             get_limits=_limits,
             encoder_position=_encoders,
             position_fresh=_fresh,

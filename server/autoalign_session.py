@@ -586,6 +586,20 @@ class AutoAlignSession:
         self._set_state("SETTLING")
         await asyncio.sleep(3.0)
 
+        # Case planifiée en angles encodeur (balayage de mise en station) : on
+        # vérifie que la monture est bien allée où on l'attendait. Un écart
+        # franc signifie que le modèle de pointage est faux — continuer
+        # reviendrait à promener le tube à l'aveugle.
+        want = cell.get("enc_alt")
+        got = getattr(self.indi, "encoder_alt", None)
+        if want is not None and got is not None:
+            got = got - 360.0 if got > 180.0 else got
+            cell["enc_alt_reached"] = round(got, 1)
+            if abs(got - want) > 8.0:
+                raise RuntimeError(
+                    f"La monture n'est pas allée où on l'attendait : hauteur visée "
+                    f"{want:+.0f}°, encodeur {got:+.0f}°. Balayage arrêté.")
+
         if dry_run:
             cell["status"] = "scored"
             cell["star_count"] = -1

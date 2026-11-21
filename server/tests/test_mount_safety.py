@@ -49,3 +49,17 @@ def test_eod_heartbeat_cannot_vouch_for_silent_encoders():
 
 def test_no_encoder_frame_means_no_proof():
     assert not mount_safety.position_proof_ts(0.0, 1234.0, 1235.0)
+
+
+def test_goto_refused_when_model_contradicts_encoder():
+    """20 novembre 2026 : modèle à −30°, tube à l'horizontale."""
+    ok, why = mount_safety.check_model_matches_encoder(-30.0, 0.0)
+    assert ok is False and "mise en station" in why
+
+
+def test_goto_allowed_when_model_matches_encoder():
+    assert mount_safety.check_model_matches_encoder(41.0, 43.5)[0] is True
+
+
+def test_goto_refused_when_altitude_unknown():
+    assert mount_safety.check_model_matches_encoder(None, 12.0)[0] is False
