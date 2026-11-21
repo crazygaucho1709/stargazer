@@ -416,6 +416,14 @@ class INDIClient:
         self.link_suspect: bool = False
         # Horodatage de la dernière erreur d'écriture série du driver monture.
         self.serial_error_ts: float = 0.0
+        # Début de la panne série en cours, et dernière tentative de reconnexion
+        # automatique du driver (voir mount_safety.should_reconnect_serial).
+        self.serial_failing_since: float = 0.0
+        self.serial_reconnect_ts: float = 0.0
+        # Jusqu'à cet instant, une reconnexion du driver ne doit PAS reposer le
+        # point neutre du câble : la monture n'a pas été rallumée, son azimut
+        # courant n'est pas le repère du trépied.
+        self._keep_cordwrap_neutral_until: float = 0.0
         self.cordwrap_guard = mount_safety.CordWrapGuard()
         # {label ISO ("100", "1600", "Auto") : nom du switch ("ISO1"...)},
         # rempli à la découverte de CCD_ISO — voir process_message.
@@ -790,6 +798,34 @@ class INDIClient:
             self._close_socket()
             self.connected = False
 
+    def _reconnect_mount_serial(self, device: str):
+        """Ferme puis rouvre le port série du driver monture, sans rien bouger.
+
+        Se termine par un ordre d'arrêt inconditionnel : pendant la coupure,
+        aucun STOP n'a pu atteindre la monture. Si elle était en mouvement,
+        c'est le premier ordre qu'elle doit recevoir.
+        """
+        if not device:
+            logger.error("⛔ Reconnexion série impossible — driver monture inconnu")
+            return
+        logger.warning(f"🔌 Liaison série en panne depuis plus de "
+                       f"{mount_safety.SERIAL_RECONNECT_AFTER_S:.0f} s — reconnexion du driver {device}")
+        try:
+            self._keep_cordwrap_neutral_until = time.time() + 30.0
+            self.send(f'<newSwitchVector device="{device}" name="CONNECTION">'
+                      f'<oneSwitch name="DISCONNECT">On</oneSwitch>'
+                      f'<oneSwitch name="CONNECT">Off</oneSwitch>'
+                      f'</newSwitchVector>')
+            time.sleep(2.0)
+            self._safe_connect_device(device)
+            time.sleep(4.0)
+            self.send(f'<newSwitchVector device="{device}" name="TELESCOPE_ABORT_MOTION">'
+                      f'<oneSwitch name="ABORT">On</oneSwitch></newSwitchVector>')
+            logger.info(f"🔌 Driver {device} reconnecté, ordre d'arrêt envoyé — "
+                        "la liaison est jugée rétablie après 15 s sans erreur")
+        except Exception as e:
+            logger.error(f"⛔ Reconnexion série du driver {device} échouée : {e}")
+
     def serial_failing(self) -> bool:
         """La liaison série de la monture est-elle en échec d'écriture ?"""
         return mount_safety.serial_link_failing(self.serial_error_ts, time.time())
@@ -864,7 +900,8 @@ class INDIClient:
                             # sans réapplication, plus rien ne protège de la collision
                             # Canon/fourche ni de l'enroulement du câble.
                             if not prev_mount_connected:
-                                self.cordwrap_guard.set_neutral(self.encoder_az or 0.0)
+                                if time.time() >= self._keep_cordwrap_neutral_until:
+                                    self.cordwrap_guard.set_neutral(self.encoder_az or 0.0)
                                 threading.Thread(target=self._apply_axis_limits,
                                                  args=(dev_name,), daemon=True).start()
                     elif any(kw in dev_name for kw in ["CCD", "Camera", "DSLR", "EOS", "GPhoto"]):
@@ -922,7 +959,10 @@ class INDIClient:
                 # TELESCOPE_ENCODER_STEPS que toutes les ~5-6s (ou au changement de pas).
                 # Si les encodeurs ont déjà été reçus et que le driver répond sans Alert,
                 # on rafraîchit le battement monture pour éviter de faux refus de jog.
-                if state != "Alert" and self.encoder_az is not None and self.encoder_alt is not None:
+                # Liaison série en échec : le driver publie encore, mais rien ne
+                # vient de la monture. Ce battement ne prouve alors rien.
+                if (state != "Alert" and self.encoder_az is not None
+                        and self.encoder_alt is not None and not self.serial_failing()):
                     self.mount_heartbeat_ts = time.time()
 
             # 2.4 Encodeurs bruts (driver celestron_aux) — référentiel MONTURE.
@@ -941,21 +981,28 @@ class INDIClient:
                 m_az = re.search(r'name="AXIS_AZ"[^>]*>\s*([-\d.]+)', xml_str)
                 m_alt = re.search(r'name="AXIS_ALT"[^>]*>\s*([-\d.]+)', xml_str)
                 prev_az, prev_alt = self.encoder_az, self.encoder_alt
+                # Une trame reçue pendant que les écritures série échouent n'est
+                # pas une lecture de la monture : le driver republie ses propres
+                # valeurs (0 / 0 s'il n'a jamais rien lu, vu le 21 novembre 2026).
+                # Elle ne rafraîchit donc pas la preuve de vie.
+                link_alive = not self.serial_failing()
                 if m_az:
                     try:
                         self.encoder_az = mount_safety.steps_to_deg(float(m_az.group(1)))
                         self.cordwrap_guard.update(self.encoder_az)
-                        now_ts = time.time()
-                        self.encoder_last_update = now_ts
-                        self.mount_heartbeat_ts = now_ts
+                        if link_alive:
+                            now_ts = time.time()
+                            self.encoder_last_update = now_ts
+                            self.mount_heartbeat_ts = now_ts
                     except ValueError:
                         pass
                 if m_alt:
                     try:
                         self.encoder_alt = mount_safety.steps_to_deg(float(m_alt.group(1)))
-                        now_ts = time.time()
-                        self.encoder_last_update = now_ts
-                        self.mount_heartbeat_ts = now_ts
+                        if link_alive:
+                            now_ts = time.time()
+                            self.encoder_last_update = now_ts
+                            self.mount_heartbeat_ts = now_ts
                     except ValueError:
                         pass
                 # Distinguer « trame reçue » de « valeur changée ». Le driver
@@ -1048,7 +1095,15 @@ class INDIClient:
                                     logger.error(
                                         "⛔ Liaison série de la monture en échec d'écriture — "
                                         "GoTo et jog refusés jusqu'à 15 s sans erreur.")
+                                    self.serial_failing_since = now_ts
                                 self.serial_error_ts = now_ts
+                                if mount_safety.should_reconnect_serial(
+                                        self.serial_failing_since, self.serial_reconnect_ts, now_ts):
+                                    self.serial_reconnect_ts = now_ts
+                                    threading.Thread(
+                                        target=self._reconnect_mount_serial,
+                                        args=(getattr(self, "device_mount", None) or alert_dev,),
+                                        daemon=True).start()
                         # If mount reports not aligned, update state
                         if "not aligned" in msg.lower():
                             self.mount_slew_state = "Not Aligned"
@@ -4413,7 +4468,14 @@ def mount_status():
     # d'alignement et devient faux à chaque sync.
     az = mount_safety.encoder_az_signed(indi.encoder_az)
     alt = mount_safety.signed_angle(indi.encoder_alt) if indi.encoder_alt is not None else None
+    # Liaison série en panne : les valeurs du driver ne viennent pas de la
+    # monture. Mieux vaut « pas de position » qu'un 0° / 0° qui a l'air vrai.
+    position_valid = not indi.serial_failing() and az is not None and alt is not None
+    if indi.serial_failing():
+        az = alt = None
     return {
+        "position_valid": position_valid,
+        "position_error": SERIAL_LINK_ERROR if indi.serial_failing() else None,
         "connected": indi.mount_connected,
         "ra": indi.mount_ra,
         "dec": indi.mount_dec,

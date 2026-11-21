@@ -136,6 +136,29 @@ def serial_link_failing(last_error_ts: float, now_ts: float,
     return last_error_ts > 0 and (now_ts - last_error_ts) < hold_s
 
 
+# Reconnexion automatique du driver monture après une coupure série.
+# 20 s d'erreurs continues : ce n'est plus un accroc passager, le driver écrit
+# dans un port qui n'existe plus. Une tentative par minute au plus, pour ne pas
+# marteler un adaptateur réellement débranché.
+SERIAL_RECONNECT_AFTER_S = 20.0
+SERIAL_RECONNECT_MIN_INTERVAL_S = 60.0
+
+
+def should_reconnect_serial(failing_since_ts: float, last_attempt_ts: float, now_ts: float,
+                            after_s: float = SERIAL_RECONNECT_AFTER_S,
+                            min_interval_s: float = SERIAL_RECONNECT_MIN_INTERVAL_S) -> bool:
+    """Faut-il fermer puis rouvrir le port série du driver monture ?
+
+    Incident du 21 novembre 2026 : l'adaptateur USB-série décroche 96 s après
+    le démarrage du Pi et revient aussitôt, mais le driver garde l'ancien port.
+    Toutes ses écritures échouent pendant 15 minutes, jusqu'à un redémarrage à
+    la main. Déconnecter puis reconnecter le driver suffit à rouvrir le port.
+    """
+    if failing_since_ts <= 0 or (now_ts - failing_since_ts) < after_s:
+        return False
+    return last_attempt_ts <= 0 or (now_ts - last_attempt_ts) >= min_interval_s
+
+
 HEARTBEAT_MAX_ENCODER_GAP_S = 30.0
 """Durée maximale pendant laquelle le battement EQUATORIAL_EOD_COORD peut tenir
 lieu de preuve de vie sans nouvelle trame d'encodeurs.

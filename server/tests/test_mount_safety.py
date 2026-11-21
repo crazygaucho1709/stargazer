@@ -63,3 +63,16 @@ def test_goto_allowed_when_model_matches_encoder():
 
 def test_goto_refused_when_altitude_unknown():
     assert mount_safety.check_model_matches_encoder(None, 12.0)[0] is False
+
+
+def test_reconnexion_serie_attend_une_panne_installee():
+    # Pas de panne, ou panne trop récente : on ne touche à rien.
+    assert not mount_safety.should_reconnect_serial(0.0, 0.0, 1000.0)
+    assert not mount_safety.should_reconnect_serial(990.0, 0.0, 1000.0)
+    # 20 s d'erreurs continues, aucune tentative : on reconnecte.
+    assert mount_safety.should_reconnect_serial(980.0, 0.0, 1000.0)
+
+
+def test_reconnexion_serie_une_tentative_par_minute():
+    assert not mount_safety.should_reconnect_serial(900.0, 970.0, 1000.0)
+    assert mount_safety.should_reconnect_serial(900.0, 940.0, 1000.0)
