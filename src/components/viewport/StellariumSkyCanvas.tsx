@@ -11,6 +11,7 @@
  * masquer, passer `hidden` plutôt que de le démonter.
  */
 
+import { highSkyPoint } from "@/lib/sun";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Waypoints, Tag, CloudSun, Mountain, Grid3x3, Globe, Sparkles,
@@ -387,7 +388,12 @@ export function StellariumSkyCanvas({
   useEffect(() => {
     if (!ready || userMovedRef.current || focusTarget) return;
     if (mountValid) lookAtRaDec(mountRaDeg, mountDecDeg, 0);
-    else lookAtRaDec(83.8221, -5.3911, 0);
+    else {
+      // Pas de position fiable : on ouvre sur le ciel, haut côté sud. Viser
+      // une étoile fixe (Orion) montrait le sol dès qu'elle était couchée.
+      const sky = highSkyPoint(lat, lon, date ?? new Date());
+      lookAtRaDec(sky.raDeg, sky.decDeg, 0);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, lat, lon]);
 

@@ -288,7 +288,9 @@ export const InfrastructureStatus = () => {
           details={data?.camera?.connected ? "Ready for capture" : "Camera disconnected"}
         />
 
-        <StatusCard
+{/* KStars est optionnel : sa carte n'apparaît que s'il tourne. */}
+        {data?.kstars?.running && (
+                <StatusCard
           title="KStars + Ekos"
           icon={ShieldCheck}
           // Optionnel : le contrôle passe par le bridge INDI, KStars n'est pas requis.
@@ -300,6 +302,7 @@ export const InfrastructureStatus = () => {
           ]}
           details={data?.kstars?.running ? "GUI active sur le Mac Mini" : "Optionnel — contrôle direct via bridge INDI"}
         />
+        )}
       </div>
     </div>
   );

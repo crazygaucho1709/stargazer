@@ -2,6 +2,7 @@
 "use client";
 
 import { useStationStream } from "@/hooks/useStationStream";
+import { limitBreach } from "@/lib/stationReadiness";
 
 const fmt = (v: number | null | undefined) =>
   typeof v === "number" ? `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(1)}°` : "—";
@@ -14,6 +15,7 @@ export function MountPositionReadout() {
   const station = useStationStream().station;
   const aligned = !!station?.sky_synced;
   const limits = station?.limits;
+  const breach = limitBreach(station);
   const cells = [
     { label: "Hauteur", value: fmt(station?.encoder_alt), hint: limits ? `${limits.alt_min}° à ${limits.alt_max}°` : "" },
     { label: "Azimut", value: fmt(station?.encoder_az), hint: limits ? `${limits.az_min}° à ${limits.az_max}°` : "" },
@@ -29,6 +31,7 @@ export function MountPositionReadout() {
           </div>
         ))}
       </div>
+      {breach && <p role="alert" className="text-hud-xs text-red-300">{breach}</p>}
       <p role="status" className={`text-hud-xs ${aligned ? "text-emerald-300" : "text-amber-300"}`}>
         {station?.encoder_alt == null
           ? "Position non lue sur la monture"

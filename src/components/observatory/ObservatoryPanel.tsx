@@ -393,7 +393,7 @@ export default function ObservatoryPanel() {
           )}
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
-          {(Object.values(subsystems) as SubsystemHealth[]).map((sub) => (
+          {(Object.values(subsystems) as SubsystemHealth[]).filter((sub) => !UNEQUIPPED.includes(sub.id)).map((sub) => (
             <SubsystemCard key={sub.id} sub={sub} />
           ))}
         </div>

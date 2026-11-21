@@ -30,6 +30,7 @@ import { CapturePreviewModal } from "@/components/camera/CapturePreviewModal";
 import { MiseEnStationWizard } from "@/components/telescope/MiseEnStationWizard";
 import { StationSetupCard } from "@/components/telescope/StationSetupCard";
 import { MountPositionReadout } from "@/components/telescope/MountPositionReadout";
+import { calcSunAlt } from "@/lib/sun";
 import { MountCalibration } from "@/components/telescope/MountCalibration";
 import { AIAssistant } from "@/components/ai/AIAssistant";
 import ObservatoryPanel from "@/components/observatory/ObservatoryPanel";
@@ -62,23 +63,6 @@ import { t } from "@/i18n/translations";
 import { CelestialObject } from "@/data/celestialCatalog";
 
 type DockPanel = "tonight" | "mount" | "camera" | "weather" | "observatory" | null;
-
-// ── Sun altitude (crépuscule) ────────────────────────────────────────────────
-function calcSunAlt(lat: number, lon: number, date: Date): number {
-  const rad = Math.PI / 180;
-  const D = date.getTime() / 86400000 - 10957;
-  const g = (357.529 + 0.98560028 * D) * rad;
-  const q = 280.459 + 0.98564736 * D;
-  const L = (q + 1.915 * Math.sin(g) + 0.02 * Math.sin(2 * g)) * rad;
-  const e = 23.439 * rad;
-  const sinDec = Math.sin(e) * Math.sin(L);
-  const dec = Math.asin(sinDec);
-  const UT = date.getUTCHours() + date.getUTCMinutes() / 60 + date.getUTCSeconds() / 3600;
-  const GMST = (6.697375 + 0.0657098242 * D + UT) % 24;
-  const RA = Math.atan2(Math.cos(e) * Math.sin(L), Math.cos(L)) / rad / 15;
-  const LHA = ((GMST + lon / 15 - RA) % 24) * 15 * rad;
-  return Math.asin(Math.sin(lat * rad) * sinDec + Math.cos(lat * rad) * Math.cos(dec) * Math.cos(LHA)) / rad;
-}
 
 function TwilightSummary({ lat, lon, date }: { lat: number; lon: number; date: Date }) {
   const sunAlt = calcSunAlt(lat, lon, date);
@@ -517,25 +501,31 @@ export default function Home() {
                     <StationSetupCard />
                     <TelescopeControls variant="pad" />
                     <TrackingModeSelector />
-                    <div className="flex items-center justify-end pt-2 border-t border-white/[0.08]">
+                    <details className="pt-2 border-t border-white/[0.08] group">
+                      <summary className="flex items-center justify-between min-h-[var(--size-touch)] cursor-pointer text-hud-xs font-medium text-slate-300 hover:text-white">
+                        Réglages manuels
+                        <span className="text-hud-2xs text-slate-500">mise en station pas à pas, limites</span>
+                      </summary>
+                    <div className="flex items-center justify-end pt-2">
                       <button
                         type="button"
                         onClick={() => setShowMiseEnStation((v) => !v)}
                         className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg text-xs font-medium border border-[--astro-teal]/35 bg-[--astro-teal]/10 text-[--astro-teal] hover:bg-[--astro-teal]/20 transition-colors cursor-pointer"
                       >
                         {showMiseEnStation ? (
-                          <><ChevronUp size={13} aria-hidden /> Fermer wizard</>
+                          <><ChevronUp size={13} aria-hidden /> Fermer l&apos;assistant</>
                         ) : (
-                          <><Crosshair size={13} aria-hidden /> Mise en station</>
+                          <><Crosshair size={13} aria-hidden /> Mise en station pas à pas</>
                         )}
                       </button>
                     </div>
                     {showMiseEnStation && (
                       <MiseEnStationWizard onClose={() => setShowMiseEnStation(false)} />
                     )}
-                    <div className="pt-3 border-t border-white/[0.08]">
+                    <div className="pt-3 mt-3 border-t border-white/[0.08]">
                       <MountCalibration />
                     </div>
+                    </details>
                   </div>
                 </PanelErrorBoundary>
               )}

@@ -4,6 +4,8 @@
 import { Check, CircleAlert, CircleDashed, Loader2, Square, Wand2, X } from "lucide-react";
 import { useStargazerStore } from "@/store/useStargazerStore";
 import { useStationSetup, SetupStepStatus } from "@/hooks/useStationSetup";
+import { useStationStream } from "@/hooks/useStationStream";
+import { limitBreach } from "@/lib/stationReadiness";
 
 const ICON: Record<SetupStepStatus, React.ElementType> = {
   pending: CircleDashed, running: Loader2, done: Check,
@@ -15,25 +17,35 @@ const TONE: Record<SetupStepStatus, string> = {
   warning: "text-amber-300", failed: "text-red-300", aborted: "text-slate-400",
 };
 
-/** Mise en station automatique : un bouton, puis le suivi des six étapes. */
+/** Préparer la station : où l'on en est, un seul bouton, puis le suivi des six étapes. */
 export function StationSetupCard() {
   const isConnected = useStargazerStore((s) => s.isConnected);
   const { setup, start, stop, pending } = useStationSetup();
   const running = !!setup?.running;
   const zone = setup?.horizon?.zone ?? null;
+  const station = useStationStream().station;
+  const breach = limitBreach(station);
+  // Ce qu'il reste à obtenir avant d'observer. C'est la même liste, quel que
+  // soit le chemin : la préparation automatique les traite dans cet ordre.
+  const checklist = [
+    { ok: station?.encoder_alt != null, label: "Position lue sur la monture" },
+    { ok: station?.encoder_alt != null && !breach, label: breach ?? "Monture dans ses limites" },
+    { ok: !!station?.location_source && station.location_source !== "fallback", label: "Lieu et heure connus" },
+    { ok: !!station?.sky_synced, label: "Alignée sur le ciel" },
+  ];
 
   return (
     <section
-      aria-label="Mise en station automatique"
+      aria-label="Préparer la station"
       className="rounded-xl p-3 bg-white/[0.03] border border-white/[0.07] flex flex-col gap-2.5"
     >
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0">
           <h3 className="text-hud-sm font-semibold text-white normal-case tracking-normal">
-            Mise en station automatique
+            Préparer la station
           </h3>
           <p className="text-hud-2xs text-slate-400">
-            Balayage, limites, alignement et focus numérique. La monture se déplace seule.
+            Un seul geste : balayage du ciel, limites, alignement et mise au point numérique. La monture se déplace seule.
           </p>
         </div>
         {running ? (
@@ -49,13 +61,31 @@ export function StationSetupCard() {
             type="button"
             onClick={start}
             disabled={!isConnected || pending}
-            title={isConnected ? "Lancer la mise en station complète" : "Station hors ligne"}
+            title={isConnected ? "Lancer la préparation complète de la station" : "Station hors ligne"}
             className="shrink-0 inline-flex items-center gap-1.5 px-3 min-h-[var(--size-touch-lg)] rounded-lg text-hud-xs font-semibold border border-[--astro-teal]/40 bg-[--astro-teal]/12 text-[--astro-teal] hover:bg-[--astro-teal]/20 transition-colors duration-150 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            <Wand2 size={13} aria-hidden /> Lancer
+            <Wand2 size={13} aria-hidden /> Préparer
           </button>
         )}
       </div>
+
+      {!running && (
+        <ul className="flex flex-col gap-1" aria-label="État de préparation">
+          {checklist.map((item) => (
+            <li key={item.label} className="flex items-center gap-2 text-hud-xs">
+              {item.ok
+                ? <Check size={13} className="shrink-0 text-emerald-300" aria-hidden />
+                : <CircleDashed size={13} className="shrink-0 text-amber-300" aria-hidden />}
+              <span className={item.ok ? "text-slate-300" : "text-amber-200"}>{item.label}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {!running && breach && (
+        <p className="text-hud-2xs text-amber-200">
+          Éteignez puis rallumez la monture sur ses repères : ses compteurs repartiront de zéro.
+        </p>
+      )}
 
       {setup && setup.steps.length > 0 && (
         <ol className="flex flex-col gap-1.5">

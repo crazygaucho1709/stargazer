@@ -79,6 +79,9 @@ interface StargazerState {
     globalLoadingMessage: string;
     detectedCcd: string;
     detectedMount: string;
+    /** Un moteur de mise au point est annoncé par INDI. Faux par défaut. */
+    hasFocuser: boolean;
+    setHasFocuser: (v: boolean) => void;
     selectedObjectId: string | null;
     trackingRate: "SIDEREAL" | "LUNAR" | "SOLAR";
     isConfigMenuOpen: boolean;
@@ -252,6 +255,8 @@ export const useStargazerStore = create<StargazerState>()(
             },
             setMountLimits: (limits) => set((state) => ({ mountLimits: { ...state.mountLimits, ...limits } })),
             setDetectedDevices: (detectedCcd, detectedMount) => set({ detectedCcd, detectedMount }),
+            hasFocuser: false,
+            setHasFocuser: (hasFocuser) => set({ hasFocuser }),
             setSelectedObjectId: (selectedObjectId) => set({ selectedObjectId }),
             setTrackingRate: (trackingRate) => set({ trackingRate }),
             setConfigMenuOpen: (isOpen) => set({ isConfigMenuOpen: isOpen }),

@@ -35,6 +35,21 @@ export interface ReadinessInput {
   piThrottled?: string | null;
 }
 
+const deg = (v: number) => `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(1)}°`;
+
+/** Phrase décrivant un dépassement de limite, ou null si la monture est dedans. */
+export function limitBreach(st: StationStatusData | null | undefined): string | null {
+  const l = st?.limits;
+  if (!st || !l || st.encoder_alt == null || st.encoder_az == null) return null;
+  if (st.encoder_alt < l.alt_min || st.encoder_alt > l.alt_max) {
+    return `Hauteur ${deg(st.encoder_alt)} hors limites (${l.alt_min}° à ${l.alt_max}°)`;
+  }
+  if (st.encoder_az < l.az_min || st.encoder_az > l.az_max) {
+    return `Azimut ${deg(st.encoder_az)} hors limites (${l.az_min}° à ${l.az_max}°)`;
+  }
+  return null;
+}
+
 export function computeReadiness(input: ReadinessInput): StationReadiness {
   if (input.loading) {
     return { level: "offline", label: "Connexion…", summary: "Lecture de l'état de la station", issues: [] };
@@ -61,6 +76,8 @@ export function computeReadiness(input: ReadinessInput): StationReadiness {
     blocked("Position de la monture non lue");
   }
 
+  const breach = limitBreach(st);
+  if (breach) degraded(breach);
   if (input.indiConnected && !input.ccdConnected) degraded("Caméra non connectée");
   if (input.mountConnected && !st?.sky_synced) degraded("Monture non alignée sur le ciel");
   if (st?.location_source === "fallback") degraded("Lieu par défaut : position GPS non reçue");

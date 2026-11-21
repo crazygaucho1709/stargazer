@@ -283,6 +283,10 @@ const AlignmentTab = ({ language }: { language: string }) => {
 
     return (
         <div className="flex flex-col gap-6">
+            <p className="text-hud-xs text-slate-400">
+                Le chemin normal est « Préparer la station », dans le panneau Monture.
+                Les assistants ci-dessous servent aux réglages manuels et au dépannage.
+            </p>
             {/* Mode toggle */}
             <div className="flex gap-2 p-1 rounded-lg w-fit" style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.08)" }}>
                 {modes.map(({ id, label, icon: Ico }) => {

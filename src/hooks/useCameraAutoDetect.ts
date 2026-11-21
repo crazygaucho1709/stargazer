@@ -27,6 +27,7 @@ export function useCameraAutoDetect(): void {
     const setLiveViewMode = useStargazerStore((s) => s.setLiveViewMode);
     const setDetectedDevices = useStargazerStore((s) => s.setDetectedDevices);
     const detectedMount = useStargazerStore((s) => s.detectedMount);
+    const setHasFocuser = useStargazerStore((s) => s.setHasFocuser);
     const hasRunRef = useRef(false);
     // Le backend annonce la caméra dans son flux d'état. On attend ce signal
     // avant de lister les appareils : interrogée dès la connexion, la liste
@@ -59,6 +60,7 @@ export function useCameraAutoDetect(): void {
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const devices: IndiDevice[] = await res.json();
 
+                setHasFocuser(devices.some((d) => /focus/i.test(d.name)));
                 const ccdDevice    = devices.find((d) => isCcd(d.name));
                 const canonDevice  = devices.find((d) => isCanon(d.name));
 
@@ -92,5 +94,5 @@ export function useCameraAutoDetect(): void {
         }
 
         detect();
-    }, [isConnected, ccdConnected, setLiveViewMode, setDetectedDevices, detectedMount]);
+    }, [isConnected, ccdConnected, setLiveViewMode, setDetectedDevices, setHasFocuser, detectedMount]);
 }

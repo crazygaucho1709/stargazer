@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { Sparkles, Clock, RotateCcw, Compass } from "lucide-react";
 import { CELESTIAL_CATALOG, CelestialObject } from "@/data/celestialCatalog";
 import { rankTargets } from "@/lib/targetRanking";
+import { calcSunAlt, hoursUntilDark, DARK_SUN_ALT_DEG } from "@/lib/sun";
 
 interface TonightDrawerProps {
   lat: number;
@@ -53,6 +54,14 @@ export function TonightDrawer({
   }, [planDate, lat, lon, filter]);
 
   const visibleCount = ranked.filter((r) => r.isVisible).length;
+
+  // À l'heure choisie, fait-il assez noir ? Sinon la liste classe des cibles
+  // hautes dans le ciel mais invisibles : on le dit, et on propose la nuit.
+  const sunAlt = calcSunAlt(lat, lon, planDate);
+  const tooBright = sunAlt >= DARK_SUN_ALT_DEG;
+  const darkIn = tooBright ? hoursUntilDark(lat, lon, planDate) : null;
+  const nightOffset = darkIn === null ? null : Math.ceil((timeOffsetHours + darkIn) * 2) / 2;
+  const nightTime = darkIn === null ? null : new Date(planDate.getTime() + darkIn * 3600_000);
 
   return (
     <div className="flex flex-col gap-3 h-full min-h-0">
@@ -118,9 +127,33 @@ export function TonightDrawer({
         })}
       </div>
 
+      {tooBright && (
+        <div role="status" className="rounded-xl p-3 border border-amber-400/30 bg-amber-400/[0.07] flex flex-col gap-2">
+          <p className="text-hud-xs text-amber-200">
+            {sunAlt > 0
+              ? `Il fait jour à cette heure (Soleil à ${sunAlt.toFixed(0)}°).`
+              : "Le ciel n'est pas encore noir à cette heure."}{" "}
+            Le classement ci-dessous ne vaut que de nuit.
+          </p>
+          {nightOffset !== null && nightOffset <= 12 && nightTime && (
+            <button
+              type="button"
+              onClick={() => onTimeOffsetChange(nightOffset)}
+              className="self-start inline-flex items-center px-3 min-h-[var(--size-touch)] rounded-lg text-hud-xs font-semibold border border-[--astro-teal]/40 bg-[--astro-teal]/12 text-[--astro-teal] hover:bg-[--astro-teal]/20 transition-colors duration-150 cursor-pointer"
+            >
+              Voir les cibles à la nuit tombée ({nightTime.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })})
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="flex items-center justify-between text-hud-2xs text-slate-400 px-0.5">
-        <span>{visibleCount} cible(s) au-dessus de 15°</span>
-        <span>Triées par score</span>
+        <span>
+          {tooBright
+            ? `${visibleCount} cible(s) au-dessus de 15°, invisibles de jour`
+            : `${visibleCount} cible(s) au-dessus de 15°`}
+        </span>
+        {!tooBright && <span>Triées par score</span>}
       </div>
 
       {/* Ranked cards */}

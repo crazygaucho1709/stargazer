@@ -61,6 +61,9 @@ export const CameraControls = ({ variant = "standard" }: CameraControlsProps) =>
         language,
         detectedCcd,
     } = useStargazerStore();
+    // Sans moteur de mise au point annoncé par INDI, ses commandes n'ont rien
+    // à piloter : on ne les affiche pas.
+    const hasFocuser = useStargazerStore((st) => st.hasFocuser);
 
     const { execute, isPending } = useAstroAction();
     const [lastHfr, setLastHfr] = useState<number | null>(null);
@@ -166,6 +169,7 @@ export const CameraControls = ({ variant = "standard" }: CameraControlsProps) =>
                         </Tooltip>
                     </div>
 
+                    {hasFocuser && (<>
                     {/* Focus cardinal buttons */}
                     <div className="absolute top-[6px]" style={{ left: "50%", transform: "translateX(-50%)" }}>
                         <ControlButton icon={ChevronUp} onClick={() => handleFocusAction('IN')} isLoading={isPending} tooltip="FOCUS IN (FINE)" />
@@ -179,6 +183,7 @@ export const CameraControls = ({ variant = "standard" }: CameraControlsProps) =>
                     <div className="absolute right-[6px]" style={{ top: "50%", transform: "translateY(-50%)" }}>
                         <ControlButton icon={ChevronRight} onClick={() => handleFocusAction('OUT')} isLoading={isPending} tooltip="FOCUS OUT" />
                     </div>
+                    </>)}
 
                     {/* Decorative HUD elements */}
                     <div className="absolute top-[20%] left-[20%] opacity-20" style={{ color: "var(--astro-starlight)" }}><Crosshair size={10} /></div>
@@ -237,6 +242,7 @@ export const CameraControls = ({ variant = "standard" }: CameraControlsProps) =>
 
                 {/* AI & HUD Controls */}
                 <div className="flex flex-col w-full gap-2 pt-3" style={{ borderTop: "1px solid rgba(255,255,255,0.1)" }}>
+                    {hasFocuser && (
                     <div
                         className="flex w-full items-center justify-between p-2 rounded-lg"
                         style={{ background: "rgba(0,255,180,0.03)", border: "1px solid rgba(0,255,180,0.1)" }}
@@ -265,6 +271,7 @@ export const CameraControls = ({ variant = "standard" }: CameraControlsProps) =>
                             onChange={(checked) => updateConfig({ showAiFocusCorrections: checked })}
                         />
                     </div>
+                    )}
 
                     <div
                         className="flex w-full items-center justify-between p-2 rounded-lg"
